@@ -1,0 +1,10 @@
+python -m pip install --upgrade pip --user
+python -m pip install pandas pip --user
+python -m pip install sqlalchemy pip --user
+python -m pip install cx_oracle pip --user
+python -m pip install pyodbc pip --user
+python -m pip install xlrd pip --user
+
+
+python -m pip install nltk pip --user
+python -m pip install tenorflow pip --user

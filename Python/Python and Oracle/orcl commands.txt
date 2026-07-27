@@ -1,0 +1,48 @@
+python
+import cx_Oracle
+con=cx_Oracle.connect("bis/bis@lnerp-scan.elgi.com:1521/lnerprac")
+
+
+cur = con.cursor()
+cur.execute('select erpnln.tcisli305400.* from erpnln.tcisli305400')
+for result in cur:
+    print(result)
+
+
+
+import cx_Oracle
+con=cx_Oracle.connect("bis/bis@lnerp-scan.elgi.com:1521/lnerprac")
+
+cur = con.cursor()
+cur.execute("select erpnln.ttfgld495465.* from erpnln.ttfgld495465 where T$rbid='100000701' and T$rpon=90 ")
+for result in cur:
+    print(result)
+cur.close()
+con.close()   
+
+
+
+
+import cx_Oracle
+con=cx_Oracle.connect("bis/bis@lnerp-scan.elgi.com:1521/lnerprac")
+
+cur = con.cursor()
+cur.execute("select erpnln.ttfgld495400.T$rbid from erpnln.ttfgld495400")
+for result in cur:
+    print(result)
+
+
+------------------------------------------------------------------------------------------------------
+
+import cx_Oracle
+con=cx_Oracle.connect("bis/bis@lnerp-scan.elgi.com:1521/lnerprac")
+print("Oracle Connection Version "+con.version +" established Successfully")
+
+
+
+
+
+con.close()
+
+
+https://www.oracle.com/technical-resources/articles/database/python-with-database-11g.html

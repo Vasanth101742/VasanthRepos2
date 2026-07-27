@@ -1,0 +1,7 @@
+Query="select "+str(count1)+" as Company,"\
+    #t$odat as odat, \
+    "t$orno as orno,t$ofbp as ofbp" \
+    #",trim(t$itad) as itad, concat("+str(count1)+",concat(t$orno,trim(t$ofbp))) as KeyCol2
+    " from erpnln.ttdsls400"+str(count1)
+          #+" where cast(t$odat as date) < '26/Jan/2020' " \
+          #+" and  "+str(count1)+" =401"

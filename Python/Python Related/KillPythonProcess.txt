@@ -1,0 +1,1 @@
+=round((Sum(Fields!ALC_inTime.Value) / Sum(Fields!Total.Value)) * 100, 0) & First(Fields!justify_month.Value, "DataSet1")

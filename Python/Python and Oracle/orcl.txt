@@ -1,0 +1,32 @@
+https://www.youtube.com/watch?v=C9op6I-4WM0
+https://www.oracle.com/technetwork/articles/dsl/python-091105.html
+
+python
+import cx_Oracle
+con=cx_Oracle.connect("bis/bis@lnerp-scan.elgi.com:1521/lnerprac")
+con=cx_Oracle.connect("bis/bis@172.16.32.176:1521/lnerprac")
+con=cx_Oracle.connect("bis","bis","lnerprac")
+
+
+con=cx_Oracle.connect("bis/bis/lnerp-scan.elgi.com:1521/lnerprac")
+
+
+con=cx_Oracle.connect("bis/bis/172.16.33.93:1521/LNERP")
+
+con=cx_Oracle.connect("bis/bis@lnerp-scan.elgi.com:1521/lnerprac")
+
+
+
+%path%;C:\Users\vasanthk\Downloads\winnt_12102_client32
+
+%path%;C:\instantclient32\instantclient_19_3
+
+lnerprac=
+  (DESCRIPTION =
+    (ADDRESS = 
+	(PROTOCOL = TCP)
+	(HOST = lnerp-scan.elgi.com)
+	(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = lnerprac)))

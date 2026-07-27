@@ -1,0 +1,13 @@
+,0
+0,"0                           NaN
+1         MANUFACTURER(GENERAL)
+2                           NaN
+3         MANUFACTURER(GENERAL)
+4                           NaN
+                  ...          
+401917                  TRADERS
+401918                  TRADERS
+401919                  TRADERS
+401920                  DEALERS
+401921    MANUFACTURER(GENERAL)
+Name: lineofbusiness, Length: 401922, dtype: object"

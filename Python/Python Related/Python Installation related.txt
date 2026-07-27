@@ -1,0 +1,7 @@
+https://nvlabs.github.io/SPADE/
+https://www.nvidia.com/en-us/research/ai-playground/
+http://nvidia-research-mingyuliu.com/gaugan/
+
+
+
+=iif(Sum(Fields!Total.Value)=0,0,round((Sum(Fields!ALC_inTime.Value) / Sum(Fields!Total.Value)) * 100, 0)) & vbcrlf & Fields!justify.Value

@@ -1,0 +1,17 @@
+{"intents":[
+    {
+        "tag":"greeting",
+        "patterns": ["Hi","How are you","Hello","Good day","Whats up"],
+        "responses": ["Hi","Good to see you","Welcome","How can i help you"],
+        "context_set":""
+    },
+    {
+        "tag":"good bye",
+        "patterns": ["Vasanth","see you later","Good bye","Have a good day"],
+        "responses": ["Hi","Sad to see you go :(","Talk to you later"],
+        "context_set":""
+    }
+]
+
+
+}

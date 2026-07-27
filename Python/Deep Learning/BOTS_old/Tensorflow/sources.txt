@@ -1,0 +1,26 @@
+
+Python Chat Bot Tutorial - Chatbot with Deep Learning (Part 1) 
+
+https://www.youtube.com/watch?v=wypVcNIH6D4
+
+
+How to install Tensorflow-GPU on Windows 10 
+
+
+https://www.youtube.com/watch?v=HExRhnO5Mqs
+
+
+TensorFlow Tutorial For Beginners
+
+https://www.datacamp.com/community/tutorials/tensorflow-tutorial
+
+
+TensorFlow Tutorial | Deep Learning Using TensorFlow | TensorFlow Tutorial Python | Edureka
+
+https://www.youtube.com/watch?v=yX8KuPZCAMo
+
+
+
+TensorFlow Full Course | Learn TensorFlow in 3 Hours | TensorFlow Tutorial For Beginners | Edureka 
+
+https://www.youtube.com/watch?v=DFKHh7_zzJc

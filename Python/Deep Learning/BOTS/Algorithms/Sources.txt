@@ -1,0 +1,41 @@
+
+A Brief Introduction to Supervised Learning
+
+https://towardsdatascience.com/a-brief-introduction-to-supervised-learning-54a3e3932590
+
+
+----------------------------------------------------------------------------------------------------------------
+
+
+Decision Tree Algorithm
+
+https://dataaspirant.com/2017/01/30/how-decision-tree-algorithm-works/
+https://towardsdatascience.com/decision-tree-algorithm-explained-83beb6e78ef4
+https://medium.com/deep-math-machine-learning-ai/chapter-4-decision-trees-algorithms-b93975f7a1f1
+
+
+
+Decision Tree Algorithm | Decision Tree in Python | Machine Learning Algorithms | Edureka 
+
+https://www.youtube.com/watch?v=qDcl-FRnwSU
+
+
+
+Entropy In Decision Tree Intuition 
+
+https://www.youtube.com/watch?v=1IQOtJ4NI_0
+
+
+
+
+----------------------------------------------------------------------------------------------------------------
+****************************************************************************************************************
+What is Machine Learning in Data Science- Machine Learning Tutorial with Python and R-Part 1 
+
+
+https://www.youtube.com/watch?v=EqRsD3gqeCo&list=PLZoTAELRMXVOnN_g96ayzXX5i7RRO0QhL
+
+
+****************************************************************************************************************
+----------------------------------------------------------------------------------------------------------------
+
