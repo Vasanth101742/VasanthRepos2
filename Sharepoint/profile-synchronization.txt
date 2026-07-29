@@ -1,0 +1,1 @@
+https://docs.microsoft.com/en-us/sharepoint/administration/configure-profile-synchronization-by-using-sharepoint-active-directory-import

@@ -1,0 +1,142 @@
+i am calling as mentioned in the above 4 steps
+
+If you've followed those steps exactly and the token is generated successfully but the Copy Activity returns 401, then the problem is most likely not with ADF, but with one of these three areas:
+
+The access token is for the wrong resource/audience.
+The Azure AD app doesn't have permission to access the SharePoint site.
+The SharePoint REST URL is incorrect.
+
+To identify which one it is, I need to see your configuration (with secrets masked).
+
+Please paste the following:
+
+1. Token request body (mask the secret)
+
+For example:
+
+grant_type=client_credentials
+client_id=xxxxxxxx
+client_secret=********
+resource=?
+
+or if using v2:
+
+scope=?
+2. SharePoint REST URL
+
+Example:
+
+https://company.sharepoint.com/sites/Finance/_api/web/GetFileByServerRelativeUrl('/sites/Finance/Shared Documents/Test.csv')/$value
+
+Mask only your company name if needed.
+
+3. Authorization header in ADF
+
+Is it exactly:
+
+Authorization
+
+Value:
+
+@concat('Bearer ', activity('GetToken').output.access_token)
+4. Decode the access token
+
+Go to a JWT decoder (such as jwt.ms or jwt.io) and tell me the values of these claims (do not share the full token):
+
+aud
+appid
+roles (or scp)
+iss
+
+The aud claim is especially important because it tells us whether the token is actually valid for SharePoint.
+
+One common issue
+
+If your token request uses:
+
+resource=https://graph.microsoft.com
+
+or
+
+scope=https://graph.microsoft.com/.default
+
+then that token cannot be used with the SharePoint REST API. It will always return 401 Unauthorized. For SharePoint REST, the token must target your SharePoint tenant (or the SharePoint resource identifier), not Microsoft Graph.
+
+Once you share the four items above, I can usually pinpoint the exact cause within a few minutes.
+
+
+Token request body i am using 
+
+grant_type=client_credentials
+&client_id=<ClientID>@<TenantID>
+&client_secret=<ClientSecret>
+&resource=00000003-0000-0ff1-ce00-000000000000/<tenant>.sharepoint.com@<TenantID>
+
+Thanks. Your token request body uses the legacy SharePoint ACS authentication format:
+
+grant_type=client_credentials
+client_id=<ClientID>@<TenantID>
+client_secret=<ClientSecret>
+resource=00000003-0000-0ff1-ce00-000000000000/<tenant>.sharepoint.com@<TenantID>
+
+This only works if you're using a SharePoint App-Only (ACS) principal. If you registered your application in Microsoft Entra ID (Azure AD), this is the wrong authentication flow and will often result in a 401 Unauthorized when calling the SharePoint REST API.
+
+If you registered the app in Microsoft Entra ID (Azure AD)
+
+Use the v2.0 token endpoint:
+
+https://login.microsoftonline.com/<TenantID>/oauth2/v2.0/token
+
+Request body:
+
+grant_type=client_credentials
+client_id=<ClientID>
+client_secret=<ClientSecret>
+scope=https://<tenant>.sharepoint.com/.default
+
+Notice:
+
+No @<TenantID> after the client ID.
+Use scope, not resource.
+If you're intentionally using SharePoint ACS
+
+Then I need to know:
+
+Is this a SharePoint App-Only app created with appregnew.aspx?
+Or is it an Azure AD App Registration?
+
+Most modern implementations use Azure AD App Registration, so using the ACS token format with an Azure AD app is a common cause of 401 errors.
+
+Another common cause: Missing SharePoint application permissions
+
+If you're using Azure AD App Registration, verify that the app has SharePoint application permissions (not just Microsoft Graph), for example:
+
+Sites.Read.All
+or Sites.FullControl.All (if broader access is needed)
+
+After adding them:
+
+Click Grant admin consent.
+Wait a few minutes for the permissions to propagate.
+I need one more detail
+
+Please tell me which token endpoint you're calling:
+
+Option A (legacy):
+
+https://accounts.accesscontrol.windows.net/.../tokens/OAuth/2
+
+Option B (Azure AD v1):
+
+https://login.microsoftonline.com/<tenant>/oauth2/token
+
+Option C (Azure AD v2):
+
+https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token
+
+Also, let me know:
+
+Did you create the application in Microsoft Entra ID → App registrations, or
+Did you create a SharePoint App-Only app using appregnew.aspx?
+
+That information will determine the correct authentication flow.

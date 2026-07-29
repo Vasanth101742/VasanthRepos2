@@ -1,0 +1,136 @@
+--Method 1:
+
+https://accounts.accesscontrol.windows.net/50f40674-931c-4d09-ae8a-bb8fde36b912/tokens/OAuth/2
+
+grant_type=client_credentials
+&client_id=403fbac6-e27b-4fc4-866f-7d8520ba0941@50f40674-931c-4d09-ae8a-bb8fde36b912
+&client_secret=FLR8Q~8F083PJK.0BBFijWgOcyk88QjBzoArhc8u
+&resource=00000003-0000-0ff1-ce00-000000000000/elgi.sharepoint.com@50f40674-931c-4d09-ae8a-bb8fde36b912
+
+
+
+@{concat('Authorization:Bearer ',activity('GetToken').output.access_token)}
+
+
+https://elgi.sharepoint.com/
+sites/BIS-IT/_api/web/GetFileByServerRelativeUrl('/sites/BIS-IT/Shared Documents/MasterData/ELGi/ID/FT.csv')/$value
+
+
+https://elgi.sharepoint.com/sites/BIS-IT/_api/web/GetFileByServerRelativeUrl('/sites/BIS-IT/Shared Documents/MasterData/ELGi/ID/FT.csv')/$value
+https://<tenant>.sharepoint.com/sites/BIS-IT/_api/web/GetFileByServerRelativeUrl('/sites/BIS-IT/Shared Documents/MasterData/ID/FT.csv')/$value
+
+--Testing
+https://<Tenant>.sharepoint.com/sites/BIS-IT/_api/web/GetFileByServerRelativeUrl('/sites/BIS-IT/Shared Documents/MasterData/ID/FT.csv')/$value
+
+------------------------------------------------------
+--Method 2:
+https://login.microsoftonline.com/<TenantID>/oauth2/v2.0/token
+https://login.microsoftonline.com/50f40674-931c-4d09-ae8a-bb8fde36b912/oauth2/v2.0/token
+https://login.microsoftonline.com/50f40674-931c-4d09-ae8a-bb8fde36b912/oauth2/token
+
+
+grant_type=client_credentials
+&client_id=<ClientID>@<TenantID>
+&client_secret=<ClientSecret>
+&resource=00000003-0000-0ff1-ce00-000000000000/<tenant>.sharepoint.com@<TenantID>
+
+grant_type=client_credentials
+&client_id=403fbac6-e27b-4fc4-866f-7d8520ba0941
+&client_secret=FLR8Q~8F083PJK.0BBFijWgOcyk88QjBzoArhc8u
+&scope=https://elgi.sharepoint.com/.default
+
+
+grant_type=client_credentials
+client_id=403fbac6-e27b-4fc4-866f-7d8520ba0941
+client_secret=FLR8Q~8F083PJK.0BBFijWgOcyk88QjBzoArhc8u
+scope=https://elgi.sharepoint.com/.default
+
+
+
+https://contoso.sharepoint.com/sites/Finance/_api/web/GetFileByServerRelativeUrl('/sites/Finance/Shared Documents/Reports/Sales.csv')/$value
+
+
+
+---------------------------------------------------------------------
+
+--Method 3:
+
+--https://login.microsoftonline.com/<TenantID>/oauth2/v2.0/token
+https://login.microsoftonline.com/50f40674-931c-4d09-ae8a-bb8fde36b912/oauth2/v2.0/token
+
+
+--client_id=<ClientID>
+--&client_secret=<ClientSecret>
+--&grant_type=client_credentials
+--&scope=https://graph.microsoft.com/.default
+
+
+grant_type=client_credentials
+&client_id=403fbac6-e27b-4fc4-866f-7d8520ba0941
+&client_secret=FLR8Q~8F083PJK.0BBFijWgOcyk88QjBzoArhc8u
+&scope=https://graph.microsoft.com/.default
+
+
+--Step 3: Get the Site ID
+
+--https://graph.microsoft.com/v1.0/sites/<tenant>.sharepoint.com:/sites/BIS-IT
+https://graph.microsoft.com/v1.0/sites/elgi.sharepoint.com:/sites/BIS-IT
+
+
+@concat(
+'Authorization: Bearer ',
+activity('GetToken').output.access_token,
+'\nAccept: application/octet-stream'
+)
+
+--Site id
+elgi.sharepoint.com,ada61f3c-e46c-42f6-af26-e851c7c156a2,5d3c896c-2f2d-4a76-8a28-25a78e50a474
+
+
+https://graph.microsoft.com/v1.0/sites/<your-site-id>/drive/root:/<folder-path>/<filename.ext>
+GET https://graph.microsoft.com/v1.0/sites/contoso.sharepoint.com,12345678-1111-2222-3333-123456789abc,98765432-aaaa-bbbb-cccc-987654321def/drive/root:/MasterData/ID/FT.csv:/content
+https://graph.microsoft.com/v1.0/sites/elgi.sharepoint.com,ada61f3c-e46c-42f6-af26-e851c7c156a2,5d3c896c-2f2d-4a76-8a28-25a78e50a474/drive/root:/MasterData/ELGi/ID/FT.csv:/content
+
+
+--Step 3.1
+
+--List all the Files in the Folder
+GET https://graph.microsoft.com/v1.0/sites/elgi.sharepoint.com,ada61f3c-e46c-42f6-af26-e851c7c156a2,5d3c896c-2f2d-4a76-8a28-25a78e50a474/drive/root:/MasterData/ELGi/ID:/children
+
+
+--Step 3.2
+
+--Get the Drive id for the site
+GET https://graph.microsoft.com/v1.0/sites/{site-id}/drives
+GET https://graph.microsoft.com/v1.0/sites/elgi.sharepoint.com,ada61f3c-e46c-42f6-af26-e851c7c156a2,5d3c896c-2f2d-4a76-8a28-25a78e50a474/drives
+
+--Drive id
+b!PB-mrWzk9kKvJuhRx8FWomyJPF0tL3ZKiiglp45QpHTm5Od07e8BQZj6rx-yUlRz
+
+
+--Step 3.3
+
+--Get the File data
+
+GET https://graph.microsoft.com/v1.0/sites/{site-id}/drives/{drive-id}/root:/MasterData/Ei/ID/FT.csv:/content
+GET https://graph.microsoft.com/v1.0/sites/elgi.sharepoint.com,ada61f3c-e46c-42f6-af26-e851c7c156a2,5d3c896c-2f2d-4a76-8a28-25a78e50a474/drives/b!PB-mrWzk9kKvJuhRx8FWomyJPF0tL3ZKiiglp45QpHTm5Od07e8BQZj6rx-yUlRz/root:/MasterData/ELGi/ID/FT.csv:/content
+
+
+
+--Step 4: in ADF
+--Base URL
+https://graph.microsoft.com
+--Relative URL
+--/v1.0/sites/{site-id}/drive/root:/MasterData/Ei/ID/FT.csv:/content
+/v1.0/sites/elgi.sharepoint.com,ada61f3c-e46c-42f6-af26-e851c7c156a2,5d3c896c-2f2d-4a76-8a28-25a78e50a474/drives/b!PB-mrWzk9kKvJuhRx8FWomyJPF0tL3ZKiiglp45QpHTm5Od07e8BQZj6rx-yUlRz/root:/MasterData/ELGi/ID/FT.csv:/content
+
+
+https://<tenant>.sharepoint.com/sites/BIS-IT/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FBIS%2DIT%2FShared%20Documents%2FMasterData%2FEi%2FID&viewid=f622d9cb%2Dd82b%2D488b%2Db960%2D38d36972f64f
+
+https://graph.microsoft.com/v1.0/sites/<tenant>.sharepoint.com:/sites/BIS-IT:/drive/root:/MasterData/ID/FT.csv:/content
+https://graph.microsoft.com/v1.0/sites/elgi.sharepoint.com:/sites/BIS-IT:/drive/root:/MasterData/ID/FT.csv:/content
+--Step 3: Get the Drive ID
+
+--GET https://graph.microsoft.com/v1.0/sites/{site-id}/drives
+GET https://graph.microsoft.com/v1.0/sites/{site-id}/drives
+
