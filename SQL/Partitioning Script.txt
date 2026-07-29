@@ -1,0 +1,249 @@
+
+--Step 1: Filegroup Creation
+
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_Before2020;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2020;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2021;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2022;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2023;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2024;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2025;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2026;
+Alter database ELGI_LN add filegroup FG_TTFGLD106ALL_2027;
+
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_Before2020;
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_2020;
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_2021;
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_2022;
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_2023;
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_2024;
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_2025;
+--Alter database ELGI_LN remove filegroup FG_TTFGLD106ALL_2026;
+
+select * from sys.filegroups where type='FG' and name like 'FG_TTFGLD106ALL%'
+
+------------------------------------------------------------------------
+
+--Step 2: File Creation
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_Before2020', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_Before2020.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_Before2020;
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2020', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2020.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2020;
+
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2021', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2021.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2021;
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2022', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2022.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2022;
+
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2023', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2023.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2023;
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2024', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2024.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2024;
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2025', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2025.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2025;
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2026', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2026.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2026;
+
+Alter database ELGI_LN add file
+(
+	name='F_TTFGLD106ALL_2027', --Logical File Name
+	filename='F:\data\TablePartitions\ELGi_LN\TTFGLD106ALL\F_TTFGLD106ALL_2027.ndf' --Physical File Name
+)To filegroup FG_TTFGLD106ALL_2027;
+
+
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_Before2020
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_2020;
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_2021;
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_2022;
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_2023;
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_2024;
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_2025;
+--ALTER DATABASE ELGi_LN REMOVE FILE F_TTFGLD106ALL_2026;
+
+
+SELECT FG.name FG_Name,FG.data_space_id,FG.type,FG.type_desc,
+F.name as LogicalFileName,F.physical_name,F.size as Size,
+--mf.name as LogicalFileName,
+--mf.physical_name as PhysicalFilePath,
+mf.size/(128*1024) as Size_GB --(1 MB=128 pages each of 8KB size)
+FROM sys.filegroups FG
+left outer join sys.database_files F
+on FG.data_space_id=F.data_space_id
+left outer join sys.master_files mf
+on fg.data_space_id=mf.data_space_id
+WHERE FG.name like  'FG_TTFGLD106ALL%'
+
+
+
+------------------------------------------------------------------------------
+
+--Step 3 : Partition Function Creation
+
+--DROP PARTITION FUNCTION PF_TTFGLD106ALL_byYear;
+
+CREATE PARTITION FUNCTION PF_TTFGLD106ALL_byYear (DATETIME)
+AS RANGE RIGHT FOR VALUES
+(
+	'2020-04-01 00:00:00.000',
+	'2021-04-01 00:00:00.000',
+	'2022-04-01 00:00:00.000',
+	'2023-04-01 00:00:00.000',
+    '2024-04-01 00:00:00.000',
+    '2025-04-01 00:00:00.000',
+    '2026-04-01 00:00:00.000'
+);
+
+
+------------------------------------------------------------------------------
+
+--Step 4 : Partition Scheme Creation
+
+--DROP PARTITION SCHEME PS_TTFGLD106ALL_byYear;
+
+create partition scheme PS_TTFGLD106ALL_byYear
+as partition PF_TTFGLD106ALL_byYear
+to ('FG_TTFGLD106ALL_Before2020','FG_TTFGLD106ALL_2020',
+'FG_TTFGLD106ALL_2021','FG_TTFGLD106ALL_2022',
+'FG_TTFGLD106ALL_2023','FG_TTFGLD106ALL_2024',
+'FG_TTFGLD106ALL_2025','FG_TTFGLD106ALL_2026'
+)
+
+
+
+--ALTER PARTITION SCHEME PS_TTFGLD106ALL_byYear NEXT USED [PRIMARY];
+ALTER PARTITION SCHEME PS_TTFGLD106ALL_byYear NEXT USED 'FG_TTFGLD106ALL_2027';
+
+ALTER PARTITION FUNCTION PF_TTFGLD106ALL_byYear() SPLIT RANGE ('2027-04-01');
+
+
+select 
+ps.name as PartitionSchemeName,
+pf.name as PartitionFunctionName,
+ds.destination_id as PartitionNumber,
+fg.name as FileGroupName,
+fg.data_space_id,--fg.type,fg.type_desc,
+F.name as LogicalFileName,F.physical_name,F.size as Size,
+--mf.name as LogicalFileName,
+--mf.physical_name as PhysicalFilePath,
+mf.size/(128*1024) as Size_GB --(1 MB=128 pages each of 8KB size)
+from
+sys.partition_schemes ps
+left outer join sys.partition_functions pf
+on ps.function_id=pf.function_id
+left outer join sys.destination_data_spaces ds
+on ps.data_space_id=ds.partition_scheme_id
+left outer join sys.filegroups fg
+on ds.data_space_id=fg.data_space_id
+
+left outer join sys.database_files F
+on FG.data_space_id=F.data_space_id
+left outer join sys.master_files mf
+on fg.data_space_id=mf.data_space_id
+WHERE FG.name like  'FG_TTFGLD106ALL%'
+
+
+
+
+------------------------------------------------------------------------------
+
+--Step 5 : Clustered Index creation
+
+
+CREATE CLUSTERED INDEX IX_TTFGLD106ALL_T$DATE
+ON TTFGLD106ALL(T$DATE)
+ON PS_TTFGLD106ALL_byYear(T$DATE);
+
+
+
+-------------------------------------------------------------------------------
+
+
+--Step 6 : Analysis
+
+
+SELECT i.object_id,OBJECT_NAME(i.object_id) AS TableName,
+i.name AS IndexName,
+i.type_desc,
+p.object_id,p.rows, --Number of Rows in each partition
+ds.data_space_id,
+ds.name AS DataSpace,
+ps.name as PartitionSchemeName,
+pf.function_id as PartitionFunctionID,
+pf.name as PartitionFunctionName,
+prv.boundary_id,
+prv.value AS BoundaryValue,
+dds.destination_id as PartitionNumber,
+fg.name as FileGroupName,
+fg.data_space_id,--fg.type,fg.type_desc,
+F.name as LogicalFileName,F.physical_name,F.size as Size,
+--mf.name as LogicalFileName,
+--mf.physical_name as PhysicalFilePath,
+mf.size/(128*1024) as Size_GB, --(1 MB=128 pages each of 8KB size)
+a.minDate,a.maxDate,a.rowscount
+FROM sys.indexes i
+left outer JOIN sys.data_spaces ds
+ON i.data_space_id = ds.data_space_id
+--WHERE ds.name = 'FG_TTFGLD106ALL_2023';
+left outer join sys.partition_schemes ps
+on ps.data_space_id=ds.data_space_id
+left outer join sys.partition_functions pf
+on ps.function_id=pf.function_id
+left outer join sys.destination_data_spaces dds
+on ps.data_space_id=dds.partition_scheme_id
+left outer JOIN sys.partitions p
+on i.object_id=p.object_id
+and p.partition_number=dds.destination_id
+left outer join sys.partition_range_values prv
+on pf.function_id = prv.function_id
+and dds.destination_id=prv.boundary_id+1
+left outer join sys.filegroups fg
+on dds.data_space_id=fg.data_space_id
+left outer join sys.database_files F
+on FG.data_space_id=F.data_space_id
+left outer join sys.master_files mf
+on fg.data_space_id=mf.data_space_id
+left outer join
+--Find which partition each row belongs to
+(select PartitionNumber,min(T$DATE) minDate,
+max(T$DATE) maxDate,count(rowscount) rowscount
+from 
+(SELECT
+$PARTITION.PF_TTFGLD106ALL_byYear(T$DATE) AS PartitionNumber,
+T$DATE,1 as rowscount
+FROM TTFGLD106ALL)a
+group by PartitionNumber)a
+on p.partition_number=a.PartitionNumber
+where  OBJECT_NAME(i.object_id)  like 'TTFGLD106ALL'
+--WHERE FG.name like  'FG_TTFGLD106ALL%'

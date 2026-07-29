@@ -1,0 +1,4 @@
+state=(0,0)
+actions = [(0, -1), (0, 1), (-1, 0), (1, 0)]
+Q = np.zeros(maze.shape + (len(actions),))
+print(Q[state])

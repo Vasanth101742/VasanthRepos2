@@ -1,0 +1,1 @@
+Python is a high Level , Interpreted Programming Language      known for its simplicity      Key Features:      1. Extensive Standard Library      2. Cross Platform Compatibility

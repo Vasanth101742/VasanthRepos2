@@ -1,0 +1,9 @@
+Hi, 
+I had the same problem with my postgreSQL database. Have you tried enabling the "use declare/fetch" option for your psqlODBC driver? 
+You can do this by opening your data sources, press "Configure", then in the opened data source details, in the "Options" section 
+select "Datasource" and in the opened window check the "use declare/fetch". I had a 1.7 mio table with the same problem, 
+afterwards it imported all the rows at once without "out of memory while reading tuples".
+
+This was very helpful.  I am working with Postgres and SSIS and was getting the Out of Memory error when trying to import a large 
+amount of data from Postgres.  I went into my DSN as described and after making the change I was able to import 2.3 million rows
+without receiving the error.  Thanks xziim.

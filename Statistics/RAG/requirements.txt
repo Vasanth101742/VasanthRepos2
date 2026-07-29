@@ -1,0 +1,14 @@
+uv
+langchain
+langchain-core
+langchain-community
+pypdf
+pymupdf
+tqdm
+
+sentence-transformers
+faiss-cpu
+chromadb
+huggingface_hub[hf_xet]
+langchain-groq
+python-dotenv

@@ -1,0 +1,15 @@
+CREATE LOGIN [elgi\tejas.talati]
+FROM WINDOWS;
+GO
+
+
+USE ELGi_LN;
+GO
+
+CREATE USER [elgi\tejas.talati]
+FOR LOGIN [elgi\tejas.talati];
+GO
+
+ALTER ROLE db_datareader ADD MEMBER [elgi\tejas.talati];
+--ALTER ROLE db_datawriter ADD MEMBER [elgi\tejas.talati];
+GO

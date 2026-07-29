@@ -1,0 +1,85 @@
+line	CompDivision	IST_idat	UTC_idat	IDAT_EST_Time	idat	tran	idoc	ItemCode	dsca	orno	odat	CusCode	BPName	ProductLine	pono	dqua	cuqs	amti	amth_1	invt_KW	stat_kw	txai
+1	Industrial	2025-08-01 00:26:44.000	2025-07-31T18:56:44Z	2025-07-31	2025-07-31 14:56:44.000 -04:00	S01	24024000	B004407090004	water filter element AB3	WTY002008	2025-07-31 09:10:00.000 -04:00	C00001744	COMPRESSED AIR SOLUTIONS OF TX	Filter as Part	20	1	ea	0	0	tcinvt.sales.order	tcsli.stat.posted	0
+
+
+use elgi_us
+ 
+select distinct 
+
+    a.line,case 
+
+        when a.compnr = 3100 then 'ELGI NA'
+
+        when a.compnr = 3110 then 'Industrial'
+
+        when a.compnr = 3120 then 'Portables'
+
+        when a.compnr = 3130 then 'Pattons Medical'
+
+        when a.compnr = 3140 then 'Pattons INC'
+
+        when a.compnr = 3150 then 'Michigan'
+
+    end as CompDivision,c.idat2 'IST_idat',c.idat as 'UTC_idat',
+
+--(convert(datetime,c.idat2) AT TIME ZONE 'India Standard Time') AT TIME ZONE 'Eastern Standard Time' as idat1_utc,
+
+  convert(date, (convert(datetime,c.idat2) AT TIME ZONE 'India Standard Time') AT TIME ZONE 'Eastern Standard Time')as IDAT_EST_Time,
+
+  --This below part when we use in power bi it is converting to IST only need to change this 
+
+  (convert(datetime,c.idat2) AT TIME ZONE 'India Standard Time') AT TIME ZONE 'Eastern Standard Time' as idat,
+ 
+    a.[tran],
+
+    a.idoc,
+
+    replace(a.item, ' ', '') as ItemCode,
+
+    b.dsca,
+
+    a.orno,
+
+    (convert(datetime,a.odat2) AT TIME ZONE 'India Standard Time') AT TIME ZONE 'Eastern Standard Time' as odat,
+
+    replace(c.itbp, ' ', '') as CusCode,
+
+    isnull(d.nama, 'NA') as BPName,
+
+    f.dsca as ProductLine,
+
+    a.pono,
+
+    a.dqua,
+
+    a.cuqs,
+
+    a.amti,
+
+    a.amth_1,
+
+    a.invt_KW,
+
+    c.stat_kw,
+
+	a.txai
+
+from LN_cisli310 a
+
+left join LN_cisli305 c on c.idoc=a.idoc and c.[tran]=a.[tran] and c.compnr=a.compnr  and c.deleted='N'
+
+left join LN_tcibd001 b on replace(b.item, ' ','')=replace(a.item,' ','') and b.compnr='3100'  and b.deleted='N'
+
+left join LN_tccom100 d on replace(d.bpid,' ','')=replace(c.itbp,' ','') and d.compnr='3100'   and d.deleted='N'
+
+left join LN_tcmcs023 f on replace(f.citg,' ','')=replace(b.citg,' ','') and d.compnr='3100'  and f.deleted='N'
+
+where  a.compnr in  (3110,3100,3120,3130,3140,3150)  and a.deleted='N' and c.stat='80'
+
+--and (convert(datetime,c.idat2) AT TIME ZONE 'India Standard Time') AT TIME ZONE 'Eastern Standard Time' >='20251231' 
+
+and a.idoc='24024000'
+
+order by convert(date, (convert(datetime,c.idat2) AT TIME ZONE 'India Standard Time') AT TIME ZONE 'Eastern Standard Time')
+ 
+ 

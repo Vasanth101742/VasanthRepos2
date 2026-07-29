@@ -1,0 +1,42 @@
+how to get the list of tables avaialble in Microsoft sql server database
+
+✅ Method 1: Using INFORMATION_SCHEMA (Recommended)
+
+SELECT TABLE_SCHEMA, TABLE_NAME
+FROM INFORMATION_SCHEMA.TABLES
+WHERE TABLE_TYPE = 'BASE TABLE'
+ORDER BY TABLE_SCHEMA, TABLE_NAME;
+
+
+✔ Standard SQL
+✔ Works across most SQL systems
+✔ Excludes views
+
+--------------------------------------------------------------------------------------
+
+✅Method 2: Using sys.tables (More Detailed)
+
+SELECT 
+    s.name AS SchemaName,
+    t.name AS TableName
+FROM sys.tables t
+JOIN sys.schemas s 
+    ON t.schema_id = s.schema_id
+ORDER BY s.name, t.name;
+
+✔ SQL Server specific
+✔ Gives more metadata flexibility
+
+--------------------------------------------------------------------------------------
+
+✅ Method 3: Include Views Also
+
+If you want both tables and views:
+
+
+SELECT 
+    TABLE_SCHEMA,
+    TABLE_NAME,
+    TABLE_TYPE
+FROM INFORMATION_SCHEMA.TABLES
+ORDER BY TABLE_SCHEMA, TABLE_NAME;

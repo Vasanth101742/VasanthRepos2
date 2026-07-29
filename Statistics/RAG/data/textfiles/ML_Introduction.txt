@@ -1,0 +1,1 @@
+Machine Learning is a new technology where machine mimcs human behaviour.       There are 3 broad classifications of ML         1. Supervised         2. Unsupervised         3. Reinforecement 
