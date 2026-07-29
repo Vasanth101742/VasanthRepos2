@@ -1,0 +1,48 @@
+1. create a folder SQLITE in c:
+2. download the SQLITE in the following steps
+
+Step1 : goto https://sqlite.org/download.html
+Step2 : under the heading Precompiled Binaries for Windows,
+	click on sqlite-tools-win32-x86-3210000.zip and save it
+Step3 : click on sqlite-dll-win64-x64-3210000.zip and save it
+
+Step4 : Extract the Zip folders. the following items will be available
+
+sqlite3
+sqldiff
+sqlite3_analyzer
+
+sqlite3.dll
+sqlite3.def
+
+
+3.copy the above items and paste it in the SQLITE folder
+
+4.click on windows + R  and type cmd. cmd promt will open
+
+5.type the following commands
+cd..
+cd..
+cd SQLITE
+sqlite3 Database1.db
+
+.mode csv
+.import c:/sqlite/city.csv cities
+.schema cities
+
+insert into cities(name,population) values("abc",20)
+
+DROP TABLE IF EXISTS cities;
+
+CREATE TABLE cities(
+  name TEXT NOT NULL,
+  population INTEGER NOT NULL 
+);
+
+.mode csv
+.import c:/sqlite/city_no_header.csv cities
+
+
+
+
+
