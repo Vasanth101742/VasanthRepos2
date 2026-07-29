@@ -1,0 +1,208 @@
+--exec sp_ATS_Production_Summary
+
+CREATE proc sp_ATS_Production_Summary as
+begin
+
+Truncate table ATS_Production_Summary_Temp
+Truncate table ATS_Production_Summary
+Truncate table ATS_Production_ALC
+
+Insert into ATS_Production_Summary_Temp(COMPANY,CWAR,ITEM,OnHandStk,ActualAvlStk)
+select COMPANY,CWAR,ITEM,sum(QHND) as OnHand,
+sum(QHND-QBLK-QLAL) as ActualAvl
+from twhwmd215all
+where company=600 and CWAR in('657','649')
+group by COMPANY,CWAR,ITEM
+having sum(QHND)+ sum(QHND-QBLK-QLAL)<>0
+
+
+Insert into ATS_Production_Summary_Temp(COMPANY,CWAR,ITEM,date1,PlannedQty)
+select COMPANY,CWAR,MITM,RDLD,sum(QRDR) QRDR from TTISFC001ALL 
+where COMPANY=600 and cwar in ('657','649') 
+and OSTA in (1,2,3)
+and month(RDLD)=month(getdate()-1)
+and year(RDLD)=year(getdate()-1)
+group by COMPANY,CWAR,MITM,RDLD
+
+Insert into ATS_Production_Summary_Temp(COMPANY,CWAR,ITEM,date1,ToBeCompletedQty)
+select COMPANY,CWAR,MITM,RDLD,sum(QRDR) QRDR from TTISFC001ALL 
+where COMPANY=600 and cwar in ('657' ,'649')
+and OSTA in (7)
+and month(RDLD)=month(getdate()-1)
+and year(RDLD)=year(getdate()-1)
+group by COMPANY,CWAR,MITM,RDLD
+
+
+Insert into ATS_Production_Summary_Temp(COMPANY,CWAR,ITEM,date1,WIP_qty)
+select company,warehouse,item,date1,sum(WIP_qty) WIP_qty from ELGi_production_details where 
+company=600 and warehouse in ('657','649')
+and WIP_qty<>0
+and month(date1)=month(getdate()-1)
+and year(date1)=year(getdate()-1)
+group by company,warehouse,item,date1
+
+
+
+Insert into ATS_Production_Summary_Temp(COMPANY,CWAR,ITEM,date1,Actual_qty)
+select company,warehouse,item,date1,sum(Actual_qty) Actual_qty from ELGi_production_details where 
+company=600 and warehouse in ('657','649')
+and Actual_qty<>0
+and month(date1)=month(getdate()-1)
+and year(date1)=year(getdate()-1)
+group by company,warehouse,item,date1
+
+
+
+Insert into ATS_Production_Summary_Temp(COMPANY,CWAR,ITEM,PendingQty,ClearedQty)
+select Company,WareHouse,ItemCode,sum(PendQty) PendQty,
+sum(ClearOrderQty) ClearOrderQty
+from (
+select * from (
+select a.Company,a.WareHouse,a.ItemCode,a.OrderDate,a.ordertype,a.OrderNum,PositionNum,
+a.PendQty,concat(b.Company,T$ORNO,b.T$PONO) as ColA,
+case when concat(b.Company,T$ORNO,b.T$PONO) <>'' then PendQty else 0 end as ClearOrderQty 
+from
+(select Company,WareHouse,ItemCode,Item_desc,OrderDate,ordertype,
+OrderNum,PositionNum,PendQty-Cancel_Qty as PendQty
+from Pending_Orders where company=600 and WareHouse in ('657','649')
+and (PendQty-Cancel_Qty)>0
+)a
+left outer join 
+(select distinct COMPANY,T$ORNO,T$PONO from TZZSLS331600 where T$STAT=1)b
+on a.Company=b.COMPANY
+and a.OrderNum=b.T$ORNO
+and a.PositionNum=b.T$PONO
+--where ltrim(rtrim(a.ItemCode))='Z12119' --for testing
+)a
+--where (PendQty-ClearOrderQty)<>0
+)a
+group by Company,WareHouse,ItemCode
+--having (sum(PendQty)-sum(ClearOrderQty))<>0
+
+
+Insert into ATS_Production_Summary_Temp(COMPANY,CWAR,ITEM,Monthly_Plan)
+select distinct company,warehouse,ltrim(rtrim(item)) item,MonthPlan from ELGi_production_details
+where company=600 and warehouse in ('657','649')
+and month(date1)=month(getdate()-1)
+and year(date1)=year(getdate()-1)
+and MonthPlan is not null
+
+
+
+Update ATS_Production_Summary_Temp set ProductGroup_MRP=a.[Group]
+from ATS_MRP_Itemwise_LeadTime a
+where ltrim(rtrim(ATS_Production_Summary_Temp.ITEM))=ltrim(rtrim(a.TPL))
+
+Insert into ATS_Production_Summary(COMPANY,CWAR,ITEM,OnHandStk,ActualAvlStk,PendingQty,
+ClearedQty,date1,WIP_Qty,Actual_Qty,PlannedQty,ToBeCompletedQty,Monthly_Plan,Rnk,ProductGroup_MRP)
+select COMPANY,CWAR,ltrim(rtrim(ITEM)) ITEM,sum(isnull(OnHandStk,0)) OnHandStk,
+sum(isnull(ActualAvlStk,0)) ActualAvlStk,
+sum(isnull(PendingQty,0)) PendingQty,
+sum(isnull(ClearedQty,0)) ClearedQty,date1,
+sum(isnull(WIP_Qty,0)) WIP_Qty,sum(isnull(Actual_Qty,0)) Actual_Qty,
+sum(isnull(PlannedQty,0)) as PlannedQty,
+sum(isnull(ToBeCompletedQty,0)) as ToBeCompletedQty,
+sum(isnull(Monthly_Plan,0)) as Monthly_Plan,
+row_number() over (partition by COMPANY,CWAR,ltrim(rtrim(ITEM)) order by COMPANY,CWAR,ltrim(rtrim(ITEM))) as Rnk,
+ProductGroup_MRP
+from ATS_Production_Summary_Temp
+group by COMPANY,CWAR,ltrim(rtrim(ITEM)),date1,ProductGroup_MRP
+
+
+
+--update ATS_Production_Summary set Monthly_Plan=a.MonthPlan
+--from (select distinct company,warehouse,item,MonthPlan from ELGi_production_details
+--where company=600 and warehouse in ('657','649')
+--and month(date1)=month(getdate()-1)
+--and year(date1)=year(getdate()-1)
+--)a
+--where ATS_Production_Summary.COMPANY=a.company
+--and ltrim(rtrim(ATS_Production_Summary.CWAR))=ltrim(rtrim(a.warehouse))
+--and ltrim(rtrim(ATS_Production_Summary.ITEM))=ltrim(rtrim(a.item))
+--and ATS_Production_Summary.Rnk=1 
+
+
+update ATS_Production_Summary set OnHandStk=null where OnHandStk=0
+update ATS_Production_Summary set ActualAvlStk=null where ActualAvlStk=0
+update ATS_Production_Summary set PendingQty=null where PendingQty=0
+update ATS_Production_Summary set ClearedQty=null where ClearedQty=0
+update ATS_Production_Summary set WIP_Qty=null where WIP_Qty=0
+update ATS_Production_Summary set PlannedQty=null where PlannedQty=0
+update ATS_Production_Summary set ToBeCompletedQty=null where ToBeCompletedQty=0
+
+
+Update ATS_Production_Summary set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where ltrim(rtrim(ATS_Production_Summary.Item))=ltrim(rtrim(a.t_item))
+
+
+--------ATS_Production_ALC---------
+
+
+--WIP
+
+Insert into ATS_Production_ALC(COMPANY,CWAR,MITM,ProductionDate,PDNO,WIP_Qty)
+--select * into ATS_Production_ALC from(
+select COMPANY,CWAR,MITM,WIP_Date,PDNO,sum(convert(float,QRDR)) WIP_Qty from 
+(
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,b.date as WIP_Date,b.QRDR from  TTISFC001ALL a 
+left outer join
+(
+select * from (
+select company,PDNO,QRDR,convert(date,date) as date,row_number() over (partition by company,pdno order by date) dateRank 
+from TTICST151ALL
+where OSTA in (6)
+--and PDNO='230009816' --for testing Purpose
+)b1
+where dateRank=1
+)b
+on a.company=b.company
+and a.PDNO=b.PDNO
+) a
+where company='600' and CWAR='657'
+and WIP_Date>='2019-11-01'
+group by COMPANY,CWAR,MITM,PDNO,WIP_Date
+--)a
+order by WIP_Date
+
+
+--Closed
+
+update ATS_Production_ALC set ClosedQty=a.Actual_qty
+from(
+select company,warehouse,item,date1,Prodorderno,sum(Actual_qty) Actual_qty from ELGi_production_details
+where company='600' and warehouse='657'
+and date1>='2019-11-01'
+group by company,warehouse,item,Prodorderno,date1
+--order by date1,item
+)a
+where ATS_Production_ALC.company=a.company
+and ATS_Production_ALC.CWAR=a.warehouse
+and ltrim(rtrim(ATS_Production_ALC.MITM))=ltrim(rtrim(a.item))
+and ATS_Production_ALC.ProductionDate=a.date1
+and ATS_Production_ALC.PDNO=a.Prodorderno
+
+
+--Insert into ATS_Production_ALC(COMPANY,CWAR,MITM,ProductionDate,PDNO,ClosedQty)
+--select company,warehouse,item,date1,Prodorderno,sum(Actual_qty) Actual_qty from ELGi_production_details
+--where company='600' and warehouse='657'
+--and date1>='2019-11-01'
+--group by company,warehouse,item,Prodorderno,date1
+--order by date1,item
+
+Update ATS_Production_ALC set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where ltrim(rtrim(ATS_Production_ALC.MITM))=ltrim(rtrim(a.t_item))
+
+
+Update ATS_Production_ALC set ProductGroup_MRP=a.[Group]
+from ATS_MRP_Itemwise_LeadTime a
+where ltrim(rtrim(ATS_Production_ALC.MITM))=ltrim(rtrim(a.TPL))
+
+delete from ATS_Production_ALC where isnull(WIP_Qty,0)+isnull(ClosedQty,0)=0  --Planned Qty deletion
+
+------End: ATS_Production_ALC------
+
+
+end
+

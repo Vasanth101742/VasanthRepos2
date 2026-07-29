@@ -1,0 +1,555 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ACP_As_of_Date_Details
+
+CREATE proc sp_ACP_As_of_Date_Details as
+
+Begin
+
+Declare @CurFinYear  varchar(10)=case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1) end
+Declare @CurFinMonth varchar(10)=case when month(getdate()-1)<4 then RIGHT('00'+CAST(month(getdate()-1)+9 AS VARCHAR(2)),2) 
+                                 else RIGHT('00'+CAST(month(getdate()-1)-3 AS VARCHAR(2)),2) end
+
+
+Truncate table ACP_As_of_Date_Details
+Truncate table ACP_As_of_Date_Details2
+Truncate table ACP_Consolidated
+Truncate table ACP_As_of_Date_Payments
+Truncate table ACP_As_of_Date_Advances
+Truncate table ACP_Status
+
+
+insert into ACP_As_of_Date_Details(Company,SuppCode,InvDate,TranType,InvNo,InvLine,InvSchedule,
+InitialDocTyp,InitialDocNo,Currency,CurRate,InvAmti,InvAmth,Period,APPR,TPAY,DueDate,DueAmti,DueAmth)
+
+select  distinct COMPANY,IFBP,DOCD,TTYP,NINV,LINE,SCHN,TDOC,DOCN,CCUR,RATE$1,AMTI,
+AMTH$1+PADH$1+DC1H$1+CDAM$1,
+concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2)) as Period,
+APPR,TPAY,
+DUED,
+AMTI,
+AMTH$1+PADH$1+DC1H$1+CDAM$1
+from TTFACP200ALL a
+where a.docn=0
+--and a.t_amnt>0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+
+
+
+insert into ACP_As_of_Date_Details(Company,SuppCode,TranType,InvNo,
+PaidDate,Paidline,PaidSchedule,PaidDocType,PaidDocNo,Currency,CurRate,PaidAmti,PaidAmth,Period,PCOM,PAYT,PAYD,TPAY)
+
+select Company,IFBP,TTYP,NINV,DOCD,LINE,SCHN,TDOC,DOCN,CCUR,RATE$1,AMTI,
+AMTH$1+PADH$1+DC1H$1+CDAM$1,
+concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2)) as Period,
+PCOM,PAYT,PAYD,TPAY
+from TTFACP200ALL
+where docn <>0
+--and schn=0  
+--and t_amnt<0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+--group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn,t_year,t_prod
+
+--------------------------------------------
+--Subsidiaries
+
+
+insert into ACP_As_of_Date_Details(Company,SuppCode,InvDate,TranType,InvNo,InvLine,InvSchedule,
+InitialDocTyp,InitialDocNo,Currency,CurRate,InvAmti,InvAmth,Period,APPR,TPAY,DueDate,DueAmti,DueAmth)
+
+select  distinct COMPANY,IFBP,DOCD,TTYP,NINV,LINE,SCHN,TDOC,DOCN,CCUR,RATE$1,AMTI,
+AMTH$1+PADH$1+DC1H$1+CDAM$1,
+concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2)) as Period,
+APPR,TPAY,
+DUED,
+AMTI,
+AMTH$1+PADH$1+DC1H$1+CDAM$1
+from TTFACP200551552 a
+where a.docn=0
+--and a.t_amnt>0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+
+
+
+insert into ACP_As_of_Date_Details(Company,SuppCode,TranType,InvNo,
+PaidDate,Paidline,PaidSchedule,PaidDocType,PaidDocNo,Currency,CurRate,PaidAmti,PaidAmth,Period,PCOM,PAYT,PAYD,TPAY)
+
+select Company,IFBP,TTYP,NINV,DOCD,LINE,SCHN,TDOC,DOCN,CCUR,RATE$1,AMTI,
+AMTH$1+PADH$1+DC1H$1+CDAM$1,
+concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2)) as Period,
+PCOM,PAYT,PAYD,TPAY
+from TTFACP200551552
+where docn <>0
+--and schn=0  
+--and t_amnt<0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+--group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn,t_year,t_prod
+
+
+
+
+
+
+---------------------------------------------
+
+--Delete Future Payments
+delete from ACP_As_of_Date_Details where Period>concat(@CurFinYear,@CurFinMonth)
+
+
+
+--update ACP_As_of_Date_Details set InvDate=a.InvDate
+--from (select distinct concat(company,CustCode,TranType,InvNo) inv ,InvDate,RecvDate from ACP_As_of_Date_Details
+--where InvDate is not null
+--)a
+--where concat(company,CustCode,TranType,InvNo)=inv
+--and ACP_As_of_Date_Details.InvDate is null
+
+
+
+----Remove Zero balances before the first of current month  --Commented on 26 July2018
+--delete from ACP_As_of_Date_Details
+--where concat(company,CustCode,TranType,InvNo) in (
+--select concat(company,CustCode,TranType,InvNo) inv
+--from ACP_As_of_Date_Details
+--where isnull(InvDate,recvdate)<=dateadd(dd,-day(EOMONTH(getdate()-1))+1,EOMONTH(getdate()-1))
+----dateadd(mm,-1, dateadd(dd,-day(EOMONTH(getdate()-1))+1,EOMONTH(getdate()-1)))
+--group by concat(company,CustCode,TranType,InvNo)
+--having sum(isnull(InvAmti,0))+sum(isnull(RecvAmti,0)) between -1 and 1
+--)
+
+
+update ACP_As_of_Date_Details set EntryDate=a.Date1
+from (select distinct concat(company,SuppCode,TranType,InvNo,isnull(PaidDocNo,0)) inv ,isnull(InvDate,PaidDate) as Date1 
+from ACP_As_of_Date_Details
+)a
+where concat(company,SuppCode,TranType,InvNo,isnull(PaidDocNo,0))=inv
+
+
+update ACP_As_of_Date_Details set InvDate=a.InvDate
+from (select distinct concat(company,SuppCode,TranType,InvNo) inv,InvDate
+from ACP_As_of_Date_Details where InvDate is not null
+)a
+where concat(company,SuppCode,TranType,InvNo)=inv
+and ACP_As_of_Date_Details.InvDate is null
+
+
+update ACP_As_of_Date_Details set Suppname=a.custname1
+from vw_Business_Partner a
+where ltrim(rtrim(ACP_As_of_Date_Details.Suppcode))=ltrim(rtrim(a.custcode))
+
+update ACP_As_of_Date_Details set InvBali=isnull(InvAmti,0)+isnull(PaidAmti,0)
+update ACP_As_of_Date_Details set InvBalh=isnull(InvAmth,0)+isnull(PaidAmth,0)
+
+
+--Commented on 29-12-2018
+--delete from ACP_As_of_Date_Details where TPAY in (9,14)
+
+----------------------------------------
+
+
+Insert into ACP_As_of_Date_Details2(Company,
+SuppCode,SuppName,InvDate,TranType,InvNo,InvLine,InvSchedule,InitialDocTyp,InitialDocNo,Currency,
+CurRate,PaidDate,Paidline,PaidSchedule,PaidDocType,PaidDocNo,InvAmti,PaidAmti,InvBali,InvAmth,
+PaidAmth,InvBalh,EntryDate,Rnk,PCOM,PAYT,PAYD,APPR,TPAY,Period)
+--select * into ACP_As_of_Date_Details2 from (
+select Company,SuppCode,SuppName,InvDate,TranType,InvNo,
+InvLine,InvSchedule,InitialDocTyp,InitialDocNo,Currency,CurRate,
+PaidDate,Paidline,PaidSchedule,PaidDocType,PaidDocNo,
+sum(isnull(InvAmti,0)) InvAmti,
+sum(isnull(PaidAmti,0)) PaidAmti,
+sum(isnull(InvAmti,0))+sum(isnull(PaidAmti,0)) as InvBali,
+sum(isnull(InvAmth,0)) InvAmth,
+sum(isnull(PaidAmth,0)) PaidAmth,
+sum(isnull(InvAmth,0))+sum(isnull(PaidAmth,0)) as InvBalh
+,EntryDate,
+row_number() over (partition by Suppcode,invdate,invno,InvLine,InvSchedule,InitialDocTyp,InitialDocNo--duedate 
+order by suppcode,invdate,invno,PaidDate,Paidline,PaidSchedule,PaidDocType,PaidDocNo) as Rnk,
+PCOM,PAYT,PAYD,APPR,TPAY,Period
+from ACP_As_of_Date_Details
+group by Company,SuppCode,SuppName,InvDate,TranType,InvNo,
+InvLine,InvSchedule,InitialDocTyp,InitialDocNo,Currency,CurRate,
+PaidDate,Paidline,PaidSchedule,PaidDocType,PaidDocNo,EntryDate,PCOM,PAYT,PAYD,APPR,TPAY,Period
+--)a
+
+
+update ACP_As_of_Date_Details2 set DueDate=a.DUED,cpay=a.CPAY,APPR=a.APPR
+from (select distinct company,TTYP,NINV,IFBP ,DUED,CPAY,a.APPR from TTFACP200ALL a
+where a.docn=0
+)a
+where ACP_As_of_Date_Details2.Company=a.COMPANY
+and ACP_As_of_Date_Details2.TranType=a.TTYP
+and ACP_As_of_Date_Details2.InvNo=a.NINV
+and ltrim(rtrim(ACP_As_of_Date_Details2.SuppCode))=ltrim(rtrim(a.IFBP))
+
+
+update ACP_As_of_Date_Details2 set CPAY_desc=a.DSCA
+from TTCMCS013ALL a
+where ACP_As_of_Date_Details2.cpay=a.CPAY
+
+
+
+update ACP_As_of_Date_Details2 set RCNO=a.RCNO,RCDT=a.RCDT,
+SupInvDt=a.SupInvDt
+--,SuppInvNo=a.SuppInvNo
+from (select distinct COMPANY,IFBP,ITYP,IDOC,
+--substring(IREF,1,3) TTYP,substring(IREF,5,9) as invno,
+RCDT,RCNO,--substring(RCNO,1,9) RCNO,
+TIDT as SupInvDt,
+TIRF as SuppInvNo
+from TTFACP957ALL
+)a
+where ACP_As_of_Date_Details2.Company=a.COMPANY
+and ACP_As_of_Date_Details2.TranType=a.ITYP
+and ACP_As_of_Date_Details2.InvNo=a.IDOC
+and ltrim(rtrim(ACP_As_of_Date_Details2.SuppCode))=ltrim(rtrim(a.IFBP))
+
+
+update ACP_As_of_Date_Details2 set SuppInvNo=a.SuppInvNo
+from (select distinct COMPANY,TTYP,NINV,IFBP,ISUP as SuppInvNo
+from TTFACP200ALL
+where len(ISUP)>1
+)a
+where ACP_As_of_Date_Details2.Company=a.COMPANY
+and ACP_As_of_Date_Details2.TranType=a.TTYP
+and ACP_As_of_Date_Details2.InvNo=a.NINV
+and ltrim(rtrim(ACP_As_of_Date_Details2.SuppCode))=ltrim(rtrim(a.IFBP))
+
+
+
+
+update ACP_As_of_Date_Details2 set RCNO=a.RCNO
+from (select distinct COMPANY,IFBP,ITYP,IDOC,RCNO from TTFACP251ALL)a
+where ACP_As_of_Date_Details2.Company=a.COMPANY
+and ACP_As_of_Date_Details2.TranType=a.ITYP
+and ACP_As_of_Date_Details2.InvNo=a.IDOC
+and ltrim(rtrim(ACP_As_of_Date_Details2.SuppCode))=ltrim(rtrim(a.IFBP))
+and ACP_As_of_Date_Details2.RCNO is null
+
+
+update ACP_As_of_Date_Details2 set RCDT=a.T$CRDT,
+SuppInvNo=a.T$DINO
+from (select distinct COMPANY,T$SFBP,T$RCNO,T$CRDT,T$DINO from TWHINH310ALL)a
+where ACP_As_of_Date_Details2.Company=a.COMPANY
+and ACP_As_of_Date_Details2.RCNO=a.T$RCNO 
+and ltrim(rtrim(ACP_As_of_Date_Details2.SuppCode))=ltrim(rtrim(a.T$SFBP))
+
+
+update ACP_As_of_Date_Details2 set SupInvDt=a.invd
+from(select company,rcno,max(invd) invd from twhinh940all
+group by company,rcno
+)a
+where ACP_As_of_Date_Details2.Company=a.COMPANY
+and ACP_As_of_Date_Details2.RCNO=a.RCNO 
+--and ltrim(rtrim(ACP_As_of_Date_Details2.CustCode))=ltrim(rtrim(a.T$SFBP))
+
+
+
+update ACP_As_of_Date_Details2 set DueDate=null where DueDate='9999-01-01'
+update ACP_As_of_Date_Details2 set RCDT=null where RCDT='1970-01-01 00:00:00.000'
+
+update ACP_As_of_Date_Details2 set Supp_cpay=a.cpay,
+pper=a.PPER,PTYP_Desc=a.PTYP_Desc
+from(
+select a.ifbp,a.cpay,b.DSCA,b.PPER,b.PTYP_Desc from 
+(select ifbp,cpay from TTCCOM122ALL)a
+left outer join
+(select distinct CPAY,DSCA,PPER,
+case when PTYP=1 then 'Days'
+when PTYP=2 then 'Months'
+end as PTYP_Desc
+from TTCMCS013ALL)b
+on a.cpay=b.cpay
+)a
+where ltrim(rtrim(ACP_As_of_Date_Details2.SuppCode))=ltrim(rtrim(a.ifbp))
+
+
+
+update ACP_As_of_Date_Details2 set PTYP_Desc='Day' where PTYP_Desc='Days' and pper=1
+update ACP_As_of_Date_Details2 set PTYP_Desc='Month' where PTYP_Desc='Months' and pper=1
+
+
+update ACP_As_of_Date_Details2 set CPAY_desc=concat(a.PPER,' ',a.PTYP_Desc)
+from (select distinct CPAY,DSCA,PPER,
+case when PTYP=1 then 'Days'
+when PTYP=2 then 'Months'
+end as PTYP_Desc
+from TTCMCS013ALL)a
+where ACP_As_of_Date_Details2.cpay=a.cpay
+
+
+update ACP_As_of_Date_Details2 set InspDt=a.ADAT
+from (select COMPANY,RCNO,max(ADAT) ADAT from TWHINH211ALL
+group by COMPANY,RCNO
+)a
+where ACP_As_of_Date_Details2.Company=a.COMPANY
+and ACP_As_of_Date_Details2.RCNO=a.RCNO
+and ltrim(rtrim(ACP_As_of_Date_Details2.RCNO)) <>''
+
+
+
+update ACP_As_of_Date_Details2 set TTYP_desc=a.[DESC]
+from (select distinct TTYP,[DESC] from TTFGLD011ALL) a
+where ACP_As_of_Date_Details2.TranType=a.TTYP
+
+
+update ACP_As_of_Date_Details2 set PayTYP_desc=a.[DESC]
+from (select distinct TTYP,[DESC] from TTFGLD011ALL) a
+where ACP_As_of_Date_Details2.PaidDocType=a.TTYP
+
+
+
+update ACP_As_of_Date_Details2 set TPAY_desc='NormalPayment'  where TPAY=2
+update ACP_As_of_Date_Details2 set TPAY_desc='CreditNote'  where TPAY=4
+update ACP_As_of_Date_Details2 set TPAY_desc='AnticipatePayment'  where TPAY=8
+update ACP_As_of_Date_Details2 set TPAY_desc='AdvancePayment'  where TPAY=9
+update ACP_As_of_Date_Details2 set TPAY_desc='AdvanceAnticipated'  where TPAY=11
+update ACP_As_of_Date_Details2 set TPAY_desc='Assignment'  where TPAY=14
+
+
+update ACP_As_of_Date_Details2 set LedgerAccount=a.LedgerAccount, LedgerDescription=a.LedgerDescription
+from (select distinct OriginalCompany,TransactionType,Document,LedgerAccount,LedgerDescription from Ledger_details)a
+where ACP_As_of_Date_Details2.PCOM=a.OriginalCompany
+and ACP_As_of_Date_Details2.PAYT=a.TransactionType
+and ACP_As_of_Date_Details2.PAYD=a.Document
+
+
+
+--Truncate table ACP_Status
+
+Insert into ACP_Status
+--select * into ACP_Status from (
+select * ,
+case 
+when LatestPaidDate is not null and isnull(InvAmth,0)+isnull(PaidAmth,0) between -1 and 1 then 'FullyPaid'
+when LatestPaidDate is not null and isnull(InvAmth,0)+isnull(PaidAmth,0) not between -1 and 1 then 'PartialPaid'
+when LatestPaidDate is null then 'NotYetPaid'
+end as PaidStatus,
+case when LatestPaidDate is not null and LatestPaidDate<DueDate then 'WithinDue'
+when LatestPaidDate is null and DueDate>getdate()-1 then 'WithinDue'
+else 'OverDue' end as DueStatus
+from (
+select Company,TranType,InvNo,suppcode,
+min(case when invamth<>0 then EntryDate else null end) as InvDate,
+sum(InvAmth) InvAmth,
+--min(case when Dueamth<>0 then EntryDate else null end) as DueDate,
+min(DueDate) DueDate,
+--sum(DueAmth) DueAmth,
+sum(PaidAmth) PaidAmth,
+max(case when PaidAmth<>0 then EntryDate else null end) as LatestPaidDate,
+sum(InvBalh) InvBalh
+--,sum(DueBalh) DueBalh
+from ACP_As_of_Date_Details2
+--where --InvAmth<>0 and 
+--Company=401	and TranType='211' and InvNo=17012611 	
+group by  Company,TranType,InvNo,SuppCode
+)a
+--)b
+
+
+
+--delete from ACP_As_of_Date_Details2
+--where concat(Company,CustCode,TranType,InvNo) in 
+--(select  concat(Company,CustCode,TranType,InvNo) from ACP_As_of_Date_Details2
+--group by Company,CustCode,TranType,InvNo
+--having sum(invbalh) between -1 and 1
+--)
+
+
+
+
+----------ACP_Consolidated
+
+Truncate table ACP_Consolidated
+
+Insert into ACP_Consolidated(Company,TranType,InvNo,SuppCode,SuppName,InvAmth,
+DueDate,DueAmth,LastPaidDate,PaidAmth,DueBalh,PaymentDays)
+select Company,TranType,InvNo,SuppCode,SuppName,InvAmth,
+DueDate,DueAmth,LastPaidDate,PaidAmth,DueBalh,PaymentDays
+from (
+select a.Company,a.TranType,a.InvNo,SuppCode,SuppName,sum(a.InvAmth) InvAmth,a.DueDate,
+sum(a.DueAmth) DueAmth,
+b.LastPaidDate,
+sum(b.PaidAmth) PaidAmth,sum(isnull(a.DueAmth,0)+isnull(b.PaidAmth,0)) as DueBalh,
+datediff(dd,DueDate,isnull(b.LastPaidDate,convert(date,getdate()-1))) as PaymentDays
+from
+(select Company,TranType,InvNo,SuppCode,SuppName,
+InvDate,sum(InvAmth) InvAmth,
+case when DueDate='9999-01-01' then InvDate else DueDate end as DueDate
+,sum(DueAmti) DueAmti,
+sum(DueAmth) DueAmth
+from ACP_As_of_Date_Details
+where InvAmth is not null
+group by Company,TranType,InvNo,SuppCode,SuppName,InvDate,DueDate
+)a
+left outer join
+(
+select Company,TranType,InvNo,
+max(PaidDate) LastPaidDate,
+sum(PaidAmth) PaidAmth
+from ACP_As_of_Date_Details
+where PaidAmth is not null
+and tpay=2
+group by Company,TranType,InvNo,InvDate,DueDate
+)b
+on a.Company=b.Company
+and a.TranType=b.TranType
+and a.InvNo=b.InvNo
+
+group by a.Company,a.TranType,a.InvNo,a.SuppCode,a.SuppName,a.InvDate,a.DueDate,b.LastPaidDate
+)a
+where 
+--DueBalh not between -1 and 1 and 
+company like '4%'
+order by Company,TranType,InvNo
+
+
+
+update ACP_Consolidated set PaymentCategory='Early Payment > 30 days' where paymentdays <-30 and duebalh between -1 and 1
+update ACP_Consolidated set PaymentCategory='Early Payment - 16 to 30 days' where (paymentdays between -30 and -16) and (duebalh between -1 and 1)
+update ACP_Consolidated set PaymentCategory='Early Payment - 8 to 15 days' where (paymentdays between -15 and -8) and (duebalh between -1 and 1)
+update ACP_Consolidated set PaymentCategory='Early Payment - 1 to 7 days' where (paymentdays between -7 and -1) and (duebalh between -1 and 1)
+update ACP_Consolidated set PaymentCategory='No delay' where (paymentdays =0) and (duebalh between -1 and 1)
+update ACP_Consolidated set PaymentCategory='Delay Payment - 1 to 7 days' where (paymentdays between 1 and 7) and (duebalh between -1 and 1)
+update ACP_Consolidated set PaymentCategory='Delay Payment - 8 to 15 days' where (paymentdays between 8 and 15) and (duebalh between -1 and 1)
+update ACP_Consolidated set PaymentCategory='Delay Payment - 16 to 30 days' where (paymentdays between 16 and 30) and (duebalh between -1 and 1)
+update ACP_Consolidated set PaymentCategory='Delay Payment > 30 days' where (paymentdays > 30) and (duebalh between -1 and 1)
+
+
+update ACP_Consolidated set PaymentCategoryOrdr=1 where PaymentCategory='Early Payment > 30 days'
+update ACP_Consolidated set PaymentCategoryOrdr=2 where PaymentCategory='Early Payment - 16 to 30 days'
+update ACP_Consolidated set PaymentCategoryOrdr=3 where PaymentCategory='Early Payment - 8 to 15 days'
+update ACP_Consolidated set PaymentCategoryOrdr=4 where PaymentCategory='Early Payment - 1 to 7 days'
+update ACP_Consolidated set PaymentCategoryOrdr=5 where PaymentCategory='No delay'
+update ACP_Consolidated set PaymentCategoryOrdr=6 where PaymentCategory='Delay Payment - 1 to 7 days'
+update ACP_Consolidated set PaymentCategoryOrdr=7 where PaymentCategory='Delay Payment - 8 to 15 days'
+update ACP_Consolidated set PaymentCategoryOrdr=8 where PaymentCategory='Delay Payment - 16 to 30 days'
+update ACP_Consolidated set PaymentCategoryOrdr=9 where PaymentCategory='Delay Payment > 30 days'
+
+
+----------End: ACP_Consolidated
+
+-------ACP_As_of_Date_Payments
+
+
+Truncate table ACP_As_of_Date_Payments
+Truncate table ACP_As_of_Date_Advances
+
+Insert into ACP_As_of_Date_Payments
+select * from ACP_As_of_Date_Details2
+
+Insert into ACP_As_of_Date_Advances
+select * from ACP_As_of_Date_Details2
+
+delete from ACP_As_of_Date_Advances where concat(Company,TranType,InvNo,SuppCode) not in 
+(select concat(Company,TranType,InvNo,SuppCode)
+--,sum(InvAmth) InvAmth ,
+--sum(paidamth) paidamth
+from ACP_As_of_Date_Payments 
+--where InvAmth<0
+group by Company,TranType,InvNo,SuppCode
+having sum(InvAmth)<0
+)
+
+
+--Advances to be removed
+delete from ACP_As_of_Date_Payments where concat(Company,TranType,InvNo,SuppCode) in 
+(select distinct concat(Company,TranType,InvNo,SuppCode) from ACP_As_of_Date_Advances)
+
+--Invoices Knocked off with DMY Payment types to be removed
+delete from ACP_As_of_Date_Payments
+where concat(Company,TranType,InvNo,SuppCode) in (
+select concat(Company,TranType,InvNo,SuppCode)
+--,sum(InvAmth) InvAmth
+--,sum(PaidAmth) PaidAmth
+--,sum(InvBalh) InvBalh
+from ACP_As_of_Date_Payments 
+where concat(Company,TranType,InvNo,SuppCode) in
+(select concat(Company,TranType,InvNo,SuppCode) from ACP_As_of_Date_Payments
+where PaidDocType='DMY'
+group by concat(Company,TranType,InvNo,SuppCode))
+group by concat(Company,TranType,InvNo,SuppCode)
+having sum(InvBalh) between -1 and 1
+)
+
+
+
+
+delete from ACP_As_of_Date_Payments where concat(Company,paiddocType,PaiddocNo,SuppCode) in 
+(select concat(Company,paiddocType,PaiddocNo,SuppCode) from 
+(select * from ACP_As_of_Date_Payments
+where PaiddocNo is not null)a
+group by concat(Company,paiddocType,PaiddocNo,SuppCode)
+having sum(paidamth) = 0)
+
+-------End : ACP_As_of_Date_Payments
+
+
+
+
+
+end
+
+
+
+--Declare @FromDate date='2018-09-01'
+--Declare @ToDate date='2018-12-29'
+--select Company,SuppCode,SuppName,Supp_cpay,PPER,PTYP_desc,TranType,TTYP_desc,InvNo,InvDate,
+--Currency,CurRate,CPAY,CPAY_desc,TPAY,TPAY_desc,SuppInvNo,SupInvDt,RCNO,RCDT,InspDt,
+--DueDate,PaidDate,PCOM,PAYT,PayTYP_desc,PAYD,PaidAmth*(-1) as PaidAmth,
+--substring(period,1,4) as FYER,substring(period,5,2) as FPRD,
+--LedgerAccount,LedgerDescription
+--from ACP_As_of_Date_Details2
+--where 
+--InvAmti+PaidAmti+InvBali<>0
+--and PaidDate is not null 
+----and EntryDate between @FromDate and @ToDate
+--and period='201807'
+--and company in (select company from elgi_companies_master where companygroup='ELGI')
+--and company<>500
+
+
+----union
+
+----Advance Payments
+----select Company,SuppCode,SuppName,Supp_cpay,PPER,PTYP_desc,TranType,TTYP_desc,InvNo,InvDate,
+----Currency,CurRate,CPAY,CPAY_desc,TPAY,TPAY_desc,SuppInvNo,SupInvDt,RCNO,RCDT,InspDt,
+----DueDate,PaidDate,PCOM,PAYT,PayTYP_desc,PAYD,PaidAmth*(-1)
+----from ACP_As_of_Date_Details2
+----where EntryDate between @FromDate and @ToDate
+----and TPAY=9
+----and company in (select company from elgi_companies_master where companygroup='ELGI')
+----and company<>500
+
+
+----Declare @FromDate date='2018-09-01'
+----Declare @ToDate date='2018-12-29'
+--select * from ACP_As_of_Date_Details2
+--where period='201807'
+----EntryDate between @FromDate and @ToDate
+--and company in (select company from elgi_companies_master where companygroup='ELGI')
+--and company<>500
+
+
+--select Company,PCOM,TranType,PAYT,
+--sum(PaidAmth) PaidAmth,
+--count(*)  as Counts
+--from ACP_As_of_Date_Details2
+--where period='201807'
+--and company in (select company from elgi_companies_master where companygroup='ELGI')
+--and company<>500
+--and PAYT is not null
+--group by Company,PCOM,TranType,PAYT
+--having sum(PaidAmth) between -0.1 and 0.1
+
+
+
+
+Completion time: 2025-11-10T14:44:28.1706527+05:30

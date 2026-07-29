@@ -1,0 +1,248 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--select distinct FinYear,FinMonthnum from ELGi_Sales_Flash_data order by FinYear desc ,FinMonthnum desc
+
+
+--select * from ELGi_Sales_Flash_data a
+--where a.FinMonthnum=10--@FinMonthnum
+--and a.FinYear=2017--@FinYear
+--and organ='India'
+--and user_names='After Sales                        '
+
+
+
+--declare @CalMonth int =8
+--declare @CalYear int=2017
+--select * from ufn_sls_global(@CalMonth,@CalYear)
+
+CREATE FUNCTION [dbo].[ufn_sls_global] (@CalMonth int,@CalYear int)
+
+
+
+RETURNS @ufn_sls_global TABLE 
+
+
+
+(
+global	varchar(20),
+organ	varchar(50),
+region	varchar(150),
+Zone	varchar(100),
+user_names	varchar(100),
+Division	varchar(50),
+Vertical1	varchar(100),
+Areacode	varchar(5),
+AreaName	varchar(50),
+Dpstcode	varchar(20),
+dpstname	varchar(100),
+Item nvarchar(50),
+Item_desc nvarchar(30),
+description	varchar(50),
+ondate_sale	float,
+last_year_sale	float,
+last_year_ytd	float,
+this_year_sale	float,
+last_month_sale	float,
+last_year_this_month_sale	float,
+this_month_sale	float,
+thr_month_sale	float,
+n1_month_sale	float,
+n2_month_sale	float,
+n3_month_sale	float,
+AprSales float,
+MaySales float,
+JunSales float,
+JulSales float,
+AugSales float,
+SepSales float,
+OctSales float,
+NovSales float,
+DecSales float,
+JanSales float,
+FebSales float,
+MarSales float,
+AprSalesLYr float,
+MaySalesLYr float,
+JunSalesLYr float,
+JulSalesLYr float,
+AugSalesLYr float,
+SepSalesLYr float,
+OctSalesLYr float,
+NovSalesLYr float,
+DecSalesLYr float,
+JanSalesLYr float,
+FebSalesLYr float,
+MarSalesLYr float
+)
+
+AS
+
+BEGIN
+
+WITH CTE_sls_global
+(global,organ	,region	,Zone,user_names	,Division	,Vertical1	,Areacode	,AreaName	,Dpstcode	,dpstname	,
+description	,Item,Item_desc,ondate_sale	,last_year_sale	,last_year_ytd	,this_year_sale	,last_month_sale	,last_year_this_month_sale	,
+this_month_sale	,thr_month_sale	,n1_month_sale	,n2_month_sale	,n3_month_sale,
+AprSales,MaySales,JunSales,JulSales,AugSales,SepSales,OctSales,NovSales,DecSales,JanSales,FebSales,MarSales,
+AprSalesLYr,MaySalesLYr,JunSalesLYr,JulSalesLYr,AugSalesLYr,SepSalesLYr,OctSalesLYr,NovSalesLYr,DecSalesLYr,JanSalesLYr,FebSalesLYr,MarSalesLYr
+
+) -- CTE name and columns
+
+AS (
+SELECT b.global,c.organ,c.region,c.Zone,c.user_names,c.Division as Division,c.Vertical1,
+b.Areacode,b.AreaName, d.Dpstcode,d.dpstname,d.description,ltrim(rtrim(a.Item)) as Item,ltrim(rtrim(a.Item_desc)) as Item_desc,
+
+sum(CASE WHEN day(a.invoice_date)=day(getdate()-1)and month(a.invoice_date)=@CalMonth
+and year(a.invoice_date)=@CalYear THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS ondate_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 2 else @CalYear-1 end )) 
+AND 
+'03/31/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear-1 else @CalYear end ))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_sale, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 2 else @CalYear-1 end )))
+AND 
+convert(date,CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/' + CONVERT(varchar,@CalYear-1))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_ytd, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end )) 
+AND 
+CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()))+'/' + CONVERT(varchar,@CalYear) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_year_sale,   
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_month_sale,
+
+--SUM(CASE WHEN a.Invoice_Date BETWEEN 
+--CONVERT(varchar, @CalMonth) + '/1/' + CONVERT(varchar,@CalYear-1)
+--AND 
+--CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/'+  CONVERT(varchar,@CalYear-1)
+--THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_this_month_sale,
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,CONVERT(varchar, @CalMonth) + '/1/' + CONVERT(varchar,@CalYear-1))
+AND 
+dateadd(dd,-1,dateadd(mm,1,convert(date,CONVERT(varchar, @CalMonth) + '/1/'+  CONVERT(varchar,@CalYear-1))))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_this_month_sale,
+
+
+SUM(CASE WHEN month(a.Invoice_Date) =@CalMonth
+and year(a.Invoice_Date) =@CalYear
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sale,
+
+--SUM(CASE WHEN a.Invoice_Date BETWEEN 
+--CONVERT(varchar,@CalMonth)  + '/1/' + CONVERT(varchar,@CalYear)
+--AND 
+--dateadd(dd,-1,dateadd(mm, 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)))
+--THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sale,
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS thr_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n1_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n2_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n3_month_sale,
+
+
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =4 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as AprSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =5 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as MaySales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =6 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as JunSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =7 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as JulSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =8 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as AugSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =9 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as SepSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =10 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as OctSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =11 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as NovSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =12 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as DecSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)+1 and month(a.Invoice_Date) =1 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as JanSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)+1 and month(a.Invoice_Date) =2 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as FebSales,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)+1 and month(a.Invoice_Date) =3 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as MarSales,
+
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =4 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as AprSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =5 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as MaySalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then 
+@CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =6 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as JunSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =7 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as JulSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =8 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as AugSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =9 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as SepSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =10 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as OctSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =11 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as NovSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(a.Invoice_Date) =12 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as DecSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =1 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as JanSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =2 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as FebSalesLYr,
+sum(case when year(a.Invoice_Date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(a.Invoice_Date) =3 THEN (a.Sales_amount) / 1000000 ELSE 0 END) as MarSalesLYr
+
+FROM 	
+ELGi_Sales_Details a 
+	left outer JOIN vw_AREA_MASTER b ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.areacode))
+	left outer JOIN vw_SALESMAPPING_MASTER c
+	ON 	ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode)) 
+	AND ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+	left outer join vw_DPST_MASTER d
+	on ltrim(rtrim(d.DpstCode))=ltrim(rtrim(c.DPSTCode))
+
+
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+
+AND a.SaleOrderType in (
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+GROUP BY b.global,c.organ,c.region,c.Zone, c.user_names,c.Division,c.Vertical1,
+b.Areacode,b.AreaName,d.Dpstcode,d.dpstname,d.Description,a.Item,a.Item_desc
+
+
+)
+
+
+
+INSERT @ufn_sls_global
+
+SELECT 
+global,organ	,region	,Zone,user_names	,Division	,Vertical1	,Areacode	,AreaName	,Dpstcode	,dpstname	,
+description	,Item,Item_desc,
+ondate_sale	,last_year_sale	,last_year_ytd	,this_year_sale	,last_month_sale	,last_year_this_month_sale	,
+this_month_sale	,thr_month_sale	,n1_month_sale	,n2_month_sale	,n3_month_sale,
+AprSales,MaySales,JunSales,JulSales,AugSales,SepSales,OctSales,NovSales,DecSales,JanSales,FebSales,MarSales,
+AprSalesLYr,MaySalesLYr,JunSalesLYr,JulSalesLYr,AugSalesLYr,SepSalesLYr,OctSalesLYr,NovSalesLYr,DecSalesLYr,JanSalesLYr,FebSalesLYr,MarSalesLYr
+FROM CTE_sls_global
+
+RETURN
+
+END;
+
+
+
+
+
+
+
+
+Completion time: 2025-11-10T14:27:00.0623297+05:30

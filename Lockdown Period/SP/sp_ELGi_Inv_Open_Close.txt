@@ -1,0 +1,764 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_Inv_Open_Close
+CREATE proc [sp_ELGi_Inv_Open_Close]
+as
+
+begin
+
+Truncate table ELGi_Inv_Open_Close
+Truncate table ELGi_Inv_Open_Close_Tmp
+Truncate table ISSUEPRICE_TMP
+Truncate table IssuePrice_adjustments2
+Truncate table ELGi_Inv_Open_Close_log
+Truncate table ELGi_Inv_Open_Close_Tmp2
+
+
+--create table ELGi_Inv_Open_Close_log
+--(
+--Remarks varchar(100),
+--StartTime datetime,
+--EndTime datetime
+--)
+
+--Alter table ELGi_Inv_Open_Close add KITM varchar(20)
+--Alter table ELGi_Inv_Open_Close_Tmp add KITM varchar(20)
+
+--Alter table ELGi_Inv_Open_Close add R_Amnt4 float
+--Alter table ELGi_Inv_Open_Close_Tmp add R_Amnt4 float
+
+--Alter table ELGi_Inv_Open_Close add FrtRate float
+--Alter table ELGi_Inv_Open_Close_Tmp add FrtRate float
+
+
+--Alter table ELGi_Inv_Open_Close alter column LGDT date
+--Alter table ELGi_Inv_Open_Close_Tmp alter column LGDT date
+
+
+--------LN Data ----------------------------------------------------------------------------------
+
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('TWHINA112ALL data load',getdate())
+
+
+Insert into ELGi_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,
+KOOR_R,seqn,inwp,QSTK_R,QSKT_R,Datasource,LGDT)
+--Drop table ATS_Inv_Open_Close
+--select * into ATS_Inv_Open_Close from (
+select COMPANY,T$CWAR CWAR,T$ITEM ITEM,
+T$TRDT Date1,
+--convert(date,T$TRDT) Date1,
+T$KOOR KOOR_R,T$seqn,T$inwp,
+sum(isnull(T$QSTK,0)) QSTK_R,sum(isnull(T$QSKT,0)) QSKT_R,'LN',convert(date,T$LGDT) T$LGDT 
+from TWHINA112ALL
+--where year(T$TRDT)=year(getdate()-1)
+--and month(T$TRDT)=month(getdate()-1)
+
+--where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+--and concat(COMPANY,T$CWAR,ltrim(rtrim(T$ITEM)))= '401253B012805340073'
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,
+--convert(date,T$TRDT),
+T$KOOR,T$ORNO,T$seqn,T$inwp,convert(date,T$LGDT)
+having sum(T$QSKT)<>0
+--)a
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='TWHINA112ALL data load'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('TWHINA114ALL data load',getdate())
+
+
+Insert into ELGi_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,KOOR_I,seqn,inwp,QSTK_I,Datasource,SERN,LGDT)
+select a.COMPANY,a.T$CWAR,a.T$ITEM,
+a.T$TRDT,
+--T$CTDT T$CTDT,
+--convert(date,T$CTDT) T$CTDT,
+a.T$KOOR KOOR_I,a.T$seqn,a.T$inwp,
+sum(isnull(a.T$QSTK,0)) QSTK_I,'LN',a.T$SERN,convert(date,a.T$LGDT) T$LGDT 
+from TWHINA114ALL a
+inner join TWHINA112ALL b
+on a.COMPANY=b.COMPANY
+and a.T$CWAR=b.T$CWAR
+and a.T$ITEM=b.T$ITEM
+and a.T$TRDT=b.T$TRDT
+and a.T$SEQN=b.T$SEQN
+and a.T$INWP=b.T$INWP
+where year(a.T$TRDT)=year(getdate()-1)
+and month(a.T$TRDT)=month(getdate()-1)
+and a.T$KOOR not in (36)
+--(2,22,33,36,52,60,51)
+--where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+--and concat(COMPANY,T$CWAR,ltrim(rtrim(T$ITEM)))= '401253B012805340073'
+group by a.COMPANY,a.T$CWAR,a.T$ITEM,
+a.T$TRDT,
+--T$CTDT,
+--convert(date,T$CTDT),
+a.T$KOOR,a.T$ORNO,a.T$seqn,a.T$INWP,T$SERN,convert(date,a.T$LGDT)
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='TWHINA114ALL data load'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Delete QHND=0',getdate())
+
+
+
+delete from ELGi_Inv_Open_Close where concat(COMPANY,CWAR,ltrim(rtrim(ITEM))) in
+(select concat(COMPANY,CWAR,ltrim(rtrim(ITEM))) from TWHWMD215ALL
+group by concat(COMPANY,CWAR,ltrim(rtrim(ITEM)))
+having sum(QHND)=0
+)
+
+
+
+--Insert into ELGi_Inv_Open_Close_Tmp2
+----select * into ELGi_Inv_Open_Close_Tmp2 from (
+--select COMPANY,CWAR,ltrim(rtrim(ITEM)) ITEM,SEQN,INWP,Date1,
+----lgdt,LatestIssueDate,
+--sum(QSTK_R) QSTK_R, sum(QSTK_I) QSTK_I ,sum(QSTK_R) - sum(QSTK_I) as balance
+--from ELGi_Inv_Open_Close
+--where 
+----concat(COMPANY,CWAR,ltrim(rtrim(item)))='401253B005100560658' --and 
+--year(LatestIssueDate)<>year(getdate()-1)
+--and month(LatestIssueDate)<>month(getdate()-1)
+--group by COMPANY,CWAR,ltrim(rtrim(ITEM)),SEQN,INWP,Date1
+----,lgdt,LatestIssueDate
+----order by COMPANY,CWAR,ltrim(rtrim(ITEM)),SEQN,INWP,Date1
+----)a
+
+--delete from ELGi_Inv_Open_Close_Tmp2 where balance <> 0
+--delete from ELGi_Inv_Open_Close_Tmp2 where balance is null
+
+
+----Alter table ELGi_Inv_Open_Close add Remarks2 varchar(20)
+
+--update ELGi_Inv_Open_Close set Remarks2='Delete'
+--from ELGi_Inv_Open_Close_Tmp2 a
+--where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+--and ELGi_Inv_Open_Close.CWAR=a.CWAR
+--and ltrim(rtrim(ELGi_Inv_Open_Close.ITEM))=ltrim(rtrim(a.ITEM))
+--and ELGi_Inv_Open_Close.Date1=a.Date1
+--and ELGi_Inv_Open_Close.SEQN=a.SEQN
+--and ELGi_Inv_Open_Close.INWP=a.INWP
+
+--delete from ELGi_Inv_Open_Close where Remarks2='Delete'
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Delete QHND=0'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update R_Amnt',getdate())
+
+
+----------WMS Data ----------------------------------------------------------------------------------
+
+--Insert into ELGi_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,KOOR_R,QSTK_R,Datasource)
+--select 490 as Company,'102' as CWAR,SKU,
+--ADDDATE,
+----convert(date,ADDDATE) ADDDATE,
+--TRANTYPE,sum(QTY) QTY,'WMS' 
+--from WMS.dbo.wmwhse1_ITRN
+--where TRANTYPE='DP'
+--group by ADDDATE,--convert(date,ADDDATE), 
+--SKU,TRANTYPE
+
+--Insert into ELGi_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,KOOR_R,QSTK_R,Datasource)
+--select 490 as Company,'102' as CWAR,SKU,
+--ADDDATE,
+----convert(date,ADDDATE) ADDDATE,
+--TRANTYPE,sum(QTY) QTY,'WMS' 
+--from (select * from WMS.dbo.wmwhse1_ITRN
+--where TRANTYPE='AJ'
+--and QTY>0
+--)a
+--group by ADDDATE,--convert(date,ADDDATE), 
+--SKU,TRANTYPE
+
+
+
+--Insert into ELGi_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,KOOR_I,QSTK_I,Datasource)
+--select 490 as Company,'102' as CWAR,SKU,
+--ADDDATE,
+----convert(date,ADDDATE) ADDDATE,
+--TRANTYPE,sum(QTY) QTY,'WMS' 
+--from WMS.dbo.wmwhse1_ITRN
+--where TRANTYPE='WD'
+--group by ADDDATE,--convert(date,ADDDATE), 
+--SKU,TRANTYPE
+
+--Insert into ELGi_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,KOOR_I,QSTK_I,Datasource)
+--select 490 as Company,'102' as CWAR,SKU,
+--ADDDATE,
+----convert(date,ADDDATE) ADDDATE,
+--TRANTYPE,sum(QTY) QTY,'WMS' 
+--from (select * from WMS.dbo.wmwhse1_ITRN
+--where TRANTYPE='AJ'
+--and QTY<0
+--)a
+--group by ADDDATE,--convert(date,ADDDATE), 
+--SKU,TRANTYPE
+
+
+
+
+
+--delete from ELGi_Inv_Open_Close where company not in (401,450,490)
+
+
+--------Receipt value Addition ----------------------------------------------------------------------------------
+
+update ELGi_Inv_Open_Close set R_Amnt=c.amnt
+from(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$AMNT$1) amnt from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP)c
+where ELGi_Inv_Open_Close.COMPANY=c.COMPANY
+and ELGi_Inv_Open_Close.CWAR=c.T$CWAR
+and ELGi_Inv_Open_Close.ITEM=c.T$ITEM
+and ELGi_Inv_Open_Close.Date1=c.T$TRDT
+and ELGi_Inv_Open_Close.SEQN=c.T$SEQN
+and ELGi_Inv_Open_Close.INWP=c.T$INWP
+and KOOR_R is not null
+
+--update ELGi_Inv_Open_Close set R_Amnt=(R_Amnt/(case when QSTK_R is null or QSTK_R=0 then 0.000001 else QSTK_R  end))*QSKT_R
+
+
+update ELGi_Inv_Open_Close set R_Amnt2=isnull(c.AMNT$1,0)
+from(
+select COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,
+--CPCP,--T$QSKT,T$QSTK,
+sum(isnull(AMNT$1,0)) AMNT$1 from 
+--Inventory_Amnt2_Tmp --Old Method
+TWHINA127ALL --New Method
+group by COMPANY,CWAR,ITEM,TRDT,SEQN,INWP
+--,CPCP,T$QSKT,T$QSTK
+)c
+where ELGi_Inv_Open_Close.COMPANY=c.COMPANY
+and ELGi_Inv_Open_Close.CWAR=c.CWAR
+and ELGi_Inv_Open_Close.ITEM=c.ITEM
+and ELGi_Inv_Open_Close.Date1=c.TRDT
+and ELGi_Inv_Open_Close.SEQN=c.SEQN
+and ELGi_Inv_Open_Close.INWP=c.INWP
+and KOOR_R is not null
+
+
+update ELGi_Inv_Open_Close set R_Amnt3=isnull(R_Amnt,0)+isnull(R_Amnt2,0)
+
+update ELGi_Inv_Open_Close set FrtRate=a.FrtRate
+from (select ITEM,isnull(DUTY,0)+isnull(FRTP,0)+isnull(SEAF,0) as FrtRate 
+from TZZYIN301400
+-- where ltrim(rtrim(ITEM)) ='B004705760006'
+)a
+where ltrim(rtrim(ELGi_Inv_Open_Close.ITEM))=ltrim(rtrim(a.ITEM))
+
+Update ELGi_Inv_Open_Close set R_Amnt4=R_Amnt3+(R_Amnt3*isnull(FrtRate,0))/100
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update R_Amnt'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update I_Amnt',getdate())
+
+
+--------Issue value Addition ----------------------------------------------------------------------------------
+
+--INSERT INTO ISSUEPRICE_TMP
+----SELECT * INTO ISSUEPRICE_TMP FROM (
+--SELECT A.COMPANY,A.T$CWAR,A.T$ITEM,A.T$TRDT,A.T$SEQN,A.T$INWP,SUM(B.AMNT) AMNT,A.T$SERN FROM 
+--(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$KOOR KOOR_I,T$seqn,T$inwp,T$SERN,
+--sum(isnull(T$QSTK,0)) QSTK_I,'LN' as Datasource from TWHINA114ALL
+----where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+--group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$KOOR,T$ORNO,T$seqn,T$inwp,T$SERN)A
+--LEFT OUTER JOIN
+--(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$SERN,sum(T$AMNT$1) amnt from TWHINA115ALL
+--group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$SERN)B
+--ON A.COMPANY=B.COMPANY
+--and A.T$CWAR=B.T$CWAR
+--and A.T$ITEM=B.T$ITEM
+--and A.T$TRDT=B.T$TRDT
+--and A.T$SEQN=B.T$SEQN
+--and A.T$INWP=B.T$INWP
+--AND A.T$SERN=B.T$SERN
+--GROUP BY A.COMPANY,A.T$CWAR,A.T$ITEM,A.T$TRDT,A.T$SEQN,A.T$INWP,A.T$SERN
+----)A
+
+----NEW METHOD
+--update ELGi_Inv_Open_Close set I_Amnt=c.amnt
+--from(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$SERN,sum(AMNT) amnt from ISSUEPRICE_TMP
+--group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$SERN)c
+--where ELGi_Inv_Open_Close.COMPANY=c.COMPANY
+--and ELGi_Inv_Open_Close.CWAR=c.T$CWAR
+--and ELGi_Inv_Open_Close.ITEM=c.T$ITEM
+--and ELGi_Inv_Open_Close.Date1=c.T$TRDT
+--and ELGi_Inv_Open_Close.SEQN=c.T$SEQN
+--and ELGi_Inv_Open_Close.INWP=c.T$INWP
+--and ELGi_Inv_Open_Close.SERN=c.T$SERN
+--and KOOR_I is not null
+
+
+----As Amnt from TWHINA127ALL table is already included in TWHINA115ALL Table, below code is commented on 2020-06-30
+----Uncommented on 2020-07-08 as amnt is not included for some of the other items
+
+--Method 1:
+--update ELGi_Inv_Open_Close set I_Amnt2=isnull(c.AMNT$1,0)
+--from(
+--select COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,
+----CPCP,--T$QSKT,T$QSTK,
+--sum(isnull(AMNT$1,0)) AMNT$1 from 
+----Inventory_Amnt2_Tmp --Old Method
+--TWHINA127ALL --New Method
+--group by COMPANY,CWAR,ITEM,TRDT,SEQN,INWP
+----,CPCP,T$QSKT,T$QSTK
+--)c
+--where ELGi_Inv_Open_Close.COMPANY=c.COMPANY
+--and ELGi_Inv_Open_Close.CWAR=c.CWAR
+--and ELGi_Inv_Open_Close.ITEM=c.ITEM
+--and ELGi_Inv_Open_Close.Date1=c.TRDT
+--and ELGi_Inv_Open_Close.SEQN=c.SEQN
+--and ELGi_Inv_Open_Close.INWP=c.INWP
+--and KOOR_I is not null
+
+
+
+--Method 2:
+--Truncate table IssuePrice_adjustments
+
+--insert into IssuePrice_adjustments 
+----select * into IssuePrice_adjustments from(
+--select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$TRDT,a.T$SEQN,a.T$INWP,a.T$CTDT,a.T$QSTK,b.VPDT,b.AMNT$1 from
+--(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$CTDT,T$QSTK from TWHINA114ALL
+----where concat(COMPANY,T$CWAR,ltrim(rtrim(T$ITEM)))='401353000446510'
+----'401209008972040'
+--)a
+--left outer join
+--(select COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,VPDT,AMNT$1 from TWHINA127ALL
+----where concat(COMPANY,CWAR,ltrim(rtrim(ITEM)))='401353000446510'
+----'401209008972040'
+--)b
+--on
+--a.COMPANY=b.COMPANY
+--and a.T$CWAR=b.CWAR
+--and a.T$ITEM=b.ITEM
+--and a.T$TRDT=b.TRDT
+--and a.T$SEQN=b.SEQN
+--and a.T$INWP=b.INWP
+--and a.T$CTDT>=b.VPDT
+----)a
+
+--update IssuePrice_adjustments set QSTK_R=a.QSTK_R
+--from(
+--select COMPANY,CWAR,ITEM,Date1,SEQN,INWP,QSTK_R from ELGi_Inv_Open_Close
+--where QSTK_R is not null
+--and concat(COMPANY,CWAR,ltrim(rtrim(ITEM)))='401353000446510'
+--)a
+--where 
+--a.COMPANY=a.COMPANY
+--and IssuePrice_adjustments.T$CWAR=a.CWAR
+--and IssuePrice_adjustments.T$ITEM=a.ITEM
+--and IssuePrice_adjustments.T$TRDT=a.Date1
+--and IssuePrice_adjustments.T$SEQN=a.SEQN
+--and IssuePrice_adjustments.T$INWP=a.INWP
+
+--update IssuePrice_adjustments set Adj_Price = (AMNT$1/QSTK_R)*(T$QSTK)
+
+
+
+Insert into IssuePrice_adjustments2
+--select * into IssuePrice_adjustments2 from(
+select COMPANY,CWAR,ITEM,Date1,SEQN,INWP,QSTK_R,R_Amnt,R_Amnt2,--R_Amnt3,QSTK_I,I_Amnt,I_Amnt2,I_Amnt3,
+R_Amnt/QSTK_R as Adj_Price1, 
+R_Amnt2/QSTK_R as Adj_Price2 
+from ELGi_Inv_Open_Close
+where QSTK_R is not null and QSTK_R<>0
+--)a
+
+
+update ELGi_Inv_Open_Close set I_Amnt=ELGi_Inv_Open_Close.QSTK_I*a.Adj_Price1,
+I_Amnt2=ELGi_Inv_Open_Close.QSTK_I*a.Adj_Price2
+from IssuePrice_adjustments2 a
+--Old Method
+--(
+--select COMPANY,CWAR,ITEM,Date1,SEQN,INWP,--QSTK_R,R_Amnt,R_Amnt2,R_Amnt3,QSTK_I,I_Amnt,I_Amnt2,I_Amnt3,
+--R_Amnt/QSTK_R as Adj_Price1, 
+--R_Amnt2/QSTK_R as Adj_Price2 
+--from ELGi_Inv_Open_Close
+--where QSTK_R is not null and QSTK_R<>0
+----and concat(COMPANY,CWAR,ltrim(rtrim(ITEM)))='401353000446510'
+--)a
+
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+and ELGi_Inv_Open_Close.CWAR=a.CWAR
+and ELGi_Inv_Open_Close.ITEM=a.ITEM
+and ELGi_Inv_Open_Close.Date1=a.Date1
+and ELGi_Inv_Open_Close.SEQN=a.SEQN
+and ELGi_Inv_Open_Close.INWP=a.INWP
+and ELGi_Inv_Open_Close.KOOR_I is not null
+
+update ELGi_Inv_Open_Close set I_Amnt3=isnull(I_Amnt,0)+isnull(I_Amnt2,0)
+
+
+Update ELGi_Inv_Open_Close set I_Amnt4=I_Amnt3+(I_Amnt3*isnull(FrtRate,0))/100
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update I_Amnt'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update Item desc,Type,UOM,D/I',getdate())
+
+--------Item Description Addition ----------------------------------------------------------------------------------
+
+
+
+update ELGi_Inv_Open_Close set item_desc=ltrim(rtrim(a.t_dsca)),kitm=a.t_kitm,UOM=a.t_cuni,Domestic_Import=a.t_ctyo
+from TTCIBD001400 a
+where ELGi_Inv_Open_Close.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(ELGi_Inv_Open_Close.Item))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_Inv_Open_Close set item_desc=ltrim(rtrim(a.DSCA)),kitm=a.KITM,UOM=a.CUNI,Domestic_Import=a.ctyo
+from TTCIBD001465 a
+where ELGi_Inv_Open_Close.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(ELGi_Inv_Open_Close.Item))=ltrim(rtrim(a.ITEM))
+
+update ELGi_Inv_Open_Close set item_desc=ltrim(rtrim(a.DSCA)),kitm=a.KITM,UOM=a.CUNI,Domestic_Import=a.ctyo
+from ttcibd001470 a
+where ELGi_Inv_Open_Close.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(ELGi_Inv_Open_Close.Item))=ltrim(rtrim(a.ITEM))
+
+
+update ELGi_Inv_Open_Close set item_desc =a.DSCA,kitm=a.KITM,UOM=a.CUNI,Domestic_Import=a.ctyo
+from TTCIBD001490 a
+where ELGi_Inv_Open_Close.COMPANY=490
+and ltrim(rtrim(ELGi_Inv_Open_Close.ITEM))=ltrim(rtrim(a.ITEM))
+
+update ELGi_Inv_Open_Close set item_desc =a.t_dsca,kitm=a.t_kitm,UOM=a.t_cuni,Domestic_Import=a.t_ctyo
+from TTCIBD001600 a
+where ELGi_Inv_Open_Close.COMPANY in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and ltrim(rtrim(ELGi_Inv_Open_Close.ITEM))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_Inv_Open_Close set Domestic_Import='Domestic' where Domestic_Import='IND'
+update ELGi_Inv_Open_Close set Domestic_Import='Import' where Domestic_Import<>'IND'
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update Item desc,Type,UOM,D/I'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Temp table Process',getdate())
+
+
+--------Data Consolidation ----------------------------------------------------------------------------------
+
+
+Insert into ELGi_Inv_Open_Close_Tmp(COMPANY,CWAR,ITEM,Date1,ORNO,KOOR_R,QSTK_R,QSKT_R,KOOR_I,QSTK_I,Datasource,item_desc,
+R_Amnt,SEQN,INWP,I_Amnt,Rnk,Variant,R_Amnt2,R_Amnt3,SERN,LGDT,KITM,R_Amnt4,FrtRate,I_Amnt2,I_Amnt3,I_Amnt4,UOM,Domestic_Import)
+--select * into ELGi_Inv_Open_Close_Tmp from (
+select COMPANY,CWAR,ITEM,Date1,ORNO,KOOR_R,QSTK_R,QSKT_R,KOOR_I,QSTK_I,Datasource,item_desc,
+R_Amnt,SEQN,INWP,I_Amnt,
+ROW_NUMBER() over(partition by COMPANY,CWAR,ITEM,Date1,SEQN,INWP,SERN order by Date1) as Rnk,
+Variant,R_Amnt2,R_Amnt3,SERN,LGDT,KITM,R_Amnt4,FrtRate,I_Amnt2,I_Amnt3,I_Amnt4,UOM,Domestic_Import
+from ELGi_Inv_Open_Close
+--)a
+--where  ltrim(rtrim(ITEM))='000443710' and Datasource='LN' and KOOR_I is not null 
+
+update ELGi_Inv_Open_Close_Tmp set R_Amnt=null,R_Amnt2=null,R_Amnt3=null,R_Amnt4=null where Rnk>1
+--update ELGi_Inv_Open_Close_Tmp set I_Amnt=null where Rnk>2 
+
+
+
+Truncate table ELGi_Inv_Open_Close
+
+Insert into ELGi_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,ORNO,
+KOOR_R,QSTK_R,QSKT_R,KOOR_I,QSTK_I,Datasource,item_desc,
+R_Amnt,SEQN,INWP,I_Amnt,Variant,R_Amnt2,R_Amnt3,SERN,LGDT,KITM,R_Amnt4,FrtRate,I_Amnt2,I_Amnt3,I_Amnt4,UOM,Domestic_Import)
+select COMPANY,CWAR,ITEM,Date1,ORNO,KOOR_R,QSTK_R,QSKT_R,KOOR_I,QSTK_I,Datasource,item_desc,
+R_Amnt,SEQN,INWP,I_Amnt,null as Variant,R_Amnt2,R_Amnt3,SERN,LGDT,KITM,R_Amnt4,FrtRate,I_Amnt2,I_Amnt3,I_Amnt4,UOM,Domestic_Import
+from ELGi_Inv_Open_Close_Tmp
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Temp table Process'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update Variant,ItemType',getdate())
+
+
+update ELGi_Inv_Open_Close set Variant=a.Variant
+from  item_variant_master a
+where ltrim(rtrim(ELGi_Inv_Open_Close.ITEM))=ltrim(rtrim(a.Item))
+
+update ELGi_Inv_Open_Close set Variant='Others' where Variant is null
+
+update ELGi_Inv_Open_Close set ItemType='purchased' where KITM=1
+update ELGi_Inv_Open_Close set ItemType='Manufactured' where KITM=2
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update Variant,ItemType'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update Lean data',getdate())
+
+
+update ELGi_Inv_Open_Close set LeanType='LEAN',CATEGORY=a.CATEGORY,
+BuyerCode=a.BUYRCODE,BinQty=a.BINQTY,SuppCode=a.SUPPCODE
+from 
+(
+select COMPANY,ITEM,
+case 	
+when SOPS = 1 then  'TWO BIN'
+when SOPS = 2 then  'MULTI BIN'
+when SOPS = 3 then  'MILK RUN'
+when SOPS = 4 then  'MR-MOTORS'
+when SOPS = 5 then  'FORWARD COVER'
+when SOPS = 6 then  'SINGLE BIN'
+end  as CATEGORY,
+convert(float,SQTY) AS BINQTY,
+SLOQ,SUNO1 AS SUPPCODE,
+SCPR as SUP_CNT_PERSON,BUYR AS BUYRCODE,RPLT
+from TZZPUR049ALL
+) a
+where ELGi_Inv_Open_Close.COMPANY=a.Company
+and ltrim(rtrim(ELGi_Inv_Open_Close.ITEM))=ltrim(rtrim(a.Item)) 
+
+update ELGi_Inv_Open_Close set LeanType='NON LEAN' where LeanType is null
+
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update Lean data'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update InvType',getdate())
+
+
+-------InvType Updation------------------------------
+
+update ELGi_Inv_Open_Close set INVType=a.INVType
+--,ItemType=a.ItemType,CompName=a.CompName
+from (select distinct comp,wh,invtype from Inventory_Master) a
+where ELGi_Inv_Open_Close.COMPANY=a.Comp
+and ELGi_Inv_Open_Close.CWAR=a.WH
+
+
+update ELGi_Inv_Open_Close set Vertical=a.Vertical
+--,ItemType=a.ItemType,CompName=a.CompName
+from (select distinct comp,wh,Vertical from Inventory_Master) a
+where ELGi_Inv_Open_Close.COMPANY=a.Comp
+and ELGi_Inv_Open_Close.CWAR=a.WH
+
+
+update ELGi_Inv_Open_Close set RecptType=a.RecptType
+--,ItemType=a.ItemType,CompName=a.CompName
+from (select distinct comp,wh,RecptType from Inventory_Master) a
+where ELGi_Inv_Open_Close.COMPANY=a.Comp
+and ELGi_Inv_Open_Close.CWAR=a.WH
+
+
+--Method2
+update ELGi_Inv_Open_Close set INVType=a.INVType,RecptType=a.ReceiptType
+--,ItemType=a.ItemType
+from (select distinct COMPANY,CWAR,ITEM,OrderType,INVType,ReceiptType from Inventory_Master2) a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+and ELGi_Inv_Open_Close.CWAR=a.CWAR
+and ltrim(rtrim(ELGi_Inv_Open_Close.item))=ltrim(rtrim(a.ITEM))
+and ELGi_Inv_Open_Close.KOOR_R=a.OrderType
+and a.INVType is not null
+
+
+
+--Method3
+update ELGi_Inv_Open_Close set INVType='RM'
+from (select distinct a.Comp,a.WH,a.INVType as InvType1,a.Vertical,b.InvType  as InvType2 from inventory_master a
+left outer join 
+(select distinct company,cwar,InvType from Inventory_Master2) b
+on concat(a.Comp,a.wh)=concat(b.COMPANY,b.CWAR)
+and a.INVType<>b.InvType
+where b.InvType ='FG'
+and a.vertical is null
+)a
+where concat(ELGi_Inv_Open_Close.COMPANY,ELGi_Inv_Open_Close.CWAR) =concat(a.Comp,a.wh)
+and ELGi_Inv_Open_Close.INVType='FG'
+and ELGi_Inv_Open_Close.Vertical is null
+
+
+--update InventoryDetails set INVType='WIP' where WAMT is not null
+
+update ELGi_Inv_Open_Close set INVType='RM',--'Sub Con',
+RecptType='sub con  WH Stock'
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and INVType is null
+and len(CWAR)>3
+
+
+update ELGi_Inv_Open_Close set INVType=a.Group1,vertical=a.Group2
+from Inventory_Master_ATS a
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and ltrim(rtrim(ELGi_Inv_Open_Close.CWAR))=ltrim(rtrim(a.WH))
+
+
+delete from ELGi_Inv_Open_Close where INVType='Not considered'
+delete from ELGi_Inv_Open_Close where INVType= 'Others'
+delete from ELGi_Inv_Open_Close where concat(COMPANY,CWAR) in ('400625','450604')
+
+
+-------End: InvType Updation-------------------------
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update InvType'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update Buyer,Supplier',getdate())
+
+
+
+
+update ELGi_Inv_Open_Close set BuyerCode=a.BUYR,SUPPCODE=a.OTBP
+from (select company,item,otbp,buyr from TTDIPU001ALL)a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+and ltrim(rtrim(ELGi_Inv_Open_Close.ITEM))=ltrim(rtrim(a.ITEM))
+and BuyerCode is null
+
+
+update ELGi_Inv_Open_Close set BuyerName=p.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail P
+where convert(varchar,P.new_emp_code)=ELGi_Inv_Open_Close.BuyerCode
+
+update ELGi_Inv_Open_Close set BuyerName=p.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail P
+where convert(varchar,P.emp_code)=ELGi_Inv_Open_Close.BuyerCode
+and BuyerName is null
+
+update ELGi_Inv_Open_Close set SuppName=v.custname1
+from vw_Business_Partner V
+where ltrim(rtrim(V.custcode)) = ltrim(rtrim(ELGi_Inv_Open_Close.SuppCode)) 
+and ELGi_Inv_Open_Close.SuppName is null
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update Buyer,Supplier'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update Year,Month',getdate())
+
+
+update ELGi_Inv_Open_Close set CalYear=Year(Date1)
+update ELGi_Inv_Open_Close set CalMonth=month(Date1)
+
+update ELGi_Inv_Open_Close set FinYear=CalYear-1 where CalMonth<4
+update ELGi_Inv_Open_Close set FinYear=CalYear where CalMonth>=4
+
+update ELGi_Inv_Open_Close set FinMonth=CalMonth+9 where CalMonth<4
+update ELGi_Inv_Open_Close set FinMonth=CalMonth-3 where CalMonth>=4
+
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update Year,Month'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update FirstReceiptDate',getdate())
+
+
+update ELGi_Inv_Open_Close set FirstReceiptDate=a.Date1
+from (select company,CWAR,ITEM, min(Date1) Date1 from ELGi_Inv_Open_Close 
+where KOOR_R is not null
+group by company,CWAR,ITEM
+)a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+--and ELGi_Inv_Open_Close.CWAR=a.CWAR
+and ELGi_Inv_Open_Close.ITEM=a.ITEM
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update FirstReceiptDate'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update LatestIssueDate',getdate())
+
+update ELGi_Inv_Open_Close set LatestIssueDate=a.Date1
+from (select company,CWAR,ITEM, max(Date1) Date1 from ELGi_Inv_Open_Close 
+where KOOR_I is not null
+group by company,CWAR,ITEM
+)a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+--and ELGi_Inv_Open_Close.CWAR=a.CWAR
+and ELGi_Inv_Open_Close.ITEM=a.ITEM
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update LatestIssueDate'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update CFY and LFY Avg_Rec_Qty',getdate())
+
+
+update ELGi_Inv_Open_Close set CFY_Avg_Rec_Qty=a.Avg_Rec_Qty
+from (select company,ITEM,sum(qstk_R) Total_Rec_Qty,avg(qstk_R) Avg_Rec_Qty from ELGi_Inv_Open_Close 
+where KOOR_R is not null
+and FinYear = (select max(FinYear) from ELGi_Inv_Open_Close)
+group by company,ITEM
+)a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+and ELGi_Inv_Open_Close.ITEM=a.ITEM
+
+
+update ELGi_Inv_Open_Close set LFY_Avg_Rec_Qty=a.Avg_Rec_Qty
+from (select company,ITEM,sum(qstk_R) Total_Rec_Qty,avg(qstk_R) Avg_Rec_Qty from ELGi_Inv_Open_Close 
+where KOOR_R is not null
+and FinYear = (select max(FinYear)-1 from ELGi_Inv_Open_Close)
+group by company,ITEM
+)a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+and ELGi_Inv_Open_Close.ITEM=a.ITEM
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update CFY and LFY Avg_Rec_Qty'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update CFY and LFY Avg_Iss_Qty',getdate())
+
+
+update ELGi_Inv_Open_Close set CFY_Avg_Iss_Qty=a.Avg_Iss_Qty
+from (select company,ITEM,sum(qstk_I) Total_Iss_Qty,avg(qstk_I) Avg_Iss_Qty from ELGi_Inv_Open_Close 
+where KOOR_I is not null
+and FinYear = (select max(FinYear) from ELGi_Inv_Open_Close)
+group by company,ITEM
+)a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+and ELGi_Inv_Open_Close.ITEM=a.ITEM
+
+
+update ELGi_Inv_Open_Close set LFY_Avg_Iss_Qty=a.Avg_Iss_Qty
+from (select company,ITEM,sum(qstk_I) Total_Iss_Qty,avg(qstk_I) Avg_Iss_Qty from ELGi_Inv_Open_Close 
+where KOOR_I is not null
+and FinYear = (select max(FinYear)-1 from ELGi_Inv_Open_Close)
+group by company,ITEM
+)a
+where ELGi_Inv_Open_Close.COMPANY=a.COMPANY
+and ELGi_Inv_Open_Close.ITEM=a.ITEM
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update CFY and LFY Avg_Iss_Qty'
+Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+('Update Remarks',getdate())
+
+
+
+--update ELGi_Inv_Open_Close set Remarks='New Item for the Month' where FirstReceiptDate>(select dateadd(mm,-1,EOMONTH(getdate()-1)))
+update ELGi_Inv_Open_Close set Remarks='Item has no Receipt and Issues' where FirstReceiptDate is null and LatestIssueDate is null
+update ELGi_Inv_Open_Close set Remarks='Greater than 180 days Since Last Issue' where datediff(dd,LatestIssueDate,getdate()-1)>180
+
+update ELGi_Inv_Open_Close set Remarks='New Item without Issues' where FirstReceiptDate>(select dateadd(mm,-1,EOMONTH(getdate()-1)))
+update ELGi_Inv_Open_Close set Remarks='New Item with Issues' where FirstReceiptDate>(select dateadd(mm,-1,EOMONTH(getdate()-1)))
+and LatestIssueDate>(select dateadd(mm,-1,EOMONTH(getdate()-1)))
+
+
+
+update ELGi_Inv_Open_Close_log set EndTime=getdate() where Remarks='Update Remarks'
+--Insert into ELGi_Inv_Open_Close_log(Remarks,StartTime) values
+--('Update Remarks',getdate())
+
+if exists(select * from ELGi_Inv_Open_Close_History where calyear=year(getdate()-1) and calmonth=month(getdate()-1))
+begin
+delete from  ELGi_Inv_Open_Close_History where calyear=year(getdate()-1) and calmonth=month(getdate()-1)
+end
+
+insert into ELGi_Inv_Open_Close_History(COMPANY,CWAR,ITEM,Date1,ORNO,KOOR_R,QSTK_R,QSKT_R,KOOR_I,QSTK_I,Datasource,item_desc,R_Amnt,
+SEQN,INWP,I_Amnt,Variant,R_Amnt2,R_Amnt3,SERN,LGDT,KITM,R_Amnt4,FrtRate,I_Amnt2,I_Amnt3,I_Amnt4,ItemType,
+UOM,LeanType,CATEGORY,BinQty,BuyerCode,BuyerName,FirstReceiptDate,LatestIssueDate,SuppCode,SuppName,CFY_Avg_Rec_Qty,
+CFY_Avg_Iss_Qty,LFY_Avg_Rec_Qty,LFY_Avg_Iss_Qty,CalYear,CalMonth,FinYear,FinMonth,Domestic_Import,InvType,
+Vertical,RecptType,Remarks,Remarks2)
+select COMPANY,CWAR,ITEM,Date1,ORNO,KOOR_R,QSTK_R,QSKT_R,KOOR_I,QSTK_I,Datasource,item_desc,R_Amnt,
+SEQN,INWP,I_Amnt,Variant,R_Amnt2,R_Amnt3,SERN,LGDT,KITM,R_Amnt4,FrtRate,I_Amnt2,I_Amnt3,I_Amnt4,ItemType,
+UOM,LeanType,CATEGORY,BinQty,BuyerCode,BuyerName,FirstReceiptDate,LatestIssueDate,SuppCode,SuppName,CFY_Avg_Rec_Qty,
+CFY_Avg_Iss_Qty,LFY_Avg_Rec_Qty,LFY_Avg_Iss_Qty,CalYear,CalMonth,FinYear,FinMonth,Domestic_Import,InvType,
+Vertical,RecptType,Remarks,Remarks2 from ELGi_Inv_Open_Close
+
+
+end
+
+Select * from ELGi_Inv_Open_Close_History where calyear=year(getdate()-1) and calmonth=month(getdate()-1)
+--select * into ELGi_Inv_Open_Close_History from ELGi_Inv_Open_Close 
+--where concat(company,cwar,ltrim(rtrim(item)))='40005534030395A'
+--where suppcode is not null
+
+
+
+Completion time: 2025-11-19T09:45:55.7330916+05:30

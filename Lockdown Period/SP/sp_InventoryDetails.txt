@@ -1,0 +1,1261 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_InventoryDetails
+CREATE proc sp_InventoryDetails as
+
+begin
+
+--Developed inorder to provide additional Fields and to match the 490 company '102' warehouse value mismatch occured
+--due to WMS activity. Note: This Table cannot be used for Ageing Analysis
+
+--select * into InventoryDetails from Inventory
+Truncate table InventoryDetails_Temp
+Truncate table InventoryDetails
+Truncate table Elgi_Inv_FullAccess
+Truncate Table Inventory_Currency_Conversion
+
+
+--Alter table InventoryDetails add INR_Conv_Rate float
+--Alter table InventoryDetails_Temp add INR_Conv_Rate float
+--Alter table InventoryDetails_History add INR_Conv_Rate float
+
+--Alter table InventoryDetails add Amnt4_INR float
+--Alter table InventoryDetails_Temp add Amnt4_INR float
+--Alter table InventoryDetails_History add Amnt4_INR float
+
+
+--Alter table InventoryDetails add PLMT1 varchar(50)
+--Alter table InventoryDetails_Temp add PLMT1 varchar(50)
+--Alter table InventoryDetails_History add PLMT1 varchar(50)
+
+--Alter table InventoryDetails add category3 varchar(50)
+--Alter table InventoryDetails_Temp add category3 varchar(50)
+--Alter table InventoryDetails_History add category3 varchar(50)
+
+
+
+
+
+Insert into InventoryDetails(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,Ageing,AgeingOrdr,
+stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,CITG,CITG_desc,Amnt4)
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+null Ageing,null AgeingOrdr,null stock_955,null Cumulative_stk,null Remarks,
+OrderType,QSTK,IssueDate,Amnt2,Amnt3,CITG,CITG_desc,Amnt4
+from Inventory
+
+
+
+delete from InventoryDetails where company=490 and cwar='102'
+
+Insert into InventoryDetails (COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,OrderType,QSTK)
+--select * into Inventory from (
+select a.COMPANY,a.CWAR,a.ITEM,null as ItemDescr,b.T$TRDT,b.T$SEQN,b.T$INWP,b.QSKT,
+(c.Amnt/b.QSTK)*b.QSKT,b.T$KOOR,b.QSTK
+
+from 
+(select COMPANY,CWAR,ITEM
+--,sum(QHND) QHND 
+from TWHWMD215ALL
+where company=490 and cwar='102'
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$KOOR,
+sum(T$QSTK) QSTK,sum(T$QSKT) QSKT from TWHINA112ALL 
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$KOOR
+having sum(T$QSKT)>0)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.T$CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.T$ITEM))
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$AMNT$1) amnt from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP)c
+on b.COMPANY=c.COMPANY
+and b.T$CWAR=c.T$CWAR
+and b.T$ITEM=c.T$ITEM
+and b.T$TRDT=c.T$TRDT
+and b.T$SEQN=c.T$SEQN
+and b.T$INWP=c.T$INWP
+
+--)a
+--where concat(a.COMPANY,CWAR,ltrim(rtrim(ITEM)))='490102000010310'
+order by a.COMPANY,a.CWAR,a.ITEM,b.T$TRDT,b.T$SEQN,b.T$INWP
+
+------------------------WIP Inventory -----------------------------------------------
+--Method1:
+--Insert into InventoryDetails (COMPANY,CWAR,ITEM,ItemDescr,CITM,CDSCA,ORDT,PDNO,--PONO,QRDR,
+--WQTY,WAMT,UPDT)
+--select COMPANY,CWAR,MITM,MDSCA,CITM,CDSCA,ORDT,PDNO,--PONO,QRDR,
+--sum(WQTY) WQTY,
+--sum(WAMT) WAMT,UPDT
+--from
+--(select * from tzzsfc918all a
+--inner join (select company as company2,
+--DATEADD(HH,-3,UPDT) UPDT2 --Note: This is set w.r.t Job time schedule at 2.00 AM(Job Name : LN030_WIP_Inv_and_Procedures)
+--from (select company,max(UPDT) UPDT from tzzsfc918all group by company)a)b
+--on a.company=b.company2
+--and a.UPDT>=b.UPDT2
+----fyer = '2020' and week = '2' --testing purpose
+--)a
+--group by COMPANY,CWAR,MITM,MDSCA,CITM,CDSCA,ORDT,PDNO,UPDT
+
+
+--Method2:
+Insert into InventoryDetails (COMPANY,CWAR,ITEM,ItemDescr,CITM,CDSCA,ORDT,PDNO,--PONO,QRDR,
+WQTY,WAMT,UPDT)
+select COMPANY,CWAR,MITM,MDSCA,CITM,CDSCA,ORDT,PDNO,--PONO,QRDR,
+sum(WQTY) WQTY,
+sum(WAMT) WAMT,Date1 as UPDT
+from
+(select * from tzzsfc918all a
+where Date1=(select max(Date1) from tzzsfc918all where Date1<>'9999-01-01 00:00:00.000')
+)a
+group by COMPANY,CWAR,MITM,MDSCA,CITM,CDSCA,ORDT,PDNO,Date1
+
+
+
+
+update InventoryDetails set Ageing='LessThan30' where datediff(dd,ORDT,getdate()-1) <30 and Ageing is null
+update InventoryDetails set Ageing='30-60' where datediff(dd,ORDT,getdate()-1) between 30 and 60 and Ageing is null
+update InventoryDetails set Ageing='61-90' where datediff(dd,ORDT,getdate()-1) between 61 and 90 and Ageing is null
+update InventoryDetails set Ageing='91-120' where datediff(dd,ORDT,getdate()-1) between 91 and 120 and Ageing is null
+update InventoryDetails set Ageing='121-150' where datediff(dd,ORDT,getdate()-1) between 121 and 150 and Ageing is null
+update InventoryDetails set Ageing='151-180' where datediff(dd,ORDT,getdate()-1) between 151 and 180 and Ageing is null
+update InventoryDetails set Ageing='181-365' where datediff(dd,ORDT,getdate()-1) between 181 and 365 and Ageing is null
+update InventoryDetails set Ageing='GreaterThan_1Year' where datediff(dd,ORDT,getdate()-1) between 366 and 730 and Ageing is null
+update InventoryDetails set Ageing='GreaterThan_2Years' where datediff(dd,ORDT,getdate()-1) between 731 and 1095 and Ageing is null
+update InventoryDetails set Ageing='GreaterThan_3Years' where datediff(dd,ORDT,getdate()-1) between 1096 and 1460 and Ageing is null
+update InventoryDetails set Ageing='GreaterThan_4Years' where datediff(dd,ORDT,getdate()-1) between 1460 and 1826 and Ageing is null
+update InventoryDetails set Ageing='GreaterThan_5Years' where datediff(dd,ORDT,getdate()-1) between 1827 and 2192 and Ageing is null
+update InventoryDetails set Ageing='GreaterThan_6Years' where datediff(dd,ORDT,getdate()-1) > 2192 and Ageing is null
+
+
+delete from inventorydetails where company=600 and ltrim(rtrim(cwar)) in ('AED')
+
+----------------------End: WIP Inventory ----------------------------------------------
+
+
+update InventoryDetails set ItemDescr=ltrim(rtrim(a.dsca)),citg=a.CITG
+from TTCIBD001490 a
+where InventoryDetails.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(InventoryDetails.Item))=ltrim(rtrim(a.item))
+
+update InventoryDetails set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=490)a
+where InventoryDetails.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryDetails.CITG))=ltrim(rtrim(a.CITG))
+
+
+update InventoryDetails set IssueDate=isnull(T$CTDT,IssueDate)
+from (select COMPANY,T$CWAR,T$ITEM,max(T$CTDT) T$CTDT,datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  from TWHINA114ALL
+group by COMPANY,T$CWAR,T$ITEM)a
+where InventoryDetails.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryDetails.CWAR))=ltrim(rtrim(a.T$CWAR))
+and ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.T$ITEM))
+and InventoryDetails.COMPANY=490
+
+
+
+update InventoryDetails set Amnt2=isnull(a.AMNT$1,0)
+from 
+(select COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,--CPCP,
+T$QSKT,T$QSTK,sum(AMNT$1) AMNT$1 from 
+Inventory_Amnt2_Tmp
+group by COMPANY,CWAR,ITEM,TRDT,SEQN,INWP--,CPCP
+,T$QSKT,T$QSTK
+) a
+where InventoryDetails.COMPANY=a.COMPANY
+and InventoryDetails.CWAR=a.CWAR
+and InventoryDetails.ITEM=a.ITEM
+and InventoryDetails.TRDT=a.TRDT
+and InventoryDetails.SEQN=a.SEQN
+and InventoryDetails.INWP=a.INWP
+
+
+update InventoryDetails set Amnt3=isnull(Amnt,0)+isnull(Amnt2,0)
+
+--commented on 11Nov2022 based on SR:O6C00114751 and uncommented after user informed to revert back
+
+update InventoryDetails set FrtRate=a.FrtRate,Duty=a.Duty--Amnt3+Amnt3*FrtRate
+from (select ITEM,isnull(DUTY,0) as Duty,
+isnull(FRTP,0)+isnull(SEAF,0) as FrtRate 
+--isnull(FRTP,0)+isnull(DUTY,0)+isnull(SEAF,0) as FrtRate 
+from TZZYIN301400
+-- where ltrim(rtrim(ITEM)) ='B004705760006'
+)a
+where ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.ITEM))
+and company like '4%'
+
+
+
+--Method1 till 24-Nov-2021
+--update InventoryDetails set Amnt4=Amnt3+(Amnt3*isnull(FrtRate,0))/100 
+
+--Method 2 : Since 25-Nov-2021
+update InventoryDetails set Amnt4=Amnt3+(Amnt3*isnull(Duty,0))/100 + (Amnt3*isnull(FrtRate,0))/100
+
+update InventoryDetails set Amnt4=WAMT where WAMT is not null  
+update InventoryDetails set QSKT=WQTY where WQTY is not null  
+
+
+update InventoryDetails set WLOC=a.WLOC
+from (select * from  TZZINV700ALL
+where WLOC is not null
+and ltrim(rtrim(WLOC))<>'')a
+where InventoryDetails.company=a.company
+and InventoryDetails.cwar=a.cwar
+and ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.item))
+
+
+--Multiply the Amnt4 value with 1.2 for ATS Items which have foreign currency 
+
+update InventoryDetails set MultiplyFactor=1
+where company  in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+--Commented on 14-Feb-23 based on ATS Muthukrishnan mail
+--update InventoryDetails set MultiplyFactor=1.07
+--where ltrim(rtrim(ITEM)) in
+--(select distinct ltrim(rtrim(ITEM)) from TTDIPU001ALL 
+--where company  in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+--and ccur not in ('INR','IND'))
+--and MultiplyFactor=1
+
+update InventoryDetails set MultiplyFactor=1 where MultiplyFactor is null
+
+update InventoryDetails set Amnt4=Amnt4*MultiplyFactor
+
+update InventoryDetails set Currency='IND' where company like '4%'
+update InventoryDetails set Currency='IND' where company like '6%'
+update InventoryDetails set Currency='IND' where company = '581'
+update InventoryDetails set Currency='IND' where company = '951'
+
+update InventoryDetails set Currency='DHI' where company = '500'
+update InventoryDetails set Currency='AUD' where company = '551'
+update InventoryDetails set Currency='IDR' where company = '552'
+update InventoryDetails set Currency='MYR' where company = '553'
+
+
+--EUR to INR Conversion
+--select CCUR,BCUR,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+--where RTYP='PUR' 
+--and bcur in ('IND','INR')
+--and RATE>1
+--and ccur ='EUR'
+----and convert(date,stdt)='2024-01-08'
+--group by CCUR,BCUR,convert(date,STDT)
+
+
+insert into Inventory_Currency_Conversion(TRDT,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk)
+--select * into Inventory_Currency_Conversion from (
+select TRDT,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk 
+from (select *,datediff(dd,STDT,TRDT) as DaysDiff,
+row_number() over (partition by Currency,TRDT order by datediff(dd,STDT,TRDT)) as Rnk 
+from (select distinct TRDT,Currency from inventorydetails
+where currency in ('DHI','AUD','IDR','MYR')
+)a
+left outer join 
+(select CCUR,BCUR,RTYP,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+where ccur in ('DHI','AUD','IDR','MYR')
+and bcur in ('IND','INR')
+and RATE<>1
+--and convert(date,stdt)='2024-01-08'
+group by CCUR,BCUR,RTYP,convert(date,STDT)
+)b
+on a.currency=b.ccur
+and a.TRDT>=b.STDT
+)a
+where Rnk=1
+--)a
+
+update inventorydetails set INR_Conv_Rate=a.RATE
+from (select * from Inventory_Currency_Conversion)a
+where inventorydetails.Currency=a.Currency
+and inventorydetails.TRDT=a.TRDT
+
+update inventorydetails set INR_Conv_Rate=1
+where currency in('IND')
+
+update inventorydetails set Amnt4_INR=isnull(INR_Conv_Rate,1)*Amnt4
+update inventorydetails set Amnt4_INR=0.0052*Amnt4 where currency='IDR' and INR_Conv_Rate is null
+
+
+--select * from Inventorydetails
+--where company like '5%'
+--and company<>'581'
+
+
+------DHI to INR Conversion
+--select CCUR,BCUR,RTYP,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+--where --RTYP='PUR' and 
+--bcur in ('IND','INR')
+--and RATE<>1
+--and ccur ='DHI'
+----and convert(date,stdt)='2024-01-08'
+--group by CCUR,BCUR,RTYP,convert(date,STDT)
+
+
+------AUD to INR Conversion
+----select CCUR,BCUR,RTYP,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+----where --RTYP='PUR' and 
+----bcur in ('IND','INR')
+----and RATE<>1
+----and ccur ='AUD'
+------and convert(date,stdt)='2024-01-08'
+----group by CCUR,BCUR,RTYP,convert(date,STDT)
+
+
+
+------IDR to INR Conversion Not available
+----select CCUR,BCUR,RTYP,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+----where --RTYP='PUR' and 
+----ccur in ('IND','INR')
+------and RATE<>1
+----and 
+----bcur ='IDR'
+------and convert(date,stdt)='2024-01-08'
+----group by CCUR,BCUR,RTYP,convert(date,STDT)
+
+
+----select CCUR,BCUR,RTYP,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+----where --RTYP='PUR' and 
+----bcur in ('IND','INR')
+------and RATE<>1
+----and 
+----ccur ='IDR'
+------and convert(date,stdt)='2024-01-08'
+----group by CCUR,BCUR,RTYP,convert(date,STDT)
+
+
+
+----MYR to INR Conversion
+----select CCUR,BCUR,RTYP,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+----where --RTYP='PUR' and 
+----bcur in ('IND','INR')
+----and RATE<>1
+----and ccur ='MYR'
+------and convert(date,stdt)='2024-01-08'
+----group by CCUR,BCUR,RTYP,convert(date,STDT)
+
+
+
+
+
+
+update Inventory_Master set INVType=ltrim(rtrim(INVType))
+update Inventory_Master set ItemType=ltrim(rtrim(ItemType))
+update Inventory_Master set RecptType=ltrim(rtrim(RecptType))
+update Inventory_Master set Vertical=ltrim(rtrim(Vertical))
+update Inventory_Master set CompName=ltrim(rtrim(CompName))
+
+
+update inventory_master set CompName=a.CompName
+from (select distinct comp,CompName from inventory_master where CompName is not null)a
+where Inventory_Master.Comp=a.Comp
+and Inventory_Master.CompName is null
+
+
+
+update InventoryDetails set CompName=ltrim(rtrim(a.CompName))
+from Inventory_Master a
+where InventoryDetails.COMPANY=a.Comp
+
+
+update InventoryDetails set INVType=a.INVType,ItemType=a.ItemType,
+RecptType=a.RecptType,Vertical=a.Vertical,CompName=a.CompName
+from Inventory_Master a
+where InventoryDetails.COMPANY=a.Comp
+and InventoryDetails.CWAR=a.WH
+and InventoryDetails.company not in ('465')
+
+
+--Method2
+update InventoryDetails set INVType=a.INVType,ItemType=a.ItemType,
+RecptType=a.ReceiptType--,Vertical=a.Vertical
+from Inventory_Master2 a
+where InventoryDetails.COMPANY=a.COMPANY
+and InventoryDetails.CWAR=a.CWAR
+and ltrim(rtrim(InventoryDetails.item))=ltrim(rtrim(a.ITEM))
+--and InventoryDetails.OrderType=a.OrderType
+and (a.INVType is not null or a.INVType='RM')
+and InventoryDetails.company not in ('465')
+--and ltrim(rtrim(InventoryDetails.item))='411300085' and InventoryDetails.CWAR='253' --Testing
+
+
+--Method3
+update InventoryDetails set INVType='RM'
+from (select distinct a.Comp,a.WH,a.INVType as InvType1,a.Vertical,b.InvType  as InvType2 from inventory_master a
+left outer join 
+(select distinct company,cwar,InvType from Inventory_Master2) b
+on concat(a.Comp,a.wh)=concat(b.COMPANY,b.CWAR)
+and a.INVType<>b.InvType
+where b.InvType ='FG'
+and a.vertical is null
+)a
+where concat(InventoryDetails.COMPANY,InventoryDetails.CWAR) =concat(a.Comp,a.wh)
+and InventoryDetails.INVType='FG'
+and InventoryDetails.Vertical is null
+and InventoryDetails.company not in ('465')
+--and ltrim(rtrim(InventoryDetails.item))='411300085' and InventoryDetails.CWAR='253' --Testing
+
+
+
+update InventoryDetails set INVType='RM',--'Sub Con',
+RecptType='sub con  WH Stock'
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and INVType is null
+and len(CWAR)>3
+and InventoryDetails.company not in ('465')
+
+--Special Case: on request from Robert (Materials)
+
+update InventoryDetails set INVType='FG',ItemType='Purchased',RecptType='Finished Goods'
+where concat(company,CWAR,ltrim(rtrim(item)))='401291S411073'
+
+
+update InventoryDetails set INVType=a.Group1,vertical=a.Group2
+from Inventory_Master_ATS a
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and ltrim(rtrim(InventoryDetails.CWAR))=ltrim(rtrim(a.WH))
+
+
+update InventoryDetails set INVType=a.InvType
+from (select distinct '465' as Company,a.Item,b.InvType from TTCIBD001465 a 
+left outer join vw_Foundry_InvType_Master b
+on ltrim(rtrim(a.CITG))=ltrim(rtrim(b.ItemGroup)))a
+where InventoryDetails.COMPANY=a.Company
+and ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.item))
+
+
+update InventoryDetails set INVType='WIP' where WAMT is not null
+
+
+--Method1 : On Hold, as all the data are maintained under 400 company in LN Master
+--update InventoryDetails set Category=a.CATG
+--from TZZINV310ALL a
+--where InventoryDetails.company=a.company 
+--and ltrim(rtrim(InventoryDetails.item))=ltrim(rtrim(a.item))
+
+--Method2 :
+update InventoryDetails set Category=a.CATG,VARI=a.VARI2,PLMT=a.PLMT
+from (select *,case when VARI is null or ltrim(rtrim(VARI))='' then null else VARI end as VARI2 
+from TZZINV310ALL where company=400
+) a
+where ltrim(rtrim(InventoryDetails.item))=ltrim(rtrim(a.item))
+--and InventoryDetails.company=a.company 
+and InventoryDetails.company like '4%'
+
+
+update InventoryDetails set Category=a.CATG,VARI=a.VARI,PLMT=a.PLMT
+from (select * from TZZINV310ALL where company=470) a
+where ltrim(rtrim(InventoryDetails.item))=ltrim(rtrim(a.item))
+--and InventoryDetails.company=a.company 
+and InventoryDetails.company = '470'
+
+
+update InventoryDetails set PLMT1=PLMT
+where company in (401,450)
+and substring(cwar,1,3) not in ('40S','41S','45S','75S')
+and concat(company,cwar) not in ('450237','401267','401367','401467','401567','401U67')
+and Invtype='RM'
+
+update InventoryDetails set PLMT1='Subcon' 
+where company in (401,450)
+and substring(cwar,1,3) in ('40S','41S','45S','75S')
+
+update InventoryDetails set PLMT1='Rejection' 
+where company in (401,450)
+and Invtype='RM'
+and substring(cwar,1,3) not in ('40S','41S','45S','75S')
+and concat(company,cwar) in ('450237','401267','401367','401467','401567','401U67')
+
+
+update InventoryDetails set Category3=a.CompanyName
+from (select * from elgi_companies_master
+where companygroup='ELGI' 
+and company not in (401,450,400)
+and company like '4%')a
+where InventoryDetails.company=a.company
+
+update InventoryDetails set Category3='Vendor Claim Validation'
+where company in (401,450)
+and concat(company,cwar) in ('401041','401291','401VC1','401VC2','450041')
+and Invtype='RM'
+
+update InventoryDetails set Category3='Vendor Claim Validation'
+where company =400
+and Invtype='RM'
+
+
+--Alter table InventoryDetails add VARI nvarchar(60)
+--Alter table InventoryDetails add DEMCLASS nvarchar(255)
+--Alter table InventoryDetails_Temp add VARI nvarchar(60)
+--Alter table InventoryDetails_Temp add DEMCLASS nvarchar(255)
+--Alter table InventoryDetails_History add VARI nvarchar(60)
+--Alter table InventoryDetails_History add DEMCLASS nvarchar(255)
+
+--Select * from InventoryDetails where ltrim(rtrim(ITEM))='000010300' --Test data
+--select * from TZZINV310ALL where company=400 and ltrim(rtrim(ITEM))='000010300'--Test data
+
+update InventoryDetails set DEMCLASS=a.DEMCLASS
+from (select DISTINCT LTRIM(RTRIM(ITEMCODE))AS ITEM,DIVISION,DEMCLASS,DEMSUBCLASS ,PRODUCTLINE ,SUBDIVISION,YEAR,MONTH  
+From OTA_TPL_MASTER)a
+where ltrim(rtrim(InventoryDetails.item))=ltrim(rtrim(a.item))
+
+
+update InventoryDetails set category2=a.Category,TargetValue=a.Target
+from(select * from ACP_inventory_Master where [Po Series]='No'
+and EntryDate=(select max(EntryDate) from ACP_inventory_Master)
+)a
+where InventoryDetails.company=a.company
+and InventoryDetails.CWAR=a.Warehouse
+and InventoryDetails.PDNO is null
+
+
+update InventoryDetails set category2=a.Category,TargetValue=a.Target
+from(select * from ACP_inventory_Master where [Po Series]='Yes'
+and EntryDate=(select max(EntryDate) from ACP_inventory_Master)
+)a
+where InventoryDetails.company=a.company
+and InventoryDetails.CWAR=a.Warehouse
+and InventoryDetails.PDNO is not null 
+
+
+update InventoryDetails set category2='Others'
+where company=450 and category2 is null
+--from(select * from ACP_inventory_Master where 
+--EntryDate=(select max(EntryDate) from ACP_inventory_Master)
+--)a
+--where InventoryDetails.company=a.company
+--and InventoryDetails.CWAR<>a.Warehouse
+
+
+
+
+
+delete from InventoryDetails where INVType= 'Others'
+--delete from InventoryDetails where concat(COMPANY,CWAR) in ('400625','450604')--Old Method
+--After Sivaranjani's Mail
+delete from InventoryDetails where concat(COMPANY,CWAR) in ('450604')
+
+
+Insert into InventoryDetails_Temp(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,
+OrderType,QSTK,IssueDate,Amnt2,Amnt3,CITG,CITG_desc,INVType,ItemType,RecptType,LedgerCode,LedgerDesc,SuppCode,
+SuppName,BuyerCode,BuyerName,LeanType,Vertical,InvTypeOrder,Amnt4,CompName,VerticalOrder,FrtRate,TargetRnk,
+--MITM,MDSCA,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor,Category,
+Duty,WLOC,VARI,DEMCLASS,Category2,TargetValue,PLMT,Currency,INR_Conv_Rate,Amnt4_INR,
+PLMT1,category3,Ageing2,AgeingOrdr2,TeamLeader
+)
+--select * into InventoryDetails_Temp from (
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,
+OrderType,QSTK,IssueDate,Amnt2,Amnt3,CITG,CITG_desc,INVType,ItemType,RecptType,LedgerCode,LedgerDesc,SuppCode,
+SuppName,BuyerCode,BuyerName,LeanType,Vertical,InvTypeOrder,Amnt4,CompName,VerticalOrder,FrtRate,
+row_number() over(partition by INVType,Vertical,CompName order by INVType,Vertical,CompName) as TargetRnk,  
+--MITM,MDSCA,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor,Category,
+Duty,WLOC,VARI,DEMCLASS,Category2,TargetValue,PLMT,Currency,INR_Conv_Rate,Amnt4_INR,
+PLMT1,category3,Ageing2,AgeingOrdr2,TeamLeader
+from InventoryDetails
+--)a
+
+
+Truncate table InventoryDetails
+
+Insert into InventoryDetails(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,
+OrderType,QSTK,IssueDate,Amnt2,Amnt3,CITG,CITG_desc,INVType,ItemType,RecptType,LedgerCode,LedgerDesc,SuppCode,
+SuppName,BuyerCode,BuyerName,LeanType,Vertical,InvTypeOrder,Amnt4,CompName,VerticalOrder,FrtRate,TargetRnk,TargetDays,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor,Category,
+Duty,WLOC,VARI,DEMCLASS,category2,TargetValue,PLMT,Currency,INR_Conv_Rate,Amnt4_INR,
+PLMT1,category3,Ageing2,AgeingOrdr2,TeamLeader
+)
+select 
+COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,
+OrderType,QSTK,IssueDate,Amnt2,Amnt3,CITG,CITG_desc,INVType,ItemType,RecptType,LedgerCode,LedgerDesc,SuppCode,
+SuppName,BuyerCode,BuyerName,LeanType,Vertical,InvTypeOrder,Amnt4,CompName,VerticalOrder,FrtRate,TargetRnk,null as TargetDays,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor,Category,
+Duty,WLOC,VARI,DEMCLASS,category2,TargetValue,PLMT,Currency,INR_Conv_Rate,Amnt4_INR,
+PLMT1,category3,Ageing2,AgeingOrdr2,TeamLeader
+from InventoryDetails_Temp
+
+
+update Inventory_Targetdays_Master set INVType=ltrim(rtrim(INVType))
+update Inventory_Targetdays_Master set Vertical=ltrim(rtrim(Vertical))
+update Inventory_Targetdays_Master set CompName=ltrim(rtrim(CompName))
+
+update InventoryDetails set TargetDays=a.TargetDays
+from (select concat(INVType,isnull(vertical,''),CompName) as ColA,* from Inventory_Targetdays_Master 
+where CalYear=year(getdate()-1)
+and CalMonth=month(getdate()-1)
+)a
+where concat(isnull(InventoryDetails.INVType,''),isnull(InventoryDetails.vertical,''),isnull(InventoryDetails.CompName,''))=a.ColA
+and TargetRnk=1
+and month(getdate()-1)=a.CalMonth
+and year(getdate()-1)=a.CalYear
+
+
+
+update InventoryDetails set LedgerCode=a.LedgerCode,LedgerDesc=a.LedgerDesc
+from InventoryMappingMaster a
+where InventoryDetails.COMPANY=a.Company
+and InventoryDetails.CWAR between a.WarFrom and a.WarTo
+and substring(ltrim(rtrim(InventoryDetails.ITEM)),1,3) between a.ItemGroupFrom and a.ItemGroupTo
+
+
+
+update InventoryDetails set LedgerCode=a.LedgerCode,LedgerDesc=a.LedgerDesc
+from InventoryMappingMaster a
+where InventoryDetails.COMPANY=a.Company
+and InventoryDetails.CWAR between a.WarFrom and a.WarTo
+--and substring(ltrim(rtrim(InventoryDetails.ITEM)),1,3) between a.ItemGroupFrom and a.ItemGroupTo
+and InventoryDetails.LedgerCode is null
+
+
+update InventoryDetails set SuppCode=a.SUNO1
+from (select * from TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI'))a
+where InventoryDetails.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.ITEM))
+
+update InventoryDetails set SuppCode=a.OTBP,BuyerCode=a.BUYR
+from TTDIPU001ALL a
+where InventoryDetails.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update InventoryDetails set SuppName=a.custname1
+from vw_Business_Partner a
+where InventoryDetails.Suppcode = a.custcode
+
+update InventoryDetails set BuyerCode=a.BUYR
+from (select * from TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI'))a
+where InventoryDetails.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.ITEM))
+
+update InventoryDetails set BuyerName=a.emp_name
+from [Elgi_Intranet].dbo.Employee_Detail a
+where InventoryDetails.Buyercode =  convert(varchar,a.new_emp_code)
+
+
+update InventoryDetails set TeamLeader=a.GHName
+from TeamLeader_Master a
+where InventoryDetails.BuyerCode=a.BuyerCode
+
+
+Update inventorydetails set Revision=c.REVI
+from (select * from 
+(select company,ITEM,EITM,REVI,DEIC,ROW_NUMBER() over(partition by company,ITEM--,EITM,REVI 
+order by DEIC desc) as ItemRnk 
+from (select * from TTEIDM101ALL where DEIC<=getdate()-1)a
+)b
+where ItEmRnk=1)c
+where inventorydetails.COMPANY=c.COMPANY
+and ltrim(rtrim(inventorydetails.ITEM))=ltrim(rtrim(c.ITEM))
+
+Update inventorydetails set Revision=c.REVI
+from (select * from 
+(select company,ITEM,EITM,REVI,DEIC,ROW_NUMBER() over(partition by company,ITEM--,EITM,REVI 
+order by DEIC desc) as ItemRnk 
+from (select * from TTEIDM101ALL where company=400 and DEIC<=getdate()-1)a
+)b
+where ItEmRnk=1)c
+where ltrim(rtrim(inventorydetails.ITEM))=ltrim(rtrim(c.ITEM))
+and inventorydetails.COMPANY between 401 and 465
+
+
+
+update InventoryDetails set LeanType=a.sops
+from (select * from TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI'))a
+where InventoryDetails.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryDetails.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update InventoryDetails set LeanType='TWO BIN' where LeanType='1'
+update InventoryDetails set LeanType='MULTI BIN' where LeanType='2'
+update InventoryDetails set LeanType='MILK RUN' where LeanType='3'
+update InventoryDetails set LeanType='MILKRUN MOTORS' where LeanType='4'
+update InventoryDetails set LeanType='MILK RUN(1)' where LeanType='5'
+update InventoryDetails set LeanType='SINGLE BIN' where LeanType='6'
+update InventoryDetails set LeanType='NVC' where LeanType is null
+
+
+update InventoryDetails set InvTypeOrder=1 where InvType= 'RM'
+update InventoryDetails set InvTypeOrder=2 where InvType= 'WIP'
+update InventoryDetails set InvTypeOrder=3 where InvType= 'FG'
+update InventoryDetails set InvTypeOrder=10 where InvType is null
+
+
+--Alter table InventoryDetails add VerticalOrder int
+update InventoryDetails set VerticalOrder=1 where vertical='Channel'
+update InventoryDetails set VerticalOrder=2 where vertical='Direct'
+update InventoryDetails set VerticalOrder=3 where vertical='C&M'
+update InventoryDetails set VerticalOrder=4 where vertical='WW'
+update InventoryDetails set VerticalOrder=5 where vertical='RLY'
+update InventoryDetails set VerticalOrder=5.01 where vertical='OFSAC'
+update InventoryDetails set VerticalOrder=5.02 where vertical='After Market'
+
+update InventoryDetails set VerticalOrder=6 where vertical='GSC'
+update InventoryDetails set VerticalOrder=7 where vertical='SAAME'
+update InventoryDetails set VerticalOrder=8 where vertical='Cosea'
+update InventoryDetails set VerticalOrder=9 where vertical='ID'
+update InventoryDetails set VerticalOrder=10 where vertical='America'
+update InventoryDetails set VerticalOrder=11 where vertical='Europe'
+
+update InventoryDetails set VerticalOrder=12 where vertical='R&D'
+update InventoryDetails set VerticalOrder=13 where vertical='PMMO'
+update InventoryDetails set VerticalOrder=14 where vertical='SRN'
+update InventoryDetails set VerticalOrder=15 where vertical='Traded'
+update InventoryDetails set VerticalOrder=16 where vertical='PVD'
+--update InventoryDetails set VerticalOrder=18 where vertical='PVD'
+update InventoryDetails set VerticalOrder=19 where vertical='Rotair Parts'
+update InventoryDetails set VerticalOrder=20 where vertical='Planning'
+
+update InventoryDetails set VerticalOrder=21 where vertical='Sauer'
+update InventoryDetails set VerticalOrder=22 where vertical='Foundry'
+update InventoryDetails set VerticalOrder=23 where vertical='Vacuum'
+
+
+update InventoryDetails set IsNonMoving ='Yes' 
+--where DATEDIFF(dd,IssueDate,getdate()-1)>180 -- OLD METHOD
+where concat(COMPANY,CWAR,ltrim(rtrim(item))) in 
+(Select distinct concat(COMPANY,CWAR,ltrim(rtrim(item))) from Inventory_AcrossCompany_Issue_Manipulation)
+
+
+update InventoryDetails set Ageing='LessThan30' where datediff(dd,TRDT,getdate()-1) <30
+update InventoryDetails set Ageing='30-60' where datediff(dd,TRDT,getdate()-1) between 30 and 60
+update InventoryDetails set Ageing='61-90' where datediff(dd,TRDT,getdate()-1) between 61 and 90
+update InventoryDetails set Ageing='91-120' where datediff(dd,TRDT,getdate()-1) between 91 and 120
+update InventoryDetails set Ageing='121-150' where datediff(dd,TRDT,getdate()-1) between 121 and 150
+update InventoryDetails set Ageing='151-180' where datediff(dd,TRDT,getdate()-1) between 151 and 180
+update InventoryDetails set Ageing='181-365' where datediff(dd,TRDT,getdate()-1) between 181 and 365
+update InventoryDetails set Ageing='GreaterThan_1Year' where datediff(dd,TRDT,getdate()-1) between 366 and 730
+update InventoryDetails set Ageing='GreaterThan_2Years' where datediff(dd,TRDT,getdate()-1) between 731 and 1095
+update InventoryDetails set Ageing='GreaterThan_3Years' where datediff(dd,TRDT,getdate()-1) between 1096 and 1460
+update InventoryDetails set Ageing='GreaterThan_4Years' where datediff(dd,TRDT,getdate()-1) between 1460 and 1826
+update InventoryDetails set Ageing='GreaterThan_5Years' where datediff(dd,TRDT,getdate()-1) between 1827 and 2192
+update InventoryDetails set Ageing='GreaterThan_6Years' where datediff(dd,TRDT,getdate()-1) > 2192
+
+
+update InventoryDetails set AgeingOrdr=1 where Ageing='LessThan30'
+update InventoryDetails set AgeingOrdr=2 where Ageing='30-60'
+update InventoryDetails set AgeingOrdr=3 where Ageing='61-90'
+update InventoryDetails set AgeingOrdr=4 where Ageing='91-120'
+update InventoryDetails set AgeingOrdr=5 where Ageing='121-150'
+update InventoryDetails set AgeingOrdr=6 where Ageing='151-180'
+update InventoryDetails set AgeingOrdr=7 where Ageing='181-365'
+update InventoryDetails set AgeingOrdr=8 where Ageing='GreaterThan_1Year'
+update InventoryDetails set AgeingOrdr=12 where Ageing='GreaterThan_2Years'
+update InventoryDetails set AgeingOrdr=13 where Ageing='GreaterThan_3Years'
+update InventoryDetails set AgeingOrdr=14 where Ageing='GreaterThan_4Years'
+update InventoryDetails set AgeingOrdr=15 where Ageing='GreaterThan_5Years'
+update InventoryDetails set AgeingOrdr=16 where Ageing='GreaterThan_6Years'
+update InventoryDetails set AgeingOrdr=100 where Ageing ='NA'
+
+
+update InventoryDetails set Ageing2='<=60' where datediff(dd,TRDT,getdate()-1) <=60 and Ageing2 is null
+update InventoryDetails set Ageing2='61-120' where datediff(dd,TRDT,getdate()-1) between 61 and 120 and Ageing2 is null
+update InventoryDetails set Ageing2='121-180' where datediff(dd,TRDT,getdate()-1) between 121 and 180 and Ageing2 is null
+update InventoryDetails set Ageing2='>180' where datediff(dd,TRDT,getdate()-1) > 180 and Ageing2 is null
+
+update InventoryDetails set AgeingOrdr2=4 where Ageing2='<=60'
+update InventoryDetails set AgeingOrdr2=3 where Ageing2='61-120'
+update InventoryDetails set AgeingOrdr2=2 where Ageing2='121-180'
+update InventoryDetails set AgeingOrdr2=1 where Ageing2='>180'
+
+
+
+
+update InventoryDetails set Region ='GSC' where company=490
+update InventoryDetails set Region ='Gulf' where company=500
+update InventoryDetails set Region ='Australia' where company=551
+update InventoryDetails set Region ='Indonesia' where company=552
+update InventoryDetails set Region ='Malaysia' where company=553
+
+update InventoryDetails set RegionOrder=1 where Region ='GSC'
+update InventoryDetails set RegionOrder=2 where Region ='Gulf'
+update InventoryDetails set RegionOrder=3 where Region ='Australia'
+update InventoryDetails set RegionOrder=4 where Region ='Indonesia'
+update InventoryDetails set RegionOrder=5 where Region ='Malaysia'
+
+
+
+
+if exists ( select * from Inventory_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1))
+begin
+delete from Inventory_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+delete from InventoryDetails_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+end
+
+Insert into InventoryDetails_History(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,INVType,ItemType,RecptType,LedgerCode,LedgerDesc,SuppCode,SuppName,
+BuyerCode,BuyerName,LeanType,Vertical,InvTypeOrder,Amnt4,CompName,VerticalOrder,
+FrtRate,TargetRnk,TargetDays,CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,CalYear,CalMonth,MultiplyFactor,Category,
+Duty,WLOC,Revision,IsNonMoving,VARI,DEMCLASS,category2,TargetValue,PLMT,Currency,INR_Conv_Rate,Amnt4_INR,
+Region,RegionOrder,PLMT1,category3,Ageing2,AgeingOrdr2,TeamLeader)
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,INVType,ItemType,RecptType,LedgerCode,LedgerDesc,SuppCode,SuppName,
+BuyerCode,BuyerName,LeanType,Vertical,InvTypeOrder,Amnt4,CompName,VerticalOrder,
+FrtRate,TargetRnk,TargetDays,CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,
+year(getdate()-1) as CalYear,month(getdate()-1) as CalMonth,MultiplyFactor,Category,
+Duty,WLOC,Revision,IsNonMoving,VARI,DEMCLASS,category2,TargetValue,PLMT,Currency,INR_Conv_Rate,Amnt4_INR,
+Region,RegionOrder,PLMT1,category3,Ageing2,AgeingOrdr2,TeamLeader
+from InventoryDetails
+
+
+
+Insert into Inventory_History
+--select * into Inventory_History from (
+select COMPANY,InvTypeOrder,INVType,VerticalOrder,Vertical,CompName,
+sum(isnull(TargetDays,0)) TargetDays,
+sum(isnull(Amnt4,0)) as Amnt4,
+year(getdate()-1) as CalYear,
+month(getdate()-1) as CalMonth,
+null as FinYear,
+null as FinMonth,
+null as Sales_Amount,
+null as ActualDays
+from inventorydetails
+where CompName is not null
+group by COMPANY,InvTypeOrder,INVType,VerticalOrder,Vertical,CompName
+--)a
+order by COMPANY,InvTypeOrder,VerticalOrder,CompName
+
+
+----set @Finyear =case when @monthnum<4 then @year-1 else @year end
+----set @Finmonthnum =case when @monthnum<4 then @monthnum+9 else @monthnum-3 end
+
+
+update Inventory_History set Finyear=CalYear-1 where CalMonth<4
+update Inventory_History set Finyear=CalYear where CalMonth>=4
+
+update Inventory_History set FinMonth=CalMonth+9 where CalMonth<4
+update Inventory_History set FinMonth=CalMonth-3 where CalMonth>=4
+
+--update Inventory_History set Sales_amount=null
+
+update Inventory_History set Sales_amount=a.Sales_amount
+from (select c.[Description] as descr,
+sum(Sales_amount) Sales_amount,
+--sum(case when cal_year=year(getdate()-1) and cal_Month=month(getdate()-1) then Sales_amount/day(getdate()-1)
+--else Sales_amount end
+--) Sales_amount,
+cal_year,cal_Month from ELGi_Sales_Details a
+left JOIN vw_AREA_MASTER b
+ON b.AreaCode = a.areacode
+left JOIN vw_DPST_MASTER c 
+ON c.DpstCode = a.Dpst  
+WHERE	(c.Description IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')) 
+and sales_category not in (1)
+and Invoice_Date>='2019-06-01'
+group by c.Description,cal_year,cal_Month
+)a
+where ltrim(rtrim(Inventory_History.Vertical))=substring(ltrim(rtrim(a.descr)),12,20)
+and Inventory_History.CalYear=a.cal_year
+and Inventory_History.CalMonth=a.cal_Month
+
+
+
+update Inventory_History set Sales_amount=a.Sales_amount
+from (select b.Organ,
+sum(Sales_amount) Sales_amount,
+--sum(case when cal_year=year(getdate()-1) and cal_Month=month(getdate()-1) then Sales_amount/day(getdate()-1)
+--else Sales_amount end
+--) Sales_amount,
+cal_year,cal_Month from ELGi_Sales_Details a
+left JOIN vw_SALESMAPPING_MASTER b
+on a.dpst=b.DPSTCode
+and a.areacode=b.Areacode
+where sales_category not in (1)
+and Invoice_Date>='2019-06-01'
+and b.organ<>'India'
+and ltrim(rtrim(a.user_names)) not in ('GULF TO CUST - UNITS','GULF TO CUST - SPARES')
+and ltrim(rtrim(a.Division)) not in ('AUSTRALIA TO CUST','CHINA','INDONESIA TO CUST')
+group by b.Organ,cal_year,cal_Month
+)a
+where ltrim(rtrim(Inventory_History.Vertical))=ltrim(rtrim(a.Organ))
+and Inventory_History.CalYear=a.cal_year
+and Inventory_History.CalMonth=a.cal_Month
+
+
+update Inventory_History set Sales_amount=a.Sales_amount
+from (
+select cal_year,cal_Month,sum(Sales_amount) Sales_amount from (
+select c.[Description] as descr,
+sum(Sales_amount) Sales_amount,
+--sum(case when cal_year=year(getdate()-1) and cal_Month=month(getdate()-1) then Sales_amount/day(getdate()-1)
+--else Sales_amount end
+--) Sales_amount,
+cal_year,cal_Month from ELGi_Sales_Details a
+left JOIN vw_AREA_MASTER b
+ON b.AreaCode = a.areacode
+left JOIN vw_DPST_MASTER c 
+ON c.DpstCode = a.Dpst  
+WHERE	ltrim(rtrim(c.Description)) IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct',
+'After Sales')
+and sales_category not in (1)
+and Invoice_Date>='2019-06-01'
+group by c.Description,cal_year,cal_Month
+
+union
+
+select b.Organ,
+sum(Sales_amount) Sales_amount,
+--sum(case when cal_year=year(getdate()-1) and cal_Month=month(getdate()-1) then Sales_amount/day(getdate()-1)
+--else Sales_amount end
+--) Sales_amount,
+cal_year,cal_Month from ELGi_Sales_Details a
+left JOIN vw_SALESMAPPING_MASTER b
+on a.dpst=b.DPSTCode
+and a.areacode=b.Areacode
+where sales_category not in (1)
+and Invoice_Date>='2019-06-01'
+and b.organ<>'India'
+and ltrim(rtrim(a.user_names)) not in ('GULF TO CUST - UNITS','GULF TO CUST - SPARES')
+and ltrim(rtrim(a.Division)) not in ('AUSTRALIA TO CUST','CHINA','INDONESIA TO CUST')
+group by b.Organ,cal_year,cal_Month
+
+)a1
+group by cal_year,cal_Month
+)a
+where 
+--ltrim(rtrim(Inventory_History.Vertical))=ltrim(rtrim(a.Organ)) and 
+Inventory_History.CalYear=a.cal_year
+and Inventory_History.CalMonth=a.cal_Month
+and Inventory_History.Sales_Amount is null
+
+
+---Target days updation for Total
+
+delete from Inventory_History where invtype like '%Total%'
+delete from Inventory_History where Vertical like '%Total%'
+
+
+Insert into Inventory_History (InvTypeOrder,INVType,VerticalOrder,Vertical,CompName,Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,Sales_Amount)
+select 
+InvTypeOrder,InvType,VerticalOrder,a.Vertical,'Total' as CompName,
+sum(Amnt4) Amnt4,
+a.CalYear,a.CalMonth,FinYear,FinMonth,
+max(sales_amount) as Sales_Amount
+from 
+(select 1.1 as InvTypeOrder,'RM-Total' as InvType,
+VerticalOrder,Vertical,
+sum(isnull(Amnt4,0)) Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,
+max(sales_amount) as sales_amount
+from Inventory_History 
+where INVType='RM'
+and CompName is not null
+group by VerticalOrder,Vertical,FinYear,FinMonth,CalYear,CalMonth
+)a
+group by a.InvTypeOrder,a.InvType,VerticalOrder,a.Vertical,a.CalYear,a.CalMonth,a.FinYear,a.FinMonth
+
+
+Insert into Inventory_History (InvTypeOrder,INVType,VerticalOrder,Vertical,CompName,Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,Sales_Amount)
+select InvTypeOrder,InvType,VerticalOrder,a.Vertical,'Total' as CompName,
+sum(Amnt4) Amnt4,
+a.CalYear,a.CalMonth,FinYear,FinMonth,
+max(sales_amount) as Sales_Amount
+from 
+(select 2.1 as InvTypeOrder,'WIP-Total' as InvType,
+VerticalOrder,Vertical,
+sum(Amnt4) Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,
+max(sales_amount) as sales_amount
+from Inventory_History 
+where INVType='WIP'
+and CompName is not null
+group by VerticalOrder,Vertical,FinYear,FinMonth,CalYear,CalMonth
+)a
+group by a.InvTypeOrder,a.InvType,VerticalOrder,a.Vertical,a.CalYear,a.CalMonth,a.FinYear,a.FinMonth
+
+
+
+Insert into Inventory_History (InvTypeOrder,INVType,Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,Sales_Amount)
+select InvTypeOrder,InvType,
+sum(Amnt4) Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,
+max(sales_amount) as Sales_Amount
+from 
+(select 3.1 as InvTypeOrder,'FG-Total' as InvType,
+VerticalOrder,Vertical,
+sum(TargetDays) TargetDays,
+sum(Amnt4) Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,
+max(sales_amount) as sales_amount
+from Inventory_History 
+where INVType='FG'
+and CompName is not null
+group by InvTypeOrder,InvType,VerticalOrder,Vertical,FinYear,FinMonth,CalYear,CalMonth
+)a
+group by InvTypeOrder,InvType,CalYear,CalMonth,FinYear,FinMonth
+
+
+
+Insert into Inventory_History (InvTypeOrder,INVType,VerticalOrder,Vertical,Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,Sales_Amount)
+select 
+InvTypeOrder,InvType,VerticalOrder,a.Vertical,
+sum(Amnt4) Amnt4,
+a.CalYear,a.CalMonth,FinYear,FinMonth,
+max(sales_amount2) as Sales_Amount
+from 
+(select InvTypeOrder,InvType,
+5.10 as VerticalOrder,'India-Total' as Vertical,
+sum(case when vertical in ('Channel','Direct','C&M','WW','RLY','OFSAC','After Market') then Amnt4 end ) Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,
+sum(case when vertical in ('Channel','Direct','C&M','WW','RLY','OFSAC','After Market') then sales_amount end) as sales_amount2
+from Inventory_History 
+where INVType='FG'
+and CompName is not null
+group by InvTypeOrder,InvType,FinYear,FinMonth,CalYear,CalMonth
+)a
+group by InvTypeOrder,InvType,VerticalOrder,a.Vertical,a.Vertical,a.CalYear,a.CalMonth,a.FinYear,a.FinMonth
+
+
+
+Insert into Inventory_History (InvTypeOrder,INVType,VerticalOrder,Vertical,Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,Sales_Amount)
+select 
+InvTypeOrder,InvType,VerticalOrder,a.Vertical,
+sum(Amnt4) Amnt4,
+a.CalYear,a.CalMonth,FinYear,FinMonth,
+max(sales_amount) as Sales_Amount
+from 
+(select InvTypeOrder,InvType,
+11.1 as VerticalOrder,'Exports-Total' as Vertical,
+sum(case when vertical in ('SAAME','Cosea','ID','America','Europe')  then Amnt4 end ) Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,
+max(sales_amount) as sales_amount
+from Inventory_History 
+where INVType='FG'
+and CompName is not null
+group by InvTypeOrder,InvType,FinYear,FinMonth,CalYear,CalMonth
+)a
+group by InvTypeOrder,InvType,VerticalOrder,a.Vertical,a.Vertical,a.CalYear,a.CalMonth,a.FinYear,a.FinMonth
+
+
+
+Insert into Inventory_History (InvTypeOrder,INVType,VerticalOrder,Vertical,Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,Sales_Amount)
+select 
+InvTypeOrder,InvType,VerticalOrder,a.Vertical,
+sum(Amnt4) Amnt4,
+a.CalYear,a.CalMonth,FinYear,FinMonth,
+max(sales_amount) as Sales_Amount
+from 
+(select InvTypeOrder,InvType,
+23.1 as VerticalOrder,'Others-Total' as Vertical,--Vertical,
+--sum(case when vertical not in ('Channel','Direct','C&M','WW','RLY','OFSAC','After Market','GSC','SAAME','Cosea','ID','America','Europe')  then Amnt4 end ) Amnt4,
+sum(case when vertical in ('R&D','PMMO','SRN','Traded','PVD','Rotair Parts','Sauer','Foundry','Vacuum')  then Amnt4 end ) Amnt4,
+CalYear,CalMonth,FinYear,FinMonth,
+max(sales_amount) as sales_amount
+from Inventory_History 
+where INVType='FG'
+and CompName is not null
+group by InvTypeOrder,InvType,VerticalOrder,Vertical,FinYear,FinMonth,CalYear,CalMonth
+)a
+group by InvTypeOrder,InvType,VerticalOrder,a.Vertical,a.CalYear,a.CalMonth,a.FinYear,a.FinMonth
+
+
+update Inventory_History set TargetDays=a.TargetDays
+from (select * from Inventory_Targetdays_Master where invtype like '%TOTAL%' 
+and CalYear=year(getdate()-1)
+and CalMonth=month(getdate()-1)
+)a
+where Inventory_History.calyear=a.calyear
+and Inventory_History.calmonth=a.calmonth
+and Inventory_History.invtype=a.invtype
+and Inventory_History.Vertical is null
+
+
+update Inventory_History set TargetDays=a.TargetDays
+from (select * from Inventory_Targetdays_Master where vertical like '%TOTAL%' 
+and CalYear=year(getdate()-1)
+and CalMonth=month(getdate()-1)
+)a
+where Inventory_History.calyear=a.calyear
+and Inventory_History.calmonth=a.calmonth
+and Inventory_History.invtype=a.invtype
+and Inventory_History.vertical=a.vertical
+
+update Inventory_History set ActualDays=(Amnt4/(Sales_Amount + 0.001))*30
+
+update Inventory_History set ActualDays=(Amnt4/(((Sales_Amount + 0.001)/day(getdate()-1))*30))*30
+where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+
+
+--Since New warehouses are added frequently, access if not given manually for full access users,
+--those inventory transactions will not be accessible by them in their Detailed Inventory report.
+--Also there will be a mismatch between Summary report and Detailed Report in their point of view.
+--in order to eliminate this below logic is implemented.
+
+Truncate table Elgi_Inv_FullAccess
+
+Insert into Elgi_Inv_FullAccess
+--select * into Elgi_Inv_FullAccess from(
+select userid,row_number() over(order by userid) as Rnk from ELGi_InvData_Access
+--where userid like '%elgi\roberts%'
+group by Userid
+having count(*)>100
+--)a
+
+declare @Count1 int=1
+declare @TotalCount int
+declare @userid varchar(50)
+
+set @TotalCount=(select count(userid) from Elgi_Inv_FullAccess)
+
+while (@Count1<=@TotalCount)
+begin
+
+set @userid=(select userid from Elgi_Inv_FullAccess where Rnk=@Count1)
+
+insert into ELGi_InvData_Access
+select distinct company,CWAR,@userid from InventoryDetails
+where concat(COMPANY,CWAR) not in (
+select concat(Company,Warehouse) from ELGi_InvData_Access
+where userid =@userid)
+and company like '4%'
+
+set @Count1=@Count1+1
+
+end 
+
+
+
+--Non Moving InventoryTable  Updation
+
+--select * from InventoryDetails
+
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add InvTypeOrder	int
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add INVType	varchar(50)
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add CompName	varchar(50)
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add VerticalOrder	int
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add Vertical	varchar(50)
+
+
+update Inventory_AcrossCompany_Issue_Manipulation set InvTypeOrder=a.InvTypeOrder,INVType=a.INVType
+from (select distinct company,CWAR,ITEM,InvTypeOrder,INVType,CompName,
+VerticalOrder,Vertical from InventoryDetails)a
+where Inventory_AcrossCompany_Issue_Manipulation.COMPANY=a.COMPANY
+and Inventory_AcrossCompany_Issue_Manipulation.CWAR=a.CWAR
+and ltrim(rtrim(Inventory_AcrossCompany_Issue_Manipulation.ITEM))=ltrim(rtrim(a.ITEM))
+
+update Inventory_AcrossCompany_Issue_Manipulation set compname=a.CompName,
+Vertical=a.Vertical,VerticalOrder=a.VerticalOrder
+from (select distinct company,CWAR,ITEM,InvTypeOrder,INVType,CompName,
+VerticalOrder,Vertical from InventoryDetails)a
+where Inventory_AcrossCompany_Issue_Manipulation.COMPANY=a.COMPANY
+and Inventory_AcrossCompany_Issue_Manipulation.CWAR=a.CWAR
+and ltrim(rtrim(Inventory_AcrossCompany_Issue_Manipulation.ITEM))=ltrim(rtrim(a.ITEM))
+
+update Inventory_AcrossCompany_Issue_Manipulation set LastUpdateDate=getdate()-1
+
+
+----------------------------------------------------------------
+
+
+if exists (select * from ACP_Daily_Inventory_Trend where month(EntryDate)<>month(convert(date,getdate()-1)))
+begin 
+Truncate table ACP_Daily_Inventory_Trend
+end
+
+
+if exists (select * from ACP_Daily_Inventory_Trend where EntryDate=convert(date,getdate()-1))
+begin 
+Delete from ACP_Daily_Inventory_Trend where EntryDate=convert(date,getdate()-1)
+end
+
+insert into ACP_Daily_Inventory_Trend(Category2,TargetValue,Amnt4,Status,EntryDate)
+--select * into ACP_Daily_Inventory_Trend from (
+select Category2,avg(TargetValue) TargetValue,sum(Amnt4/1000000) Amnt4,
+(sum(Amnt4/1000000)/avg(TargetValue))*100 as Status,convert(date,getdate()-1) as EntryDate
+from InventoryDetails
+where company=450
+and Category2 is not null
+and Invtype <>'RM'
+group by Category2
+--)a
+
+
+--------------------------------
+--RM Inventory Trend-----------------------------------------------------------------------------
+
+if exists (select * from Inventory_DailyTrend where month(EntryDate)<>month(convert(date,getdate()-1)))
+begin 
+Truncate table Inventory_DailyTrend
+end
+
+
+if exists (select * from Inventory_DailyTrend where EntryDate=convert(date,getdate()-1))
+begin 
+Delete from Inventory_DailyTrend where EntryDate=convert(date,getdate()-1)
+end
+
+Insert into Inventory_DailyTrend(Company,INVType,Ageing2,AgeingOrdr2,SuppCode,SuppName,
+BuyerCode,BuyerName,TeamLeader,LeanType,PLMT1,category,vari,category3,Region,RegionOrder,
+QSKT,Amnt4_INR,EntryDate,CalYear,CalMonth,CompName)
+select Company,INVType,Ageing2,AgeingOrdr2,
+SuppCode,SuppName,BuyerCode,BuyerName,TeamLeader,
+LeanType,PLMT1,category,vari,category3,Region,RegionOrder,
+sum(QSKT) QSKT,sum(Amnt4_INR) Amnt4_INR,
+convert(date,getdate()-1) as EntryDate,
+year(getdate()-1) as CalYear,
+month(getdate()-1) as CalMonth,
+CompName
+from InventoryDetails
+where INVType='RM'
+and company like '4%'
+group by Company,INVType,Ageing2,AgeingOrdr2,
+SuppCode,SuppName,BuyerCode,BuyerName,TeamLeader,
+LeanType,PLMT1,category,vari,category3,Region,RegionOrder,CompName
+
+
+
+if exists ( select * from Inventory_MonthlyTrend where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1))
+begin
+delete from Inventory_MonthlyTrend where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+end
+
+
+Insert into Inventory_MonthlyTrend(Company,INVType,Ageing2,AgeingOrdr2,SuppCode,SuppName,
+BuyerCode,BuyerName,TeamLeader,LeanType,PLMT1,category,vari,category3,Region,RegionOrder,
+QSKT,Amnt4_INR,EntryDate,CalYear,CalMonth,CompName)
+select Company,INVType,Ageing2,AgeingOrdr2,
+SuppCode,SuppName,BuyerCode,BuyerName,TeamLeader,
+LeanType,PLMT1,category,vari,category3,Region,RegionOrder,
+sum(QSKT) QSKT,sum(Amnt4_INR) Amnt4_INR,
+convert(date,getdate()-1) as EntryDate,
+year(getdate()-1) as CalYear,
+month(getdate()-1) as CalMonth,
+CompName
+from InventoryDetails
+where INVType='RM'
+and company like '4%'
+group by Company,INVType,Ageing2,AgeingOrdr2,
+SuppCode,SuppName,BuyerCode,BuyerName,TeamLeader,
+LeanType,PLMT1,category,vari,category3,Region,RegionOrder,CompName
+
+
+
+
+--End : RM Inventory Trend-----------------------------------------------------------------------
+
+end
+
+--select * from ACP_Daily_Inventory_Trend
+
+--select CompName,sum(Amnt4) Amnt4 from InventoryDetails where INVType like '%wip%' and WAMT is null
+--group by CompName
+
+
+Completion time: 2025-11-19T11:25:45.0162879+05:30

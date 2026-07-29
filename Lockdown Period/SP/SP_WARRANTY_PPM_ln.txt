@@ -1,0 +1,49 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec SP_WARRANTY_PPM_ln
+CREATE PROCEDURE SP_WARRANTY_PPM_ln
+AS 
+BEGIN 
+declare @dt datetime=getdate()
+declare @month int = month(@dt-1)
+declare @year int =year(@dt-1)
+declare @x int=day(@dt)
+
+if(@x =1)
+begin
+
+INSERT INTO WARRANTY_PPM_LN
+
+select *,ccs_pg as product,DATEADD(mm,-1,DATEADD(mm,DATEDIFF(mm,0,GETDATE()),0))  as new_date  from (
+
+SELECT SUM(DeliveryQty ) AS qty,CASE WHEN sptyp in (3,4 ) and dpst not IN ('90021','90221')  THEN 4   
+WHEN sptyp in (3,4 ) and dpst IN ('90021','90221') THEN 3   
+ELSE sptyp END AS sptyp,
+company,ltrim(rtrim(OrderNo))OrderNo,ltrim(rtrim(PositionNo))PositionNo,SequenceNum,
+ltrim(rtrim(SaleOrderType))SaleOrderType ,Invoice_Date ,dpst, ltrim(rtrim(CustCode))CustCode ,
+ltrim(rtrim(a.item))item,DeliveryQty,ltrim(rtrim(TranType))TranType,Invoice 
+FROM   
+(SELECT  company,OrderNo,PositionNo ,0 as SequenceNum ,SaleOrderType,
+Invoice_Date,dpst, CustCode ,Item,DeliveryQty ,TranType ,Invoice 
+FROM (select * from elgi_sales_details where invoice_date>='2017-04-01'  )elgi_sales_details
+WHERE  MONTH(Invoice_Date)=@month AND YEAR(Invoice_Date)=@year 
+and sales_category  not in (1)
+and company IN (400,401)   
+)a  
+
+INNER JOIN  
+(SELECT * FROM item_prodgrp_map WHERE sptyp IN (1,2,3,4,5,6,7,8,9,12,13))b  
+ON ltrim(rtrim(a.Item ))=ltrim(rtrim(b.item))  
+GROUP BY sptyp,company,OrderNo ,PositionNo ,SequenceNum ,SaleOrderType ,
+Invoice_Date ,dpst, CustCode ,a.item,DeliveryQty ,TranType ,Invoice  
+)a  
+left OUTER JOIN  
+LN_prodgrp_map  b  
+ON sptyp=pgcode  
+end
+END 
+
+Select * from WARRANTY_PPM_LN
+
+
+Completion time: 2025-11-19T12:45:19.5543613+05:30

@@ -1,0 +1,153 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Inventory_vs_Allocation
+
+CREATE proc sp_Inventory_vs_Allocation as
+begin
+
+Truncate table Inventory_vs_Allocation
+
+Insert into Inventory_vs_Allocation(COMPANY,ITEM,DueDate,AllocationType,AllocatedQty,OverDue_AllocQty)
+select COMPANY,T$ITEM as ITEM,convert(date,T$DATE) as DueDate,'Production Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty,--sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+sum(case when convert(date,T$DATE)<convert(date,getdate()) then T$QANA end ) as AllocatedQty
+from TWHINP100ALL
+where company in (401,450,490) and T$KOOR=1 and T$KOTR=2
+--and ltrim(rtrim(T$item)) in (--'B005300950017'--,'B003308170010',--'B005100950131')
+group by COMPANY,T$ITEM,convert(date,T$DATE)
+order by convert(date,T$DATE)
+
+--Alter table Inventory_vs_Allocation add StockQty float
+
+Insert into Inventory_vs_Allocation(COMPANY,ITEM,DueDate,AllocationType,AllocatedQty,OverDue_AllocQty)
+select COMPANY,T$ITEM as ITEM,convert(date,T$DATE) as DueDate,'Sales Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty,--sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+sum(case when convert(date,T$DATE)<convert(date,getdate()) then T$QANA end ) as AllocatedQty
+from TWHINP100ALL
+where company in (401,450,490) and T$KOOR=3 and T$KOTR=2
+--and ltrim(rtrim(T$item)) in ('B003308170024'--,'B003308170010',--'B005100950131')
+group by COMPANY,T$ITEM,convert(date,T$DATE)
+order by convert(date,T$DATE)
+
+
+
+update Inventory_vs_Allocation set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where Inventory_vs_Allocation.company in 
+(select  company from ELGI_Companies_Master 
+where Company not in (465,470,490,500,551,552,553) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Inventory_vs_Allocation.Item))=ltrim(rtrim(a.t_item))
+
+
+update Inventory_vs_Allocation set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where Inventory_vs_Allocation.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Inventory_vs_Allocation.Item))=ltrim(rtrim(a.item))
+
+
+INSERT INTO Inventory_vs_Allocation (COMPANY, ITEM, ItemDescr, StockQty) 
+SELECT a.COMPANY, a.ITEM, a.ItemDescr, SUM(a.QSKT) AS StockQty
+FROM InventoryDetails a
+WHERE Concat (a.Company,ltrim(Rtrim(a.Item))) IN (SELECT Concat (Company,ltrim(Rtrim(Item)))
+FROM Inventory_vs_Allocation)
+GROUP BY  a.COMPANY, a.ITEM, a.ItemDescr
+
+
+Insert Into Inventory_vs_Allocation (COMPANY,ITEM,ItemDescr,OverDueTriggerQty,TotalTriggerQty)
+SELECT Company,Item,Description,SUM(CASE WHEN DueType = 'Over Due' THEN PendingQty ELSE 0 END) AS 'Overdue_PendingQty',
+SUM(PendingQty) AS 'Overall_PendingQty' FROM ELGi_OverDue_Triggers
+WHERE Concat (Company,ltrim(Rtrim(Item))) IN (SELECT Concat(Company,ltrim(Rtrim(Item)))
+FROM Inventory_vs_Allocation)
+GROUP BY Company,Item,Description
+
+
+update Inventory_vs_Allocation set BuyerCode=a.BUYR,SupplierCode=a.OTBP
+from (select distinct company,ITEM,OTBP,BUYR from ttdipu001all)a
+where Inventory_vs_Allocation.company=a.company
+and ltrim(rtrim(Inventory_vs_Allocation.item))=ltrim(rtrim(a.item))
+
+update Inventory_vs_Allocation set BuyerName=a.emp_name
+from (select distinct emp_code,emp_name from elgi_Intranet.dbo.employee_detail)a
+where ltrim(rtrim(Inventory_vs_Allocation.BuyerCode))=ltrim(rtrim(a.emp_code))
+
+update Inventory_vs_Allocation set BuyerName=a.emp_name
+from (select distinct new_emp_code,emp_name from elgi_Intranet.dbo.employee_detail)a
+where ltrim(rtrim(Inventory_vs_Allocation.BuyerCode))=ltrim(rtrim(a.new_emp_code))
+
+update Inventory_vs_Allocation set SupplierName=a.custname1
+from (select * from vw_business_partner)a
+where ltrim(rtrim(Inventory_vs_Allocation.SupplierCode))=ltrim(rtrim(a.custcode))
+
+--Alter table Inventory_vs_Allocation add ProcurementType varchar(25)
+
+update Inventory_vs_Allocation set ProcurementType=a.ProcurementType
+from (select distinct company,item,'LEAN' as ProcurementType from TZZPUR049ALL)a
+where Inventory_vs_Allocation.company=a.company
+and ltrim(rtrim(Inventory_vs_Allocation.item))=ltrim(rtrim(a.item))
+
+update Inventory_vs_Allocation set ProcurementType='NON LEAN' where ProcurementType is null
+
+update Inventory_vs_Allocation set DueWeek =datepart(week,duedate)  -- -datepart(week,dateadd(Month,datediff(Month,0,duedate),0))+1
+update Inventory_vs_Allocation set DueWeek2 =datepart(week,duedate)-datepart(week,dateadd(Month,datediff(Month,0,duedate),0))+1
+
+update Inventory_vs_Allocation set DueMonth=substring(datename(mm,dateadd(mm,month(DueDate),-1)),1,3)+'-'+ convert(varchar,year(Duedate))
+
+update Inventory_vs_Allocation set Allocation_Consider ='Yes' where duedate between convert(date,dateadd(dd,1,getdate())) and convert(date,dateadd(dd,5,getdate()))
+
+update Inventory_vs_Allocation set Allocation_Consider2 ='Yes' where duedate between convert(date,dateadd(dd,6,getdate())) and eomonth(getdate())
+and datediff(dd,convert(date,dateadd(dd,6,getdate())) ,eomonth(getdate()))>5 
+update Inventory_vs_Allocation set Allocation_Consider2 ='Yes' where duedate between dateadd(dd,1,eomonth(getdate())) and eomonth(getdate(),1)
+and datediff(dd,convert(date,dateadd(dd,6,getdate())) ,eomonth(getdate()))<=5 
+
+
+update Inventory_vs_Allocation set Allocation_Consider3 ='Yes' 
+where duedate between dateadd(dd,1,eomonth(getdate())) and eomonth(getdate(),1)
+and datediff(dd,convert(date,dateadd(dd,6,getdate())) ,eomonth(getdate()))>5 
+
+update Inventory_vs_Allocation set Allocation_Consider3 ='Yes' 
+where duedate between dateadd(dd,1,eomonth(getdate(),1)) and eomonth(getdate(),2)
+and datediff(dd,convert(date,dateadd(dd,6,getdate())) ,eomonth(getdate()))<=5 
+
+update Inventory_vs_Allocation set First_Trg_GenDate=a.Tri_Dt,
+First_Trg_DueDate=a.duedate,TrgStatus=a.DueType
+from(
+select * from(
+select company,item,Tri_Dt,duedate,DueType,
+row_number() over(partition by company,item order by Tri_Dt,duedate) as Rnk 
+from Elgi_Overdue_Triggers
+--where item='         B005300950019' 
+)a
+where Rnk=1
+)a
+where Inventory_vs_Allocation.company=a.company
+and ltrim(rtrim(Inventory_vs_Allocation.item))=ltrim(rtrim(a.item))
+
+
+
+
+end
+
+
+select * from Inventory_vs_Allocation
+where allocation_consider2='Yes'
+order by dueweek
+
+--select datepart(wk,getdate()-1)
+Select dueweek,DueWeek2,allocation_consider2,sum(AllocatedQty) AllocatedQty from 
+(select *,datepart(week,duedate) -datepart(week,dateadd(Month,datediff(Month,0,duedate),0))+1 as DueWeek21 from Inventory_vs_Allocation)a
+--where duedate>='2024-09-01'
+where duedate between '2024-09-01' and '2024-09-30'
+group by dueweek,DueWeek2,allocation_consider2
+--order by duedate 
+--where item='         S02133'
+--Select * from ELGi_OverDue_Triggers
+--where ltrim(rtrim(item))='S02133'
+
+
+
+
+
+
+
+Completion time: 2025-11-19T11:25:14.8936565+05:30

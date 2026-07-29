@@ -1,0 +1,145 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Debtors_DocdtWise
+
+CREATE procedure sp_Debtors_DocdtWise as
+begin
+
+Truncate Table Debtors_DocdtWise
+
+Insert into Debtors_DocdtWise (company,cur,CurRate,area,
+CustNo,Trantyp,InvNo,[LineNo],DocDt,DueDt,noofdays,
+ProductGrp,Division,--,Indent,
+Refrence,
+invval_fc,InvAmntInHomeCur,RecAmntHomeCur,BalAmntHomeCur,DueAmt,UnDueAmt,
+DueAmtHC30,DueAmtHC31_60,DueAmtHC61_90,DueAmtHC91_120,DueAmtHC121_150,
+DueAmtHC151_180,DueAmtHC181_365,DueAmtHC366_730,DueAmtHC731_1095,DueAmtgt_1095,
+datediff,Rnk,Ordernum)
+
+SELECT	company,cur,CurRate,area,
+CustNo,Trantyp,InvNo,[LineNo],DocDt,DueDt,datediff(dd, Docdt, Duedt) AS noofdays, 
+ProductGrp,Division,Refrence,
+InvAmntInInvCur as invval_fc,InvAmntInHomeCur,RecAmntHomeCur,BalAmntHomeCur,DueAmt,UnDueAmt,
+(case when datediff(dd,duedt,getdate()-1) between 0 and 30 then dueamt else 0 end) as DueAmtHC30,
+(case when datediff(dd,duedt,getdate()-1) between 31 and 60 then dueamt else 0 end) as DueAmtHC31_60,
+(case when datediff(dd,duedt,getdate()-1) between 61 and 90 then dueamt else 0 end) as DueAmtHC61_90,
+(case when datediff(dd,duedt,getdate()-1) between 91 and 120 then dueamt else 0 end) as DueAmtHC91_120,
+(case when datediff(dd,duedt,getdate()-1) between 121 and 150 then dueamt else 0 end) as DueAmtHC121_150,
+(case when datediff(dd,duedt,getdate()-1) between 151 and 180 then dueamt else 0 end) as DueAmtHC151_180,
+(case when datediff(dd,duedt,getdate()-1) between 181 and 365 then dueamt else 0 end) as DueAmtHC181_365,
+(case when datediff(dd,duedt,getdate()-1) between 366 and 730 then dueamt else 0 end) as DueAmtHC366_730,
+(case when datediff(dd,duedt,getdate()-1) between 731 and 1095 then dueamt else 0 end) as DueAmtHC731_1095,
+(case when datediff(dd,duedt,getdate()-1) > 1095 then dueamt else 0 end) as DueAmtgt_1095,
+datediff(dd,duedt,getdate()-1)  as datediff,Rnk,ordernum
+FROM
+(select distinct a.*,b.ordernum,
+row_number() over(partition by a.company,a.trantyp,a.invno,custno
+order by a.company,a.trantyp,a.invno,b.ordernum) as Rnk
+from ACR a
+left outer join (select distinct Company,Trantype,invnum,OrderNum,CustCode from ci_lines) b
+on a.company=b.Company
+and a.Trantyp=b.Trantype
+and a.InvNo=b.invnum
+and ltrim(rtrim(a.CustNo))=ltrim(rtrim(b.CustCode))
+where a.company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+)	ACR
+
+delete from Debtors_DocdtWise where InvAmntInHomeCur<0
+delete from Debtors_DocdtWise where BalAmntHomeCur<50
+
+update Debtors_DocdtWise set invval_fc=null where Rnk<>1
+update Debtors_DocdtWise set InvAmntInHomeCur=null where Rnk<>1
+update Debtors_DocdtWise set RecAmntHomeCur=null where Rnk<>1
+update Debtors_DocdtWise set BalAmntHomeCur=null where Rnk<>1
+update Debtors_DocdtWise set DueAmt=null where Rnk<>1
+update Debtors_DocdtWise set UnDueAmt=null where Rnk<>1
+
+update Debtors_DocdtWise set DueAmtHC30=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC31_60=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC61_90=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC91_120=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC121_150=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC151_180=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC181_365=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC366_730=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtHC731_1095=null where Rnk<>1
+update Debtors_DocdtWise set DueAmtgt_1095=null where Rnk<>1
+
+
+
+update Debtors_DocdtWise set indent=h.Indent
+from (select distinct company,OrderNum,CustCode,t_corn,RefA
+,case when t_corn=' ' then RefA else t_corn end as Indent  From Sales_Header where dpst not like '%[a-z]%') h
+where Debtors_DocdtWise.Company =h.Company 
+and Debtors_DocdtWise.OrderNum =h.OrderNum 
+and ltrim(rtrim(Debtors_DocdtWise.Custno))=ltrim(rtrim(h.CustCode))
+
+
+update Debtors_DocdtWise set filt_typ=1 where trantyp like '%c1%'
+update Debtors_DocdtWise set filt_typ=0 where filt_typ is null
+
+update Debtors_DocdtWise set AreaName=a.AreaName,Zone=a.Zone,region=a.Region,global=a.Global
+from vw_AREA_MASTER a
+where Debtors_DocdtWise.area=a.Areacode
+
+update Debtors_DocdtWise set custname1=a.custname1,FinCustGrp=a.FinCustGrp
+from vw_business_partner a
+where ltrim(rtrim(Debtors_DocdtWise.CustNo))=ltrim(rtrim(a.custcode))
+
+update Debtors_DocdtWise set dpstname=a.DPSTName,description=a.description
+from vw_DPST_Master a
+where ltrim(rtrim(Debtors_DocdtWise.productgrp)) =ltrim(rtrim(a.dpstcode))
+and Debtors_DocdtWise.company not like '6%'
+
+update Debtors_DocdtWise set dpstname=a.DPSTName,description=a.description
+from DPST_Master_ATS a
+where ltrim(rtrim(Debtors_DocdtWise.productgrp)) =ltrim(rtrim(a.dpstcode))
+and Debtors_DocdtWise.company like '6%'
+
+update Debtors_DocdtWise set description1='International' where description='exports'
+update Debtors_DocdtWise set description1='Channel' where description='Compressor-Channel'
+update Debtors_DocdtWise set description1='Compressor-C&M' where description='Compressor-C&M'
+update Debtors_DocdtWise set description1='Compressor-WW' where description='Compressor-WW'
+update Debtors_DocdtWise set description1='Direct' where description='Compressor-Direct'
+update Debtors_DocdtWise set description1='Compressor-RLY' where description='Compressor-RLY'
+update Debtors_DocdtWise set description1='After Sales' where description='After Sales'
+update Debtors_DocdtWise set description1='Others' where description1 is null
+
+update Debtors_DocdtWise set ordering1=1 where description ='Compressor-Channel'
+update Debtors_DocdtWise set ordering1=2 where description ='Compressor-C&M'
+update Debtors_DocdtWise set ordering1=3 where description ='Compressor-WW'
+update Debtors_DocdtWise set ordering1=4 where description ='Compressor-Direct'
+update Debtors_DocdtWise set ordering1=5 where description ='Compressor-RLY'
+update Debtors_DocdtWise set ordering1=6 where description ='After Sales'
+update Debtors_DocdtWise set ordering1=7 where description ='exports'
+update Debtors_DocdtWise set ordering1=8 where description1 is null
+
+update Debtors_DocdtWise set zone1=region where global = 'International'
+update Debtors_DocdtWise set zone1=zone where zone1 is null
+
+delete from Debtors_DocdtWise where substring(trantyp,2,1) in ('5','6')
+delete from Debtors_DocdtWise where filt_typ=1
+
+
+
+end
+
+
+select * from Debtors_DocdtWise --where filt_typ is null
+--select * from acr --where trantyp like '%c1%'
+
+
+--Alter table Debtors_DocdtWise add Rnk int
+--Alter table Debtors_DocdtWise add Ordernum varchar(25)
+--select * from 
+--(select distinct company,trantyp,invno,indent,refrence from Debtors_DocdtWise)a
+--left outer join
+--(select distinct company,trantype,invoice,indent from elgi_sales_details)b
+--on a.company=b.company
+--and a.trantyp=b.trantype
+--and a.invno=b.invoice
+
+
+
+
+Completion time: 2025-11-19T09:32:16.0023780+05:30

@@ -1,0 +1,94 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE proc [dbo].[sp_ELGi_Inv_Open_Close2] as
+begin
+
+--select * from 
+--(select 490 as Company,'102' as CWAR,convert(int,ltrim(rtrim(SOURCEKEY))) SOURCEKEY,
+--substring(SOURCEKEY,1,10) ReceiptKey, 
+--substring(SOURCEKEY,10,10) ReceiptLine,
+--SKU,convert(date,ADDDATE) ADDDATE,TRANTYPE,sum(QTY) QTY
+----,'WMS' as DataSource
+--from WMS.dbo.wmwhse1_ITRN
+--where TRANTYPE='DP'
+--and SOURCEKEY='000000003400003'
+--group by convert(date,ADDDATE),SOURCEKEY, SKU,TRANTYPE
+--)a
+--left outer join
+
+--(select distinct concat(ltrim(rtrim(RECEIPTKEY)),ltrim(rtrim(RECEIPTLINENUMBER))) as SOURCEKEY2,
+--POKEY,convert(int,POLINENUMBER) POLINENUMBER,convert(int,ORIGINALLINENUMBER) ORIGINALLINENUMBER,
+--QTYRECEIVED,
+----convert(int,RECEIPTLINENUMBER) RECEIPTLINENUMBER,EXTERNLINENO
+--TYPE,REFERENCETYPE 
+--from WMS.dbo.wmwhse1_RECEIPTDETAIL
+--where 
+--TYPE=0
+--and ltrim(rtrim(REFERENCETYPE))=''
+--and concat(ltrim(rtrim(RECEIPTKEY)),ltrim(rtrim(RECEIPTLINENUMBER)))='000000003400003'
+----and RECEIPTKEY='0000000974'
+--)b
+--on a.SOURCEKEY=b.SOURCEKEY2
+----on a.ReceiptKey=b.RECEIPTKEY
+----and a.ReceiptLine=b.RECEIPTLINENUMBER
+
+
+
+--left outer join
+--(select T$OCMP,T$CWAR,T$ITEM,T$ORNO,convert(int,T$PONO) T$PONO,convert(int,T$SRNB) T$SRNB,T$KOOR,
+--sum(isnull(T$QSTK,0)) QSTK_R,sum(isnull(T$QSKT,0)) QSKT_R from TWHINA112ALL 
+--where T$OCMP=490
+--and T$KOOR=2
+----and T$ORNO= 'APO006004' and T$PONO='10'
+--group by T$OCMP,T$CWAR,T$ITEM,T$ORNO,T$PONO,T$SRNB,T$KOOR
+--)c
+--on b.POKEY=c.T$ORNO
+--and b.POLINENUMBER=c.T$PONO
+--and b.ORIGINALLINENUMBER=c.T$SRNB
+--and ltrim(rtrim(a.SKU))=ltrim(rtrim(c.T$ITEM))
+
+--where SOURCEKEY= '000000003400003'
+
+----where ltrim(rtrim(SKU))='070402470'
+----'00032789A'
+----'S07027'
+
+---------------------------------------------------------------------------------------------------------------
+
+select *,case 
+when isnull(a.QTY,0)>0 and isnull(QAPR,0)>0 and a.QTY-QAPR>0 then 'WMS Qty is greater'
+when isnull(a.QTY,0)>0 and isnull(QAPR,0)>0 and a.QTY-QAPR<0 then 'LN Qty is greater'
+when isnull(a.QTY,0)>0 and isnull(QAPR,0)>0 and a.QTY-QAPR=0 then 'OK'
+when isnull(a.QTY,0)=0 and isnull(QAPR,0)>0 then 'NA in WMS'
+when isnull(a.QTY,0)=0 and isnull(QAPR,0)<0 then 'NA in WMS'
+when isnull(a.QTY,0)>0 and isnull(QAPR,0)=0 then 'NA in LN'
+when isnull(a.QTY,0)<0 and isnull(QAPR,0)=0 then 'NA in LN'
+end as Sts
+from (
+select * from 
+(select 490 as Company,'102' as CWAR,ITRNKEY,
+convert(int,ltrim(rtrim(SOURCEKEY))) SOURCEKEY,
+substring(SOURCEKEY,1,10) ReceiptKey, 
+substring(SOURCEKEY,10,10) ReceiptLine,
+SKU,convert(date,ADDDATE) ADDDATE,TRANTYPE,sum(QTY) QTY
+--,'WMS' as DataSource
+from WMS.dbo.wmwhse1_ITRN
+where TRANTYPE in ('DP','WD')
+--and SOURCEKEY='000000003400003'
+group by convert(date,ADDDATE),ITRNKEY,SOURCEKEY, SKU,TRANTYPE
+)a
+full outer join
+(select EXRR,SFBP,ITEM,RCNO,RCLN,OORG,ORNO,PONO,SEQN,convert(date,TRDT) TRDT,QAPR from TWHINH312ALL where COMPANY='490' and CWAR='102'
+and convert(date,TRDT)>='2018-04-01'
+)b
+on a.ITRNKEY=b.EXRR
+left outer join (select custcode,custname1 from vw_Business_Partner) v
+on b.SFBP=v.custcode
+)a
+
+
+
+end
+
+
+Completion time: 2025-11-19T09:46:36.2488936+05:30

@@ -1,0 +1,120 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_CDOC_TPL_details
+CREATE proc [dbo].[sp_CDOC_TPL_details] as
+begin
+
+Truncate table CDOC_TPL_details
+
+--insert into CDOC_TPL_details(date1,company,item,itemdescr,prodorderno,ManufacturedQty)
+--select * into CDOC_TPL_details from (
+--select date1,company,ltrim(rtrim(item)) item,itemdescr,prodorderno,actual_qty as ManufacturedQty from elgi_production_details
+--where actual_qty<>0
+--and date1>='2017-04-01'
+--and ltrim(rtrim(item)) in (select distinct ltrim(rtrim(tpl)) from CDOC_TPL_Master)
+----and ltrim(rtrim(item))='S011284' --testing
+----order by date1
+----)a
+
+--Production
+insert into CDOC_TPL_details(date1,company,item,itemdescr,prodorderno,ManufacturedQty)
+select b.RDLD,b.COMPANY,a.tpl,a.tpl_desc,b.PDNO,b.QRDR from 
+(select distinct ltrim(rtrim(tpl)) tpl, tpl_desc from CDOC_TPL_Master) a
+left outer join
+(select convert(date,RDLD) RDLD,COMPANY,ltrim(rtrim(MITM)) MITM,PDNO,sum(QRDR) QRDR from TTISFC001ALL
+where 
+--ltrim(rtrim(MITM)) in (select distinct ltrim(rtrim(tpl)) from CDOC_TPL_Master) and 
+convert(date,RDLD)>='2017-04-01'
+and OSTA>=8
+group by convert(date,RDLD),COMPANY,ltrim(rtrim(MITM)),PDNO
+)b
+on a.tpl=b.MITM
+order by convert(date,RDLD)
+
+--Sales
+insert into CDOC_TPL_details(date1,company,item,itemdescr,trantype,Invoice,SoldQty)
+select b.Invoice_Date,b.company,a.tpl,a.tpl_desc,b.trantype,b.Invoice,b.SoldQty from
+(select distinct ltrim(rtrim(tpl)) tpl, tpl_desc from CDOC_TPL_Master) a
+left outer join
+(select convert(date,Invoice_Date) Invoice_Date,company,ltrim(rtrim(item)) item,
+Item_desc,trantype,Invoice,sum(DeliveryQty) as SoldQty from ELGi_Sales_Details
+where ltrim(rtrim(item)) in (select distinct ltrim(rtrim(tpl)) from CDOC_TPL_Master)
+and Invoice_Date>='2015-04-01'
+and company like '4%'
+--and ltrim(rtrim(item))='S011284' --testing
+group by Invoice_Date,company,ltrim(rtrim(item)),Item_desc,trantype,Invoice
+)b
+on a.tpl=b.item
+order by Invoice_Date
+
+
+
+
+--alter table CDOC_TPL_details add Model varchar(50)
+--alter table CDOC_TPL_details add prod_group varchar(50)
+
+update CDOC_TPL_details set Model=a.Model,prod_group=a.prod_group,slno=a.slno,itemdescr=a.tpl_desc
+from CDOC_TPL_Master a
+where ltrim(rtrim(CDOC_TPL_details.item))=ltrim(rtrim(a.tpl))
+
+
+--alter table CDOC_TPL_details add FinYear int
+--alter table CDOC_TPL_details add FinMonth int
+--alter table CDOC_TPL_details add Month_Name varchar(20)
+--alter table CDOC_TPL_details add Fin_Year varchar(20)
+
+
+update CDOC_TPL_details set FinYear=year(date1)-1 where month(date1)<4 and FinYear is null
+update CDOC_TPL_details set FinYear=year(date1) where month(date1)>=4 and FinYear is null
+
+
+update CDOC_TPL_details set FinMonth=month(date1)+9 where month(date1)<4 and FinMonth is null
+update CDOC_TPL_details set FinMonth=month(date1)-3 where month(date1)>=4 and FinMonth is null
+
+update CDOC_TPL_details set Month_Name=datename(mm,dateadd(mm,convert(int,month(date1)),-1))
+
+update CDOC_TPL_details set Fin_Year=concat(FinYear,'-',substring(convert(varchar,FinYear+1),3,2))
+
+
+--alter table CDOC_TPL_details add Latest_Invoice_Date date
+--alter table CDOC_TPL_details add Latest_Production_Date date
+
+update CDOC_TPL_details set Latest_Invoice_Date=a.Latest_Invoice_Date
+from (select item,max(date1) as Latest_Invoice_Date from CDOC_TPL_details
+where invoice is not null
+group by item)a
+where CDOC_TPL_details.item=a.item
+
+update CDOC_TPL_details set Latest_Production_Date=a.Latest_Production_Date
+from( select item,max(date1) as Latest_Production_Date from CDOC_TPL_details
+where prodorderno is not null
+group by item)a
+where CDOC_TPL_details.item=a.item
+
+
+delete from CDOC_TPL_details where date1>='2021-04-01'
+
+
+
+
+
+
+end
+
+
+--alter table CDOC_TPL_details add Slno int
+
+--select row_number() over(partition by item order by item) as Slno,
+--* from CDOC_TPL_details
+
+select * from CDOC_TPL_details
+
+
+--select distinct date1 from elgi_production_details
+--order by date1
+
+
+
+
+
+Completion time: 2025-11-19T09:10:42.3881267+05:30

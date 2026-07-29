@@ -1,0 +1,131 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE proc [dbo].[sp_crm_serviceDue_recip]
+as begin
+
+
+
+update MSDYN_CUSTOMERASSET set 
+elgi_checkvalvechangedremaininghours=replace(replace(elgi_checkvalvechangedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_advremaininghours=replace(replace(elgi_advremaininghours,'NO','0'),('Yes'),'0'),
+elgi_mpvremaininghours=replace(replace(elgi_mpvremaininghours,'NO','0'),('Yes'),'0'),
+elgi_gasketsandoringsremaininghours=replace(replace(replace(elgi_gasketsandoringsremaininghours,'5550N','5550'),'NO','0'),('NA'),'0'),
+elgi_waterreplacedremaininghours=replace(replace(elgi_waterreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_waterfilterreplacedremaininghours=replace(replace(elgi_waterfilterreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_airwaterseparatorreplacedremaininghours=replace(replace(elgi_airwaterseparatorreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_ivbdvsvreplacedremaininghours=replace(replace(elgi_ivbdvsvreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_safetyvalvereplacedremaininghours=replace(replace(elgi_safetyvalvereplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_drivepipecouplingsreplacedremaininghours=replace(replace(elgi_drivepipecouplingsreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_airfilterprefilterreplacedremaininghours=replace(replace(elgi_airfilterprefilterreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_waterstopvalvereplacedremaininghours=replace(replace(elgi_waterstopvalvereplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_sealairmosreplacedremaininghours=replace(replace(elgi_sealairmosreplacedremaininghours,'NO','0'),('Yes'),'0')
+
+
+--truncate table stage1_Recip
+--insert into stage1_Recip
+
+select 
+elgi_lockindealername,elgi_lockindealer,elgi_concernedelgisalesengineername,msdyn_name as fabno,elgi_productgroupname,
+elgi_productsubgroupname,elgi_warrantytypename,msdyn_accountname,msdyn_productname,
+elgi_averagerunninghours ,elgi_hmrdate,elgi_loadedhourshmr,elgi_totalhours,elgi_unloadedhours,
+elgi_hmrairfilterremaining,
+elgi_hmrmotorregressedremaining,
+elgi_hmroilfilterremaining,
+elgi_hmroilremaining,
+elgi_hmrseparatorremaining,
+elgi_hmrvalvekitremaining,
+msdyn_account,elgi_assetclustersparesname,elgi_dateofcommissioning,elgi_dateofinvoice,
+elgi_typeofoilname,elgi_oilreplacementdate,elgi_lastvalvekitreplacementdate,elgi_carbonfilterdateofinstallation,
+elgi_finefilterdateofinstallation,elgi_prefilterdateofinstallation,elgi_typeofdownstreamaccessoriesname,msdyn_customerassetid,
+elgi_airfilterreplaceddate,elgi_oilfilterreplaceddate,elgi_aosreplaceddate,elgi_greasingdonedate,
+elgi_concernedelgiserviceengineername,elgi_concernedelgisparesengineername,elgi_isdsfavailablename
+,'' lineofbusiness,'' calltrackingnumber,'' serv_eng_comm,
+0 as overdue,0 as curntdue,0 as feturdue,
+
+case when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_airfilterreplaceddate,'')='' 
+									then null
+					when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_airfilterreplaceddate,'')!='' 
+									then DATEADD(d,90,elgi_airfilterreplaceddate)
+end AF_DUE_DATE,
+
+case when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_oilreplacementdate,'')='' 
+									then null
+					when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_oilreplacementdate,'')!='' 
+									then DATEADD(d,30,elgi_oilreplacementdate)
+end OIL_DUE_DATE,
+
+case when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_pistonringsgasketreplaceddate,'')='' 
+									then null
+					when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_pistonringsgasketreplaceddate,'')!='' 
+									then DATEADD(d,365,elgi_pistonringsgasketreplaceddate)
+end PIS_DUE_DATE,
+
+case when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_valveassemblygasketreplaceddate,'')='' 
+									then null
+					when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_valveassemblygasketreplaceddate,'')!='' 
+									then DATEADD(d,365,elgi_valveassemblygasketreplaceddate)
+end VALV_DUE_DATE,
+
+case when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_nrvkit,'')='' 
+									then null
+					when elgi_productsubgroupname in ('recip','IND. RECIP','IND. RECIP')  and isnull(elgi_nrvkit,'')!='' 
+									then DATEADD(d,90,elgi_nrvkit)
+end NRV_DUE_DATE,
+
+case when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_breathervalvereplaceddate,'')='' 
+									then null
+					when elgi_productsubgroupname in ('recip','IND. RECIP')  and isnull(elgi_breathervalvereplaceddate,'')!='' 
+									then DATEADD(d,90,elgi_breathervalvereplaceddate)
+end VALV_DUE_DATE,
+
+
+
+case when 
+convert(Date,elgi_hmrdate)<=dateadd(d,-90,convert(date,getdate())) 
+and elgi_warrantytypename in ('In Uptime warranty' ,'In Standard Warranty')
+then 1 else 0 end as rem_hours_3mnths_nc,
+
+CASE WHEN elgi_typeofdownstreamaccessoriesname like '%Pre%' then 1 else 0 end as PF,
+CASE WHEN elgi_typeofdownstreamaccessoriesname like '%fine%' then 1 else 0 end as FF,
+CASE WHEN elgi_typeofdownstreamaccessoriesname like '%carbon%' then 1 else 0 end as CF,
+
+''AF_HMR,''OF_HMR,''OIL_HMR,''AOS_HMR,''VALVEKIT_HMR,''RGT_HMR,''PF_HMR,''FF_HMR,''CF_HMR,''territoryidname,
+''final_AF_DUE_DATE,
+''final_OF_DUE_DATE,
+''final_OIL_DUE_DATE,
+''final_AOS_DUE_DATE,
+''final_VALVEKIT_DUE_DATE,
+''final_RGT_DUE_DATE,
+''FINAL_PF_HMR,
+''FINAL_FF_HMR,
+''FINAL_CF_HMR,
+
+'          'AF_CLR,
+'          'OF_CLR,
+'          'OIL_CLR,
+'          'AOS_CLR,
+'          'VALVEKIT_CLR,
+'          'RGT_CLR,
+'          'PF_CLR,
+'          'FF_CLR,
+'          'CF_CLR
+
+--into  stage1
+
+ From MSDYN_CUSTOMERASSET
+	where		elgi_lockindealername in (select distinct * from service_dealer_list) and
+	elgi_productsubgroupname in ('recip','IND. RECIP')
+	and statuscodename='active'
+	and (substring(elgi_assetclustersparesname,1,1)like '[a,b,c]%' 
+	or substring(elgi_assetclustersparesname,1,2)like 'p1%'
+	or substring(elgi_assetclustersparesname,1,2)like 'p2%'
+	or substring(elgi_assetclustersparesname,1,2)like 'p3'
+	or substring(elgi_assetclustersparesname,1,2)like 'p4%'
+	)
+
+
+end
+
+
+Completion time: 2025-11-19T09:26:54.4736778+05:30

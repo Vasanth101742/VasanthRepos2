@@ -1,0 +1,39 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_sales_cube
+CREATE proc [dbo].[sp_sales_cube]
+as 
+begin
+
+truncate table sales_cube
+
+insert into sales_cube
+select a.company,trantype,OrderNo,PositionNo,Invoice,item,Item_desc,custcode,custname,dpst,dpstname,organ,isnull(Region,'Others')Region,
+isnull(Vertical1,'Others')Vertical1,isnull(Division,'Others')Division, 
+areacode,isnull(areaname,'Others')areaname,isnull(Zone,'Others')Zone,cal_year,Fin_year,cal_Month,Fin_month,Monthname,day(Invoice_Date)as Day, 
+SaleOrderType,isnull(shipmentno,'')shipmentno,isnull(shipmentline,'')shipmentline,isnull(shiptoaddress,'')shiptoaddress,Sales_amount/1000000,
+case
+when Organ='India' then Description
+when Organ='COSEA' then Division 
+when Organ='SAAME' then user_names 
+when Organ='ID' then Division
+when Organ='Subsidiary' then Division
+	end as Vertical_new,
+case when Organ='India' then 'Domestic'
+when Organ in ('COSEA','SAAME','ID','Subsidiary') then 'International'
+end as Global
+
+  from (
+select a.*,b.Description  From LN_Sales_Details_ver2 a
+left join DPST_Master_Domestic b
+on a.dpst =b.DPSTcode 
+where Organ in ('India','COSEA','SAAME','ID','Subsidiary')
+and concat(convert(varchar,a.company),a.SaleOrderType) in (select concat(convert(varchar,company),saleordertype) from saletype_master where sales_category<>1)
+and a.company in (select distinct company  From ELGI_Companies_Master where CompanyGroup ='ELGI')
+and Sales_amount >0
+)a
+end
+
+
+
+Completion time: 2025-11-19T12:11:50.0606907+05:30

@@ -1,0 +1,72 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--select distinct * From Cust_details order by custcode,custname1  
+--select  * From Item_details order by company,item,item_Desc
+--EXEC SP_GST
+CREATE proc [dbo].[sp_GST]
+AS
+BEGIN
+TRUNCATE TABLE Cust_details
+TRUNCATE TABLE Item_details
+create table #tmp(company int,item varchar(50),item_Desc varchar(200))
+----------sales
+insert  into Cust_details
+select distinct custcode,custname1 from (
+select * From (
+select distinct t_ofbp as custcode,b.custname1  From TTDSLS401ALL  a
+left join vw_Business_Partner b
+on ltrim(rtrim(a.t_ofbp)) =ltrim(rtrim(b.custcode)) 
+where a.Company in (400,401,440,450,465,470,490,581,600,640)
+)a
+union
+--------- purchase
+select * From (
+select distinct T$OTBP  as custcode,b.custname1  From TTDPUR401ALL_NEW   a
+left join vw_Business_Partner b
+on ltrim(rtrim(a.T$OTBP)) =ltrim(rtrim(b.custcode)) 
+where a.Company in (400,401,440,450,465,470,490,581,600,640)
+)a
+)a
+
+insert into #tmp
+select distinct Company,ltrim(rtrim(t_item))as Item,'' as Item_desc From TTDSLS401ALL where Company in (400,401,440,450,465,470,490,581,600,640) 
+union 
+select distinct Company,ltrim(rtrim(T$ITEM))as Item,'' as Item_desc From TTDPUR401ALL_NEW where Company in (400,401,440,450,465,470,490,581,600,640) 
+
+update #tmp set Company =400 where #tmp.Company in (400,401,440,450) 
+update #tmp set Company =600 where #tmp.Company in (600,640) 
+
+update #tmp set item_desc=a.t_dsca  from TTCIBD001400 a
+where ltrim(rtrim(#tmp.item)) =ltrim(rtrim(a.t_item))
+and  #tmp.company in (400)
+
+update #tmp set item_desc=a.dsca  from TTCIBD001465  a
+where ltrim(rtrim(#tmp.item)) =ltrim(rtrim(a.ITEM))
+and  #tmp.company in (465)
+
+update #tmp set item_desc=a.dsca  from TTCIBD001470 a
+where ltrim(rtrim(#tmp.item)) =ltrim(rtrim(a.ITEM))
+and  #tmp.company in (470)
+
+update #tmp set item_desc=a.dsca  from TTCIBD001490 a
+where ltrim(rtrim(#tmp.item)) =ltrim(rtrim(a.ITEM))
+and  #tmp.company in (490)
+
+update #tmp set item_desc=a.dsca  from TTCIBD001581 a
+where ltrim(rtrim(#tmp.item)) =ltrim(rtrim(a.ITEM))
+and  #tmp.company in (581)
+
+update #tmp set item_desc=a.t_dsca  from TTCIBD001600  a
+where ltrim(rtrim(#tmp.item)) =ltrim(rtrim(a.t_item))
+and  #tmp.company in (600)
+
+insert into Item_details
+select distinct * From #tmp 
+
+END
+
+
+
+
+
+Completion time: 2025-11-19T10:40:45.2635465+05:30

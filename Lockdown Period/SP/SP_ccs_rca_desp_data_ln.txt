@@ -1,0 +1,228 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--exec SP_ccs_rca_desp_data_ln
+CREATE PROCEDURE SP_ccs_rca_desp_data_ln as  
+
+--DECLARE @year AS INT  
+--DECLARE @month AS INT  
+--DECLARE @curday AS INT  
+--DECLARE @curyear AS INT  
+
+
+--set nocount on  
+--BEGIN  
+  
+--SET @curday = day(getdate())  
+  
+--IF @curday =1  
+--BEGIN  
+--SET @year=year(getdate()-1)  
+--SET @month=month(getdate()-1)  
+
+------------------------------------------------------------------------------------------------------------  
+
+--FOR Company despatch detail  
+
+------------------------------------------------------------------------------------------------------------  
+
+--Old Logic
+
+
+--INSERT INTO ccs_rca_Desp_data_ln  
+
+--SELECT ccs_pg ,DATEADD(mm,-1,DATEADD(mm,DATEDIFF(mm,0,GETDATE()),0))  as date,qty  FROM   
+--(SELECT SUM(QTY) as qty ,sptyp FROM (  
+--SELECT SUM(DeliveryQty) AS qty,
+--CASE WHEN sptyp in (3,4 ) and dpst not IN ('90021','90221')  THEN 4   
+--WHEN sptyp in (3,4 ) and dpst IN ('90021','90221') THEN 3   
+--ELSE sptyp END AS sptyp,a.Item     
+
+--FROM    
+--  ( SELECT Item ,convert(int,invqty) as DeliveryQty,dpst,ttyp as trantype,custcode   
+--    FROM (select * from Dispatch_Details where invoice_date>='2017-04-01'  )elgi_sales_detaills
+--    WHERE MONTH(Invoice_Date)=@month AND YEAR(Invoice_Date)=@year 
+--			 --and SaleOrderType in (select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6))
+--				--AND company IN (400,401)  
+
+--  )a  
+
+--INNER JOIN  
+
+--(select a.item ,b.sptyp from (select distinct ltrim(rtrim(t_item))as item  From TTCIBD001400 where t_seri =1)a
+--inner join   item_prodgrp_map b
+--on ltrim(rtrim(a.item)) =ltrim(rtrim(b.item))
+--WHERE sptyp IN (1,2,3,4,5,6,7,8,9,12,13,14,15)
+--)b
+--ON ltrim(rtrim(a.Item ))=ltrim(rtrim(b.item))  
+--GROUP BY sptyp,a.item ,dpst)a  
+--GROUP BY sptyp )a  
+
+--RIGHT OUTER JOIN  
+--LN_prodgrp_map  b  
+--ON sptyp=pgcode  
+
+
+
+
+-----------------------------------New Logic-------------------------------------------------
+
+Begin
+
+Truncate table ccs_rca_Desp_data_ln
+
+
+INSERT INTO ccs_rca_Desp_data_ln  
+select * From (
+SELECT ccs_pg,Invoice_date as date,sum(qty)qty
+FROM (
+SELECT ccs_pg,sptyp,DPST,convert(date,convert(varchar,year(a.Invoice_date))+'-'+convert(varchar,month(a.Invoice_date))+'-01') Invoice_date,
+SUM(QTY) as qty FROM 
+(
+SELECT a.Item,a.DeliveryQty AS qty,
+CASE WHEN b.sptyp in (3,4 ) and dpst not IN ('90021','90221')  THEN 4   
+WHEN b.sptyp in (3,4 ) and dpst IN ('90021','90221') THEN 3   
+ELSE b.sptyp END AS sptyp,C.ccs_pg,a.DPST,a.Invoice_date
+FROM    
+
+(
+SELECT Invoice_date,Item ,sum(convert(int,invqty)) as DeliveryQty,dpst,ttyp as trantype,custcode   
+FROM (select * from Dispatch_Details 
+where invoice_date>='2017-04-01')Dispatch_Details
+WHERE FABNO<>''--and MONTH(Invoice_Date)=@month AND YEAR(Invoice_Date)=@year 
+group by Invoice_date,Item,dpst,ttyp,custcode 
+)a  
+
+left outer JOIN item_prodgrp_map b
+on ltrim(rtrim(a.item)) =ltrim(rtrim(b.item))
+
+left OUTER JOIN LN_prodgrp_map  c
+ON sptyp=c.pgcode  
+
+)a
+GROUP BY ccs_pg,sptyp,a.DPST,a.Invoice_date
+)B
+group by ccs_pg,Invoice_date
+)a
+--where ccs_pg is not null
+order by date
+
+
+--insert into ccs_rca_Desp_data_ln
+--select * from [ELGI-DW].dbo.ccs_rca_Desp_data where month<'2017-04-01 00:00:00.000'
+
+--insert into ccs_rca_Desp_data_ln
+--select * into ccs_rca_Desp_data_ln From [bisdb].[ELGI-DW] .dbo.ccs_rca_Desp_data order by month desc
+
+end
+
+
+---------------------------------End of New Logic--------------------------------------------------------
+
+----- NPD Despatch detail  
+
+-----------------------------------------------------------------------------------------------------------  
+--INSERT INTO ccs_rca_Desp_data_osea_npd_ln  
+
+--SELECT ccs_pg ,DATEADD(mm,-1,DATEADD(mm,DATEDIFF(mm,0,GETDATE()),0))  AS date,qty,'NPD'   
+--FROM  
+--(SELECT sum(qty) as qty,sptyp from  
+--  (SELECT sum(DeliveryQty )AS qty,CASE WHEN sptyp in (3,4 ) and dpst not IN ('90021','90221')  THEN 4   
+--        WHEN sptyp in (3,4 ) and dpst IN ('90021','90221') THEN 3   
+--        ELSE sptyp END AS sptyp FROM   
+--    (SELECT *   
+--     FROM (select * from elgi_sales_details where invoice_date>='2017-04-01') elgi_sales_detaills  
+--     WHERE 
+--			ltrim(rtrim(Item)) in (select distinct tplcode from ccs_autorca_npd_tpls   
+--         where inactive='N')  
+--and MONTH(Invoice_Date)=@month AND YEAR(Invoice_Date)=@year 
+--			-- AND saletype IN (0,2) 
+--				and SaleOrderType in (select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6))
+--								AND company IN (400,401)  
+--								)a
+
+--  INNER JOIN  
+
+--    (select a.item ,b.sptyp from (select distinct ltrim(rtrim(t_item))as item  From TTCIBD001400 where t_seri =1)a
+--inner join   item_prodgrp_map b
+--on ltrim(rtrim(a.item)) =ltrim(rtrim(b.item))
+--WHERE sptyp IN (1,2,3,4,5,6,7,8,9,12,13))b  
+--  ON ltrim(rtrim(a.Item))=ltrim(rtrim(b.item))  
+--		  GROUP BY sptyp,dpst)a   
+--				 Group by sptyp)a  
+					 
+--RIGHT OUTER JOIN  
+--LN_prodgrp_map b  
+--ON sptyp=pgcode  
+
+  
+
+  
+
+  
+
+---------------------------------------------------------------------------------------------------------------------  
+
+----- OSEA Despatch detail  
+
+---------------------------------------------------------------------------------------------------------------------  
+
+--INSERT INTO ccs_rca_Desp_data_osea_npd_ln  
+
+
+
+
+--SELECT ccs_pg ,DATEADD(mm,-1,DATEADD(mm,DATEDIFF(mm,0,GETDATE()),0))  as date,qty,'OSEA' as cat  FROM   
+--(
+--SELECT SUM(QTY) as qty ,sptyp FROM (  
+
+--SELECT SUM(DeliveryQty ) AS qty,CASE WHEN sptyp in (3,4 ) and dpst not IN ('90021','90221')  THEN 4   
+
+--        WHEN sptyp in (3,4 ) and dpst IN ('90021','90221') THEN 3   
+
+--        ELSE sptyp END AS sptyp,a.item   
+
+-- FROM   
+	
+		
+--   ( SELECT Item ,DeliveryQty,dpst,trantype,custcode   
+--    FROM (select * from elgi_sales_details where invoice_date>='2017-04-01'  )elgi_sales_detaills
+--    WHERE MONTH(Invoice_Date)=@month AND YEAR(Invoice_Date)=@year 
+--			-- AND saletype IN (0,2) 
+--				and SaleOrderType in (select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6))
+--								AND company IN (400,401)  
+--								AND areacode  in (select distinct areacode  from vw_AREA_MASTER  where ltrim(rtrim(region)) in ('EastAsia','Oceania','South East Asia'))  
+								
+--  )a  
+		
+		
+--INNER JOIN  
+
+--    (select a.item ,b.sptyp from (select distinct ltrim(rtrim(t_item))as item  From TTCIBD001400 where t_seri =1)a
+--inner join   item_prodgrp_map b
+--on ltrim(rtrim(a.item)) =ltrim(rtrim(b.item))
+--WHERE sptyp IN (1,2,3,4,5,6,7,8,9,12,13))b 
+--ON ltrim(rtrim(a.Item ))=ltrim(rtrim(b.item))  
+--GROUP BY sptyp,a.Item,dpst)a  
+--GROUP BY sptyp )a
+
+--RIGHT OUTER JOIN  
+--LN_prodgrp_map  b  
+--ON sptyp=pgcode   
+
+--END -- end of the IF statement  
+  
+
+--END--end of the SP
+
+
+Select * from ccs_rca_Desp_data_ln
+order by month desc
+
+
+
+
+
+
+
+Completion time: 2025-11-19T09:09:49.4609181+05:30

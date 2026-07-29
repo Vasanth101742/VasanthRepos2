@@ -1,0 +1,119 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_CoseaitemTemp
+CREATE proc [dbo].[sp_CoseaitemTemp] as
+
+begin
+
+truncate table CoseaitemTemp
+truncate table CoseaitemTemp2
+
+
+Insert into CoseaitemTemp
+
+select distinct company,ltrim(rtrim(a.Item)) as Item ,a.Item_desc
+FROM 	ELGi_Sales_Details a 
+left outer JOIN vw_AREA_MASTER b ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.areacode))
+	left outer JOIN vw_SALESMAPPING_MASTER c
+	ON 	ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode)) 
+	AND ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+	left outer join vw_DPST_MASTER d
+	on ltrim(rtrim(d.DpstCode))=ltrim(rtrim(c.DPSTCode))
+
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+
+AND a.SaleOrderType in (
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+and c.Organ='COSEA'
+GROUP BY b.global,c.organ,c.region,c.Zone, c.user_names,c.Division,c.Vertical1,
+b.Areacode,b.AreaName,d.Dpstcode,d.dpstname,d.Description,
+a.company,a.warehouse,a.Item,a.Item_desc,
+a.cal_Month,a.cal_year,a.Fin_month,a.Fin_year
+
+
+update CoseaitemTemp set item_desc=a.t_dsca
+from TTCIBD001400 a
+where CoseaitemTemp.company like '4%'
+and CoseaitemTemp.company not in (465,470,490)
+and ltrim(rtrim(CoseaitemTemp.item))=ltrim(rtrim(a.t_item))
+
+
+update CoseaitemTemp set item_desc=a.DSCA
+from TTCIBD001490 a
+where CoseaitemTemp.company=490
+--and len(CoseaitemTemp.Item_desc)<3
+and ltrim(rtrim(CoseaitemTemp.item))=ltrim(rtrim(a.ITEM))
+
+update CoseaitemTemp set item_desc=a.DSCA
+from TTCIBD001551 a
+where CoseaitemTemp.company=551
+and ltrim(rtrim(CoseaitemTemp.item))=ltrim(rtrim(a.ITEM))
+
+update CoseaitemTemp set item_desc=a.DSCA
+from TTCIBD001552 a
+where CoseaitemTemp.company=552
+and ltrim(rtrim(CoseaitemTemp.item))=ltrim(rtrim(a.ITEM))
+
+
+insert into CoseaitemTemp2
+select distinct a.company,a.Item,a.Item_desc,null,null from CoseaitemTemp a
+where 
+concat(company,ltrim(rtrim(item))) not in 
+(select concat(company,ltrim(rtrim(ItemCode))) from ItemMaster_COSEA)
+--and concat(company,ltrim(rtrim(item)))='401B008603620001'
+
+
+insert into CoseaitemTemp2
+select distinct null,item_code,null,null,null from Itemwise_Budget
+where concat(DPST,Area) in 
+(select distinct concat(DPSTCode,Areacode) from SalesMapping_Global where organ='COSEA')
+and ltrim(rtrim(item_code)) not in (select distinct ltrim(rtrim(itemcode)) from ItemMaster_COSEA)
+
+
+
+Insert into ItemMaster_COSEA
+select company,itemcode,item_desc,category,productline from 
+(select company,itemcode,item_desc,category,productline,
+row_number() over (partition by company,ltrim(rtrim(itemcode)) order by item_desc) as rnk from CoseaitemTemp2)a
+where rnk=1 
+order by itemcode,company
+
+
+update ItemMaster_COSEA set category=null where category='null'
+update ItemMaster_COSEA set productline=null where productline='null'
+
+update ItemMaster_COSEA set item_desc=a.t_dsca
+from TTCIBD001400 a
+where ltrim(rtrim(ItemMaster_COSEA.ItemCode))=ltrim(rtrim(a.t_item))
+and Item_desc is null
+
+update ItemMaster_COSEA set item_desc=a.dsca
+from TTCIBD001551 a
+where ltrim(rtrim(ItemMaster_COSEA.ItemCode))=ltrim(rtrim(a.item))
+and Item_desc is null
+
+update ItemMaster_COSEA set item_desc=a.dsca
+from TTCIBD001552 a
+where ltrim(rtrim(ItemMaster_COSEA.ItemCode))=ltrim(rtrim(a.item))
+and Item_desc is null
+
+
+delete from ItemMaster_COSEA where Item_desc is null
+
+end
+
+
+--Analysis
+--select * from ItemMaster_COSEA where Item_desc is null
+
+--select * from vw_Item_Master where ltrim(rtrim(item)) = '010454350'
+--in (select ItemCode from ItemMaster_COSEA where Item_desc is null)
+
+
+
+Completion time: 2025-11-19T09:15:54.1911908+05:30

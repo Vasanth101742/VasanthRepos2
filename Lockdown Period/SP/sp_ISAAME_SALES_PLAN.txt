@@ -1,0 +1,106 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+create proc [dbo].[sp_ISAAME_SALES_PLAN]
+as
+begin
+select * From ISAAME_SALES_PLAN
+where Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and  Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+order by Ordering 
+
+
+
+
+update ISAAME_SALES_PLAN set [plan]=212 where Vertical='Channel Sales'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+update ISAAME_SALES_PLAN set [plan]=33 where Vertical='Direct'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=57 where Vertical='C & M'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=100 where Vertical='WW'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=57 where Vertical='Railways - Units'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=33 where Vertical='Railways - Parts'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=3 where Vertical='Railways - Service'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=146 where Vertical='India - Parts'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=10 where Vertical='India - Service'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=12 where Vertical='SA - Units'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=3 where Vertical='SA - Parts'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=0 where Vertical='SA - Service'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=16 where Vertical='Africa - Units'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=4 where Vertical='Africa - Parts'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=0 where Vertical='Africa - Service'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=20 where Vertical='ME - Units'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=6 where Vertical='ME - Parts'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+update ISAAME_SALES_PLAN set [plan]=0 where Vertical='ME - Service'  
+and Fin_Year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+and Fin_Month=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end)
+
+
+end
+
+
+Completion time: 2025-11-19T11:28:29.2250756+05:30

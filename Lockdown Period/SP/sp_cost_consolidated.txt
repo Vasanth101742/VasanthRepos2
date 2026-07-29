@@ -1,0 +1,212 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- exec sp_cost_consolidated
+CREATE proc [dbo].[sp_cost_consolidated]
+as
+begin
+
+--create table cost_consolidated
+--(
+--description varchar(100),
+--basic float,
+--exchange float,
+--qtydiff float,
+--impdom_domimp float,
+--costdiff float,
+--remarks varchar(200)
+--)
+
+--insert into cost_consolidated(description) values ('Price decrease')
+--insert into cost_consolidated(description) values ('BOM Addition')
+--insert into cost_consolidated(description) values ('BOM Deletion')
+--insert into cost_consolidated(description) values ('BOM Revision')
+--insert into cost_consolidated(description) values ('Make to Buy - castings')
+--insert into cost_consolidated(description) values ('Net Incr/Decr')
+
+
+update cost_consolidated set basic=-1*(a.basic) ,exchange =-1*(a.Exchange_Diff) ,qtydiff =-1*(a.QTYDIFF) ,impdom_domimp =-1*(a.di_id) ,costdiff =-1*(a.NETDIFF)  
+ from(
+select sum(Pricediff)as basic,sum(Exchange_Diff)Exchange_Diff,sum(QTYDIFF)QTYDIFF,(sum(DOM_IMP)+sum(IMP_DOM))as di_id,sum(NETDIFF)NETDIFF From (
+select a.*,B.CItem,B.[Import+15%] as [CImport+15%],b.Qty as CQty,b.Cur as CCur,b.CostPrice as CCostPrice,B.Rate_Unit AS CRate_Unit,b.Exch_Rate as CExch_Rate,b.Basic_price as CBasic_price,'Match'as Status,'' as BOMADD,'' as BOMDEL,
+round((a.[Import+15%]-b.[Import+15%]),2) AS NETDIFF ,
+
+round(case when (a.cur=b.cur) AND (A.Cur<>'IND' AND B.Cur<>'IND')   then ((a.Basic_price -b.Basic_price)*b.Exch_Rate*a.Qty*1.15)
+WHEN (A.Cur='IND' AND B.Cur='IND') AND (A.QTY=B.Qty) THEN (a.[Import+15%]-b.[Import+15%])  else 0 end,2) as Pricediff,  
+
+
+round(case when (a.cur=b.cur) AND (A.Cur<>'IND' AND B.Cur<>'IND') then(((a.Qty-b.Qty)*b.Exch_Rate)*b.Basic_price*1.15)
+
+WHEN (A.Cur='IND' AND B.Cur='IND') AND (A.QTY<>B.Qty) THEN (a.[Import+15%]-b.[Import+15%]) else 0 end,2) as QTYDIFF,
+
+round(case when (a.cur=b.cur) then (((a.Exch_Rate-b.Exch_Rate)*a.Basic_price)*a.Qty*1.15) else 0 end,2) as  Exchange_Diff,
+
+round(case when (a.cur<>b.cur) and (A.Exch_Rate<B.Exch_Rate) THEN (a.[Import+15%]-b.[Import+15%]) ELSE 0 END,2)AS  DOM_IMP,
+round(CASE WHEN (a.cur<>b.cur) and (A.Exch_Rate>B.Exch_Rate) THEN (a.[Import+15%]-b.[Import+15%]) ELSE 0 END,2)AS  IMP_DOM
+
+     From (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as BItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price  From cost_base 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item))a
+inner join (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as CItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price From cost_comparision 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)
+)b
+on a.BItem =b.citem)a
+where NETDIFF <0
+)a
+where cost_consolidated.description ='Price increase'
+
+
+update cost_consolidated set basic=-1*(a.basic) ,exchange =-1*(a.Exchange_Diff) ,qtydiff =-1*(a.QTYDIFF) ,impdom_domimp =-1*(a.di_id) ,costdiff =-1*(a.NETDIFF)  
+ from(
+select sum(Pricediff)as basic,sum(Exchange_Diff)Exchange_Diff,sum(QTYDIFF)QTYDIFF,(sum(DOM_IMP)+sum(IMP_DOM))as di_id,sum(NETDIFF)NETDIFF From (
+select a.*,B.CItem,B.[Import+15%] as [CImport+15%],b.Qty as CQty,b.Cur as CCur,b.CostPrice as CCostPrice,B.Rate_Unit AS CRate_Unit,b.Exch_Rate as CExch_Rate,b.Basic_price as CBasic_price,'Match'as Status,'' as BOMADD,'' as BOMDEL,
+round((a.[Import+15%]-b.[Import+15%]),2) AS NETDIFF ,
+round(case when (a.cur=b.cur) AND (A.Cur<>'IND' AND B.Cur<>'IND')   then ((a.Basic_price -b.Basic_price)*b.Exch_Rate*a.Qty*1.15)
+WHEN (A.Cur='IND' AND B.Cur='IND') AND (A.QTY=B.Qty) THEN (a.[Import+15%]-b.[Import+15%])  else 0 end,2) as Pricediff,  
+round(case when (a.cur=b.cur) AND (A.Cur<>'IND' AND B.Cur<>'IND') then(((a.Qty-b.Qty)*b.Exch_Rate)*b.Basic_price*1.15)
+WHEN (A.Cur='IND' AND B.Cur='IND') AND (A.QTY<>B.Qty) THEN (a.[Import+15%]-b.[Import+15%]) else 0 end,2) as QTYDIFF,
+round(case when (a.cur=b.cur) then (((a.Exch_Rate-b.Exch_Rate)*a.Basic_price)*a.Qty*1.15) else 0 end,2) as  Exchange_Diff,
+round(case when (a.cur<>b.cur) and (A.Exch_Rate<B.Exch_Rate) THEN (a.[Import+15%]-b.[Import+15%]) ELSE 0 END,2)AS  DOM_IMP,
+round(CASE WHEN (a.cur<>b.cur) and (A.Exch_Rate>B.Exch_Rate) THEN (a.[Import+15%]-b.[Import+15%]) ELSE 0 END,2)AS  IMP_DOM
+
+     From (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as BItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price  From cost_base 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item))a
+inner join (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as CItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price From cost_comparision 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)
+)b
+on a.BItem =b.citem)a
+where NETDIFF >0
+)a
+where cost_consolidated.description ='Price decrease'
+
+
+
+update cost_consolidated set costdiff =-1*a.BOMDEL
+from(
+select sum(BOMDEL) as BOMDEL From (
+select a.*,'BOMDEL'as Status,'' as BOMADD,[Import+15%] as BOMDEL,'' AS NETDIFF,'' as Pricediff,'' as QTYDIFF,''as Exchange_Diff,'' as DOM_IMP,'' AS IMP_DOM
+   from (
+			select A.*,B.CItem,B.[Import+15%] as [CImport+15%],b.Qty as CQty,b.Cur as CCur,b.CostPrice as CCostPrice,B.Rate_Unit AS CRate_Unit,b.Exch_Rate as CExch_Rate,b.Basic_price as CBasic_price  From (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as BItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price  From cost_base 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item))a
+left join (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as CItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price
+From cost_comparision 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)
+)b
+on a.BItem =b.citem
+)a
+where a.CItem is null)a
+)a
+where cost_consolidated.description ='BOM Deletion'
+
+
+update cost_consolidated set costdiff =a.BOMADD
+from(
+select sum(BOMADD) as BOMADD From (
+select a.*,'BOMADD'as Status,[Import+15%]  as BOMADD,''as BOMDEL,'' AS NETDIFF,'' as Pricediff,'' as QTYDIFF,''as Exchange_Diff,'' as DOM_IMP,'' AS IMP_DOM
+   from (
+			select B.*,A.BItem,A.[Import+15%] as [CImport+15%],A.Qty as CQty,A.Cur as CCur,A.CostPrice as CCostPrice,A.Rate_Unit AS CRate_Unit,A.Exch_Rate as CExch_Rate,A.Basic_price as CBasic_price  From (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as BItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price From cost_base 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item))a
+RIGHT join (
+select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as CItem,
+sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price 
+From cost_comparision 
+group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)
+)b
+on a.BItem =b.citem
+)a
+where a.BItem is null)a
+)a
+where cost_consolidated.description ='BOM Addition'
+
+--update cost_consolidated set costdiff =a.revision
+--from(
+--select (sum(a.bomdel)-sum(b.BOMADD))as revision From (
+--select a.*,'BOMDEL'as Status,'' as BOMADD,[Import+15%] as BOMDEL,'' AS NETDIFF,'' as Pricediff,'' as QTYDIFF,''as Exchange_Diff,'' as DOM_IMP,'' AS IMP_DOM
+--   from (
+--			select A.*,B.CItem,B.[Import+15%] as [CImport+15%],b.Qty as CQty,b.Cur as CCur,b.CostPrice as CCostPrice,B.Rate_Unit AS CRate_Unit,b.Exch_Rate as CExch_Rate,b.Basic_price as CBasic_price  From (
+--select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as BItem,
+--sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+--SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price From cost_base 
+--group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item))a
+--left join (
+--select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as CItem,
+--sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+--SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price
+-- From cost_comparision 
+--group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)
+--)b
+--on a.BItem =b.citem
+--)a
+--where a.CItem is null)a
+---------------------- END BOMDEL
+
+--inner join 
+--(
+----------------------START BOMADD 
+
+------------- BOM REVISION
+--select a.*,'BOMADD'as Status,[Import+15%]  as BOMADD,''as BOMDEL,'' AS NETDIFF,'' as Pricediff,'' as QTYDIFF,''as Exchange_Diff,'' as DOM_IMP,'' AS IMP_DOM
+--   from (
+--			select B.*,A.BItem,A.[Import+15%] as [CImport+15%],A.Qty as CQty,A.Cur as CCur,A.CostPrice as CCostPrice,A.Rate_Unit AS CRate_Unit,A.Exch_Rate as CExch_Rate,A.Basic_price as CBasic_price  From (
+--select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as BItem,
+--sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+--SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price From cost_base 
+--group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item))a
+--RIGHT join (
+--select itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)as CItem,
+--sum(Quantity)as Qty,sum([Import+15%])[Import+15%],sum(CostPrice)CostPrice,sum(Exch_Rate)Exch_Rate,sum(Rate_Unit)Rate_Unit,
+--SUM(case when cur='IND'THEN Rate_Unit ELSE(CASE WHEN Exch_Rate=0 THEN Rate_Unit ELSE Rate_Unit/Exch_Rate END) END) AS Basic_price
+--From cost_comparision 
+--group by itemselected,[desc],main_item,mainitmdesc,child_item,TYPE,Cur,concat(itemselected,main_item,child_item)
+--)b
+--on a.BItem =b.citem
+--)a
+--where a.BItem is null)b
+--on a.Child_Item =b.Child_Item )a
+--where cost_consolidated.description ='BOM Revision'
+
+------------- END BOM REVISION
+
+update cost_consolidated set costdiff=ROUND(a.total,2) from(select sum(isnull(costdiff,0)) as total from cost_consolidated 
+WHERE description<>'Net Incr/Decr' )a
+where cost_consolidated.description ='Net Incr/Decr'
+
+
+
+select * From (
+select *,
+case when description='Price increase' then 1
+when description='Price decrease' then 2
+when description='BOM Addition' then 3
+when description='BOM Deletion' then 4
+else 5 end as ordr
+ From cost_consolidated
+	)a
+	 order by ordr
+
+
+
+end
+
+
+Completion time: 2025-11-19T09:16:35.7474669+05:30

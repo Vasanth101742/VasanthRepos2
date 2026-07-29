@@ -1,0 +1,111 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Ledger_details
+CREATE proc sp_Ledger_details as
+
+begin
+
+Truncate table Ledger_details
+
+--sp_rename 'Ledger_details.HomeCurrencyAmt','CreditAmt'
+--Alter table Ledger_details alter column Debit_Credit varchar(20)
+
+Insert into Ledger_details
+--select * into Ledger_details from (
+select 
+T$OCMP as OriginalCompany,
+T$OTYP as TransactionType,
+null as TranTypeDescription,
+T$ODOC as Document,
+T$DCDT as DocumentDate,
+T$LEAC as LedgerAccount,
+null as LedgerDescription,
+T$REFR as TransReference,
+T$CCUR as Currency,
+T$RATE$1 as CurRate,
+case when T$DBCR=1 then 'Debit' 
+ when T$DBCR=2 then 'Credit' 
+else '' end as Debit_Credit,
+case when T$DBCR=1 then T$AMTH$1 
+when T$DBCR=2 then (-1)*T$AMTH$1 end as Amount,
+T$BPID as BusinessPartner,
+null as BusinessPartnerName,
+case when T$CATG =1 then 'JournalVoucher' 
+when T$CATG =3 then 'SalesInvoice' 
+when T$CATG =4 then 'SalesCreditNote' 
+when T$CATG =6 then 'PurchaseInvoice' 
+when T$CATG =7 then 'PurchaseCreditNote' 
+when T$CATG =10 then 'Cash' end as TransCategory,
+null as TRANCode,
+null as TRANDesc,
+T$FYER,
+T$FPRD
+from TTFGLD106ALL
+where T$LEAC in 
+('AB0701002','AB0701007','AB0701008','AB0701010',
+'AB0701024',
+'AB0701025','AB0701026','LC0201000','LC0203000')
+--('AB0701002','AB0701007','AB0701008','AB0701009',
+--'AB0701010','AB0701024','AB0701025','AB0701025','AB0701026',
+--'LC0201000','LC0203000','AB0701000','AB0701009','AB0701039')
+and T$FYER =2024
+and T$FPRD in (6,7,8,9)
+--)a
+
+
+--Alter table Ledger_details alter column LedgerDescription nvarchar(60)
+--Alter table Ledger_details alter column businessPartnerName nvarchar(70)
+--Alter table Ledger_details alter column TranTypeDescription nvarchar(60)
+--Alter table Ledger_details add TRANCode nvarchar(38)
+--Alter table Ledger_details add TRANDesc varchar(20)
+--Alter table Ledger_details add FYER varchar(10)
+--Alter table Ledger_details add FPRD varchar(10)
+--Alter table Ledger_details alter column Debit varchar(20)
+--sp_rename 'Ledger_details.DebitAmt', 'Amount'
+
+update Ledger_details set LedgerDescription=a.T$DESC
+from (select distinct T$LEAC,T$DESC from TTFGLD008ALL) a
+where Ledger_details.LedgerAccount=a.T$LEAC
+
+update Ledger_details set TranTypeDescription=a.[DESC]
+from (select distinct TTYP,[DESC] from TTFGLD011ALL) a
+where Ledger_details.TransactionType=a.TTYP
+
+
+update Ledger_details set businessPartnerName=a.custname1
+from (select distinct custcode,custname1 from vw_Business_Partner) a
+where ltrim(rtrim(Ledger_details.BusinessPartner))=ltrim(rtrim(a.custcode))
+
+
+update Ledger_details set TRANCode=a.[TRAN]
+from (select distinct COMPANY,TTYP,[TRAN] from TTFCMG204ALL) a
+where Ledger_details.OriginalCompany=a.COMPANY
+and Ledger_details.TransactionType=a.TTYP
+
+update Ledger_details set TRANDesc='ReceiptTransaction' where TRANCode=1
+update Ledger_details set TRANDesc='PaymentTransaction' where TRANCode=2
+update Ledger_details set TRANDesc='UnallocatedPayment' where TRANCode=3
+update Ledger_details set TRANDesc='UnallocatedReceipt' where TRANCode=4
+update Ledger_details set TRANDesc='AdvancePayment' where TRANCode=5
+update Ledger_details set TRANDesc='AdvanceReceipt' where TRANCode=6
+update Ledger_details set TRANDesc='Journal' where TRANCode=7
+update Ledger_details set TRANDesc='ReceiptReconciliaton' where TRANCode=8
+update Ledger_details set TRANDesc='PaymentReconciliaton' where TRANCode=9
+
+
+
+end
+
+
+select * from Ledger_details where fyer=2018 and fprd=7
+
+--select OriginalCompany,TransactionType,Document,sum(amount) amount from Ledger_details
+--group by OriginalCompany,TransactionType,Document
+--having sum(amount) between -0.1 and 0.1
+
+
+    
+
+
+
+Completion time: 2025-11-19T11:33:53.4655318+05:30

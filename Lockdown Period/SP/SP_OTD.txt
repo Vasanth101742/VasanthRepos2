@@ -1,0 +1,306 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--EXEC SP_OTD 
+--select * From OTD_GRAPH
+CREATE PROC [dbo].[SP_OTD]
+AS 
+BEGIN
+
+TRUNCATE TABLE OTD
+TRUNCATE TABLE OTD_GRAPH
+
+--Alter table OTD alter column WH varchar(25)
+
+insert into OTD(Ara,Customer_Order,Typ,Order_No,[OrdER_Date  ],
+Pos,[B_Partner],[B Name],Item,Description,Cur,WH,Typ1,Invoice,
+Cou,[Inv_Date ],Invoice_Qty,Invoice_Amount,Tax_Amount,Total_Inv_VAL,
+S_Offi,[LR_Number    ],[LR_Date  ],Tot_Wgt,abc,Leadtime,timetaken,STAT,MONTH)
+
+select areacode,'' Custordr,SaleOrderType,OrderNo,OrderDate,PositionNo,
+CustCode,Custname,Item,Item_desc,currency,WareHouse,trantype,invoice,
+areaname,Invoice_Date,DeliveryQty,
+round(Sales_amount,2)Value,0 as Taxamt,round(Sales_amount,2)totValue ,
+dpst,'' as lrno,' ' as lr_date,0 as tot_wgt,
+'       ' as abc,0 as leadtime,0 as timetaken,
+'               ' stat ,'                       ' as Month 
+from ELGi_Sales_Details  
+where Company =490 and convert(date,Invoice_Date)>='2019-04-01'and custcode='CU1E00847'
+--and CustCode ='CU1E00847'and OrderNo ='292000554' and PositionNo =30
+
+
+UPDATE OTD SET ABC=A.Category  FROM (SELECT DISTINCT LTRIM(RTRIM(ITEM))AS ITEM,Category  FROM ITEM_ABC_CLASIFICATION_MASTER)A
+WHERE ltrim(rtrim(A.ITEM)) =LTRIM(RTRIM(OTD.Item))
+
+UPDATE OTD SET ABC='C' where ABC NOT IN ('A','B','C')
+UPDATE OTD SET ABC='C' where ABC is null
+
+UPDATE OTD SET LEADTIME= 7 WHERE ABC='A'
+UPDATE OTD SET LEADTIME= 15 WHERE ABC='B'
+UPDATE OTD SET LEADTIME= 30 WHERE ABC='C'
+
+UPDATE OTD SET TIMETAKEN=
+(select count(distinct date) from CompanyCalendar where CCAL ='company' and DFCA<>4 and date between OTD.[OrdER_Date] and OTD.[Inv_Date])
+
+UPDATE OTD SET stat= case when leadtime>=timetaken then 'On Time' else 'Delay' end
+UPDATE OTD SET month= concat(left(datename(m,Inv_Date),3),'-',convert(varchar,year(Inv_Date)))
+
+INSERT INTO OTD_GRAPH
+SELECT 'Y15-16','Y15-16 OTD%',60 UNION ALL
+SELECT 'Y16-17','Y16-17 OTD%',74 UNION ALL
+SELECT 'Y17-18','Y17-18 OTD%',57 UNION ALL
+SELECT 'Y18-19','Y18-19 OTD%',65 UNION ALL
+select DISTINCT MONTH,'Total line items',0  from otd UNION ALL
+select DISTINCT MONTH,'On time supplied',0  from otd UNION ALL
+select DISTINCT MONTH,'Delayed supply',0  from otd UNION ALL
+select DISTINCT MONTH,'Class A total',0  from otd UNION ALL
+select DISTINCT MONTH,'Class b total',0  from otd UNION ALL
+select DISTINCT MONTH,'Class c total',0  from otd UNION ALL
+select DISTINCT MONTH,'Target%',95  from otd UNION ALL
+select DISTINCT MONTH,'Class A% Achieved',0  from otd UNION ALL
+select DISTINCT MONTH,'Class B% Achieved',0  from otd UNION ALL
+select DISTINCT MONTH,'Class C% Achieved',0  from otd UNION ALL
+select DISTINCT MONTH,'2019-20 OTD% Achieved',0  from otd 
+
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT   FROM OTD GROUP BY MONTH)A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='TOTAL LINE ITEMS'
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE STAT='On Time' GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='On time supplied'
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE STAT='DELAY' GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='Delayed supply'
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE ABC='A'GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='Class A total'
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE ABC='B' GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='Class B total'
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE ABC='C' GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='Class C total'
+
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE ABC='A' and STAT='On Time' GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='Class A% Achieved'
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE ABC='B'and STAT='On Time' GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='Class B% Achieved'
+
+UPDATE OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM OTD WHERE ABC='C' and STAT='On Time' GROUP BY MONTH )A 
+WHERE OTD_GRAPH.MONTH=A.MONTH AND OTD_GRAPH.TARGET='Class C% Achieved'
+
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Apr-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Apr-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Apr-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Apr-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Apr-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Apr-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT from OTD_GRAPH where OTD_GRAPH.MONTH ='Apr-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Apr-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Apr-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='May-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='May-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='May-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='May-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='May-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='May-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='May-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='May-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='May-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jun-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jun-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Jun-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jun-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jun-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Jun-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jun-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jun-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Jun-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jul-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jul-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Jul-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jul-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jul-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Jul-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jul-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jul-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Jul-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Aug-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Aug-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Aug-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Aug-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Aug-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Aug-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Aug-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Aug-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Aug-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Sep-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Sep-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Sep-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Sep-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Sep-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Sep-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Sep-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Sep-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Sep-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Oct-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Oct-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Oct-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Oct-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Oct-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Oct-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Oct-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Oct-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Oct-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Nov-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Nov-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Nov-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Nov-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Nov-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Nov-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Nov-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Nov-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Nov-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Dec-2019'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Dec-2019' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Dec-2019'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Dec-2019'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Dec-2019' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Dec-2019'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Dec-2019'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Dec-2019' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Dec-2019'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jan-2020'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jan-2020' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Jan-2020'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jan-2020'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jan-2020' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Jan-2020'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Jan-2020'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Jan-2020' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Jan-2020'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Feb-2020'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Feb-2020' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Feb-2020'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Feb-2020'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Feb-2020' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Feb-2020'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Feb-2020'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Feb-2020' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Feb-2020'and TARGET ='Class C% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Mar-2020'and TARGET ='Class A% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Mar-2020' and TARGET ='Class A total')*100),0)
+where OTD_GRAPH.MONTH ='Mar-2020'and TARGET ='Class A% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Mar-2020'and TARGET ='Class B% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Mar-2020' and TARGET ='Class B total')*100),0)
+where OTD_GRAPH.MONTH ='Mar-2020'and TARGET ='Class B% Achieved'
+UPDATE OTD_GRAPH SET CNT =round(
+((select DISTINCT CNT  from OTD_GRAPH where OTD_GRAPH.MONTH ='Mar-2020'and TARGET ='Class C% Achieved')/
+(select DISTINCT cnt From OTD_graph where MONTH ='Mar-2020' and TARGET ='Class C total')*100),0)
+where OTD_GRAPH.MONTH ='Mar-2020'and TARGET ='Class C% Achieved'
+
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Apr-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items' and MONTH ='Apr-2019')*100),0)
+where OTD_GRAPH.MONTH ='Apr-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='May-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='May-2019')*100),0)
+where OTD_GRAPH.MONTH ='May-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Jun-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Jun-2019')*100),0)
+where OTD_GRAPH.MONTH ='Jun-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Jul-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Jul-2019')*100),0)
+where OTD_GRAPH.MONTH ='Jul-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Aug-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Aug-2019')*100),0)
+where OTD_GRAPH.MONTH ='Aug-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Sep-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Sep-2019')*100),0)
+where OTD_GRAPH.MONTH ='Sep-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Oct-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Oct-2019')*100),0)
+where OTD_GRAPH.MONTH ='Oct-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Nov-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Nov-2019')*100),0)
+where OTD_GRAPH.MONTH ='Nov-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Dec-2019')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Dec-2019')*100),0)
+where OTD_GRAPH.MONTH ='Dec-2019' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Jan-2020')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Jan-2020')*100),0)
+where OTD_GRAPH.MONTH ='Jan-2020' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Feb-2020')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Feb-2020')*100),0)
+where OTD_GRAPH.MONTH ='Feb-2020' and TARGET ='2019-20 OTD% Achieved'
+
+UPDATE OTD_GRAPH SET CNT =round(((select DISTINCT CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Mar-2020')/
+(select DISTINCT CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Mar-2020')*100),0)
+where OTD_GRAPH.MONTH ='Mar-2020' and TARGET ='2019-20 OTD% Achieved'
+
+
+END
+
+--select * From OTD_GRAPH
+
+
+
+Completion time: 2025-11-19T11:38:46.2135674+05:30

@@ -1,0 +1,231 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_RPT_Dashboard '2024'
+
+CREATE proc sp_RPT_Dashboard(@Finyear varchar(20)) as
+begin
+
+
+
+Truncate table RPT_Details
+Truncate table RPT_TempQuery
+
+Declare @Count1 int
+Declare @Count2 int
+Declare @TotalCnt1 int
+Declare @TotalCnt2 int
+Declare @GLFrom varchar(50)
+Declare @GLTo varchar(50)
+Declare @Cndn1 varchar(200)
+Declare @Cndn2 varchar(200)
+Declare @Query1 varchar(max)
+Declare @bpid varchar(50)
+
+
+
+
+
+
+
+
+
+-----Commenting the Loop Method----------------------------------------------------------------
+
+--set @TotalCnt1 =(select count(distinct bpid) from TZZGLD724400)
+
+--Set @Count1=1
+--while (@Count1<=@TotalCnt1)
+--begin
+
+
+--set @bpid=(select bpid from (
+--select bpid,row_number() over(order by bpid) Rno from
+--(select distinct ltrim(rtrim(bpid)) bpid from TZZGLD724400)a)b
+--where Rno=@Count1)
+
+
+--set @TotalCnt2 = (select count(*) from
+--(select distinct sno,GL_RANGE_FROM,GL_RANGE_TO from RPT_Master 
+----order by sno desc
+--)a)
+
+--Set @Count2=1
+--while (@Count2<=@TotalCnt2)
+--begin
+
+
+--select @GLFrom=GL_RANGE_FROM,@GLTo=GL_RANGE_TO from (
+--select *,row_number() over(order by sno) Rnk from (
+--select distinct sno,GL_RANGE_FROM,GL_RANGE_TO from RPT_Master)a)b
+--where Rnk=@Count2
+
+--set @Cndn2='='''+@GLFrom+''''
+--if(len(@GLTo)>2)
+--begin
+--set @Cndn2=' between '''+ @GLFrom +''' and ''' + @GLTo +' '''
+--end
+
+--set @Query1 ='insert into RPT_Details(Company,Leac,AMTH1,AMTH2,AMTH3,AMNT,BPID,FYER,FPRD) 
+--select COMPANY,T$LEAC,--T$OTYP,T$ODOC,T$BPID,T$DCDT,T$INTT,T$CCUR,T$DBCR,
+----T$RATE$1,T$RATE$2,T$RATE$3,
+--sum(convert(float,T$AMTH$1)) T$AMTH$1,sum(convert(float,T$AMTH$2)) T$AMTH$2,
+--sum(convert(float,T$AMTH$3)) T$AMTH$3,sum(convert(float,T$AMNT)) T$AMNT,T$BPID,
+--T$FYER,T$FPRD
+--from TTFGLD106ALL
+--where ' 
+----+'ltrim(rtrim(T$BPID)) ='+''''+@bpid+''' and ' 
+----+'T$LEAC'+ @Cndn2 +
+----where T$LEAC  between 'AB0101000' and 'AB0599999'
+--+'T$FYER='+''''+@Finyear+''''
+--+' group by COMPANY,T$LEAC
+----,T$OTYP,T$ODOC,T$BPID,T$DCDT,T$INTT,T$CCUR,T$DBCR
+--,T$BPID,T$FYER,T$FPRD'
+
+--For Testing
+--Insert into RPT_TempQuery
+--select @Query1 
+
+
+--exec(@Query1)
+
+
+--set @Count2=@Count2+1
+--end
+
+--set @Count1=@Count1+1
+--end
+
+
+-----End: Commenting the Loop Method----------------------------------------------------------------
+
+insert into RPT_Details(Company,Leac,AMTH1,AMTH2,AMTH3,AMNT,BPID,FYER,FPRD) 
+select COMPANY,T$LEAC,--T$OTYP,T$ODOC,T$BPID,T$DCDT,T$INTT,T$CCUR,T$DBCR,
+--T$RATE$1,T$RATE$2,T$RATE$3,
+sum(convert(float,case when T$DBCR=2 then (-1)*T$AMTH$1 else T$AMTH$1 end)) T$AMTH$1,
+sum(convert(float,case when T$DBCR=2 then (-1)*T$AMTH$2 else T$AMTH$2 end)) T$AMTH$2,
+sum(convert(float,case when T$DBCR=2 then (-1)*T$AMTH$3 else T$AMTH$3 end)) T$AMTH$3,
+sum(convert(float,case when T$DBCR=2 then (-1)*T$AMNT else T$AMNT end)) T$AMNT,
+T$BPID,T$FYER,T$FPRD
+from TTFGLD106ALL
+where T$FYER=@Finyear 
+group by COMPANY,T$LEAC
+--,T$OTYP,T$ODOC,T$BPID,T$DCDT,T$INTT,T$CCUR,T$DBCR
+,T$BPID,T$FYER,T$FPRD
+
+
+delete from rpt_details where ltrim(rtrim(BPID)) not in (select distinct ltrim(rtrim(BPID)) from TZZGLD724400)
+delete from rpt_details where ltrim(rtrim(Leac)) in ('AB0601000','AB0602001','AB0603001','AB0601003') --Control Account ACR Ledgers
+delete from rpt_details where ltrim(rtrim(Leac)) in ('LC3101000','LC0401002','LC0401003','LC0402001','LC0401004','LC0401000') --Control Account ACP Ledgers
+
+--Alter table rpt_details add CalYear varchar(20)
+--Alter table rpt_details add CalMonth varchar(20)
+--Alter table rpt_details add MonthName varchar(20)
+--Alter table rpt_details add Finperiod Varchar(20)
+
+update rpt_details set CalMonth=FPRD+3 where FPRD<=9
+update rpt_details set CalMonth=FPRD-9 where FPRD>9
+
+update rpt_details set CalYear=FYER where FPRD<=9
+update rpt_details set CalYear=FYER+1 where FPRD>9
+
+update rpt_details set Finperiod=FYER+RIGHT('00'+CAST(FPRD AS VARCHAR(2)),2)
+
+
+update rpt_details set MonthName=substring(datename(mm,dateadd(mm,convert(int,CalMonth),-1)),1,3)
++substring(CalYear,3,2)
+
+
+update rpt_details set BPName=a.Name
+from(select * from TZZGLD724400)a
+where ltrim(rtrim(rpt_details.BPID))=ltrim(rtrim(a.BPID))
+
+
+update rpt_details set TransactionCategory=a.TransactionCategory
+from (select * from RPT_Master where len(GL_RANGE_TO)>2) a
+where rpt_details.Leac between a.GL_RANGE_FROM and a.GL_RANGE_TO
+
+update rpt_details set TransactionSubCategory=a.TransactionSubCategory
+from (select * from RPT_Master where len(GL_RANGE_TO)>2) a
+where rpt_details.Leac between a.GL_RANGE_FROM and a.GL_RANGE_TO
+
+
+update rpt_details set Type_of_RPT_SEBI_Format=a.Type_of_RPT_SEBI_Format
+from (select * from RPT_Master where len(GL_RANGE_TO)>2) a
+where rpt_details.Leac between a.GL_RANGE_FROM and a.GL_RANGE_TO
+
+update rpt_details set Details_of_other_RPT_SEBI_Format=a.Details_of_other_RPT_SEBI_Format
+from (select * from RPT_Master where len(GL_RANGE_TO)>2) a
+where rpt_details.Leac between a.GL_RANGE_FROM and a.GL_RANGE_TO
+
+
+
+update rpt_details set TransactionCategory=a.TransactionCategory
+from (select * from RPT_Master where len(GL_RANGE_TO)<=2) a
+where rpt_details.Leac = a.GL_RANGE_FROM
+
+
+update rpt_details set TransactionSubCategory=a.TransactionSubCategory
+from (select * from RPT_Master where len(GL_RANGE_TO)<=2) a
+where rpt_details.Leac = a.GL_RANGE_FROM
+
+update rpt_details set Type_of_RPT_SEBI_Format=a.Type_of_RPT_SEBI_Format
+from (select * from RPT_Master where len(GL_RANGE_TO)<=2) a
+where rpt_details.Leac = a.GL_RANGE_FROM
+
+update rpt_details set Details_of_other_RPT_SEBI_Format=a.Details_of_other_RPT_SEBI_Format
+from (select * from RPT_Master where len(GL_RANGE_TO)<=2) a
+where rpt_details.Leac = a.GL_RANGE_FROM
+
+
+update rpt_details set TransactionCategory='Uncategorized' where TransactionCategory is null
+
+
+
+update rpt_details set TransactionCategory_Order=a.TransactionCategory_Order
+from RPT_Master a
+where rpt_details.TransactionCategory=a.TransactionCategory
+
+update rpt_details set TransactionSubCategory_Order=a.TransactionSubCategory_Order
+from RPT_Master a
+where rpt_details.TransactionsubCategory=a.TransactionSubCategory
+
+update rpt_details set Type_of_RPT_SEBI_Format_Order=a.Type_of_RPT_SEBI_Format_Order
+from RPT_Master a
+where rpt_details.Type_of_RPT_SEBI_Format=a.Type_of_RPT_SEBI_Format
+
+
+update rpt_details set TransactionCategory_Order=100 where TransactionCategory_Order is null
+update rpt_details set TransactionSubCategory_Order=100 where TransactionSubCategory_Order is null
+update rpt_details set Type_of_RPT_SEBI_Format_Order=100 where Type_of_RPT_SEBI_Format_Order is null
+
+
+end
+
+Select * from RPT_Details
+--select * from RPT_Master
+
+
+
+
+--Alter table rpt_details add TransactionCategory	nvarchar(255)
+--Alter table rpt_details add Type_of_RPT_SEBI_Format nvarchar(255)
+--Alter table rpt_details add Details_of_other_RPT_SEBI_Format nvarchar(255)
+--Alter table rpt_details add BPName nvarchar(100)
+--sp_rename 'RPT_Master.Type_of_RPT_SEBI_Format)','Type_of_RPT_SEBI_Format'
+--Alter table RPT_Details add TransactionCategory_Order int
+--Alter table RPT_Details add TransactionSubCategory_Order int
+--Alter table RPT_Details add Type_of_RPT_SEBI_Format_Order float
+--Alter table RPT_Details add TransactionSubCategory nvarchar(255)
+--Alter table RPT_Details add FYER	nvarchar(38)
+--Alter table RPT_Details add FPRD	nvarchar(38)
+
+
+
+--select distinct BPID,BPName from RPT_Details
+--where bpName is not null
+
+
+
+
+
+Completion time: 2025-11-19T12:11:19.5964661+05:30

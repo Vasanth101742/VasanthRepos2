@@ -1,0 +1,124 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Warrenty_tracker_closed_rotair
+--  select * From Warrenty_tracker_closed_rotair
+CREATE proc [dbo].[sp_Warrenty_tracker_closed_rotair]
+as
+begin
+
+truncate table Warrenty_tracker_closed_rotair
+truncate table closed_Approved_fabs_rotair 
+truncate table closed_pending_fabs_rotair
+
+
+insert into Warrenty_tracker_closed_rotair  
+select * from (
+select *,
+isnull(total_item_price,0)+ isnull(new_Mileage_Cost,0) + isnull(new_Labour_cost,0) + 
+isnull(new_Misc_cost,0) + isnull(new_Freight_cost,0) as total,'' as Approve_id,'' as Status
+From (
+select *,
+case when rno >1 then 0 else Mileage_Cost  end as new_Mileage_Cost,
+case when rno >1 then 0 else Labour_cost  end as new_Labour_cost,
+case when rno >1 then 0 else Misc_cost  end as new_Misc_cost,
+case when rno >1 then 0 else Qty  end as new_Qty,
+case when rno >1 then 0 else Trips  end as new_Trips,
+case when rno >1 then 0 else Freight_cost  end as new_Freight_cost
+ From (
+select distinct *,ROW_NUMBER()over(partition by focno order by focno) rno  From (
+select  convert(date,a.date_time) as Log_Date,a.ccstrackno,a.focno,a.fabno,a.pr_model as Model,a.cu_name as Custname,
+Item_code as partcode,item_desc as Part_desc,item_req as Itemqty,Item_price,a.mileage_charge as Mileage_Cost,
+a.service_charge as Labour_cost,a.miscell_charges as Misc_cost,a.qty_req as Qty,
+a.no_trips as Trips,a.other_charges as Freight_cost,
+item_req*Item_price as total_item_price,foc_status
+--,apprv_id,,case when a.focno in (select distinct focno  From active_foc_approvels WHERE apprv_id='11120')then 'Approved' else 'Pending'end as Status
+From (select * From Closed_Foc where dlr_name ='cu1r01967'-- and convert(date,date_time) between'2017-08-01'and '2017-08-31'-- and focno ='26519h059'
+) a
+--left join active_foc_approvels b
+--on a.focno=b.focno
+--and a.firno=b.firno
+--and a.ccstrackno=b.trackno
+inner join (select * From closed_foc_parts where foc_recommend='YES' and confirm='Y') c
+on a.ccstrackno=c.ccstrackno
+and a.firno=c.focno
+)a
+)a
+)a
+)a
+
+
+
+
+insert into closed_Approved_fabs_rotair 
+select distinct a.focno,b.usr_name From (
+select distinct LTRIM(RTRIM(focno))focno,apprv_id From closed_foc_approvels where focno <>'' and focno is not null and apprv_id not like '%[a-z]%'
+--and focno ='26519j042'
+)a
+left join (select distinct usr_id,USR_NAME  From users) b
+on b.usr_id=a.apprv_id 
+
+-------------
+insert into  closed_pending_fabs_rotair
+select focno,USR_NAME as pnd_user  from(
+select a.*,b.USR_NAME  From (select focno,foc_status,ccstrackno,foc_type  From Active_Foc)a
+left join (select foc_status,locations,USR_NAME,foc_type  From users  where login_type is not null and pr_grp not like '%6%' )b
+on a.foc_status=b.foc_status
+--and a.foc_type =b.foc_type
+and b.locations like '%'+substring(a.ccstrackno,2,2)+'%'
+)a
+------------------ new method
+update Warrenty_tracker_closed_rotair set status=a.pend_users from (
+SELECT  focno
+       ,STUFF((SELECT ', ' + CAST(pnd_user AS VARCHAR(10)) [text()]
+         FROM closed_pending_fabs_rotair 
+         WHERE focno = t.focno
+         FOR XML PATH(''), TYPE)
+        .value('.','NVARCHAR(MAX)'),1,2,' ') pend_users
+FROM closed_pending_fabs_rotair t
+GROUP BY focno)a
+where ltrim(rtrim(Warrenty_tracker_closed_rotair.focno))=ltrim(rtrim(a.focno))
+
+-----------------
+
+update Warrenty_tracker_closed_rotair set Approve_id=a.apprv_users from (
+SELECT  focno
+       ,STUFF((SELECT ', ' + CAST(usr_name AS VARCHAR(10)) [text()]
+         FROM closed_Approved_fabs_rotair 
+         WHERE focno = t.focno
+         FOR XML PATH(''), TYPE)
+        .value('.','NVARCHAR(MAX)'),1,2,' ') apprv_users
+FROM closed_Approved_fabs_rotair t
+GROUP BY focno)a
+where ltrim(rtrim(Warrenty_tracker_closed_rotair.focno))=ltrim(rtrim(a.focno))
+
+
+------------- old method
+
+--update Warrenty_tracker_closed_rotair set Approve_id=a.apprv_id 
+--from (
+--select focno,apprv_id,rnk_new,ROW_NUMBER()over(partition by focno order by rnk_new desc) as rowno   From (select focno,apprv_id,case when apprv_id='11120'then 10 else rnk end as rnk_new From (
+--select distinct LTRIM(RTRIM(focno))focno,apprv_id ,ROW_NUMBER ()over(partition by focno order by focno,apprv_id )as rnk
+--  From closed_foc_approvels
+--where focno <>''
+--and focno is not null
+--and apprv_id not like '%[a-z]%'
+--)a
+--)a
+----where focno ='26519H132'
+--group by focno,rnk_new,apprv_id  
+--)a
+--where ltrim(rtrim(Warrenty_tracker_closed_rotair.focno))=ltrim(rtrim(a.focno))
+--and rowno=1
+
+--update Warrenty_tracker_closed_rotair set status='Rejected' where foc_status>='70'
+--update Warrenty_tracker_closed_rotair set status='Approved' where Warrenty_tracker_closed_rotair.Approve_id between 800000 and 899999
+
+end
+
+
+
+
+
+
+
+Completion time: 2025-11-19T12:48:07.3371860+05:30

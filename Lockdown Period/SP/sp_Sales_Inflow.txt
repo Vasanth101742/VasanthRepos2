@@ -1,0 +1,901 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Sales_Inflow
+CREATE proc sp_Sales_Inflow as
+
+Begin
+
+Truncate Table Sales_Inflow_Stage1
+Truncate table Sales_Inflow
+Truncate table Sales_Inflow_USD_Conversion
+Truncate table Sales_Inflow_USD_Conversion_ver2
+
+------------------------------------------------------------------------------------
+
+Insert into Sales_Inflow_Stage1(Dpst,AreaCode,ordertype,Indent,SlsPriceLst,DiscPerc1,DiscPerc2,DiscPerc3,
+Company,Trantype,invnum,OrderNum,OrderDate,PositionNum,CustCode,ItemCode,DeliveryDate,
+WareHouse,Price,qty,discount,sales,SalesRepCode,LOBCode,DeliveryTerms,
+Foreign_currency_amount,Currency,ForwardAgent,PaymentTerm,CurrRate)
+select h.Dpst,h.Area,h.ordertype,h.RefA,h.SlsPriceLst,l.DiscPerc1,l.DiscPerc2,l.DiscPerc3,
+l.Company,l.Trantype,l.invnum,l.OrderNum,convert(date,l.OrderDate) ,l.PositionNum,l.CustCode,l.ItemCode,
+l.DeliveryDate,l.WareHouse,l.Price,l.t_qoor,l.t_amld,
+(l.t_oamt* (case when h.t_rats_1=0 or h.t_rats_1 is null then 1 else h.t_rats_1 end)) as sales,
+h.SalesRep,h.LineOfBusiness,
+h.DeliveryTerms,l.t_oamt as Foreign_currency_amount,
+h.Currency,h.ForwardAgent,h.PaymentTerm,h.t_rats_1
+from (select * From Sales_Header where company in (select Company from ELGI_Companies_Master where CompanyGroup='ELGI')) h
+inner join Sales_Lines L
+on h.Company =l.Company 
+and ltrim(rtrim(h.OrderNum))=ltrim(rtrim(L.OrderNum))
+where LTRIM(RTRIM(L.ItemCode)) not in ('FRT' ,'EXPORT-FREIGHT','M000037703')
+and t_sqnb =0
+and h.t_clyn<>1
+and l.t_clyn<>1
+
+
+Insert into Sales_Inflow_Stage1(Dpst,AreaCode,ordertype,Indent,SlsPriceLst,DiscPerc1,DiscPerc2,DiscPerc3,
+Company,Trantype,invnum,OrderNum,OrderDate,PositionNum,CustCode,ItemCode,DeliveryDate,
+WareHouse,Price,qty,discount,sales,SalesRepCode,LOBCode,DeliveryTerms,
+Foreign_currency_amount,Currency,ForwardAgent,PaymentTerm,CurrRate)
+select h.Dpst,h.Area,h.ordertype,h.RefA,h.SlsPriceLst,l.DiscPerc1,l.DiscPerc2,l.DiscPerc3,
+l.Company,l.Trantype,l.invnum,l.OrderNum,convert(date,l.OrderDate) ,l.PositionNum,l.CustCode,l.ItemCode,
+l.DeliveryDate,l.WareHouse,l.Price,l.t_qoor,l.t_amld,
+(l.t_oamt* (case when h.t_rats_1=0 or h.t_rats_1 is null then 1 else h.t_rats_1 end)) as sales,
+h.SalesRep,h.LineOfBusiness,
+h.DeliveryTerms,l.t_oamt as Foreign_currency_amount,
+h.Currency,h.ForwardAgent,h.PaymentTerm,h.t_rats_1
+from (select * From Sales_Header where company in (select Company from ELGI_Companies_Master where CompanyGroup='ATS')) h
+inner join Sales_Lines L
+on h.Company =l.Company 
+and ltrim(rtrim(h.OrderNum))=ltrim(rtrim(L.OrderNum))
+where t_sqnb =0
+and h.t_clyn<>1
+and l.t_clyn<>1
+
+update Sales_Inflow_Stage1 set AreaCode=v.CustAreaCode
+from vw_Business_Partner v
+where ltrim(rtrim(Sales_Inflow_Stage1.CustCode))=ltrim(rtrim(v.custcode))
+and len(Sales_Inflow_Stage1.AreaCode)<=2
+
+update Sales_Inflow_Stage1 set SalesRep=b.nama
+from (select distinct EMNO,COMPANY ,NAMA from TTCCOM001ALL
+-- where COMPANY=400
+) b
+where ltrim(rtrim(Sales_Inflow_Stage1.SalesRepcode))=ltrim(rtrim(b.EMNO ))
+and Sales_Inflow_Stage1.Company =b.COMPANY
+
+update Sales_Inflow_Stage1 set lineofbusiness=a.DSCA
+from (select * from TTCMCS031ALL where company=400) a 
+where Sales_Inflow_Stage1.lobcode=a.CBRN
+
+------------------------------------------------------------------------------------
+
+Insert into Sales_Inflow(Company,Trantype,invnum,OrderDate,ordertype,OrderNum,
+PositionNum,Zone,AreaCode,AreaName,Dpst,DpstName,CustCode,CustName,ItemCode,
+Item_desc,DeliveryDate,WareHouse,Price,qty,discount,sales,Segment,SalesRepCode,
+SalesRep,LOBCode,LineOfBusiness,Organ,Vertical1,user_names,Division,productgrp,
+Region,Indent,DeliveryTerms,DelvDesc,Sales_USD,Rate_USD,Foreign_currency_amount,
+SubDivision,Currency,CarrierCode,CarrierDesc,PaymentTerms,PaymentDesc,CurrRate)
+select Company,Trantype,invnum,OrderDate,ordertype,OrderNum,PositionNum,
+null as Zone,AreaCode,null as AreaName,
+Dpst,null as DpstName,
+CustCode,null as CustName,
+ItemCode,null as Item_Desc,
+DeliveryDate,WareHouse,Price,qty,discount,sales, 
+Segment,SalesRepCode,SalesRep,LOBCode,LineOfBusiness,
+null as Organ,null as Vertical1,null as User_names,null as Division,null as ProductGrp,null as Region,
+Indent,DeliveryTerms,null as DelvDesc,
+null as Sales_USD,
+null as Rate_USD,
+Foreign_currency_amount,
+null as SubDivision,
+Currency,
+ForwardAgent as CarrierCode,
+null as CarrierDesc,
+PaymentTerm,
+null as PaymentDesc,
+CurrRate
+from Sales_Inflow_Stage1
+
+
+
+--SalesRep Updation
+
+--SalesRepcode for Special Indents 
+
+update Sales_Inflow set salesrepcode=a.SalesRep
+from
+(select distinct T$ORNO,T$REM2 as SalesRep from tzzsls320600 )a
+where LTRIM(RTRIM(Sales_Inflow.OrderNum))=LTRIM(RTRIM(a.T$ORNO)) 
+and Sales_Inflow.company='600'
+
+--SalesRepCode for Other Cases
+update Sales_Inflow set salesrepcode=a.SalesRep
+from
+(select distinct Company,OrderNum,t_oref as Segment, LineOfBusiness,SalesRep from sales_header)a
+where Sales_Inflow.company=a.Company
+and Sales_Inflow.OrderNum=a.OrderNum
+--and LN_Sales_Details_ver2.company<>'600'
+and Sales_Inflow.SalesRepCode is null
+
+
+update Sales_Inflow set salesRep=a.NAMA
+from TTCCOM001ALL a
+where Sales_Inflow.salesrepcode=a.EMNO 
+
+--LOB Updation
+
+update Sales_Inflow set LOBCode=a.LineOfBusiness
+from
+(select distinct Company,OrderNum,t_oref as Segment, LineOfBusiness,SalesRep from sales_header)a
+where Sales_Inflow.company=a.Company
+and Sales_Inflow.OrderNum=a.OrderNum
+
+update Sales_Inflow set LineOfBusiness=replace(a.DSCA,'|','')
+from (Select * from TTCMCS031ALL Where company=400) a 
+where Sales_Inflow.lobcode=a.CBRN
+
+
+--Segment Updation
+--Commented On 29-May-2019
+--update Sales_Inflow set Segment=b.chnl
+--from TZZSLS326ALL b
+--where ltrim(rtrim(Sales_Inflow.LOBCode))=ltrim(rtrim(b.cbrn))
+--and Sales_Inflow.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS' --and company not in (600)
+--)
+
+--Segment for Special Indents 
+update Sales_Inflow set Segment=b.T$REM1
+from tzzsls320600 b
+where ltrim(rtrim(Sales_Inflow.OrderNum))=ltrim(rtrim(b.T$ORNO))
+and Sales_Inflow.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS') 
+
+update Sales_Inflow set Segment=a.SEGM
+from (select distinct COMPANY,LORN,SEGM from tzzsls885all)a
+where Sales_Inflow.company=a.COMPANY
+and Sales_Inflow.OrderNum=a.LORN
+and Sales_Inflow.Segment is null
+and Sales_Inflow.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+
+update Sales_Inflow set SubDivision=b.T$REM10
+from tzzsls320600 b
+where ltrim(rtrim(Sales_Inflow.OrderNum))=ltrim(rtrim(b.T$ORNO))
+and Sales_Inflow.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+update Sales_Inflow set SubDivision=null where ltrim(rtrim(SubDivision))=''
+
+
+
+
+
+
+---------------------End : Engineer, Segment,LOB Updation for ATS-----------------------------------
+
+
+
+--update Sales_Inflow set sales=17.74*isnull(sales,0) where company=500
+update Sales_Inflow set sales=48.0708*isnull(sales,0) where company=551
+update Sales_Inflow set sales=0.0048*isnull(sales,0) where company=552
+
+--DeliveryTerms
+update Sales_Inflow set DelvDesc=a.DelvDesc
+from 
+--vw_DeliveryTerms_Master a  --Old Method
+(select distinct CDEC as DelvCode,DSCA as DelvDesc from ttcmcs041ALL 
+where company=400)a
+where Sales_Inflow.DeliveryTerms=a.DelvCode
+
+--Carrier
+update Sales_Inflow set CarrierDesc=DSCA
+from
+(select distinct CFRW,DSCA from ttcmcs080ALL where company=400)a
+where ltrim(rtrim(Sales_Inflow.CarrierCode))=ltrim(rtrim(a.CFRW))
+
+--PaymentTerms
+update Sales_Inflow set PaymentDesc=DSCA
+from
+(select distinct CPAY,DSCA from ttcmcs013all)a
+where ltrim(rtrim(Sales_Inflow.PaymentTerms))=ltrim(rtrim(a.CPAY))
+
+
+--Item Updations
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.t_item))
+
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.ITEM))
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.DSCA))
+from ttcibd001470 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.ITEM))
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company in (551) )
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company in (552) )
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.t_item))
+
+
+update Sales_Inflow set Item_Desc=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where Sales_Inflow.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(Sales_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+
+ 
+--Customer Updations
+
+update Sales_Inflow set CustName=a.custname1
+from vw_Business_Partner a
+where Sales_Inflow.CustCode=a.custcode
+and company not in (551,552,951)
+
+update Sales_Inflow set CustName=a.custname1
+from vw_Business_Partner_551 a
+where Sales_Inflow.CustCode=a.custcode
+and company in (551)
+
+update Sales_Inflow set CustName=a.custname1
+from vw_Business_Partner_552 a
+where Sales_Inflow.CustCode=a.custcode
+and company in (552)
+
+update Sales_Inflow set CustName=a.custname1
+from vw_Business_Partner_553 a
+where Sales_Inflow.CustCode=a.custcode
+and company in (553)
+
+update Sales_Inflow set CustName=a.custname1
+from vw_Business_Partner_IAS a
+where Sales_Inflow.CustCode=a.custcode
+and company in (951)
+
+
+----AREA CODE Updations-------------------------------------------
+
+update Sales_Inflow set areacode=a.Area  
+from Sales_Header a
+where Sales_Inflow.company =a.Company 
+and Sales_Inflow.OrderNum =a.OrderNum 
+
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode))=''
+and Sales_Inflow.company not in (551,552,553,951)
+
+
+--Area Updation from IndentNo --This logic only for orders flowing through Dealer Portal
+
+update Sales_Inflow set areacode =b.IndentArea
+from (select distinct concat('0',substring(ltrim(rtrim(RefA)),2,2)) IndentArea,* From Sales_Header 
+where len(ltrim(rtrim(RefA)))=9 and RefA is not null
+--and concat('0',substring(RefA,2,2)) like '%[0-9]%'
+and substring(Area,1,1)='0'
+and LEN(CDF_MSID)<2  --Logic Added on 09-12-2020
+--and company=401 and OrderNum='501000850'  --DP Order
+--and company=490 and OrderNum='252002407' --CRM order
+and concat('0',substring(ltrim(rtrim(RefA)),2,2)) in (select Areacode from vw_AREA_MASTER)
+)b
+where Sales_Inflow.company =b.Company 
+and Sales_Inflow.OrderNum =b.OrderNum
+and Sales_Inflow.areacode like '0%' 
+AND Sales_Inflow.company not in (551,552,553,951)
+
+
+       
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner  a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and Sales_Inflow.areacode is null
+and Sales_Inflow.company not in (551,552,553,951)
+
+
+--update Sales_Inflow set areacode=a.CustAreaCode 
+--from vw_Business_Partner  a
+--where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+--and ltrim(rtrim(Sales_Inflow.areacode))=''
+--and Sales_Inflow.company not in (551,552,951)
+
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_IAS a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode))=''
+and Sales_Inflow.company in (951)
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_IAS  a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and Sales_Inflow.areacode is null
+and Sales_Inflow.company in (951)
+
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_551 a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode))=''
+and Sales_Inflow.company in (551)
+
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_551 a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode)) is null
+and Sales_Inflow.company in (551)
+
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_552 a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode))=''
+and Sales_Inflow.company in (552)
+
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_552 a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode)) is null
+and Sales_Inflow.company in (552)
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_553 a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode))=''
+and Sales_Inflow.company in (553)
+
+
+update Sales_Inflow set areacode=a.CustAreaCode 
+from vw_Business_Partner_553 a
+where ltrim(rtrim(Sales_Inflow.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Sales_Inflow.areacode)) is null
+and Sales_Inflow.company in (553)
+
+--Overwrite the Areacode for Areas updated from Customer Master due to unavailability of Indent Area
+update Sales_Inflow set areacode=a.CREG 
+from (
+select a.Company,OrderNum,b.CREG from 
+(select distinct Company,OrderNum,refa,concat('0',substring(ltrim(rtrim(RefA)),2,2)) IndentArea From Sales_Header 
+where len(ltrim(rtrim(RefA)))<>9)a
+inner join
+(select distinct NCMP,LORN,CREG From tzzsls885all where CREG<>'')b
+on a.Company=b.NCMP
+and a.OrderNum=b.LORN
+)a
+where Sales_Inflow.company =a.Company 
+and Sales_Inflow.OrderNum =a.OrderNum 
+
+--Special Case: Area Modification for the below Orders as per the SR: 2SRSC123443
+--update Sales_Inflow set AreaCode='021'
+--where concat(company,ordertype,ordernum) in ('401511501002782','401511501002783',
+--'401511501002913','401511501002914')
+
+--update Sales_Inflow set AreaCode='021'
+--where concat(company,ordernum) in ('401501002914','401501002913',
+--'401501002412','401501002419','401501002454')
+
+update Sales_Inflow set AreaCode='021'
+where custcode in ('CU1C00008','CUSC00028','CU1C01462','CUSN00045')
+and Dpst in ('90091')
+
+
+
+---- END : AREA CODE Updations---------------------------------------
+
+
+
+--Special Case: Updating Areacode for Australia and Indonesia companies (551,552)
+update Sales_Inflow set areacode='631' where company=551 and OrderDate>='2017-04-01' and ltrim(rtrim(areacode))=''
+update Sales_Inflow set areacode='624' where company=552 and OrderDate>='2017-04-01' and ltrim(rtrim(areacode))=''
+update Sales_Inflow set areacode='622' where company=553 and OrderDate>='2017-04-01' and ltrim(rtrim(areacode))=''
+
+update Sales_Inflow set areacode='631' where company=551 and OrderDate>='2017-04-01' and areacode is null
+update Sales_Inflow set areacode='624' where company=552 and OrderDate>='2017-04-01' and areacode is null
+update Sales_Inflow set areacode='622' where company=553 and OrderDate>='2017-04-01' and areacode is null
+
+
+--AreaName Updations
+
+update Sales_Inflow set AreaName=a.AreaName,zone=a.Zone
+from vw_AREA_MASTER a
+where Sales_Inflow.AreaCode=a.Areacode
+and company not like '6%'
+
+update Sales_Inflow set AreaName=a.AreaName,zone=a.ATS_Zone
+from vw_AREA_MASTER a
+where Sales_Inflow.AreaCode=a.Areacode
+and company like '6%'
+
+--DPST Updations
+
+update Sales_Inflow  set  dpst  = TTCIBD001551.dpst 
+from 
+(select company,b.dpst,item from TTCIBD001551 a 
+inner join  producttype_aust_master b on a.CTYP = b.t$ctyp) TTCIBD001551
+where Sales_Inflow.Company=551
+and Sales_Inflow.OrderDate >='2017-04-01'
+and ltrim(rtrim(TTCIBD001551.item)) = ltrim(rtrim(Sales_Inflow.ItemCode)) 
+
+
+update Sales_Inflow  set  dpst  = TTCIBD001552.dpst from 
+(select company,b.dpst,item from  TTCIBD001552 a
+inner join  producttype_indo_master b on a.CTYP = b.t$ctyp) TTCIBD001552
+where Sales_Inflow.Company=552
+and Sales_Inflow.OrderDate >='2017-04-01'
+and ltrim(rtrim(TTCIBD001552.item)) = ltrim(rtrim(Sales_Inflow.ItemCode)) 
+
+--Special Case: since 25-Nov-2021 against SR : OSL00112512 
+update Sales_Inflow set dpst = a.dpst 
+from (select Company,OrderType,OrderNum,Dpst from sales_header
+where company=552
+and dpst not like '%[a-z]%'
+) a
+where Sales_Inflow.Company=552
+and Sales_Inflow.OrderDate >='2017-04-01'
+and Sales_Inflow.company = a.company
+and Sales_Inflow.OrderType=a.OrderType
+and Sales_Inflow.OrderNum=a.OrderNum
+
+
+update Sales_Inflow set DpstName=a.DPSTName
+from vw_DPST_MASTER a
+where Sales_Inflow.dpst=a.DPSTcode
+and Sales_Inflow.company not like '6%'
+
+update Sales_Inflow set DpstName=a.DPSTName
+from DPST_Master_ATS a
+where Sales_Inflow.dpst=a.DPSTcode
+and Sales_Inflow.company like '6%'
+
+
+update Sales_Inflow set ItemCode=ltrim(rtrim(itemcode))
+update Sales_Inflow set LineOfBusiness=replace(LineOfBusiness,'|','')
+
+
+update Sales_Inflow set Organ=a.Organ,
+Vertical1=a.Vertical1,
+user_names=a.User_names,
+Division=a.Division,
+productgrp=a.ProductGrp,
+Region=a.Region
+from (select * from vw_salesmapping_master where organ in ('India','Subsidiary') and organ is not null) a
+where Sales_Inflow.dpst=a.DPSTCode
+
+
+
+update Sales_Inflow set Organ=a.Organ,
+Vertical1=a.Vertical1,
+user_names=a.User_names,
+Division=a.Division,
+productgrp=a.ProductGrp,
+Region=a.Region
+from (select * from vw_salesmapping_master where organ not in ('India','Subsidiary') and organ is not null) a
+where Sales_Inflow.dpst=a.DPSTCode
+and Sales_Inflow.areacode=a.Areacode 
+
+
+--To address the issue of missing DPST based on Itemgroup from LN Item Master
+update Sales_Inflow set Organ='COSEA' where company in ('551','552','553') 
+
+--Special Case against SR : OSL00112512 (sales made from 552 company to be considered under ID)
+update Sales_Inflow set Organ='ID',
+Vertical1=null,
+user_names='Nitin Sharma',
+Division='ROCD',
+productgrp='EPSAC',
+Region='SOUTH EAST ASIA',
+Zone=null
+where concat(company,ordertype,OrderNum) in 
+('552220200003196','552220200003197','552220200003198','552221200003199')
+
+
+------- As requested to karun kannan ELGI EQUIPMENTS LIMITED  customers are removed
+
+
+delete from Sales_Inflow where ltrim(rtrim(custcode)) in 
+('CU1E00001','CU1E00002','CU1E00003','CU1E00004','CU1E00005','CU1E00006','CU1E00007','CU1E00008','CU1E00009','CU1E00010','CU1E00011',
+'CU1E00012','CU1E00013','CU1E00014','CU1E00015','CU1E00026','CU1E00028','CU1E00144','CU1E00203','CU1E00263','CU1E00331','CU1E00371',
+'CU1E00396','CU1E00424','CU1E00477','CU1E00508','CU1E00578','CU1E00580','CU1E00629','CU1E00675','CU1E00676','CU1E00728','CU1E00780',
+'CU1E00791','CU1E00798','CU1E00814','CU1E00885','CU1E00887','CU1E00893','CU1E00914','CU1E00926','CU1E00961','CU1E00992',
+'CU1E01015','CU1E01061','CU1E99998','CU1E99999','CU1ELGI-P','CU1ELGS99','CUSE00023','INT000006','SU1E00451') 
+
+
+--Eliminations
+
+--delete from Sales_Inflow 
+--where ltrim(rtrim(custcode)) in ('CU1K02388','CU1E00893','CU1L00543','CU1E00015','CU1E00791','CU1E99998',
+--'CU1E00008','CU1E00814','CU1E00914','CU1E00477','CU1E00679','CU1E00263','CU1E00926','CU1E00396','CU1E00887',
+--'CU1E99999','CU1E01015','CU1E00629')
+
+--delete from Sales_Inflow where custname like 'ELGI EQUIPMENTS LIMITED%' and Company <500
+--delete from Sales_Inflow where custname like 'ELGI EQUIPMENTS LTD%' and Company <500
+
+------old orders removing
+delete from Sales_Inflow 
+where ordernum in (select distinct T$ORNO From TZZPUR930All where T$SALE =1 AND T$ORNO='200000849')
+
+--delete from Sales_Inflow where dpst not in (select DPSTcode from vw_DPST_MASTER) --Commented on '9-Sep-2020'
+
+delete from Sales_Inflow where CustCode='CU1B00002' and month(OrderDate)=3 and year(OrderDate)=2018
+and Vertical1 in ('AFTERSALES') and qty<0
+
+delete from Sales_Inflow where 
+--Company=490 and 
+OrderDate>='2018-04-01' and qty=0
+
+delete from Sales_Inflow where Company in (select company from ELGI_Companies_Master where companygroup='ATS') 
+and OrderDate>='2018-04-01' and qty<0
+
+delete from Sales_Inflow where Company in (select company from ELGI_Companies_Master where companygroup='ATS') 
+and ordertype in ('PPW','PPT')
+
+
+-----------------------Currency Rate Conversion Logic---------------------------------------------------------
+-----------------------INR Conversion Rate from CurrencyRate Master--------------------------
+
+
+--New Method
+update sales_inflow  set CurrRate=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=500 and ToCurrency='INR')a
+where sales_inflow.company=a.Company
+and sales_inflow.Currency=a.FromCurrency
+and sales_inflow.Orderdate between a.validFromDate and a.ValidToDate
+
+update sales_inflow set Sales=Foreign_currency_amount*CurrRate where company=500
+
+
+update sales_inflow  set CurrRate=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=552
+and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=552 and FromCurrency=a.FromCurrency) 
+and ToCurrency='INR' )a
+where sales_inflow.company=a.Company
+and sales_inflow.Currency=a.FromCurrency
+and sales_inflow.Orderdate between a.validFromDate and a.ValidToDate
+
+
+update sales_inflow set Sales=Foreign_currency_amount*CurrRate where company=552
+
+
+update sales_inflow  set CurrRate=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=553 and ToCurrency='INR')a
+where sales_inflow.company=a.Company
+and sales_inflow.Currency=a.FromCurrency
+and sales_inflow.Orderdate between a.validFromDate and a.ValidToDate
+
+
+update sales_inflow set Sales=Foreign_currency_amount*CurrRate where company=553
+
+
+--Above Logic to be implemented below for 551 and 552 as well in future.
+
+update sales_inflow  set Sales=Foreign_currency_amount*a.CurrencyRate,
+CurrRate=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=551
+and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=551 and FromCurrency=a.FromCurrency) 
+and ToCurrency='INR' )a
+where sales_inflow.company=a.Company
+and sales_inflow.Currency=a.FromCurrency
+
+
+-------------------End : INR Conversion Rate from CurrencyRate Master-------------------------
+Truncate Table Sales_Inflow_USD_Conversion_ver2
+
+insert into Sales_Inflow_USD_Conversion_ver2(OrderDate,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk)
+select OrderDate,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk from (
+select *,datediff(dd,STDT,OrderDate) as DaysDiff,
+row_number() over (partition by OrderDate,currency order by datediff(dd,STDT,OrderDate)) as Rnk 
+from (select distinct OrderDate,Currency from Sales_Inflow
+--where currency='MYR'
+)a
+left outer join 
+(select BCUR,CCUR,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+where RTYP='SLS' 
+--and bcur in ('IND')
+and ccur='USD'
+--and convert(date,stdt)='2024-01-08'
+group by BCUR,CCUR,convert(date,STDT))b
+on a.currency=b.bcur
+and a.OrderDate>=b.STDT
+)a
+where Rnk=1
+
+
+delete from  Sales_Inflow_USD_Conversion_ver2
+where Currency='INR' and BCUR is null
+
+Insert into Sales_Inflow_USD_Conversion_ver2
+Select OrderDate,'INR' as Currency,'INR' as BCUR,CCUR,STDT,RATE,DaysDiff,Rnk 
+from Sales_Inflow_USD_Conversion_ver2
+where Currency='IND' 
+
+
+
+--Method1 : Rate_USD from LN Currency Rate Master Table 
+
+update Sales_Inflow set Rate_USD=a.RATE
+from Sales_Inflow_USD_Conversion_ver2 a
+where Sales_Inflow.OrderDate=a.OrderDate
+and Sales_Inflow.Currency=a.Currency
+and Sales_Inflow.company not in (500,551,552,553)
+
+
+----Updating IND to USD Rate for all the Sales Transactions whose currency not in ('IND','INR')
+update Sales_Inflow set Rate_USD=a.RATE
+from (select * from Sales_Inflow_USD_Conversion_ver2 where currency in ('IND','INR')) a
+where Sales_Inflow.OrderDate=a.OrderDate
+and Sales_Inflow.currency not in ('IND','INR')
+and Sales_Inflow.company in (551,552,553)
+--and Sales_Inflow.company not in (500,551,552,553)
+
+update Sales_Inflow set Sales_USD=Sales/Rate_USD
+
+update Sales_Inflow set Sales_USD=Foreign_currency_amount where Currency='USD'
+
+
+--End: Method1 : Rate_USD from LN Currency Rate Master Table 
+
+
+--Method2 : Rate_USD from Subsidiary Users Provided Data through mail
+
+
+--Old Method
+----AUD to USD conversion to be considered in the below update Query --Yet to Complete
+--update Sales_Inflow  set Sales_USD=sales/a.CurrencyRate,
+--Rate_USD=a.CurrencyRate
+--from (select * from CurrencyRateMaster a where company=551
+--and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=551)
+--and FromCurrency='USD' and ToCurrency='INR'
+--)a
+--where Sales_Inflow.company=a.Company
+----and LN_Sales_Details_ver2.Currency=a.Currency
+--and Sales_Inflow.company=551
+
+
+--update Sales_Inflow  set Sales_USD=Foreign_currency_amount*a.CurrencyRate,
+--Rate_USD=a.CurrencyRate
+--from (select * from CurrencyRateMaster a where company=552
+--and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=552)
+--and FromCurrency='IDR' and ToCurrency='USD'
+--)a
+--where Sales_Inflow.company=a.Company
+--and Sales_Inflow.Currency=a.FromCurrency
+--and Sales_Inflow.company=552
+
+
+--New Method
+update Sales_Inflow  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=500 and FromCurrency='USD' and ToCurrency='INR')a
+where Sales_Inflow.company=a.Company
+--and LN_Sales_Details_ver2.Currency=a.FromCurrency
+and Sales_Inflow.OrderDate between a.validFromDate and a.ValidToDate
+
+update Sales_Inflow  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=551 and FromCurrency='USD' and ToCurrency='INR')a
+where Sales_Inflow.company=a.Company
+--and LN_Sales_Details_ver2.Currency=a.FromCurrency
+and Sales_Inflow.OrderDate between a.validFromDate and a.ValidToDate
+
+update Sales_Inflow  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=552 and FromCurrency='USD' and ToCurrency='INR')a
+where Sales_Inflow.company=a.Company
+--and LN_Sales_Details_ver2.Currency=a.FromCurrency
+and Sales_Inflow.OrderDate between a.validFromDate and a.ValidToDate
+
+
+update Sales_Inflow  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=553 and FromCurrency='USD' and ToCurrency='INR')a
+where Sales_Inflow.company=a.Company
+--and LN_Sales_Details_ver2.Currency=a.FromCurrency
+and Sales_Inflow.OrderDate between a.validFromDate and a.ValidToDate
+
+update Sales_Inflow  set Sales_USD=sales/Rate_USD where company in (500,551,552,553)
+
+
+update Sales_Inflow set Sales_USD=Foreign_currency_amount where Currency='USD'
+
+----Updating the Home Currency Amt of Foreign Companies like 551,552,etc in our 
+----Sales_Inflow.Foreign_currency_amount column.
+----This amt will be in AUD,IDR,DHI with respect to those company's billing.
+
+
+--To be validated
+update Sales_Inflow set Foreign_currency_amount= a.t_oamt
+from (SELECT company,OrderNum,PositionNum,
+sum(isnull(t_oamt,0)) t_oamt
+FROM sales_lines 
+where company not like '4%'
+group by company,OrderNum,PositionNum
+)a
+where Sales_Inflow.company=a.company
+--and Sales_Inflow.Trantype=a.Trantype
+--and Sales_Inflow.invoice=a.invnum
+and Sales_Inflow.ordernum=a.OrderNum
+and Sales_Inflow.PositionNum=a.PositionNum
+and Sales_Inflow.company not like '4%'
+--and LN_Sales_Details_ver2.Currency='USD'
+--and concat(LN_Sales_Details_ver2.company,LN_Sales_Details_ver2.Trantype,LN_Sales_Details_ver2.invoice)='50071233000008'
+
+
+--Method3: Rate_USD column update based on Foreign Currency to USD Currency Rate (Note: Rate_USD implies the INR to USD Conversion Rate)
+
+update sales_inflow set Rate_USD=a.Rate
+from(select * from Sales_inflow_USD_Conversion_ver2)a
+where sales_inflow.currency=a.bcur
+and sales_inflow.Orderdate=a.Orderdate
+--and ln_sales_details_ver2.company=553
+and sales_inflow.currency in ('MYR')
+
+update sales_inflow set sales_USD=Foreign_currency_amount*Rate_USD where 
+--company=553
+currency='MYR'
+
+
+update sales_inflow set Sales_USD=Foreign_currency_amount*Rate_USD 
+where company like '4%' and currency not in ('IND','INR','USD')
+and ltrim(rtrim(currency))<>''
+
+--Added on 28-10-2025
+--update sales_inflow set Sales_USD=Foreign_currency_amount*Rate_USD 
+--where company in ('551','552','553')
+--and currency not in ('IND','INR','USD')
+--and ltrim(rtrim(currency))<>''
+
+--End: Method3 : Rate_USD column update based on Foreign Currency to USD Currency Rate (Note: Rate_USD implies the INR to USD Conversion Rate)
+
+
+----End of Step 32: USD Rate Caculation--------------------------------------------------------------------
+
+
+
+
+----update Sales_Inflow set salesrepcode=a.SalesRep
+----from
+----(select distinct T$ORNO,T$REM2 as SalesRep from tzzsls320600 )a
+----where LTRIM(RTRIM(Sales_Inflow.OrderNum ))=LTRIM(RTRIM(a.T$ORNO)) 
+----and Sales_Inflow.company='600'
+
+----update Sales_Inflow set salesRep=a.NAMA
+----from TTCCOM001ALL a
+----where Sales_Inflow.salesrepcode=a.EMNO 
+----and Sales_Inflow.Company ='600'
+
+----- Foc
+----delete from Sales_Inflow where
+---- concat(company,ordertype) in (
+----select concat(company,SaleOrderType) from SaleType_Master where Sales_Category not in (1))
+
+-----Foc data
+----delete from Sales_Inflow
+----where concat(company,ordertype) not in (select CONCAT(company,saleordertype) from saletype_master) 
+
+----------- due to karun kannan need to remove cancelled orders from '2019-04-01'
+
+-------- fully cancelled orders
+
+delete from Sales_Inflow where concat(OrderNum,company)in (
+select distinct concat(OrderNum,company) From Sales_Header --where OrderNum='200000849'
+where t_clyn =1 and convert(date,OrderDate)>='2019-04-01' and Company in ('490','450','416'))
+
+
+--Based on the SR: 1IM1S119019 , Removing below the ID SRN Invoice
+delete from Sales_Inflow where concat(company,trantype,invnum)='40127133000101'
+
+
+---------------------- Partial cancelled orders
+delete from Sales_Inflow where concat(Company,ordernum,PositionNum) in(
+select distinct concat(Company,ordernum,PositionNum) From Sales_Lines where convert(date,OrderDate)>='2019-04-01' and Company in ('490','450','416') and t_clyn =1
+--commented on 25-Mar-2022
+--and OrderNum not in (select distinct OrderNum  From Sales_Header where t_clyn =1 and convert(date,OrderDate)>='2019-04-01' and Company in ('490','450','416'))
+)
+
+
+------------ removing FOC ORDERS due to karun kannan request
+delete from Sales_Inflow where CONCAT(company,ordertype) in
+(select distinct CONCAT(company,saleordertype)as type  From saletype_master where Sales_Category =1)
+--delete from Sales_Inflow
+-- where company = 490 and ordertype in ('226','246','326','346','526','546','FCA','FCT','FC9','523','223','323','270','370','284','384')
+
+--	delete from Sales_Inflow
+--where company = 401 and ordertype in
+--('226','246','326','346','526','546','FCA','FCT','FC9','223','323','523','244','344','544','268','270') 
+
+--delete from Sales_Inflow where company = 440 and ordertype in('225','244','344','FCA','FC9','FCT')
+--delete from Sales_Inflow where company = 450 and ordertype in('A14','244','FCA','FC9','FCT')
+--delete from Sales_Inflow where company = 465 and ordertype in('212','214','715')
+--delete from Sales_Inflow where company = 470 and ordertype in('P13')
+
+---------------------------Engineer, Segment,LOB Updation for ATS-----------------------------------
+
+
+--Eliminating  and updating the wrong order entries made by COSEA Team, upon request.
+delete from Sales_Inflow 
+where concat(Company,ordertype,OrderNum) in ('552220200002158','552SRN300000054')
+update Sales_Inflow set OrderDate='2020-08-31'
+where concat(Company,ordertype,OrderNum) in('552220200002162')
+
+--- Due to hariprasad requested on Mar30th 2021 changed from 90030 to 90022
+update Sales_Inflow set dpst='90022',DpstName='ROCD - LARGE EPSAC(L0)' where ordernum='240000409'and ltrim(rtrim(itemcode))='Z41175'
+
+
+
+--Alter table Sales_Inflow add [Type] varchar(1000)
+--Alter table Sales_Inflow add Item_Category varchar(1000)
+--Alter table Sales_Inflow add Product_Group varchar(1000)
+--Alter table Sales_Inflow add subproduct varchar(1000)
+
+
+update Sales_Inflow set type=b.TYPE  from (select distinct dpst,[ITEM CODE],TYPE   from Item_category_model)b
+where  --ltrim(rtrim(sales_report_LN.dpst)) =ltrim(rtrim(b.dpst)) and 
+ltrim(rtrim(Sales_Inflow.ItemCode)) =ltrim(rtrim(b.[item code]))
+
+
+update Sales_Inflow set item_category=b.category  from (select distinct dpst,[ITEM CODE],category   from Item_category_model)b
+where  
+--ltrim(rtrim(sales_report_LN.dpst)) =ltrim(rtrim(b.dpst)) and 
+ltrim(rtrim(Sales_Inflow.ItemCode)) =ltrim(rtrim(b.[item code]))
+
+
+update Sales_Inflow set Product_Group=b.pg  from (select distinct dpst,[ITEM CODE],PG   from Item_category_model)b
+where  
+--ltrim(rtrim(sales_report_LN.dpst)) =ltrim(rtrim(b.dpst))and 
+ltrim(rtrim(Sales_Inflow.ItemCode)) =ltrim(rtrim(b.[item code]))
+
+update Sales_Inflow set subproduct=a.elgi_categoryname 
+from(select distinct elgi_itemcode,elgi_categoryname 
+From [ELGI_CRM].dbo.product_CRM
+where elgi_categoryname is not null 
+)a
+where ltrim(rtrim(Sales_Inflow.ItemCode)) =ltrim(rtrim(a.elgi_itemcode))
+
+
+--Based on the SR: 1IM1S119019 , Removing below the ID SRN Invoice
+delete from Sales_Inflow where concat(company,trantype,invnum)='40127133000101'
+--Based on the SR: 16CEE121829 , Removing below the SRN Invoice
+delete from Sales_Inflow where concat(company,trantype,invnum)='45087234000281'
+
+delete from sales_inflow where ltrim(rtrim(itemcode))='LABOUR'
+
+
+end
+
+--Select * from sales_inflow
+
+
+Completion time: 2025-11-19T12:12:20.2866520+05:30

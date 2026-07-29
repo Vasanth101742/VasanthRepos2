@@ -1,0 +1,189 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+-- exec sp_verticalwisesales_sms
+CREATE proc [dbo].[sp_verticalwisesales_sms]
+as
+begin
+truncate table verticalwisesales_sms
+
+insert into verticalwisesales_sms(Sdate,Vertical_Name,Shortname,
+Dval,Mval,Yval,ordr,smstype)
+select sdate,vertical_name,shortname,dval,mval,yval,
+ordr,1 as smstype
+from (
+select *,
+case 
+when Vertical_Name ='Compressor-Channel                 ' then 1
+when Vertical_Name ='Compressor-Direct                  ' then 2
+when Vertical_Name ='Compressor-RLY' then 3
+when Vertical_Name ='Compressor-C&M' then 4
+when Vertical_Name ='Compressor-WW' then 5
+when Vertical_Name ='After Sales                        ' then 6
+--when Vertical_Name ='Collections' then 7
+end as ordr
+ From (
+select convert(date,getdate()-1) as sdate,description as Vertical_Name,
+case 
+when description='After Sales                        ' then 'AS'
+when description='Compressor-Channel                 ' then 'Channel'
+when description='Compressor-Direct                  ' then 'Direct'
+when description='Compressor-RLY' then 'Rly'
+when description='Compressor-C&M' then 'CnM'
+when description='Compressor-WW' then 'WW'
+else description
+end as Shortname,
+sum(ondate)Dval,
+sum(mtd)Mval,
+sum(ytd)Yval 
+from (
+select 
+case 
+when dpstname ='CONSTRUCTION (C)' or dpstname ='MINING (M)'then'Compressor-C&M'
+WHEN dpstname ='WW'  or dpstname ='WW – OE'then 'Compressor-WW'
+ELSE Description END AS Description
+, dpstname,sum(ondate_sale) as ONDATE,SUM(this_month_sale)as MTD ,SUM(this_year_sale)AS YTD
+from (
+--select Dpstcode ,dpstname ,description,ondate_sale,this_month_sale,this_year_sale    From  vw_sls_Global
+--where global ='International'
+--union all
+select Dpstcode ,dpstname ,description,ondate_sale,this_month_sale,this_year_sale    From  vw_sls_Domestic_DPSTwise 
+)a
+group by dpstname,description 
+)a
+group by Description 
+)a
+)a
+
+insert into verticalwisesales_sms(Sdate,Vertical_Name,Shortname,
+Dval,Mval,Yval,ordr,smstype)
+select convert(date,getdate()-1),'Total','TOT', sum(dval),sum(mval),sum(yval),10 as ordr,1 as smstype from verticalwisesales_sms
+
+--------------------------------------------------------------------------------------------------------------
+--Below Code Added on 16-Mar-2020
+
+insert into verticalwisesales_sms
+select convert(date,getdate()-1),
+'ELGi-Aus'as organ,'AUS',
+sum(ondate_sale) ondate_sale,
+sum(this_month_sale) this_month_sale,
+sum(this_year_sale) this_year_sale,
+20,2 as smstype,
+sum(Ondate_Inflow) Ondate_Inflow,sum(this_month_inflow) as this_month_inflow
+from vw_bud_sls_Australia
+where AreaCode='631'
+--where custcode not in ('CU1P00009')  --pulford excluded as requested
+
+
+insert into verticalwisesales_sms
+select convert(date,getdate()-1),
+'Indonesia'as organ,'IDO',
+sum(ondate_sale) ondate_sale,
+sum(this_month_sale) this_month_sale,
+sum(this_year_sale) this_year_sale,
+20,2 as smstype,
+sum(Ondate_Inflow) Ondate_Inflow,sum(this_month_inflow) as this_month_inflow
+from vw_bud_sls_Global
+where organ='COSEA' and AreaCode='624' --areaname like '%indonesia%'
+
+insert into verticalwisesales_sms
+select convert(date,getdate()-1),
+'Thailand'as organ,'THA',
+sum(ondate_sale) ondate_sale,
+sum(this_month_sale) this_month_sale,
+sum(this_year_sale) this_year_sale,
+20,2 as smstype,
+sum(Ondate_Inflow) Ondate_Inflow,sum(this_month_inflow) as this_month_inflow
+from vw_bud_sls_Global
+where organ='COSEA' and areacode='623' --areaname like '%Thailand%'
+
+
+
+insert into verticalwisesales_sms
+select convert(date,getdate()-1),
+'Other SEA'as organ,substring(AreaName,1,3),
+sum(ondate_sale) ondate_sale,
+sum(this_month_sale) this_month_sale,
+sum(this_year_sale) this_year_sale,
+ordr,smstype,
+sum(Ondate_Inflow) Ondate_Inflow,sum(this_month_inflow) as this_month_inflow
+from(
+Select 
+'Other SEA'as organ,
+areacode,areaname, 
+sum(ondate_sale) ondate_sale,
+sum(this_month_sale) this_month_sale,
+sum(this_year_sale) this_year_sale,
+20 as ordr,2 as smstype,
+sum(Ondate_Inflow) Ondate_Inflow,sum(this_month_inflow) as this_month_inflow
+from vw_bud_sls_Global
+where organ='COSEA' 
+and areacode not in ('623','624','631','635')
+group by areacode,areaname
+having sum(isnull(last_year_sale,0)+isnull(this_year_sale,0))<>0
+)a
+group by ordr,smstype,substring(AreaName,1,3)
+
+
+------------------------------------------------------------------------------------------------------------------
+--SAAME
+
+
+--insert into verticalwisesales_sms
+--select convert(date,getdate()-1),organ,'SAAME' as Shortname,
+----Region,Zone,user_names,Division,
+--sum(ondate_sale) ondate_sale,
+--sum(this_month_sale) as this_month_sale,
+--sum(this_year_sale) as this_year_sale,
+--20 as ordr,2 as smstype,
+--sum(Ondate_Inflow) Ondate_Inflow,sum(Inflow) as Inflow
+
+--from(
+
+--SELECT 
+----isnull(bud.global,sls.global) as global,
+--isnull(bud.organ,sls.organ) as organ,
+--isnull(bud.region,sls.region) as region,
+--isnull(bud.zone,sls.zone) as Zone,
+--isnull(bud.user_names,sls.user_names) as user_names,
+--isnull(bud.division,sls.division) as division,
+--sls.ondate_sale,
+--sls.this_month_sale,sls.this_year_sale,
+--sls.Inflow,sls.Ondate_Inflow
+
+--FROM (select * from vw_bud_Global_USD where organ = 'SAAME') bud 
+--full JOIN (select * from vw_sls_Global_USD where organ = 'SAAME') sls 
+--ON  ltrim(rtrim(isnull(bud.Dpst,'0'))) =ltrim(rtrim(isnull(sls.Dpstcode,'0')))
+--and ltrim(rtrim(isnull(bud.Area,'0')))=ltrim(rtrim(isnull(sls.Areacode,'0')))
+--) BDM
+--group by organ
+----,Region,Zone,user_names,Division
+
+------------------------------------------------------------------------------------------------------------------
+
+insert into verticalwisesales_sms
+select 
+convert(date,getdate()-1),'ATS' as organ,'ATS' as Shortname,
+sum(last_day_sale) ondate_sale,
+sum(this_month_sale) as this_month_sale,
+sum(this_year_ytd) as this_year_sale,
+20 as ordr,2 as smstype,
+sum(last_day_inflow) Ondate_Inflow,
+sum(this_month_inflow) as Inflow
+from ATS_Sales_Performance
+
+end
+
+
+
+select * from verticalwisesales_sms
+
+
+--Alter table verticalwisesales_sms alter column OndateInflow numeric(9,2)
+--Alter table verticalwisesales_sms alter column ThisMonthInflow numeric(9,2)
+
+
+
+
+
+Completion time: 2025-11-19T12:44:50.0858933+05:30

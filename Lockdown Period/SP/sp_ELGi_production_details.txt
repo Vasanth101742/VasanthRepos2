@@ -1,0 +1,1373 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_production_details
+
+CREATE proc sp_ELGi_production_details
+as
+begin
+
+
+TRUNCATE TABLE production_plan_vs_actual
+TRUNCATE TABLE ELGi_production_details
+TRUNCATE TABLE LEPSAC_Items_Tmp1
+TRUNCATE TABLE ELGi_Production_Backlogs
+TRUNCATE TABLE PDNO_CANCELLED
+TRUNCATE TABLE Production_Summary
+Truncate table WIP_Ageing 
+Truncate table Production_ALC
+Truncate table Production_ALCdate_Temp
+Truncate table Production_Summary_Temp
+Truncate Table Production_ALC_Tmp
+Truncate Table To_be_Completed_Ageing
+
+
+--Planned
+insert  into production_plan_vs_actual
+--select * into production_plan_vs_actual from (
+select distinct
+convert(date,RDLD) as date1,
+company,
+PDNO as Prodorderno,
+CWAR as Warehouse,
+a.MITM as Item,
+sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else (case when osta>=1 then qrdr else 0 end) end) as Planned_qty,
+0 as Released_qty,
+0 as Actual_qty,
+0 as WIP_qty,
+0 as avg_bud_price,
+0 as sls_price,
+0 as Dispatch_Qty
+from TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+--a.PDNO not like '%p%'
+--and a.PDNO not like '%sc%'
+--where a.PDNO='290000207' --for testing purpose
+group by convert(date,RDLD),company,PDNO,CWAR,MITM,OSTA
+
+
+
+
+--Released
+insert  into production_plan_vs_actual
+select distinct
+convert(date,ReleaseDt) as date1,
+company,
+PDNO as Prodorderno,
+CWAR as Warehouse,
+a.MITM as Item,
+0 as Planned_qty,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when osta>=4 then qrdr else 0 end) end) as Released_qty,
+0 as Actual_qty,
+0 as WIP_qty,
+0 as avg_bud_price,
+0 as sls_price,
+0 as Production_Qty
+from (
+select a.*,b.date as ReleaseDt from  TTISFC001ALL a 
+left outer join
+(
+select * from (
+select company,PDNO,OSTA,convert(date,date) as date,row_number() over (partition by company,pdno order by date) dateRank 
+from TTICST151ALL
+where OSTA in (4,6)
+--and PDNO='290000207' --for testing Purpose
+)b1
+where dateRank=1
+)b
+on a.company=b.company
+and a.PDNO=b.PDNO
+--where a.PDNO not like '%[a-z]%'
+--a.PDNO not like '%p%'
+--and a.PDNO not like '%sc%'
+--and a.PDNO='230009816' --for testing Purpose
+) a
+
+--where a.PDNO not like '%[a-z]%'
+--a.PDNO not like '%p%'
+--and a.PDNO not like '%sc%'
+--and a.PDNO='230009816' --for testing purpose
+group by ReleaseDt,company,PDNO,CWAR,MITM,OSTA
+
+
+
+--WIP
+insert  into production_plan_vs_actual
+select distinct
+convert(date,WIP_Dt) as date1,
+company,
+PDNO as Prodorderno,
+CWAR as Warehouse,
+a.MITM as Item,
+0 as Planned_qty,
+0 as Released_qty,
+0 as Actual_qty,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when osta=6 then qrdr else 0 end) end) as WIP_qty,
+0 as avg_bud_price,
+0 as sls_price,
+0 as Production_Qty
+from (
+select a.*,b.date as WIP_Dt from  TTISFC001ALL a 
+left outer join
+(
+select * from (
+select COMPANY,PDNO,OSTA,convert(date,date) as date,row_number() over (partition by COMPANY,pdno order by date) dateRank 
+from TTICST151ALL
+where OSTA in (6)
+--and PDNO='290000207' --for testing Purpose
+)b1
+where dateRank=1
+)b
+on a.COMPANY=b.COMPANY
+and a.PDNO=b.PDNO
+--where a.pdno='290000207'
+--where a.PDNO not like '%[a-z]%'
+--a.PDNO not like '%p%'
+--and a.PDNO not like '%sc%'
+--and a.PDNO='230009816' --for testing Purpose
+) a
+--where a.PDNO not like '%[a-z]%'
+--a.PDNO not like '%p%'
+--and a.PDNO not like '%sc%'
+--and a.PDNO='230009816' --for testing purpose
+group by WIP_Dt,company,PDNO,CWAR,MITM,OSTA
+
+
+--Actual
+
+insert  into production_plan_vs_actual
+select convert(date,TRDT) TRDT,a.COMPANY,
+ORNO,a.CWAR,item,0,0,
+sum(QSTK) as Actual_qty
+,0,0,sum(isnull(sls_price,0)) as sls_price,
+0
+--,sum(convert(float,isnull(c.QDLV,0))) as QDLV
+from 
+(select distinct company,PDNO,MITM from TTISFC001ALL )a1
+left outer join
+(select * from TWHINR110ALL where KOST=3 and KOOR=1
+and company in (select company from elgi_companies_master where companygroup='ELGI')
+--and ORNO not like '%[a-z]%'
+--ORNO not like '%p%'
+--and ORNO not like '%sc%'
+) a
+on a1.company=a.company
+and a1.PDNO=a.ORNO
+and ltrim(rtrim(a1.MITM))=ltrim(rtrim(a.item))
+
+left outer join
+(
+select a.Company,a.itemcode,max(Price) as sls_price  from Sales_Lines a
+inner join
+(select itemcode, max(deliverydate) as date  from Sales_Lines  group by itemcode) b
+on a.itemcode=b.itemcode 
+and a.deliverydate=b.date  
+group by a.Company,a.itemcode
+)b
+on a.COMPANY=b.Company 
+and	ltrim(rtrim(a.item))=ltrim(rtrim(b.itemcode))
+group by convert(date,TRDT),a.COMPANY,ORNO,a.CWAR,item
+order by convert(date,TRDT)
+
+
+
+insert  into production_plan_vs_actual
+select convert(date,CLDT) CLDT, --CLDT : Actual Closing Date
+a.COMPANY,PDNO,a.CWAR,MITM,0,0,
+sum(QRDR) as Actual_qty
+,0,0,0,0
+from TTISFC001ALL a 
+where company in (select company from elgi_companies_master where companygroup='ATS')
+AND OSTA=9
+
+--where a.PDNO not like '%[a-z]%'
+--a.PDNO not like '%p%'
+--and a.PDNO not like '%sc%'
+--and a.PDNO='261004462' --for testing purpose
+
+group by convert(date,CLDT),company,PDNO,CWAR,MITM,OSTA
+
+
+
+--Dispatch_qty
+
+
+Insert into production_plan_vs_actual
+SELECT convert(date,b.t_idat) t_idat,a.company,null as Prodorderno,c.WareHouse,t_item,
+0 as Planned_qty,0 as Released_qty,0 as Actual_qty,0 as WIP_qty,
+0 as avg_bud_price,0 as sls_price,sum(isnull(t_dqua,0)) t_dqua
+--t_cofc,Trantype,a.OrderNum,a.PositionNum,a.invnum,a.CustCode,a.t_rate_1 ,a.t_rate_2 ,a.t_txai,
+--sum(isnull(a.t_amth_1,0)) t_amth_1,sum(isnull(a.t_txah_1,0)) t_txah_1,sum(isnull(a.t_amti,0)) t_amti,sum(isnull(t_pric,0)),
+--sum(isnull(a.t_amth_1,0)),saletype
+FROM CI_Lines a
+inner join CI_Header b
+on a.Company=b.Company 
+and ltrim(rtrim(a.Trantype)) =ltrim(rtrim(b.Trantyp ))
+and ltrim(rtrim(a.invnum)) =ltrim(rtrim(b.invnum)) 
+inner join (select distinct Company,OrderNum,--PositionNum,
+WareHouse from Sales_Lines where ltrim(rtrim(WareHouse))<>'') c
+on  a.company=c.Company
+and a.OrderNum=c.OrderNum
+--and a.PositionNum=c.PositionNum
+--where ltrim(rtrim(a.t_item))= 'X990614'
+--and convert(date,b.t_idat) in ('2018-09-03','2018-09-05','2018-09-11','2018-09-12','2018-09-13','2018-09-14')
+group by convert(date,b.t_idat),a.company,c.WareHouse,t_item
+--t_cofc,Trantype,a.OrderNum,a.PositionNum,a.invnum,a.CustCode,t_item ,a.t_rate_1 ,a.t_rate_2 ,a.t_txai,saletype
+
+
+
+insert into ELGi_production_details(company,warehouse,item,itemdescr,Description,
+Prodorderno,date1,sls_price,Planned_qty,Released_qty,
+Actual_qty,WIP_qty,avg_bud_price,Dispatch_qty,CalMonth,CalYear,
+MonthPlan,Item_DayRnk,Item_MnthRnk,SalesOrderNo,
+CustCode,CustName)
+select a.company,a.warehouse,a.item,null as itemdescr,null as Description,
+a.Prodorderno,a.date1,sls_price,
+sum(a.Planned_qty) Planned_qty,
+sum(a.Released_qty) Released_qty,
+sum(a.Actual_qty) Actual_qty,
+sum(a.WIP_qty) WIP_qty,
+sum(a.avg_bud_price) avg_bud_price,
+sum(Dispatch_qty) Dispatch_qty,
+--,row_number() over(partition by a.company,a.warehouse,a.item,date1 order by a.company,a.warehouse,a.item,date1) as Rnk
+month(a.date1) as CalMonth,
+year(a.date1) as CalYear,
+null as MonthPlan,
+row_number() over(partition by a.company,a.warehouse,a.item,a.date1 order by a.company,a.warehouse,a.item,a.date1) as Item_DayRnk,
+row_number() over(partition by a.company,a.warehouse,a.item,year(a.date1),month(a.date1) 
+order by a.company,a.warehouse,a.item,year(a.date1),month(a.date1)) as Item_MnthRnk,
+null as SaleOrderno,null as CustCode,null as CustName
+from production_plan_vs_actual a
+where ltrim(rtrim(a.Warehouse))<>''
+group by a.company,a.warehouse,a.item,a.Prodorderno,a.date1,sls_price
+
+
+--Added on 10-Oct-2023
+delete from production_plan_vs_actual where date1<(select dateadd(yy,-1,getdate()-1))
+delete from ELGi_production_details where date1<(select dateadd(yy,-1,getdate()-1))
+
+
+
+update ELGi_production_details set OSTA=a.OSTA
+from TTISFC001ALL a
+where ELGi_production_details.company=a.COMPANY
+and ELGi_production_details.Prodorderno=a.PDNO
+
+
+update ELGi_production_details set FabNo=b.MSER
+from (select company,pdno,mitm,mser from ttimfc010all)b
+where ELGi_production_details.company=b.company
+and ELGi_production_details.prodorderno=b.pdno
+and ltrim(rtrim(ELGi_production_details.item))=ltrim(rtrim(b.mitm))
+
+update ELGi_production_details set PlanDelDate=a.delivery_date,OTADate=a.TARGET_OTA
+from (select distinct production_ord_no,delivery_date,TARGET_OTA from utn_ver1)a
+where ELGi_production_details.Prodorderno=a.production_ord_no
+and ELGi_production_details.company=401
+
+
+update ELGi_production_details set SalesOrderNo=a.SaleOrderno
+from(
+select distinct a.company,A.ORNO AS SaleOrderno,B.PDNO AS ProdOrderno 
+From TZZSFC254ALL A 
+Left outer join TZZSFC289ALL B
+on  a.Company=b.Company
+and a.ORNO =b.ORNO 
+and a.PONO =b.PONO
+and a.PUTN=b.PUTN
+--where a.ORNO='290000611' --for testing
+)a
+where ELGi_production_details.company=a.COMPANY
+and ELGi_production_details.Prodorderno=a.ProdOrderno
+
+update ELGi_production_details set CustCode=a.custcode,CustName=a.custname
+from (Select distinct company,OrderNo,custcode,custname from ELGi_Sales_Details)a
+where ELGi_production_details.company=a.COMPANY
+and ELGi_production_details.SalesOrderNo=a.OrderNo
+
+
+
+
+--Production order category
+
+----Method 1:
+--update ELGi_production_details set Description=b.Description
+--from (
+--select distinct a.company,Description,prd_from,prd_to from ELGi_Production_Master a
+--left outer join ELGi_AssemblyLine_Master b
+--on b.code = a.assemblycode
+--)b
+--where case when ELGi_production_details.Prodorderno like '%[a-z]%' then '0' else ELGi_production_details.Prodorderno end 
+--between case when b.prd_from like '%[a-z]%' then '0' else b.prd_from end 
+--and case when b.prd_to like '%[a-z]%' then '0' else b.prd_to end  
+--and ELGi_production_details.company = b.company
+
+
+--Method 2:
+update ELGi_production_details set Description=b.Description
+from (
+select distinct a.company,Description,prd_from,prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+)b
+where ELGi_production_details.Prodorderno between b.prd_from  and b.prd_to
+and ELGi_production_details.company = b.company
+
+
+update ELGi_production_details set Description='PVD' where company=470 and Prodorderno like '%[a-z]%'
+update ELGi_production_details set Description='Motor Division' where company=480
+
+delete from ELGi_production_details where Prodorderno like '%[a-z]%' and company not in (470,401)
+delete from ELGi_production_details where Prodorderno not like '%PRO%' and company = 470
+
+
+--select * from production_RLY_Master
+--RLY-KitAssy: select * from ELGi_production_details where Prodorderno between 540000001 and 549999999 and company=401
+
+--Since Dispatch details are not related to production orders, Productgroup is missing and needs to be updated
+update ELGi_production_details set Description=a.Description
+from (select distinct company,warehouse,item,Description from  ELGi_production_details 
+where Description is not null)a
+where ELGi_production_details.company=a.company
+and ELGi_production_details.warehouse=a.warehouse
+and ELGi_production_details.item=a.item
+and ELGi_production_details.Description is null
+
+update ELGi_production_details set Description='RLY-Spares' where warehouse='561' and Description='Railways'
+--update ELGi_production_details set Description='Others' where Prodorderno like '901%' and Description='TOPBLOCK'
+update ELGi_production_details set Description='Others' where Prodorderno like '991%' and Description='TOPBLOCK'
+
+
+--New Method
+Insert into ELGi_production_details(company,Warehouse,Item,calyear,calmonth,MonthPlan,date1)
+select '600' as Company,Warehouse,itemcode,calyear,calmonth,production_plan,
+convert(date,concat(convert(varchar,calyear),'-',RIGHT('00'+CAST(CalMonth AS VARCHAR(2)),2),'-01')) as PlanDate
+from Ats_Production_Plan_Master
+
+
+
+--Old Method
+--update ELGi_production_details set MonthPlan=b.Production_Plan
+--from (select itemcode,production_plan,calmonth,calyear from Ats_Production_Plan_Master)b
+--where ltrim(rtrim(ELGi_production_details.item))=ltrim(rtrim(b.ItemCode))
+--and ELGi_production_details.calmonth=b.calmonth
+--and ELGi_production_details.calyear=b.calyear
+
+--update ELGi_production_details set MonthPlan=null where Item_MnthRnk <>1 and MonthPlan is not null
+
+--Item Description
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where ELGi_production_details.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where ELGi_production_details.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.ITEM))
+
+
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001470 a
+where ELGi_production_details.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.ITEM))
+
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where ELGi_production_details.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.item))
+
+
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where ELGi_production_details.company =551
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.item))
+
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where ELGi_production_details.company =552
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.item))
+
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where ELGi_production_details.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_production_details set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where ELGi_production_details.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(ELGi_production_details.Item))=ltrim(rtrim(a.item))
+
+update ELGi_production_details set description='Others' where description is null
+
+
+--Removing Sub Assembly Parts in 470 Company
+
+delete from ELGi_production_details where 
+company =470 and 
+ltrim(rtrim(item)) in 
+('20228160','20228270','20364840','20228080','20364830','34030395A','20227680','20228200','340305550','20365950',
+'340200820','340303440','340303640','20226950','34030395B','20226410','20230030','15301557','15306446','15304819',
+'15311262','15306791','15312211','15306841','15308240','15308241','15307935','15307870','15311337','15310632',
+'15303598','15303309','15308468','15308469','35301147','35301161','35302748','35302194','35302707','35301797',
+'35302127','15314209','15314208','15305437')
+
+
+--Removing 553 warehouse details 
+delete from ELGi_production_details where company=401 and warehouse='553'
+
+delete from ELGi_production_details where description='AIREND' and Prodorderno like '991%'
+
+
+delete from ELGi_production_details where warehouse in ('253','212') and Description in ('Lepsac','Dpsac','OFSAC')
+--delete from ELGi_production_details  where description='LEPSAC' and warehouse in ('257') --commented as requested on 09-12-2020
+
+
+delete from ELGi_production_details  where description='SEPSAC' and 
+--warehouse not in ('157','257','A57','C57','E57','L57','W57','T57','D57') --Commented on 18-06-2025
+warehouse not like '%57' and len(warehouse)=3
+
+delete from ELGi_production_details  where description='Encap' and 
+--warehouse not in ('157','257','A57','C57','E57','L57','W57','T57','D57') --Commented on 18-06-2025
+warehouse not like '%57' and len(warehouse)=3
+
+
+delete from ELGi_production_details where Description like 'TOPBLOCK%'
+and warehouse='174' --and Prodorderno like '901%' --Commented on 01-Mar-2023
+
+
+delete from ELGi_production_details where Description like 'TOPBLOCK%'
+and warehouse='274' and ltrim(rtrim(item)) not like 'x%'
+
+
+delete from elgi_production_details where description='Lepsac' and prodorderno not between 
+(select distinct prd_from from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+where Description='Lepsac'
+)
+and 
+(select distinct prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+where Description='Lepsac'
+)
+
+delete from elgi_production_details where description='ofsac' and prodorderno not between 
+(select distinct prd_from from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+where Description='ofsac'
+)
+and 
+(select distinct prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+where Description='ofsac'
+)
+
+delete from elgi_production_details where description='dpsac' and prodorderno not between 
+(select distinct prd_from from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+where Description='dpsac'
+)
+and 
+(select distinct prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+where Description='dpsac'
+)
+
+
+--Alter table ELGi_production_details add LineNum nvarchar(10)
+--Alter table ELGi_production_details add Line nvarchar(20)
+--Alter table ELGi_production_details add SubLineNum nvarchar(10)
+--Alter table ELGi_production_details add SubLine nvarchar(20)
+--Alter table ELGi_production_details add RegionNum nvarchar(10)
+--Alter table ELGi_production_details add CompName nvarchar(25)
+
+update ELGi_production_details set LineNum=a.LINE,SubLineNum=a.SUBL,RegionNum=a.REGN
+from TZZSFC270ALL a
+where ltrim(rtrim(ELGi_production_details.item))=ltrim(rtrim(a.MITM))
+
+update ELGi_production_details set Line=a.Line
+from vw_Item_Line_Master a
+where ELGi_production_details.Description in ('SEPSAC','Encap')
+and ELGi_production_details.LineNum=a.LineNum
+
+
+update ELGi_production_details set SubLine=a.SubLine
+from vw_Item_SubLine_Master a
+where ELGi_production_details.Description in ('SEPSAC','Encap')
+and ELGi_production_details.SubLineNum=a.SubLineNum
+
+update ELGi_production_details set Line='C&M' where Description like '%DPSAC%' and warehouse like '%D57%'
+update ELGi_production_details set Line='WW' where Description like '%DPSAC%' and warehouse like '%M57%'
+update ELGi_production_details set Line='ME' where Description like '%DPSAC%' and warehouse like '%157%'
+update ELGi_production_details set Line='US' where Description like '%DPSAC%' and warehouse like '%A57%'
+update ELGi_production_details set Line='ID' where Description like '%DPSAC%' and warehouse like '%W57%'
+
+update ELGi_production_details set Line='NA' where Description not in ('DPSAC','ENCAP','SEPSAC') and line is null
+
+
+update ELGi_production_details set CompName='COMPRESSOR CENTER' where company=401
+update ELGi_production_details set CompName='AIR CENTER' where company=450
+update ELGi_production_details set CompName='PVD' where company=470
+update ELGi_production_details set CompName='Motor Division' where company=480
+-----------------
+
+
+--Truncate table WIP_Ageing
+Insert into WIP_Ageing 
+--select * into WIP_Ageing from (
+select company,warehouse,item,itemdescr,Description,Prodorderno,
+date1,WIPPendingDays,NationalHolidays,Days_in_WIP,Esclvl1,
+Esclvl2,Escalationlevel,
+ROW_NUMBER() over (partition by Escalationlevel order by date1) as rownum,
+null as Escl_Comments,null as FabNo,null as PlanDelDate,null as OTADate,
+WIP_qty
+from (
+select *,Esclvl1+Esclvl2 as Escalationlevel from (
+select *,WIPPendingDays-NationalHolidays as Days_in_WIP,
+case when Description='Lepsac' and WIPPendingDays-NationalHolidays =3 then 1 
+when Description='OFSAC' and WIPPendingDays-NationalHolidays =3 then 1
+when Description='Dpsac' and WIPPendingDays-NationalHolidays =2 then 1
+when Description='Encap' and WIPPendingDays-NationalHolidays =2 then 1
+when Description='Sepsac' and WIPPendingDays-NationalHolidays =2 then 1
+when Description like '%RCD%' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like '%ENGC%' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like 'PVD' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like 'Airend' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like 'TOPBLOCK' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like 'Motor Division' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like 'Others' and WIPPendingDays-NationalHolidays =1 then 1
+else 0 end as Esclvl1,
+case when Description='Lepsac' and WIPPendingDays-NationalHolidays >=4 then 2 
+when Description='OFSAC' and WIPPendingDays-NationalHolidays >=4 then 2
+when Description='Dpsac' and WIPPendingDays-NationalHolidays >=3 then 2
+when Description='Encap' and WIPPendingDays-NationalHolidays >2 then 2
+when Description='Sepsac' and WIPPendingDays-NationalHolidays >2 then 2
+when Description like '%RCD%' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like '%ENGC%' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like 'PVD' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like 'Airend' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like 'TOPBLOCK' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like 'Motor Division' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like 'Others' and WIPPendingDays-NationalHolidays >1 then 2
+else 0 end as Esclvl2
+
+
+--case when WIPPendingDays-NationalHolidays >=6  then 1 else 0   end as Esclvl3
+from (
+select company,warehouse,item,itemdescr,Description,Prodorderno,date1,
+(DATEDIFF(dd, date1, getdate()-1) + 1)
+-(DATEDIFF(wk, date1, getdate()-1) * 2)
+-(CASE WHEN DATENAME(dw, date1) = 'Sunday' THEN 1 ELSE 0 END)
+-(CASE WHEN DATENAME(dw, getdate()-1) = 'Saturday' THEN 1 ELSE 0 END) as WIPPendingDays,
+
+(select count(*) from TTCCCP020400 
+where --datepart(dw,date) not in(1,7) and 
+DFCA='4'
+and date between date1 and getdate()-1) as NationalHolidays,
+WIP_qty
+from ELGi_production_details 
+where WIP_qty<>0
+)a
+)b
+)c
+--)d
+
+
+
+update WIP_Ageing set FabNo=b.MSER
+from (select company,pdno,mitm,mser from ttimfc010all)b
+where WIP_Ageing.company=b.company
+and WIP_Ageing.prodorderno=b.pdno
+and ltrim(rtrim(WIP_Ageing.item))=ltrim(rtrim(b.mitm))
+
+update WIP_Ageing set PlanDelDate=a.delivery_date,OTADate=a.TARGET_OTA
+from (select distinct production_ord_no,delivery_date,TARGET_OTA from utn_ver1)a
+where WIP_Ageing.Prodorderno=a.production_ord_no
+and WIP_Ageing.company=401
+
+
+delete from WIP_Ageing where Prodorderno not between 300000000 and 309999999
+and Description = 'RCD Unit Assy'
+
+
+update WIP_Ageing set Escl_Comments='To be Closed Today' where Escalationlevel=1
+update WIP_Ageing set Escl_Comments='Exceeding 4 Days' where Escalationlevel=2 and Description='Lepsac'
+update WIP_Ageing set Escl_Comments='Exceeding 4 Days' where Escalationlevel=2 and Description='OFSAC'
+update WIP_Ageing set Escl_Comments='Exceeding 3 Days' where Escalationlevel=2 and Description='Dpsac'
+update WIP_Ageing set Escl_Comments='Exceeding 2 Days' where Escalationlevel=2 and Description='Encap'
+update WIP_Ageing set Escl_Comments='Exceeding 2 Days' where Escalationlevel=2 and Description='Sepsac'
+update WIP_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description like '%RCD%'
+update WIP_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description like '%ENGC%'
+update WIP_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description like '%PVD%'
+update WIP_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description = 'Airend'
+update WIP_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description = 'TOPBLOCK'
+update WIP_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description = 'Motor Division'
+update WIP_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description = 'Others'
+
+
+--To Be Completed Ageing
+--Truncate table To_be_Completed_Ageing 
+Insert into To_be_Completed_Ageing 
+--select * into WIP_Ageing from (
+select *,ROW_NUMBER() over (partition by Escalationlevel order by cmdt) as rownum,
+null as Escl_Comments,null as FabNo,null as PlanDelDate,null as OTADate
+from (
+select *,Esclvl1+Esclvl2 as Escalationlevel from (
+select *,WIPPendingDays-NationalHolidays as Days_in_WIP,
+case when Description='Lepsac' and WIPPendingDays-NationalHolidays =3 then 1 
+when Description='OFSAC' and WIPPendingDays-NationalHolidays =3 then 1
+when Description='Dpsac' and WIPPendingDays-NationalHolidays =2 then 1
+when Description='Encap' and WIPPendingDays-NationalHolidays =2 then 1
+when Description='Sepsac' and WIPPendingDays-NationalHolidays =2 then 1
+when Description like '%RCD%' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like '%ENGC%' and WIPPendingDays-NationalHolidays =1 then 1
+when Description like 'PVD' and WIPPendingDays-NationalHolidays =1 then 1
+else 0 end as Esclvl1,
+case when Description='Lepsac' and WIPPendingDays-NationalHolidays >=4 then 2 
+when Description='OFSAC' and WIPPendingDays-NationalHolidays >=4 then 2
+when Description='Dpsac' and WIPPendingDays-NationalHolidays >=3 then 2
+when Description='Encap' and WIPPendingDays-NationalHolidays >2 then 2
+when Description='Sepsac' and WIPPendingDays-NationalHolidays >2 then 2
+when Description like '%RCD%' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like '%ENGC%' and WIPPendingDays-NationalHolidays >1 then 2
+when Description like 'PVD' and WIPPendingDays-NationalHolidays >1 then 2
+else 0 end as Esclvl2
+
+
+--case when WIPPendingDays-NationalHolidays >=6  then 1 else 0   end as Esclvl3
+from (
+select distinct a.company,warehouse,item,itemdescr,Description,Prodorderno,b.cmdt,
+(DATEDIFF(dd, b.cmdt, getdate()-1) + 1)
+-(DATEDIFF(wk, b.cmdt, getdate()-1) * 2)
+-(CASE WHEN DATENAME(dw, b.cmdt) = 'Sunday' THEN 1 ELSE 0 END)
+-(CASE WHEN DATENAME(dw, getdate()-1) = 'Saturday' THEN 1 ELSE 0 END) as WIPPendingDays,
+
+(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between b.cmdt and getdate()-1) as NationalHolidays
+
+from ELGi_production_details a
+left outer join (select distinct COMPANY,pdno,convert(date,cmdt) cmdt from TTISFC001ALL) b
+on a.company=b.COMPANY
+and a.Prodorderno=b.PDNO
+where a.OSTA=7 
+--Old Method
+--and date1 in (select max(date1) from ELGi_production_details b
+--where b.Prodorderno=a.Prodorderno)
+
+)a
+)b
+)c
+--)d
+
+
+
+update To_be_Completed_Ageing set FabNo=b.MSER
+from (select company,pdno,mitm,mser from ttimfc010all)b
+where To_be_Completed_Ageing.company=b.company
+and To_be_Completed_Ageing.prodorderno=b.pdno
+and ltrim(rtrim(To_be_Completed_Ageing.item))=ltrim(rtrim(b.mitm))
+
+update To_be_Completed_Ageing set PlanDelDate=a.delivery_date,OTADate=a.TARGET_OTA
+from (select distinct production_ord_no,delivery_date,TARGET_OTA from utn_ver1)a
+where To_be_Completed_Ageing.Prodorderno=a.production_ord_no
+and To_be_Completed_Ageing.company=401
+
+
+delete from To_be_Completed_Ageing where Prodorderno not between 300000000 and 309999999
+and Description = 'RCD Unit Assy'
+
+
+update To_be_Completed_Ageing set Escl_Comments='To be Closed Today' where Escalationlevel=1
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 4 Days' where Escalationlevel=2 and Description='Lepsac'
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 4 Days' where Escalationlevel=2 and Description='OFSAC'
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 3 Days' where Escalationlevel=2 and Description='Dpsac'
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 2 Days' where Escalationlevel=2 and Description='Encap'
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 2 Days' where Escalationlevel=2 and Description='Sepsac'
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description like '%RCD%'
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description like '%ENGC%'
+update To_be_Completed_Ageing set Escl_Comments='Exceeding 1 Day' where Escalationlevel=2 and Description like '%PVD%'
+
+
+
+------------------
+
+
+--Removing Accessories items coming under the LEPSAC Production Order series
+
+Insert into LEPSAC_Items_Tmp1 
+select * from
+(select ltrim(rtrim(item)) ItemCode from ELGi_production_details where Description in
+('Lepsac','OFSAC') and ltrim(rtrim(itemdescr)) like 'EG%'
+union
+select ltrim(rtrim(item)) from ELGi_production_details where Description in 
+('Lepsac','OFSAC') and ltrim(rtrim(itemdescr)) like 'PG%'
+union
+select ltrim(rtrim(item)) from ELGi_production_details where Description in 
+('Lepsac','OFSAC') and ltrim(rtrim(itemdescr)) like 'EE%'
+)a
+
+Insert into LEPSAC_Items_Tmp1 
+select * from
+(select ltrim(rtrim(item)) ItemCode from ELGi_production_details where Description in
+('Lepsac','OFSAC') and ltrim(rtrim(itemdescr)) like 'AB%'
+)a
+
+
+
+--Commented As requested by Sasikumar from Production Team 
+--update ELGi_production_details set Description='Oil Filters'
+--from vw_Oil_Filter_Items a
+--where ltrim(rtrim(ELGi_production_details.item))=ltrim(rtrim(a.itemcode))
+--and ELGi_production_details.Description= 'Kit  Accessories'
+
+
+--update ELGi_production_details set Description='Oil Filters'
+--from vw_Oil_Filter_Items a
+--where Prodorderno between '280000001' and '289999999'
+--and ltrim(rtrim(item)) =ltrim(rtrim(a.Itemcode))
+
+
+
+
+delete from ELGi_production_details where Description='Lepsac' and ltrim(rtrim(item)) not in (select * from LEPSAC_Items_Tmp1)
+delete from ELGi_production_details where Description in ('Lepsac','OFSAC') and itemdescr like '%manual%'
+delete from ELGi_production_details where Description ='OFSAC' and itemdescr not like 'of%'
+delete from ELGi_production_details  where description='RCD Unit Assy' and warehouse='353'
+delete from ELGi_production_details  where description='RCD BoreWell' and warehouse='353'
+delete from ELGi_production_details  where description='RCD Spares' and warehouse='353'
+delete from ELGi_production_details  where description='ENGC ' and warehouse in ('353','453')
+delete from ELGi_production_details  where description='OE Assy' and warehouse in ('353')
+delete from ELGi_production_details  where description='Railways' and warehouse in ('353')
+delete from ELGi_production_details  where description='Airend' and warehouse not in ('174','274','B74')
+delete from ELGi_production_details where date1 is null
+
+
+--Tracking Production order series for which Deescription is Updated as 'Others'
+
+--select distinct company,substring(convert(varchar,prodorderno),1,3) from ELGi_Production_details
+--where description ='Others'
+--order by company,substring(convert(varchar,prodorderno),1,3)
+
+--select  * from ELGi_Production_Master where substring(convert(varchar,prd_from),1,3) 
+--in ('202','240','250','141','851','863','871','991','100','200','300','400','500','700','131','261','281','301',
+--'331','351','411','451','481','491','671','713','815','824','421','827')
+
+--select * from ELGi_Production_details where  description ='Others' and substring(convert(varchar,prodorderno),1,3)='500'
+
+
+
+insert into ELGi_Production_Backlogs(company,warehouse,item,itemdescr,Description,Prodorderno,
+date1,Planned_qty,Released_qty,Actual_qty,WIP_qty,avg_bud_price,sls_price)
+select company,warehouse,item,itemdescr,Description,Prodorderno,date1,Planned_qty,Released_qty,
+Actual_qty,WIP_qty,avg_bud_price,sls_price from ELGi_production_details where date1<
+convert(date,concat(year(getdate()-1),'-',RIGHT('00'+CAST(month(getdate()-1) AS VARCHAR(2)),2),'-01'))
+and Description<>'Others'
+and Prodorderno not in (select pdno from TTISFC001ALL where osta in (7,8,9) and company like '4%')
+--and Prodorderno in 
+--(
+--select Prodorderno from ELGi_production_details
+--where date1<convert(date,concat(year(getdate()-1),'-',RIGHT('00'+CAST(month(getdate()-1) AS VARCHAR(2)),2),'-01'))
+--group by Prodorderno 
+--having sum(Actual_qty)=0
+--)
+
+
+
+------------------------------------Cancelled Production orders----------------------------------------------------------
+
+--Alter table PDNO_CANCELLED add [USER] nvarchar(24)
+--Truncate table PDNO_CANCELLED
+
+
+
+INSERT INTO PDNO_CANCELLED(DATE,COMPANY,ITEMCODE,ITEM_DESC,PDNO,AssemblyLine,
+[USER],QRDR)
+--SELECT * INTO PDNO_CANCELLED FROM(
+select DATE,COMPANY,MITM as ITEMCODE,null as ITEM_DESC,PDNO,null as AssemblyLine,[USER],QRDR
+from TTICST151ALL  
+where ACTN=30 
+--and convert(date,date)=convert(date,getdate()-1)
+and year([date])=year(getdate()-1)
+and month([date])=month(getdate()-1)
+--)A
+
+update PDNO_CANCELLED set [user]=concat([user],'-',a.emp_name)
+from [ELGi_Intranet].dbo.Employee_Detail a
+where PDNO_CANCELLED.[user]=a.new_emp_code
+and PDNO_CANCELLED.[user] not like '%[a-z]%'
+
+
+--Item Description
+update PDNO_CANCELLED set ITEM_DESC=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where PDNO_CANCELLED.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(PDNO_CANCELLED.ITEMCODE))=ltrim(rtrim(a.t_item))
+
+
+update PDNO_CANCELLED set ITEM_DESC=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where PDNO_CANCELLED.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(PDNO_CANCELLED.ITEMCODE))=ltrim(rtrim(a.ITEM))
+
+
+update PDNO_CANCELLED set ITEM_DESC=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where PDNO_CANCELLED.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(PDNO_CANCELLED.ITEMCODE))=ltrim(rtrim(a.item))
+
+
+update PDNO_CANCELLED set ITEM_DESC=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where PDNO_CANCELLED.company =551
+and ltrim(rtrim(PDNO_CANCELLED.ITEMCODE))=ltrim(rtrim(a.item))
+
+update PDNO_CANCELLED set ITEM_DESC=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where PDNO_CANCELLED.company =552
+and ltrim(rtrim(PDNO_CANCELLED.ITEMCODE))=ltrim(rtrim(a.item))
+
+update PDNO_CANCELLED set ITEM_DESC=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where PDNO_CANCELLED.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(PDNO_CANCELLED.ITEMCODE))=ltrim(rtrim(a.t_item))
+
+
+update PDNO_CANCELLED set ITEM_DESC=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where PDNO_CANCELLED.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(PDNO_CANCELLED.ITEMCODE))=ltrim(rtrim(a.item))
+
+delete from PDNO_CANCELLED where PDNO like '%[a-z]%'
+
+--Production order category
+update PDNO_CANCELLED set AssemblyLine=b.Description
+from (
+select distinct a.company,Description,prd_from,prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+)b
+where PDNO_CANCELLED.PDNO between b.prd_from and b.prd_to  
+and PDNO_CANCELLED.company = b.company
+
+
+--Alter table PDNO_CANCELLED add DEM varchar(20)
+--Alter table PDNO_CANCELLED add RDLD date
+
+update PDNO_CANCELLED set DEM='Yes'
+where ltrim(rtrim(ITEMCODE)) in (select distinct ltrim(rtrim(ITEMCODE)) from OTA_TPL_MASTER
+where Year=year(getdate()-1)
+and month=month(getdate()-1)
+)
+
+update PDNO_CANCELLED set RDLD=a.RDLD
+from (select distinct COMPANY,PDNO,RDLD from TTICST151ALL)a
+where PDNO_CANCELLED.company=a.company
+and PDNO_CANCELLED.PDNO=a.PDNO
+
+----------------------------End: Cancelled Production orders----------------------------------------------------------
+
+
+-------------------------------------Production_ALC-------------------------------------------------------------------
+
+Truncate Table Production_ALCdate_Temp
+Truncate Table Production_ALC
+Truncate Table Production_ALC_Tmp
+
+
+Insert into Production_ALCdate_Temp
+select distinct Description,Releasedt from (
+select distinct Description,
+case when Description like '%RCD%' then dbo.UFN_Production_ALCStartDate(2)
+when Description like '%ENGC%' then dbo.UFN_Production_ALCStartDate(2)
+when Description like '%DPSAC%' then dbo.UFN_Production_ALCStartDate(4)
+when Description like '%PVD%' then dbo.UFN_Production_ALCStartDate(2)
+when Description like '%Motor Division%' then dbo.UFN_Production_ALCStartDate(2)
+else null end as Releasedt
+from 
+(select distinct Description from elgi_production_details)a)b
+where Releasedt is not null
+
+
+
+insert into Production_ALC(company,warehouse,item,itemdescr,Description,Prodorderno)
+select distinct company,warehouse,item,itemdescr,Description,Prodorderno
+from elgi_production_details a
+where Description in (select assemblyline from Production_ALCdate_Temp)
+
+
+update Production_ALC set PlannedDt=a.date1
+from (select distinct company,warehouse,item,itemdescr,Description,Prodorderno,date1
+from elgi_production_details where Planned_qty>0)a
+where Production_ALC.company=a.company
+and Production_ALC.warehouse=a.warehouse
+and Production_ALC.item=a.item
+and Production_ALC.prodorderno=a.Prodorderno
+
+
+update Production_ALC set ReleaseDt=a.date1
+from (select distinct company,warehouse,item,itemdescr,Description,Prodorderno,date1
+from elgi_production_details where Released_qty>0)a
+where Production_ALC.company=a.company
+and Production_ALC.warehouse=a.warehouse
+and Production_ALC.item=a.item
+and Production_ALC.prodorderno=a.Prodorderno
+
+
+update Production_ALC set WIPDt=a.date1
+from (select distinct company,warehouse,item,itemdescr,Description,Prodorderno,date1
+from elgi_production_details where WIP_qty>0)a
+where Production_ALC.company=a.company
+and Production_ALC.warehouse=a.warehouse
+and Production_ALC.item=a.item
+and Production_ALC.prodorderno=a.Prodorderno
+
+
+update Production_ALC set ActualDt=a.date1
+from (select distinct company,warehouse,item,itemdescr,Description,Prodorderno,date1
+from elgi_production_details where Actual_qty>0)a
+where Production_ALC.company=a.company
+and Production_ALC.warehouse=a.warehouse
+and Production_ALC.item=a.item
+and Production_ALC.prodorderno=a.Prodorderno
+
+
+update Production_ALC set DaysDiff=a.DaysDiff,
+NationalHolidays=a.NationalHolidays
+from (select company,warehouse,item,itemdescr,Description,Prodorderno,
+(DATEDIFF(dd, ReleaseDt, ActualDt) + 1)
+-(DATEDIFF(wk, ReleaseDt, ActualDt) * 2)
+-(CASE WHEN DATENAME(dw, ReleaseDt) = 'Sunday' THEN 1 ELSE 0 END)
+-(CASE WHEN DATENAME(dw, ActualDt) = 'Saturday' THEN 1 ELSE 0 END) as DaysDiff,
+(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between ReleaseDt and ActualDt) as NationalHolidays
+from Production_ALC
+)a
+where Production_ALC.company=a.company
+and Production_ALC.warehouse=a.warehouse
+and Production_ALC.item=a.item
+and Production_ALC.prodorderno=a.Prodorderno
+
+
+delete from Production_ALC where Prodorderno not between 300000000 and 309999999
+and Description = 'RCD Unit Assy'
+
+
+Insert into Production_ALC_Tmp
+--select * into Production_ALC_Tmp from Production_ALC
+select a.* from Production_ALC a
+inner join Production_ALCdate_Temp b
+on a.Description=b.AssemblyLine
+and a.ReleaseDt=b.ALCdate
+
+Truncate table Production_ALC
+Insert into Production_ALC
+select * from Production_ALC_Tmp
+
+update Production_ALC set ALCDays=DaysDiff-NationalHolidays
+update Production_ALC set ALCPercentage=100 where ALCDays<=2 and Description  like '%RCD%'
+update Production_ALC set ALCPercentage=100 where ALCDays<=2 and Description  like '%ENGC%'
+update Production_ALC set ALCPercentage=0 where ALCDays>2 and Description  like '%RCD%'
+update Production_ALC set ALCPercentage=0 where ALCDays>2 and Description  like '%ENGC%'
+update Production_ALC set ALCPercentage=100 where ALCDays<=4 and Description  like '%DPSAC%'
+update Production_ALC set ALCPercentage=0 where ALCDays>4 and Description  like '%DPSAC%'
+update Production_ALC set ALCPercentage=100 where ALCDays<=2 and Description  like '%PVD%'
+update Production_ALC set ALCPercentage=0 where ALCDays>2 and Description  like '%PVD%'
+update Production_ALC set ALCPercentage=100 where ALCDays<=2 and Description  like '%Motor Division%'
+update Production_ALC set ALCPercentage=0 where ALCDays>2 and Description  like '%Motor Division%'
+
+update Production_ALC set ALCPercentage=0 where ALCPercentage is null
+
+
+
+----------------------------------End : Production_ALC----------------------------------------------------------------
+
+
+
+------------------------------------------Production Summary----------------------------------------------------------
+
+
+Truncate table Production_Summary
+--Truncate table Production_Summary_Temp
+
+
+--Insert into Production_Summary_Temp
+--select Prodorderno from ELGi_production_details group by Prodorderno having sum(Actual_qty) <>0
+
+
+
+--Alter table Production_Summary add CustCode	varchar(25)
+--Alter table Production_Summary add CustName	varchar(50)
+--Alter table Production_Summary add Rnk	int
+
+Insert into Production_Summary(Description,company,warehouse,item,itemdescr,CustCode,CustName,Rnk)
+--select * into Production_Summary from (
+select distinct Description,company,warehouse,item,itemdescr,CustCode,CustName,
+row_number() over(partition by company,warehouse,item order by company,warehouse,item) as Rnk 
+from ELGi_production_details
+where Description in ('DPSAC','Lepsac','Kit  Accessories','Railways')
+--)a
+
+--Planned Qty(till this Month end)
+
+update Production_Summary set plan_qty=a.Planned_qty
+from (
+select Description,company,warehouse,item,sum(Planned_qty) Planned_qty from (
+select Description,company,warehouse,item,date1,Prodorderno,custcode,
+sum(Planned_qty) Planned_qty,
+sum(Actual_qty) Actual_qty
+from ELGi_production_details 
+where --Prodorderno between'230000000'	and '239999999' and 
+date1 between dateadd(MM,datediff(MM,0,getdate()-1),0)  and EOMONTH(getdate()-1)
+--and Prodorderno not in (select distinct Prodorderno from Production_Summary_Temp)
+--and Prodorderno not in (select pdno from TTISFC001ALL where osta in (6,7,8,9)) 
+and osta not in (6,7,8,9)
+and Planned_qty<>0
+group by Description,company,warehouse,item,date1,Prodorderno,custcode
+)a
+group by Description,company,warehouse,item
+)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.item))
+and Production_Summary.Description=a.Description
+--and isnull(Production_Summary.CustCode,'0')=isnull(a.CustCode,'0')
+and Production_Summary.Rnk=1
+
+
+--Backlog Qty (Less than Current Date)
+
+update Production_Summary set Backlog_qty=a.Planned_qty
+from (
+select Description,company,warehouse,item,sum(Planned_qty) Planned_qty from (
+select Description,company,warehouse,item,date1,Prodorderno,custcode,
+sum(Planned_qty) Planned_qty,
+sum(Actual_qty) Actual_qty
+from ELGi_production_details 
+where --Prodorderno between'230000000'	and '239999999' and 
+date1 <getdate()-1
+--and Prodorderno not in (select distinct Prodorderno from Production_Summary_Temp)
+and Prodorderno in (select pdno from TTISFC001ALL where osta in (1,2,3))
+group by Description,company,warehouse,item,date1,Prodorderno,custcode
+)a
+group by Description,company,warehouse,item
+)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.item))
+and Production_Summary.Description=a.Description
+--and isnull(Production_Summary.CustCode,'0')=isnull(a.CustCode,'0')
+and Production_Summary.Rnk=1
+
+--WIP Qty (Current date)
+
+update Production_Summary set WIP_qty=a.WIP_qty
+from (
+select Description,company,warehouse,item,sum(WIP_qty) WIP_qty from (
+select Description,company,warehouse,item,date1,Prodorderno,
+sum(WIP_qty) WIP_qty
+from ELGi_production_details 
+where --Prodorderno between'230000000'	and '239999999' and 
+date1 <getdate()-1
+group by Description,company,warehouse,item,date1,Prodorderno
+having sum(WIP_qty) <>0
+)a
+group by Description,company,warehouse,item
+)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.item))
+and Production_Summary.Description=a.Description
+--and isnull(Production_Summary.CustCode,'0')=isnull(a.CustCode,'0')
+and Production_Summary.Rnk=1
+
+
+--Actual Qty
+--Alter table Production_Summary add Actual_qty float
+
+update Production_Summary set Actual_qty=a.Actual_qty
+from (
+select Description,company,warehouse,item,sum(Actual_qty) Actual_qty from (
+select Description,company,warehouse,item,date1,Prodorderno,
+sum(Actual_qty) Actual_qty
+from ELGi_production_details 
+where --Prodorderno between'230000000'	and '239999999' and 
+month(date1) =month(getdate()-1)
+and year(date1)=year(getdate()-1)
+group by Description,company,warehouse,item,date1,Prodorderno
+having sum(Actual_qty) <>0
+)a
+group by Description,company,warehouse,item
+)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.item))
+and Production_Summary.Description=a.Description
+--and isnull(Production_Summary.CustCode,'0')=isnull(a.CustCode,'0')
+and Production_Summary.Rnk=1
+
+
+
+
+--MTD_sls_qty (From 1st to Current Date of the Current Month)
+
+update Production_Summary set MTD_sls_qty=a.DeliveryQty
+from (
+select company,warehouse,Item,sum(DeliveryQty) DeliveryQty from ELGi_Sales_Details 
+where Invoice_Date>=dateadd(dd,-day(EOMONTH(getdate()-1))+1,EOMONTH(getdate()-1))
+group by company,warehouse,Item
+)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+--and isnull(Production_Summary.CustCode,'0')=isnull(a.CustCode,'0')
+and Production_Summary.Rnk=1
+
+
+update Production_Summary set Avg_Sales_amount=a.Avg_Sales_amount
+from (
+select company,Item,sum(Sales_amount)/(sum(DeliveryQty)+0.01) Avg_Sales_amount 
+from ELGi_Sales_Details 
+group by company,Item
+)a
+where Production_Summary.company=a.COMPANY
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+
+
+
+--FG Qty (Till Current Date)
+
+--update Production_Summary set FG_qty=a.QHND
+--from (
+--select COMPANY,CWAR,ITEM,sum(QHND) QHND from TWHLTC500ALL
+--where convert(date,IDAT)=convert(date,GETDATE()-1)
+--group by COMPANY,CWAR,ITEM
+--)a
+--where 
+----Production_Summary.company=a.COMPANY
+----and Production_Summary.warehouse=a.CWAR and 
+--ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+
+--New Method
+update Production_Summary set FG_qty=a.QSKT
+from (
+select COMPANY,CWAR,ITEM,sum(QSKT) QSKT from fg_inventory
+where convert(date,TRDT)<=convert(date,GETDATE()-1)
+group by COMPANY,CWAR,ITEM
+)a
+where 
+Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.CWAR 
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+and Production_Summary.Rnk=1
+
+update Production_Summary set Month_sls_plan_qty=a.PRODUCTION_PLAN
+from
+(select * from ELGi_Production_Plan_Master where CalMonth=month(getdate()-1) and CalYear=year(getdate()-1))a
+where Production_Summary.company=a.Company
+and Production_Summary.warehouse=a.Warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.ItemCode))
+and Production_Summary.Rnk=1
+
+update Production_Summary set FutureOrders=a.Planned_qty
+from (
+select Description,company,warehouse,item,sum(Planned_qty) Planned_qty from (
+select Description,company,warehouse,item,date1,Prodorderno,
+sum(Planned_qty) Planned_qty,
+sum(Actual_qty) Actual_qty
+from ELGi_production_details 
+where --Prodorderno between'230000000'	and '239999999' and 
+date1 >EOMONTH(getdate()-1)
+and Prodorderno not in (select pdno from TTISFC001ALL where osta in (7,8,9))
+and Planned_qty<>0
+group by Description,company,warehouse,item,date1,Prodorderno
+)a
+group by Description,company,warehouse,item
+)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.item))
+and Production_Summary.Description=a.Description
+and Production_Summary.Rnk=1
+
+update Production_Summary set Backlog_value=(Avg_Sales_amount * Backlog_qty)/1000000
+update Production_Summary set MTD_sls_value=(Avg_Sales_amount * MTD_sls_qty)/1000000
+update Production_Summary set FG_value=(Avg_Sales_amount * FG_qty)/1000000
+update Production_Summary set plan_value=(Avg_Sales_amount * plan_qty)/1000000
+update Production_Summary set WIP_value=(Avg_Sales_amount * WIP_qty)/1000000
+update Production_Summary set Month_sls_plan_value=(Avg_Sales_amount * Month_sls_plan_qty)/1000000
+
+--Alter table Production_Summary add PredictionType varchar(25)
+update Production_Summary set PredictionType=a.PredictionType
+from (select *,'Prediction' as PredictionType from TZZSFC211401 where T$FGTM in (2,4,6))a
+where ltrim(rtrim(Production_Summary.ITEM))=ltrim(rtrim(a.T$ITEM))
+
+update Production_Summary set PredictionType=a.PredictionType
+from (select *,'Accessories' as PredictionType from TZZSFC211401 where --T$FGTM<>3 and 
+T$LINE=37)a
+where ltrim(rtrim(Production_Summary.ITEM))=ltrim(rtrim(a.T$ITEM))
+
+update Production_Summary set PredictionType='Non Prediction' where PredictionType is null 
+
+
+
+
+
+-----------------------------End : Production Summary----------------------------------------------------
+--------------------------------Production Summary2-------------------------------------------------------
+
+--Truncate Table Production_Summary2_Temp
+--Truncate Table Production_Summary2
+
+----Plan Qty (Current Month complete)
+--insert into Production_Summary2(Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode,plan_qty)
+--select Description,company,warehouse,item,itemdescr,
+--date1,Prodorderno,custcode,sum(Planned_qty) Planned_qty
+--from ELGi_production_details 
+--where 
+--date1 between 
+--dateadd(MM,datediff(MM,0,getdate()-1),0)   --Method 1
+----getdate()-1 --Method 2
+--and EOMONTH(getdate()-1)
+--and osta not in (6,7,8,9)
+--and Planned_qty<>0
+--and Description in ('DPSAC','Lepsac','Kit  Accessories','Railways','Oil Filters')
+--group by Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode
+
+
+
+----Backlog Qty (Less than Current Date)
+--insert into Production_Summary2(Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode,Backlog_qty)
+--select Description,company,warehouse,item,itemdescr,
+--date1,Prodorderno,custcode,sum(Planned_qty) Planned_qty
+--from ELGi_production_details 
+--where 
+--date1 < getdate()-1
+--and osta in (1,2,3)
+--and Planned_qty<>0
+--and Description in ('DPSAC','Lepsac','Kit  Accessories','Railways','Oil Filters')
+--group by Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode
+
+
+----FuturePlanned Qty (FTM, Greater than Current Date)
+
+--insert into Production_Summary2(Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode,Plan_qty2)
+--select Description,company,warehouse,item,itemdescr,
+--date1,Prodorderno,custcode,sum(Planned_qty) Planned_qty
+--from ELGi_production_details 
+--where 
+--date1 between getdate()-1 and EOMONTH(getdate()-1)
+--and osta in (1,2,3)
+--and Planned_qty<>0
+--and Description in ('DPSAC','Lepsac','Kit  Accessories','Railways','Oil Filters')
+--group by Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode
+
+
+
+----FuturePlanned Qty (FTM, Greater than Current Date)
+----Alter table Production_Summary2 add Plan_qty3 float
+--insert into Production_Summary2(Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode,Plan_qty3)
+--select Description,company,warehouse,item,itemdescr,
+--date1,Prodorderno,custcode,sum(Planned_qty) Planned_qty
+--from ELGi_production_details 
+--where 
+--date1 > EOMONTH(getdate()-1)
+--and osta in (1,2,3)
+--and Planned_qty<>0
+--and Description in ('DPSAC','Lepsac','Kit  Accessories','Railways','Oil Filters')
+--group by Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode
+
+----WIP Qty (Less than Current date)
+--insert into Production_Summary2(Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode,WIP_qty)
+--select Description,company,warehouse,item,itemdescr,
+--date1,Prodorderno,custcode,sum(WIP_qty) WIP_qty
+--from ELGi_production_details 
+--where 
+--date1 < getdate()-1
+----and osta in (1,2,3)
+--and WIP_qty<>0
+--and Description in ('DPSAC','Lepsac','Kit  Accessories','Railways','Oil Filters')
+--group by Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode
+
+
+----Actual Qty (Current Month)
+--insert into Production_Summary2(Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode,Actual_qty)
+--select Description,company,warehouse,item,itemdescr,
+--date1,Prodorderno,custcode,sum(Actual_qty) Actual_qty
+--from ELGi_production_details 
+--where 
+--month(date1) = month(getdate()-1)
+--and year(date1) = year(getdate()-1)
+----and osta in (1,2,3)
+--and Actual_qty<>0
+--and Description in ('DPSAC','Lepsac','Kit  Accessories','Railways','Oil Filters')
+--group by Description,company,warehouse,item,itemdescr,date1,Prodorderno,custcode
+
+
+--insert into Production_Summary2_Temp(Description,company,warehouse,item,itemdescr,Month_sls_plan_qty,
+--Month_sls_plan_value,MTD_sls_qty,MTD_sls_value,FG_qty,FG_value,plan_qty,plan_value,WIP_qty,WIP_value,
+--Backlog_qty,Backlog_value,CalYear,CalMonth,Avg_Sales_amount,FutureOrders,PredictionType,CustCode,
+--CustName,Rnk,Actual_qty,date1,Prodorderno,plan_qty2,Plan_qty3)
+--select
+--Description,company,warehouse,item,itemdescr,Month_sls_plan_qty,
+--Month_sls_plan_value,MTD_sls_qty,MTD_sls_value,FG_qty,FG_value,plan_qty,plan_value,WIP_qty,WIP_value,
+--Backlog_qty,Backlog_value,CalYear,CalMonth,Avg_Sales_amount,FutureOrders,PredictionType,CustCode,CustName,
+--row_number() over(partition by company,warehouse,item order by company,warehouse,item) as Rnk ,
+--Actual_qty,date1,Prodorderno,plan_qty2,Plan_qty3
+--from Production_Summary2
+
+--Truncate table Production_Summary2
+--insert into Production_Summary2(Description,company,warehouse,item,itemdescr,Month_sls_plan_qty,
+--Month_sls_plan_value,MTD_sls_qty,MTD_sls_value,FG_qty,FG_value,plan_qty,plan_value,WIP_qty,WIP_value,
+--Backlog_qty,Backlog_value,CalYear,CalMonth,Avg_Sales_amount,FutureOrders,PredictionType,CustCode,
+--CustName,Rnk,Actual_qty,date1,Prodorderno,plan_qty2,Plan_qty3)
+--select
+--Description,company,warehouse,item,itemdescr,Month_sls_plan_qty,
+--Month_sls_plan_value,MTD_sls_qty,MTD_sls_value,FG_qty,FG_value,plan_qty,plan_value,WIP_qty,WIP_value,
+--Backlog_qty,Backlog_value,CalYear,CalMonth,Avg_Sales_amount,FutureOrders,PredictionType,CustCode,CustName,
+--Rnk,Actual_qty,date1,Prodorderno,plan_qty2,Plan_qty3
+--from Production_Summary2_Temp
+
+
+--update Production_Summary2 set Month_sls_plan_qty=a.PRODUCTION_PLAN
+--from
+--(select * from ELGi_Production_Plan_Master where CalMonth=month(getdate()-1) and CalYear=year(getdate()-1))a
+--where Production_Summary2.company=a.Company
+--and Production_Summary2.warehouse=a.Warehouse
+--and ltrim(rtrim(Production_Summary2.item))=ltrim(rtrim(a.ItemCode))
+--and Production_Summary2.Rnk=1
+
+--update Production_Summary2 set PredictionType=a.PredictionType
+--from (select distinct ITEM,PredictionType from Production_Summary )a
+--where ltrim(rtrim(Production_Summary2.ITEM))=ltrim(rtrim(a.ITEM))
+
+--update Production_Summary2 set CalYear=year(date1)
+--update Production_Summary2 set CalMonth=month(date1)
+
+
+
+-----------------------------End : Production Summary2----------------------------------------------------
+
+end
+
+--select * from ELGi_production_details
+
+
+Completion time: 2025-11-19T09:49:55.1790451+05:30

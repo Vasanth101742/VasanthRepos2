@@ -1,0 +1,556 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Production_Metrics
+
+CREATE proc sp_Production_Metrics as
+begin
+
+Truncate table Production_Metrics_Temp
+Truncate table Production_Metrics_Temp2
+
+insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,Date1,Planned_qty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then null else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+--and convert(date,RDLD) 
+--between dateadd(MM,datediff(MM,0,getdate()),0) and
+--<=dateadd(MS,-3,dateadd(mm,0,dateadd(mm,datediff(mm,0,getdate())+1,0)))
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a1
+where Planned_qty>0
+
+
+--WIP (Till Yesterday)
+
+insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,Date1,WIP_qty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,
+b.date as WIP_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA IN(4,6) then qrdr else 0 end) end) as WIP_qty
+from  TTISFC001ALL a 
+left outer join
+(
+select * from (
+select PDNO,OSTA,convert(date,date) as date,row_number() over (partition by pdno order by date) dateRank 
+from TTICST151ALL
+where OSTA in (4,6)
+--and PDNO='230009816' --for testing Purpose
+)b1
+where dateRank=1
+)b
+on a.PDNO=b.PDNO
+
+where a.PDNO not like '%[a-z]%'
+and b.date< getdate()-1
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,b.date
+)a
+where WIP_qty<>0
+
+
+
+--Closed Qty (current Month) 
+insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,date1,Actual_qty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (7,8,9) then qrdr else 0 end) end) as ClosedQty
+from  TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+--and convert(date,ADLD) <= getdate()-1
+--and convert(date,RDLD) <= getdate()-1
+--and month(convert(date,ADLD))=month(getdate()-1)
+--and year(convert(date,ADLD))=year(getdate()-1)
+--and month(convert(date,RDLD))=month(getdate()-1)
+--and year(convert(date,RDLD))=year(getdate()-1)
+
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+)a
+where ClosedQty<>0
+
+----Advance Closed Qty (Closed Date < Planned Date , Here the Planned date is between Current date and End date of a month)
+--insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,date1,Actual_qty_Advance)
+--select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+--sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (7,8,9) then qrdr else 0 end) end) as ClosedQty
+--from  TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+----and convert(date,ADLD) <= getdate()-1
+----and convert(date,RDLD) > getdate()-1
+----and month(convert(date,ADLD))=month(getdate()-1)
+----and year(convert(date,ADLD))=year(getdate()-1)
+----and month(convert(date,RDLD))=month(getdate()-1)
+----and year(convert(date,RDLD))=year(getdate()-1)
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+--)a
+--where ClosedQty<>0
+
+
+
+----Backlog Closed Qty (Closed Date > Planed Date , Here the Planned date belongs to any of the previous months)
+--insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,date1,Actual_qty_Backlog)
+--select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+--sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (7,8,9) then qrdr else 0 end) end) as ClosedQty
+--from  TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+----and convert(date,ADLD) <= getdate()-1
+----and month(convert(date,ADLD))=month(getdate()-1)
+----and year(convert(date,ADLD))=year(getdate()-1)
+------and convert(date,RDLD) < getdate()-1
+----and month(convert(date,RDLD))<month(getdate()-1)
+----and year(convert(date,RDLD))=year(getdate()-1)
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+--)a
+--where ClosedQty<>0
+
+
+
+
+
+--OrderType Updation
+--Backlog orders Closed
+update Production_Metrics_Temp set OrderType=a.OrderType
+from (select a.company,a.warehouse,a.item,a.Prodorderno,a.ClosedDate,b.PlannedDate,'Backlog' as OrderType from 
+(select company,warehouse,item,Prodorderno,date1 as ClosedDate from ELGi_production_details
+where --Actual_qty<>0
+OSTA in (7,8,9)
+group by company,warehouse,item,Prodorderno,date1
+)a
+inner join
+(select company,warehouse,item,Prodorderno,date1 as PlannedDate from ELGi_production_details
+where Planned_qty<>0
+group by company,warehouse,item,Prodorderno,date1
+)b
+on a.company=b.company
+and a.warehouse=b.warehouse
+and a.item=b.item
+and a.Prodorderno=b.Prodorderno
+and a.ClosedDate>b.PlannedDate
+and month(a.ClosedDate)>month(b.PlannedDate)
+--order by a.company,--a.warehouse,a.item,
+--a.Prodorderno,a.ClosedDate
+)a
+where Production_Metrics_Temp.company=a.company
+and Production_Metrics_Temp.Ordernum=a.Prodorderno
+
+
+
+--Advance orders Closed
+update Production_Metrics_Temp set OrderType=a.OrderType
+from (select a.company,a.warehouse,a.item,a.Prodorderno,a.ClosedDate,b.PlannedDate,'Advance' as OrderType from 
+(select company,warehouse,item,Prodorderno,date1 as ClosedDate from ELGi_production_details
+where --Actual_qty<>0
+OSTA in (7,8,9)
+group by company,warehouse,item,Prodorderno,date1
+)a
+inner join
+(select company,warehouse,item,Prodorderno,date1 as PlannedDate from ELGi_production_details
+where Planned_qty<>0
+group by company,warehouse,item,Prodorderno,date1
+)b
+on a.company=b.company
+and a.warehouse=b.warehouse
+and a.item=b.item
+and a.Prodorderno=b.Prodorderno
+and a.ClosedDate<b.PlannedDate
+and month(a.ClosedDate)<=month(b.PlannedDate)
+--order by a.company,--a.warehouse,a.item,
+--a.Prodorderno,a.ClosedDate
+)a
+where Production_Metrics_Temp.company=a.company
+and Production_Metrics_Temp.Ordernum=a.Prodorderno
+
+
+
+
+--Normal orders Closed
+update Production_Metrics_Temp set OrderType=a.OrderType
+from (select a.company,a.warehouse,a.item,a.Prodorderno,a.ClosedDate,b.PlannedDate,'Normal' as OrderType from 
+(select company,warehouse,item,Prodorderno,date1 as ClosedDate from ELGi_production_details
+where --Actual_qty<>0
+OSTA in (7,8,9)
+group by company,warehouse,item,Prodorderno,date1
+)a
+inner join
+(select company,warehouse,item,Prodorderno,date1 as PlannedDate from ELGi_production_details
+where Planned_qty<>0
+group by company,warehouse,item,Prodorderno,date1
+)b
+on a.company=b.company
+and a.warehouse=b.warehouse
+and a.item=b.item
+and a.Prodorderno=b.Prodorderno
+and a.ClosedDate>b.PlannedDate
+and month(a.ClosedDate)=month(b.PlannedDate)
+--order by a.company,--a.warehouse,a.item,
+--a.Prodorderno,a.ClosedDate
+)a
+where Production_Metrics_Temp.company=a.company
+and Production_Metrics_Temp.Ordernum=a.Prodorderno
+
+
+
+
+
+
+
+--Planned orders not yet Closed
+update Production_Metrics_Temp set OrderType=a.OrderType
+from (select company,warehouse,item,Ordernum,date1 as PlannedDate,
+case when month(date1)=month(getdate()-1)  and date1 <=getdate()-1 then 'Normal'
+when month(date1)<month(getdate()-1) then 'Backlog'
+when month(date1)=month(getdate()-1) and date1 > getdate()-1 then 'Advance'
+end as OrderType
+from Production_Metrics_Temp
+where Planned_qty<>0
+group by company,warehouse,item,Ordernum,date1
+)a
+where Production_Metrics_Temp.company=a.company
+and Production_Metrics_Temp.Ordernum=a.Ordernum
+and Production_Metrics_Temp.Planned_qty<>0
+
+
+
+----Plan Pulling (greater than today)
+
+--insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,Date1,PlanPullQty)
+--select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD as Planned_Date,
+--sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (4,6) then qrdr else 0 end) end) as WIP_qty
+--from  TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+--and convert(date,RDLD) > getdate()-1
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+--)a
+--where WIP_qty<>0
+
+----Plan Pulling (Closed Qty greater than today is covered under Plan Pulling)
+--insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,Date1,PlanPullQty)
+--select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD as Planned_Date,
+--sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (8,9) then qrdr else 0 end) end) as ClosedQty
+--from  TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+--and convert(date,RDLD) > getdate()-1
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+--)a
+--where ClosedQty<>0
+
+
+----Backlog (Till yesterday)
+
+--insert into Production_Metrics_Temp(company,warehouse,item,Ordernum,date1,Backlog_Qty)
+--select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+--sum(case when RDLD='9999-01-01 00:00:00.000' then null else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+--from TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+--and convert(date,RDLD) <getdate()-1
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+--)a
+--where Planned_qty>0
+
+
+--select * into Production_Metrics_Temp from Production_Metrics_Temp
+--select * into Production_Metrics from Production_Metrics_Temp
+
+
+
+insert into Production_Metrics_Temp(company,warehouse,item,Date1,FG_qty)
+select COMPANY,CWAR,ITEM,convert(date,TRDT) TRDT,sum(QSKT) QSKT from fg_inventory
+where month(TRDT)=month(GETDATE()-1)
+and year(TRDT)=year(GETDATE()-1)
+group by COMPANY,CWAR,ITEM,convert(date,TRDT)
+
+
+--Insert into Production_Metrics_Temp(company,warehouse,item,FG_qty)
+--select COMPANY,CWAR,ITEM,sum(QSKT) QSKT from fg_inventory
+--where convert(date,TRDT)<=convert(date,GETDATE()-1)
+--group by COMPANY,CWAR,ITEM
+
+--Production order category
+update Production_Metrics_Temp set Description=b.Description
+from (
+select distinct a.company,Description,prd_from,prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+)b
+where Production_Metrics_Temp.Ordernum between b.prd_from and b.prd_to  
+and Production_Metrics_Temp.company = b.company
+
+
+update Production_Metrics_Temp set Description=a.Description
+from (select company,warehouse,item,Description from Production_Metrics_Temp where Description is not null)a
+where Production_Metrics_Temp.company=a.company
+and Production_Metrics_Temp.warehouse=a.warehouse
+and Production_Metrics_Temp.item=a.item
+and Production_Metrics_Temp.Description is null
+
+
+--Item Description
+
+update Production_Metrics_Temp set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where Production_Metrics_Temp.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Production_Metrics_Temp.Item))=ltrim(rtrim(a.t_item))
+
+
+update Production_Metrics_Temp set itemdescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where Production_Metrics_Temp.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(Production_Metrics_Temp.Item))=ltrim(rtrim(a.ITEM))
+
+
+update Production_Metrics_Temp set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where Production_Metrics_Temp.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Production_Metrics_Temp.Item))=ltrim(rtrim(a.item))
+
+
+update Production_Metrics_Temp set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where Production_Metrics_Temp.company =551
+and ltrim(rtrim(Production_Metrics_Temp.Item))=ltrim(rtrim(a.item))
+
+update Production_Metrics_Temp set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where Production_Metrics_Temp.company =552
+and ltrim(rtrim(Production_Metrics_Temp.Item))=ltrim(rtrim(a.item))
+
+update Production_Metrics_Temp set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where Production_Metrics_Temp.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(Production_Metrics_Temp.Item))=ltrim(rtrim(a.t_item))
+
+
+update Production_Metrics_Temp set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where Production_Metrics_Temp.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(Production_Metrics_Temp.Item))=ltrim(rtrim(a.item))
+
+
+
+update Production_Metrics_Temp set description='Others' where description is null
+
+update Production_Metrics_Temp set lineNum=a.LINE,SubLineNum=a.SUBL,RegionNum=a.REGN
+from TZZSFC270ALL a
+where ltrim(rtrim(Production_Metrics_Temp.item))=ltrim(rtrim(a.MITM))
+
+update Production_Metrics_Temp set line=a.Line
+from vw_Item_Line_Master a
+where Production_Metrics_Temp.Description in ('SEPSAC','Encap')
+and Production_Metrics_Temp.LineNum=a.LineNum
+
+
+update Production_Metrics_Temp set Subline=a.SubLine
+from vw_Item_SubLine_Master a
+where Production_Metrics_Temp.Description in ('SEPSAC','Encap')
+and Production_Metrics_Temp.SubLineNum=a.SubLineNum
+
+
+update Production_Metrics_Temp set Region='INDIA & INDIA LIKE'
+where warehouse in ('157','257','C57','L57','W57')
+
+update Production_Metrics_Temp set Region='ROTAIR'
+where warehouse in ('E57')
+
+update Production_Metrics_Temp set Region='USA/BRAZIL'
+where warehouse in ('A57')
+
+
+--Removing Sub Assembly Parts in 470 Company
+
+delete from Production_Metrics_Temp where 
+company =470 and 
+ltrim(rtrim(item)) in 
+('20228160','20228270','20364840','20228080','20364830','34030395A','20227680','20228200','340305550','20365950',
+'340200820','340303440','340303640','20226950','34030395B','20226410','20230030','15301557','15306446','15304819',
+'15311262','15306791','15312211','15306841','15308240','15308241','15307935','15307870','15311337','15310632',
+'15303598','15303309','15308468','15308469','35301147','35301161','35302748','35302194','35302707','35301797',
+'35302127','15314209','15314208','15305437')
+
+
+--Removing Manual Book receipt details :353,553 ... warehouse details 
+delete from Production_Metrics_Temp where company=401 and warehouse like '%3'
+
+delete from Production_Metrics_Temp  where description='SEPSAC' and  warehouse not like '%57'
+--warehouse in ('253' , '153', 'A53', 'C53' , 'D53','E53', 'L53' ,'W53')
+
+delete from Production_Metrics_Temp  where description='Encap' and  warehouse not like '%57'
+
+
+delete from Production_Metrics_Temp  where description='ENGC ' and warehouse in ('353','453')
+delete from Production_Metrics_Temp where description='ENGC ' and warehouse<>'457' --Added on 23-Nov-2020
+delete from Production_Metrics_Temp  where description='RCD Unit Assy' and warehouse in ('353')
+delete from Production_Metrics_Temp  where description='OE Assy' and warehouse in ('353')
+delete from Production_Metrics_Temp  where description='Railways' and warehouse in ('553')
+delete from Production_Metrics_Temp  where description='RCD BoreWell' and warehouse in ('353','453')
+delete from Production_Metrics_Temp  where description='RCD Spares' and warehouse in ('353','453')
+
+
+
+update Production_Metrics_Temp set MonthPlanQty=
+isnull(Planned_qty,0)+isnull(WIP_Qty,0)+isnull(Actual_qty,0)+isnull(Actual_qty_advance,0) + isnull(Actual_qty_Backlog,0)
+
+
+--select Description,company,warehouse,item,itemdescr,Ordernum,Date1,Planned_qty,Released_qty,WIP_qty,PlanPullQty,
+--Actual_qty,Backlog_Qty,BacklogPlanned_qty,BacklogReleased_qty,BacklogWIP_qty,This_mnth_ReleasedQty,This_mnth_WIPQty,
+--This_mnth_ActualQty,Day1,Day2,Day3,Day4,Day5,LineNum,Line,SubLineNum,SubLine,RegionNum,Region,Actual_qty_Advance,
+--Actual_qty_Backlog,MonthPlanQty,FG_qty,
+--Rnk,ProductionLine 
+--from Production_Metrics_Temp
+
+
+
+
+
+--update Production_Metrics_Temp set FG_qty=a.QSKT
+--from (
+--select COMPANY,CWAR,ITEM,sum(QSKT) QSKT from fg_inventory
+--where convert(date,TRDT)<=convert(date,GETDATE()-1)
+--group by COMPANY,CWAR,ITEM
+--)a
+--where Production_Metrics_Temp.company=a.COMPANY
+--and Production_Metrics_Temp.warehouse=a.CWAR 
+--and ltrim(rtrim(Production_Metrics_Temp.item))=ltrim(rtrim(a.Item))
+----and Production_Metrics_Temp.Rnk=1
+
+
+--Alter table Production_Metrics_Temp add MonthPlanQty float
+--Alter table Production_Metrics_Temp add FG_qty float
+--Alter table Production_Metrics_Temp add Rnk int
+--Alter table Production_Metrics_Temp add ProductionLine varchar(50)
+
+update Production_Metrics_Temp set ProductionLine=a.ProductionLine
+from ELGi_ProductionLine_Master a
+where ltrim(rtrim(Production_Metrics_Temp.item))=ltrim(rtrim(a.itemcode))
+
+
+--Alter table Production_Metrics_Temp add AssemblyLine varchar(20)
+
+update Production_Metrics_Temp set AssemblyLine='SEPSAC'  where description in ('Sepsac','Encap')
+update Production_Metrics_Temp set AssemblyLine='RCD'  where description like '%RCD%'
+update Production_Metrics_Temp set AssemblyLine='ENGC'  where description like '%ENGC%'
+update Production_Metrics_Temp set AssemblyLine='Kit  Accessories'  where description like '%Kit  Accessories%'
+update Production_Metrics_Temp set AssemblyLine='Railways'  where description like '%Railways%'
+
+
+delete from Production_Metrics_Temp where isnull(Planned_qty,0)+isnull(WIP_Qty,0)+
+isnull(Actual_qty,0)+isnull(Actual_qty_advance,0) + isnull(Actual_qty_Backlog,0)+isnull(FG_qty,0) =0
+
+
+-------------------------------------------------------------------------------------------------------------------
+
+
+--Declare @AssemblyLine varchar(10)='SEPSAC'
+Declare @CalYear int=year(getdate()-1)
+Declare @CalMonth int=month(getdate()-1)
+
+
+Insert into Production_Metrics_Temp2(Description,company,warehouse,item,itemdescr,Ordernum,Date1,
+MonthPlanQty,Actual_qty,WIP_qty,Planned_qty,Future_Planned_qty,FG_qty,AssemblyLine,CurrentDate,
+weekNo,CalMonth,CalYear)
+select Description,company,warehouse,item,itemdescr,Ordernum,Date1,
+MonthPlanQty,Actual_qty,WIP_qty,Planned_qty,Future_Planned_qty,FG_qty,AssemblyLine,CurrentDate,
+weekNo,CalMonth,CalYear from (
+select * from (
+select Description,company,warehouse,item,itemdescr,Ordernum,Date1,
+MonthPlanQty,Actual_qty,WIP_qty,
+case when Date1<getdate()-1 then null else Planned_qty end as Planned_qty,
+case when Date1<getdate()-1 then null else Planned_qty end as Future_Planned_qty,
+FG_qty,AssemblyLine,
+convert(date,getdate()-1) as CurrentDate,
+case when Date1<getdate()-1 then -100 else datepart(ISO_WEEK,Date1) end as weekNo,
+datepart(mm,Date1) as CalMonth,datepart(YYYY,Date1) as CalYear
+from Production_Metrics_Temp )a
+where year(Date1)=@CalYear
+and month(Date1)=@CalMonth
+--and ltrim(rtrim(AssemblyLine))  in (@AssemblyLine )
+
+union all
+--Current Month Backlog Planned orders
+select * from (
+select Description,company,warehouse,item,itemdescr,Ordernum,Date1,
+0 as MonthPlanQty,0 as Actual_qty,0 as WIP_qty,Planned_qty,Planned_qty as Future_planned_qty,
+0 as FG_qty,AssemblyLine,
+convert(date,getdate()-1) as CurrentDate,
+--datepart(ISO_WEEK,Date1) as weekNo,datepart(mm,Date1) as CalMonth,datepart(YYYY,Date1) as CalYear
+-1 as weekNo,1 as CalMonth,datepart(YYYY,Date1) as CalYear
+from Production_Metrics_Temp )a
+where Date1<=getdate()-1
+and year(Date1)=@CalYear
+and month(Date1)=@CalMonth
+and Future_planned_qty<>0
+--and ltrim(rtrim(AssemblyLine))  in (@AssemblyLine )
+
+
+union all
+--upto Previous Month Backlog Planned orders
+select * from (
+select Description,company,warehouse,item,itemdescr,Ordernum,Date1,
+0 as MonthPlanQty,0 as Actual_qty,0 as WIP_qty,
+--0 as Planned_qty,
+Planned_qty,
+Planned_qty as Future_planned_qty,
+0 as FG_qty,AssemblyLine,
+convert(date,getdate()-1) as CurrentDate,
+--datepart(ISO_WEEK,Date1) as weekNo,datepart(mm,Date1) as CalMonth,datepart(YYYY,Date1) as CalYear
+-1 as weekNo,1 as CalMonth,datepart(YYYY,Date1) as CalYear
+from Production_Metrics_Temp )a
+where year(Date1)=@CalYear
+and month(Date1)<@CalMonth
+and Future_planned_qty<>0
+--and ltrim(rtrim(AssemblyLine))  in (@AssemblyLine )
+
+
+union all
+--Future Planned orders
+select * from (
+select Description,company,warehouse,item,itemdescr,Ordernum,Date1,
+0 as MonthPlanQty,0 as Actual_qty,0 as WIP_qty,
+--0 as Planned_qty,
+Planned_qty,
+Planned_qty as Future_Planned_qty,
+0 as FG_qty,AssemblyLine,
+convert(date,getdate()-1) as CurrentDate,--datepart(ISO_WEEK,Date1) as weekNo
+datepart(ISO_WEEK,Date1) as weekNo,datepart(mm,Date1) as CalMonth,datepart(YYYY,Date1) as CalYear
+from Production_Metrics_Temp )a
+where Date1>=(select dateadd(dd,1,eomonth(getdate()-1)))
+and Future_Planned_qty<>0
+--and ltrim(rtrim(AssemblyLine))  in (@AssemblyLine )
+)a
+--where Ordernum='200019888' --for testing purpose
+order by date1
+
+
+
+
+end
+
+select * from Production_Metrics_Temp
+where FG_qty is not null
+--where ordertype is null
+--and Date1='2020-11-21'
+--order by Date1
+--where concat(company,ordernum)='401200020238'
+--'450863011372'
+--'401310000739'
+
+
+--select * from ELGi_production_details
+--where concat(company,Prodorderno)='401200020238'
+--'450863011372'
+--'401310000739'
+
+
+
+
+
+
+Completion time: 2025-11-19T11:46:14.2671476+05:30

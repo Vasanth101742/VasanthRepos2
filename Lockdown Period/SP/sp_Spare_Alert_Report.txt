@@ -1,0 +1,108 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Spare_Alert_Report
+
+CREATE proc sp_Spare_Alert_Report as
+begin
+
+Truncate Table Spare_Alert_Report_details
+
+Insert into Spare_Alert_Report_details(company,EntryDate,WareHouse,ordertype,OrderNum,PositionNum,
+ItemCode,Item_desc,ord_qty,DelQty,pendQty)
+--select * into Spare_Alert_Report_details from (
+select company,OrderDate,WareHouse,ordertype,OrderNum,PositionNum,ItemCode,Item_desc,
+sum(ord_qty) ord_qty,
+sum(DelQty) DelQty,
+sum(pendQty) pendQty
+from pending_orders
+where company in (401,450)
+--and ordertype in ('200','210','290','211','217','274')
+group by company,OrderDate,WareHouse,ordertype,OrderNum,PositionNum,ItemCode,Item_desc
+--)a
+
+
+update Spare_Alert_Report_details set Category='Domestic' where company=450
+update Spare_Alert_Report_details set Category='Export' where company=401
+
+update Spare_Alert_Report_details set OrderCategory='Normal' where company=450 and ordertype='211'
+update Spare_Alert_Report_details set OrderCategory='BDI' where company=450 and ordertype<>'211'
+
+
+update Spare_Alert_Report_details set OrderCategory='Normal' where company=401 and ordertype='217'
+update Spare_Alert_Report_details set OrderCategory='BDI' where company=401 and ordertype<>'274'
+
+insert into Spare_Alert_Report_details(company,WareHouse,ItemCode,Item_desc,InvType,StockQty,Group1_order,Group1,Group2,Ageing) 
+select company,CWAR,item,ItemDescr,InvType,sum(qskt) qskt,1,'FG','CC',Ageing from inventorydetails
+where company in (401)
+and cwar like '%57' 
+group by company,CWAR,item,ItemDescr,InvType,Ageing
+
+insert into Spare_Alert_Report_details(company,WareHouse,ItemCode,Item_desc,InvType,StockQty,Group1_order,Group1,Group2,Ageing) 
+select company,CWAR,item,ItemDescr,InvType,sum(qskt) qskt,1,'FG','ACP',Ageing from inventorydetails
+where company in (450)
+and cwar in ('274','174','B74')
+group by company,CWAR,item,ItemDescr,InvType,Ageing
+
+
+insert into Spare_Alert_Report_details(company,WareHouse,ItemCode,Item_desc,Description,Prodorderno,EntryDate,wip_Qty,Group1_order,Group1,Group2) 
+select company,warehouse,item,itemdescr,Description,Prodorderno,date1,wip_Qty,2,'WIP','ACP-815 Series' from elgi_production_details
+where company=450 and prodorderno like '815%'
+and warehouse in ('274','174','B74','B74')
+and wip_Qty<>0
+
+insert into Spare_Alert_Report_details(company,WareHouse,ItemCode,Item_desc,Description,Prodorderno,EntryDate,wip_Qty,Group1_order,Group1,Group2) 
+select company,warehouse,item,itemdescr,Description,Prodorderno,date1,wip_Qty,2,'WIP','ACP-991 Series' from elgi_production_details
+where company=450 and prodorderno like '991%'
+and warehouse in ('B74')
+and wip_Qty<>0
+
+insert into Spare_Alert_Report_details(company,WareHouse,ItemCode,Item_desc,Description,Prodorderno,EntryDate,Planned_qty,Group1_order,Group1,Group2)  
+select company,warehouse,item,itemdescr,Description,Prodorderno,date1,Planned_qty,3,'Planned','ACP' from elgi_production_details
+where company=450 and warehouse in ('174','B74')
+and Planned_qty<>0 and osta in (1,2,3)
+
+update Spare_Alert_Report_details set ItemCode=ltrim(rtrim(itemcode))
+
+update Spare_Alert_Report_details set Group1_order=100 where Group1_order is null
+--Alter Table Spare_Alert_Report_details add Group2 varchar(25)
+--Alter Table Spare_Alert_Report_details add Group2_order int
+--Alter Table Spare_Alert_Report_details add Qty float
+--Alter Table Spare_Alert_Report_details add Ageing varchar(50)
+
+update Spare_Alert_Report_details set Qty=isnull(StockQty,0) + isnull(wip_qty,0) + isnull(Planned_qty,0)
+
+
+update Spare_Alert_Report_details set Ageing='LessThan30' where datediff(dd,Entrydate,getdate()-1) <30
+update Spare_Alert_Report_details set Ageing='30-60' where datediff(dd,Entrydate,getdate()-1) between 30 and 60
+update Spare_Alert_Report_details set Ageing='61-90' where datediff(dd,Entrydate,getdate()-1) between 61 and 90
+update Spare_Alert_Report_details set Ageing='91-120' where datediff(dd,Entrydate,getdate()-1) between 91 and 120
+update Spare_Alert_Report_details set Ageing='121-150' where datediff(dd,Entrydate,getdate()-1) between 121 and 150
+update Spare_Alert_Report_details set Ageing='151-180' where datediff(dd,Entrydate,getdate()-1) between 151 and 180
+update Spare_Alert_Report_details set Ageing='181-365' where datediff(dd,Entrydate,getdate()-1) between 181 and 365
+update Spare_Alert_Report_details set Ageing='GreaterThan_1Year' where datediff(dd,Entrydate,getdate()-1) between 366 and 730
+update Spare_Alert_Report_details set Ageing='GreaterThan_2Years' where datediff(dd,Entrydate,getdate()-1) between 731 and 1095
+update Spare_Alert_Report_details set Ageing='GreaterThan_3Years' where datediff(dd,Entrydate,getdate()-1) between 1096 and 1460
+update Spare_Alert_Report_details set Ageing='GreaterThan_4Years' where datediff(dd,Entrydate,getdate()-1) between 1460 and 1826
+update Spare_Alert_Report_details set Ageing='GreaterThan_5Years' where datediff(dd,Entrydate,getdate()-1) between 1827 and 2192
+update Spare_Alert_Report_details set Ageing='GreaterThan_6Years' where datediff(dd,Entrydate,getdate()-1) > 2192
+
+
+end
+
+
+select * from Spare_Alert_Report_details
+where ltrim(rtrim(itemcode))='A019325'
+and entrydate is null
+--select * into Spare_Alert_Report_details_Temp1 from (
+--Select company,WareHouse,ItemCode,Item_desc,SalesOrderDate as EntryDate,ordertype,Category,OrderCategory,SalesOrderDate,
+--OrderNum,PositionNum,ord_qty,DelQty,pendQty,InvType,StockQty,Description,ProdOrderDate,Prodorderno,
+--wip_qty,Planned_qty from Spare_Alert_Report_details)a
+
+
+--select * into Spare_Alert_Report_details from Spare_Alert_Report_details_Temp1
+--select * from sales_inflow
+--where ordernum= '501001705'
+--and invnum=0
+
+
+Completion time: 2025-11-19T12:19:04.5023595+05:30

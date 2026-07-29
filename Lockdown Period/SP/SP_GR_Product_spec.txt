@@ -1,0 +1,23 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE proc [dbo].[SP_GR_Product_spec]
+as
+begin
+
+truncate table TempTable
+
+insert into TempTable
+select replace(t$mitm,' ',''), max(T$REVI),max(t$slno),max(T$SREV),max(T$WPRE) from TZZSFC001400 group by T$MITM
+
+
+select b.T$REVI,b.T$SLNO,replace(b.T$MITM,' ','')'TPL Code',T$WPRE,T$MRAT,T$RSMM,T$CFAD,T$MODL,T$PNWD,T$AOPZ,T$TSMM,T$ODWP,T$TTYP
+,T$DCYC,T$EMAK,T$BACQ,T$ARCP,T$MWPK
+,t$upre,t$cpcs,t$npsc,t$mtyp,t$ipmm,t$rsnl,t$rsap,t$nlcr,t$sref
+from TempTable a
+inner join TZZSFC001400 b on replace(b.T$MITM,' ','')=a.Mitm and b.T$REVI=a.REVI and b.T$SLNO=a.slno
+
+
+end
+
+
+Completion time: 2025-11-19T10:34:23.5862498+05:30

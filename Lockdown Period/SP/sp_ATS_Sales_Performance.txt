@@ -1,0 +1,290 @@
+--exec sp_ATS_Sales_Performance
+
+CREATE proc [sp_ATS_Sales_Performance] as
+
+begin
+
+Truncate table ATS_Sales_Performance_Tmp
+Truncate table ATS_Sales_Performance
+Truncate table ATS_Sales_Performance_Tmp2
+Truncate table ATS_Sales_Performance_Tmp3
+
+
+insert into ATS_Sales_Performance_Tmp(SalesType,productgroup,last_year_ytd_bud,
+this_year_ytd_bud,last_month_bud,this_month_bud,next_month_budget,nextof_next_month_budget)
+select SalesType,productgroup,last_year_ytd_bud,this_year_ytd_bud,
+last_month_bud,this_month_bud,next_month_budget,nextof_next_month_budget 
+from vw_bud_ATS
+
+
+insert into ATS_Sales_Performance_Tmp(productgroup,Sales_Plan)
+select product_group,[plan]
+from  ATS_Plan_Master
+where month(date) =month(getdate()-1) and year(date)=year(getdate()-1)
+
+
+insert into ATS_Sales_Performance_Tmp(SalesType,productgroup,DPSTCode,Zone,last_year_ytd_inflow,last_year_this_month_inflow,
+this_year_ytd_inflow,last_month_inflow,this_month_inflow,last_day_inflow,last_year_day_inflow)
+select SalesType,productgroup,Dpst,Zone,last_year_ytd_inflow,last_year_this_month_inflow,
+this_year_ytd_inflow,last_month_inflow,this_month_inflow,last_day_inflow,last_year_day_inflow 
+from vw_inflow_ATS_new
+
+
+insert into ATS_Sales_Performance_Tmp(SalesType,productgroup,DPSTCode,Zone,last_year_ytd,last_year_this_month_sale,
+this_year_ytd,last_month_sale,this_month_sale,last_day_sale,last_year_day_sale)
+select SalesType,productgroup,dpst,Zone,
+last_year_ytd,last_year_this_month_sale,this_year_ytd,last_month_sale,
+this_month_sale,last_day_sale,last_year_day_sale
+from vw_sls_ATS_New
+
+
+update ATS_Sales_Performance_Tmp set DPSTName=a.DPSTName,division=a.Division
+from DPST_Master_ATS a
+where ATS_Sales_Performance_Tmp.DPSTCode=a.DPSTcode
+
+update ATS_Sales_Performance_Tmp set productgroup='SERVICE BILLING' 
+where DPSTCode in ('90043','90045','90048','90054')
+and productgroup is null 
+
+--SalesType Updation
+
+update ATS_Sales_Performance_Tmp set SalesType=a.SalesType
+from (select distinct productgroup,SalesType from  ATS_Sales_Performance_Tmp 
+where SalesType is not null 
+and productgroup is not null)a
+where ATS_Sales_Performance_Tmp.productgroup=a.productgroup
+and ATS_Sales_Performance_Tmp.SalesType is null
+
+update ATS_Sales_Performance_Tmp set SalesType=null where productgroup is null and SalesType<>'FRT Sales'
+
+update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CONSUMABLES' 
+update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='SERVICE BILLING'  
+update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CAMC'  
+
+--and Sales_Plan<>0
+--update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CONSUMABLES' and last_year_ytd_bud<>0
+--update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CONSUMABLES' and this_year_ytd_bud<>0
+--update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CONSUMABLES' and last_month_bud<>0
+--update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CONSUMABLES' and this_month_bud<>0
+--update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CONSUMABLES' and next_month_budget<>0
+--update ATS_Sales_Performance_Tmp set SalesType='After Sales' where productgroup='CONSUMABLES' and nextof_next_month_budget<>0
+
+update ATS_Sales_Performance_Tmp set SalesType='International Sales' where productgroup='International' 
+
+
+update ATS_Sales_Performance_Tmp set SalesTypeOrdering=1 where salestype='Domestic Sales'
+update ATS_Sales_Performance_Tmp set SalesTypeOrdering=2 where salestype='International Sales'
+update ATS_Sales_Performance_Tmp set SalesTypeOrdering=3 where salestype='After Sales'
+update ATS_Sales_Performance_Tmp set SalesTypeOrdering=4 where salestype='OTHER Sales'
+update ATS_Sales_Performance_Tmp set SalesTypeOrdering=5 where salestype='FRT Sales'
+update ATS_Sales_Performance_Tmp set SalesTypeOrdering=6 where salestype is null
+
+
+--PrdgrpOrdering Updation
+
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=1 where productgroup='AC CHARGING MACHINE'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=2 where productgroup='ACW'
+
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=3 where productgroup='BODY SHOP & PAINT EQUIPMENTS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=3 where productgroup='BODY SHOP & PAINT EQUIPMENTS - CRS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=3 where productgroup='BODY SHOP & PAINT EQUIPMENTS - EES'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=3 where productgroup='BODY SHOP & PAINT EQUIPMENTS - PANEL REPAIR'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=3 where productgroup='BODY SHOP & PAINT EQUIPMENTS - PB'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=3 where productgroup='BODY SHOP & PAINT EQUIPMENTS - WELDERS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=3 where productgroup='BODY SHOP & PAINT EQUIPMENTS - OTHERS'
+
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=4 where productgroup='COMPRESSOR'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=4 where productgroup='COVID - 19 Products'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=4 where productgroup='ETP'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=4 where productgroup='ETP/RO/WRP'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=4 where productgroup='EV PRODUCTS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=4 where productgroup='EV TOOLS'
+
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=5 where productgroup='LIFTING EQUIPMENTS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=5 where productgroup='LIFTING EQUIPMENTS - 2PL'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=5 where productgroup='LIFTING EQUIPMENTS - PU4'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=5 where productgroup='LIFTING EQUIPMENTS - SCISSOR LIFT'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=5 where productgroup='LIFTING EQUIPMENTS - OTHERS'
+
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=6 where productgroup='LUBE EQUIPMENTS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=7 where productgroup='MATE WASHER'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=8 where productgroup='MMS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=9 where productgroup='MOBILE SERVICE UNITS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=10 where productgroup='PNEUMATIC TOOLS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=11 where productgroup='POLLUTION CONTROL UNITS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=12 where productgroup='SINGLE BAY WORKSHOP'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=13 where productgroup='TCW'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=14 where productgroup='TEST LANE'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=15 where productgroup='TYRE INFLATORS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=16 where productgroup='TWO WHEELER PRODUCTS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=17 where productgroup='UCW'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=18 where productgroup='WASHING EQUIPMENTS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=19 where productgroup='WASHING EQUIPMENT - ABW'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=20 where productgroup='WASHING EQUIPMENT - TCW'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=21 where productgroup='WHEEL SERVICE EQUIPMENTS'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=22 where productgroup='INTERNATIONAL'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=23 where productgroup='CAMC'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=24 where productgroup='CONSUMABLES'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=25 where productgroup='Service Billing'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=26 where productgroup='SPARES / ACCESSORIES'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=27 where productgroup='PAYU INCOME'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=28 where productgroup='TRAINING INCOME'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=29 where productgroup='PVD SALES'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=30 where productgroup='SCRAP'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=31 where productgroup='SS1/CCN'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=32 where productgroup='SUPPLIER SALES'
+update ATS_Sales_Performance_Tmp set PrdgrpOrdering=100 where productgroup is null
+
+--PrdgrpOrdering Updation
+
+update ATS_Sales_Performance_Tmp set ZoneOrdering=1 where Zone='South'
+update ATS_Sales_Performance_Tmp set ZoneOrdering=2 where Zone='North'
+update ATS_Sales_Performance_Tmp set ZoneOrdering=3 where Zone='West'
+update ATS_Sales_Performance_Tmp set ZoneOrdering=4 where Zone='East'
+
+
+delete from ATS_Sales_Performance_Tmp where productgroup in ('BODY SHOP & PAINT EQUIPMENTS','ETP','LIFTING EQUIPMENTS')
+
+
+insert into ATS_Sales_Performance
+select  
+SalesType,productgroup,DPSTCode,DPSTName,AreaCode,AreaName,Zone,
+sum(isnull(Sales_Plan,0)) Sales_Plan,
+sum(isnull(last_year_ytd_bud,0)) last_year_ytd_bud,
+sum(isnull(this_year_ytd_bud,0)) this_year_ytd_bud,
+sum(isnull(last_month_bud,0)) last_month_bud,
+sum(isnull(this_month_bud,0)) this_month_bud,
+sum(isnull(next_month_budget,0)) next_month_budget,
+sum(isnull(nextof_next_month_budget,0)) nextof_next_month_budget,
+sum(isnull(last_year_ytd_inflow,0)) last_year_ytd_inflow,
+sum(isnull(last_year_this_month_inflow,0)) last_year_this_month_inflow,
+sum(isnull(this_year_ytd_inflow,0)) this_year_ytd_inflow,
+sum(isnull(last_month_inflow,0)) last_month_inflow,
+sum(isnull(this_month_inflow,0)) this_month_inflow,
+sum(isnull(last_day_inflow,0)) last_day_inflow,
+sum(isnull(last_year_day_inflow,0)) last_year_day_inflow,
+sum(isnull(last_year_ytd,0)) last_year_ytd,
+sum(isnull(last_year_this_month_sale,0)) last_year_this_month_sale,
+sum(isnull(this_year_ytd,0)) this_year_ytd,
+sum(isnull(last_month_sale,0)) last_month_sale,
+sum(isnull(this_month_sale,0)) this_month_sale,
+sum(isnull(last_day_sale,0)) last_day_sale,
+sum(isnull(last_year_day_sale,0)) last_year_day_sale,
+ZoneOrdering,SalesTypeOrdering,PrdgrpOrdering,CalMonth,CalYear,FinMonth,FinYear,
+Division
+from ATS_Sales_Performance_Tmp
+group by SalesType,productgroup,DPSTCode,DPSTName,AreaCode,AreaName,Zone,
+ZoneOrdering,SalesTypeOrdering,PrdgrpOrdering,CalMonth,CalYear,FinMonth,FinYear,Division
+
+
+delete from ATS_Sales_Performance where
+(Sales_Plan + last_year_ytd_bud + this_year_ytd_bud + last_month_bud + this_month_bud + next_month_budget +
+nextof_next_month_budget + 
+--last_year_ytd_inflow + last_year_this_month_inflow + this_year_ytd_inflow + last_month_inflow + 
+this_month_inflow + last_day_inflow +
+last_year_day_inflow + last_year_ytd + last_year_this_month_sale + this_year_ytd +
+last_month_sale + this_month_sale + last_day_sale + last_year_day_sale)=0
+
+-------------------------------------------------
+--Segmentwise Sales Performance
+
+--Truncate table ATS_Sales_Performance_Tmp2
+
+insert into ATS_Sales_Performance_Tmp2(Segment,last_year_ytd_bud,
+this_year_ytd_bud,last_month_bud,this_month_bud,next_month_budget,nextof_next_month_budget)
+select ltrim(rtrim(Segment)) Segment,last_year_ytd_bud,this_year_ytd_bud,
+last_month_bud,this_month_bud,next_month_budget,nextof_next_month_budget 
+from vw_bud_ATS_Segmentwise
+
+--Alter table ATS_Sales_Performance_Tmp2 add This_Month_Plan float
+insert into ATS_Sales_Performance_Tmp2(Segment,This_Month_Plan)
+select ltrim(rtrim(Segment)) Segment,SalesPlan from ATS_Plan_Master_Segmentwise where 
+month(getdate()-1)=month(planDate)
+and year(getdate()-1)=year(planDate)
+
+
+insert into ATS_Sales_Performance_Tmp2(Segment,DPSTCode,Zone,last_year_ytd_inflow,last_year_this_month_inflow,
+this_year_ytd_inflow,last_month_inflow,this_month_inflow,last_day_inflow,last_year_day_inflow)
+select ltrim(rtrim(Segment)) Segment,Dpst,Zone,last_year_ytd_inflow,last_year_this_month_inflow,
+this_year_ytd_inflow,last_month_inflow,this_month_inflow,last_day_inflow,last_year_day_inflow 
+from vw_inflow_ATS_Segmentwise
+where this_month_inflow+last_day_inflow<>0
+
+
+
+insert into ATS_Sales_Performance_Tmp2(Segment,DPSTCode,Zone,last_year_ytd,last_year_this_month_sale,
+this_year_ytd,last_month_sale,this_month_sale,last_day_sale,last_year_day_sale)
+select ltrim(rtrim(Segment)) Segment,dpst,Zone,
+last_year_ytd,last_year_this_month_sale,this_year_ytd,last_month_sale,
+this_month_sale,last_day_sale,last_year_day_sale
+from vw_sls_ATS_Segmentwise
+where last_year_ytd+last_year_this_month_sale+this_year_ytd+last_month_sale+
+this_month_sale+last_day_sale+last_year_day_sale<>0
+
+
+--delete from ATS_Sales_Performance_Tmp2 where segment='102'
+
+--Commented as per Mail Request from Lokesh(ATS)
+--update ATS_Sales_Performance_Tmp2 set segment ='CHANNEL'
+--where zone in ('South','West','North','East') and segment is null
+
+update ATS_Sales_Performance_Tmp2 set segment ='PV-CHANNEL' where segment in ('PV - Channel')
+update ATS_Sales_Performance_Tmp2 set segment ='CORPORATE A/c' where segment in ('MKTG Projects','Pvt. Labeling','PRIVATE-BRAND')
+
+
+
+update ATS_Sales_Performance_Tmp2 set segment =null where segment=''
+
+Update ATS_Sales_Performance_Tmp2 set ZoneOrdering= 1 where  Zone='South'
+Update ATS_Sales_Performance_Tmp2 set ZoneOrdering= 2 where  Zone='North'
+Update ATS_Sales_Performance_Tmp2 set ZoneOrdering= 3 where  Zone='West'
+Update ATS_Sales_Performance_Tmp2 set ZoneOrdering= 4 where  Zone='East'
+
+
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=1 where Segment='PV'
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=2 where Segment='CV'
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=3 where Segment='PV-CHANNEL'
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=4 where Segment='CHANNEL'
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=5 where Segment='INSTITUTION'
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=6 where Segment='TYRESHOP'
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=7 where Segment='RVSF'
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=8 where Segment='CORPORATE A/c'
+
+Update ATS_Sales_Performance_Tmp2 set SegmentOrdering=100 where Segment is null
+
+--Based on ATS SR:6001013506
+delete from ATS_Sales_Performance_Tmp2 where segment in ('Pvt. Labeling','MSU','0','INDUSTRY','MKTG Projects','ACW-NONOEM')
+
+
+
+--Truncate table ATS_Sales_Performance_Tmp3
+insert into ATS_Sales_Performance_Tmp3(CustCode,CustName,DPSTCode,Zone,last_year_ytd_inflow,last_year_this_month_inflow,
+this_year_ytd_inflow,last_month_inflow,this_month_inflow,last_day_inflow,last_year_day_inflow)
+select ltrim(rtrim(CustCode)) CustCode,CustName,Dpst,Zone,last_year_ytd_inflow,last_year_this_month_inflow,
+this_year_ytd_inflow,last_month_inflow,this_month_inflow,last_day_inflow,last_year_day_inflow 
+from vw_inflow_ATS_Customerwise
+where (last_year_ytd_inflow+this_year_ytd_inflow)<>0
+
+insert into ATS_Sales_Performance_Tmp3(CustCode,CustName,DPSTCode,Zone,last_year_ytd,last_year_this_month_sale,
+this_year_ytd,last_month_sale,this_month_sale,last_day_sale,last_year_day_sale)
+select ltrim(rtrim(Custcode)) Custcode,CustName,dpst,Zone,
+last_year_ytd,last_year_this_month_sale,this_year_ytd,last_month_sale,
+this_month_sale,last_day_sale,last_year_day_sale
+from vw_sls_ATS_Customerwise
+where last_year_ytd+last_year_this_month_sale+this_year_ytd+last_month_sale+
+this_month_sale+last_day_sale+last_year_day_sale<>0
+
+
+end 
+
+select * from ATS_Sales_Performance_Tmp3
+
+
+--select distinct segment from ATS_Sales_Performance_Tmp2
+--where segment like '%mktg%'
+
+
+--select * from ATS_Sales_Performance_Tmp2
+--where segment =
+--('MKTG Projects','Pvt. Labeling','PRIVATE-BRAND')
+--'PV - Channel'

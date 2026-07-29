@@ -1,0 +1,67 @@
+--exec sp_ATS_TrialSales
+CREATE proc sp_ATS_TrialSales as
+begin
+
+Truncate Table ATS_TrialSales
+
+Insert into ATS_TrialSales
+--select * into ATS_TrialSales from (
+select Company,Trantyp,Trantype_desc,SaleOrderType,OrderNo,
+InvNo,CustNo,CustName,DPST,DpstName,
+InvDate,
+case when Rnk=1 then InvAmt else 0 end as InvAmt,
+case when Rnk=1 then PaidAmt else 0 end as PaidAmt,
+case when Rnk=1 then BalanceAmt else 0 end as BalanceAmt,
+DueDate,
+AreaCode,AreaName,Item,Item_desc,DeliveryQty,
+datediff(dd,InvDate,getdate()-1) as DelayDays,
+LN_Company
+from (
+select a.Company,isnull(a.LN_Company,b.LN_Company) as LN_Company, a.Trantyp,c.Trantype_desc,a.InvNo,b.SaleOrderType,b.OrderNo,a.CustNo,a.CustName,a.DPST,a.DpstName,
+a.InvDate,InvAmt,PaidAmt,BalanceAmt,DueDate,AreaCode,AreaName,Item,Item_desc,DeliveryQty,
+row_number() over (partition by a.Company,a.Trantyp,a.InvNo order by a.Company,a.Trantyp,a.InvNo) as Rnk from 
+(select 101 as Company,Company as LN_Company,Trantyp,InvNo,CustNo,CustName,DPST,DpstName,AreaCode,AreaName,
+InvDate,DueDate,InvAmt,PaidAmt,BalanceAmt
+from ACR_Debtors_Details
+where company in (select company from elgi_companies_master where companygroup='ATS')
+and Trantyp in (select Trantype from vw_ATS_Trantypes)
+)a
+left outer join
+(select 101 as Company,company as LN_Company,Trantype,Invoice,SaleOrderType,OrderNo,Item,Item_desc,DeliveryQty from ATS_Sales_Details 
+where trantype in (select Trantype from vw_ATS_Trantypes)
+union
+select 101 as Company,company,TranType,InvoiceNum,null as OrderType,ordernum,ItemCode,null,DeliveredQty from [elgi-dw].dbo.TmpSlsDelivery
+where company like '101%'
+and trantype in (select Trantype from vw_ATS_Trantypes)
+)b
+on a.Company=b.company
+and a.Trantyp=b.trantype
+and a.InvNo=b.Invoice
+inner join vw_ATS_Trantypes c
+on a.Trantyp=c.Trantype
+
+)a
+--)b
+where BalanceAmt<>0
+--and InvDate between @FromDate and @ToDate
+--and concat(Trantyp,InvNo) in ('6C375000026')
+--and concat(Company,Trantyp,InvNo) in ('1016C375000026')
+order by InvDate
+
+update ATS_TrialSales set Item_desc=a.t_dsca
+from TTCIBD001600 a
+where ltrim(rtrim(ATS_TrialSales.Item))=ltrim(rtrim(a.t_item))
+and ATS_TrialSales.Item_desc is null
+
+delete from ATS_TrialSales where concat(Company,Trantyp,InvNo) in
+(select concat(Company,Trantyp,InvNo) from ATS_TrialSales
+group by Company,Trantyp,InvNo
+having sum(BalanceAmt) < 1
+)
+
+
+end
+
+select * from ATS_TrialSales 
+where --BalanceAmt=0 and 
+concat(LN_Company,Trantyp,InvNo)='6006c132000019'--'6006DS74000003'

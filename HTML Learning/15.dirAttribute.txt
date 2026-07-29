@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html dir = "ltr">
+
+   <head>
+      <title>Display Directions</title>
+   </head>
+	
+   <body>
+      This is how IE 5 renders left-to-right directed text.
+   </body>
+	
+</html>

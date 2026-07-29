@@ -1,0 +1,18 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Create Proc [SP_GR_GateEntry_Recipt]
+as
+begin
+
+truncate table GateEntry_Recipt
+
+insert into GateEntry_Recipt
+
+select * from [LN].[Powerapps].[dbo].[GateEntry_Recipt]
+
+end 
+
+
+Completion time: 2025-11-19T10:20:00.0060257+05:30

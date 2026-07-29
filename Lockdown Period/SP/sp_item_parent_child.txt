@@ -1,0 +1,39 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_item_parent_child
+CREATE proc sp_item_parent_child
+as begin
+
+create table #x (parent varchar(100),child varchar(100),item_desc varchar(1000))
+
+insert into #x (parent,child,item_desc) 
+
+select * from(
+select distinct MITM,SITM,t_dsca From (
+select ltrim(rtrim(MITM)) MITM,ltrim(rtrim(SITM))SITM from TTIBOM010ALL
+where company=400 and (year(exdt)<2000 or  convert(date,exdt)>=convert(date,getdate()))
+--and ltrim(rtrim(t$MITM))='s41844'
+)a
+inner join (select distinct ltrim(rtrim(t_item))as item,t_dsca From TTCIBD001400 where t_dsca like 'airblock%')b
+on ltrim(rtrim(a.SITM))=ltrim(rtrim(b.item)))a
+
+
+
+truncate table item_parent_child
+insert into item_parent_child
+select #x.*,b.subchild  From #x
+inner join (
+select * From (
+select ltrim(rtrim(MITM))as child,ltrim(rtrim(SITM)) as subchild,exdt from TTIBOM010ALL
+where  company=400 and ltrim(rtrim(MITM)) in (select distinct child from #x --where parent='s41844'
+))a where subchild like 'x%' and (year(exdt)<2000 or  convert(date,exdt)>=convert(date,getdate()))
+)b
+on ltrim(rtrim(#x.child))=ltrim(rtrim(b.child))
+order by parent,#x.child,b.subchild
+
+
+end
+
+
+
+Completion time: 2025-11-19T11:30:17.8659509+05:30

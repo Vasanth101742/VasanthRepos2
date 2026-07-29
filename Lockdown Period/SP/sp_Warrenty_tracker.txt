@@ -1,0 +1,63 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Warrenty_tracker 
+--  select * From Warrenty_tracker 
+CREATE proc [dbo].[sp_Warrenty_tracker]
+as
+begin
+
+truncate table Warrenty_tracker 
+insert into Warrenty_tracker 
+select * from (
+select *,total_item_price+new_Mileage_Cost+new_Labour_cost+new_Misc_cost+new_Freight_cost as total,'' as Approve_id,'Pending' as Status
+From (
+select *,
+case when rno >1 then 0 else Mileage_Cost  end as new_Mileage_Cost,
+case when rno >1 then 0 else Labour_cost  end as new_Labour_cost,
+case when rno >1 then 0 else Misc_cost  end as new_Misc_cost,
+case when rno >1 then 0 else Qty  end as new_Qty,
+case when rno >1 then 0 else Trips  end as new_Trips,
+case when rno >1 then 0 else Freight_cost  end as new_Freight_cost
+ From (
+select distinct *,ROW_NUMBER()over(order by focno) rno  From (
+select  convert(date,a.date_time) as Log_Date,a.ccstrackno,a.focno,a.fabno,a.pr_model as Model,a.cu_name as Custname,
+Item_code as partcode,item_desc as Part_desc,item_req as Itemqty,Item_price,a.mileage_charge as Mileage_Cost,
+a.service_charge as Labour_cost,a.miscell_charges as Misc_cost,a.qty_req as Qty,
+a.no_trips as Trips,a.other_charges as Freight_cost,
+item_req*Item_price as total_item_price
+--,apprv_id,,case when a.focno in (select distinct focno  From active_foc_approvels WHERE apprv_id='11120')then 'Approved' else 'Pending'end as Status
+From (select * From active_foc where dlr_name ='cu1e00847' and convert(date,date_time) between'2017-08-01'and '2017-08-31'-- and focno ='26519h059'
+) a
+--left join active_foc_approvels b
+--on a.focno=b.focno
+--and a.firno=b.firno
+--and a.ccstrackno=b.trackno
+inner join active_foc_parts c
+on a.ccstrackno=c.ccstrackno
+and a.firno=c.focno
+)a
+)a
+)a
+)a
+
+update Warrenty_tracker set Approve_id=a.apprv_id 
+from (
+select focno,apprv_id,max(rnk_new)as cnt   From (select focno,apprv_id,case when apprv_id='11120'then 10 when apprv_id between 800000 and 899999 then 9 else rnk end as rnk_new From (
+select distinct LTRIM(RTRIM(focno))focno,apprv_id ,ROW_NUMBER ()over(partition by focno order by focno,apprv_id)as rnk  From active_foc_approvels
+where focno <>''
+and focno is not null
+and apprv_id <>''
+and apprv_id is not null
+)a
+)a
+group by focno,apprv_id 
+)a
+where ltrim(rtrim(Warrenty_tracker.focno))=ltrim(rtrim(a.focno))
+
+update Warrenty_tracker set status='Approved' where Warrenty_tracker.Approve_id in ('11120')
+update Warrenty_tracker set status='Approved' where Warrenty_tracker.Approve_id between 800000 and 899999
+
+end
+
+
+Completion time: 2025-11-19T12:46:12.6421947+05:30

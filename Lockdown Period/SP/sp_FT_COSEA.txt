@@ -1,0 +1,216 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_FT_COSEA
+CREATE proc [dbo].[sp_FT_COSEA] as
+
+Begin
+
+
+--Declare @Fromdate date ='2019-01-01'
+--Declare @Todate date ='2019-01-31'
+--Declare @FinyearStartDate date ='2018-04-01'
+--Declare @LMFromdate date ='2018-12-01'
+--Declare @LMTodate date ='2018-12-31'
+
+
+Declare @Fromdate date =(select convert(date,dateadd(MM,datediff(MM,0,getdate()),0)))
+Declare @Todate date =(select dateadd(dd,-1,dateadd(mm,1,convert(date,dateadd(MM,datediff(MM,0,getdate()),0)))))
+Declare @FinyearStartDate date =(select convert(date,convert(varchar,year(dateadd(mm,-3,getdate()-1)))+'-04-01'))
+Declare @LMFromdate date =(select dateadd(mm,-1,convert(date,dateadd(MM,datediff(MM,0,getdate()),0))))
+Declare @LMTodate date =(select dateadd(dd,-1,convert(date,dateadd(MM,datediff(MM,0,getdate()),0))))
+Declare @NMFromdate date =(select dateadd(mm,1,convert(date,dateadd(MM,datediff(MM,0,getdate()),0))))
+Declare @NMTodate date =(select dateadd(dd,-1,dateadd(mm,2,convert(date,dateadd(MM,datediff(MM,0,getdate()),0)))))
+
+
+Truncate table FT_COSEA
+
+
+Insert into FT_COSEA(Sourceofenquiry,Status_of_Enquiry_Visit,CalYear,CalMonth,WK,DATE_OF_ENQUIRY,
+weekFirstday,weekLastday,Latest_visit_date,--FTSrNo,
+SalespersonName,CustomerName,--Country,
+Prod1,Listofcompanies_competing,EnquiryStatus,LMEnquiryStatus,Qty1,Qty2,Qty3,Qty4,QuoteValue,MonthOpenINQCounts,
+WeekINQCounts,MTDINQCounts,MonthOpenUnitsCounts,WeekUnitsCounts,MTDUnitsCounts,LastMonthWK,LastMonthOpenINQCounts,
+LastMonthWeekINQCounts,LastMonthMTDINQCounts,LastMonthOpenUnitsCounts,LastMonthWeekUnitsCounts,LastMonthMTDUnitsCounts,
+--Organ,
+UptoLastFinYrUnitsCounts,UptoLastFinYrINQCounts,expected_month_of_leadclosure,
+MonthOpenExpCounts,MTDExpCounts,NMExpCounts
+)
+--select * into FT_COSEA from (
+select Sourceofenquiry,Status_of_Enquiry_Visit,CalYear,CalMonth,WK,
+EnquiryReceived_date as DATE_OF_ENQUIRY,weekFirstday,weekLastday,
+Latest_visit_date,--FTSrNo,
+SalespersonName,CompanyName as CustomerName,
+--Country,
+Prod1,Listofcompanies_competing,
+case when Status_of_Enquiry_Visit in (
+'0c -Positive conversations, potential demand identified',
+'1 – enquiry received (Maturing within 3 month from last visit date)',
+'2 – technical finalized, quotation sent',
+'3 – negotiation/ finalisation',
+'3a – negotiation/ finalization (50%-80%)',
+'3b – negotiation/ finalization ( >80%)','') then 'ACTIVE' 
+when Status_of_Enquiry_Visit='4d – order on hold' then 'HOLD'
+end as EnquiryStatus,
+case when Status_of_Enquiry_Visit in ('0c -Positive conversations, potential demand identified',
+'1 – enquiry received (Maturing within 3 month from last visit date)',
+'2 – technicals finalized, quotation sent','4d – order on hold','3 – negotiation/ finalisation',
+'3a– negotiation/ finalisation(50-80%)','3b- negotiation/ finalisation(>80%)')
+then 'Negotiation Ongoing (units) (0c,1,2,4d,3,3a,3b)'
+when Status_of_Enquiry_Visit in 
+('4a – order won (complete)',
+'4b – order won (partial)') then 'Total Orders won (Units) (4a,4b)'
+when Status_of_Enquiry_Visit in ('4c – order lost') then ('LOST (Units) (4c)')
+else 'BALANCE(UNITS)' end as LMEnquiryStatus,
+
+sum(isnull(Qty1,0)) Qty1,
+sum(isnull(Qty2,0)) Qty2,
+sum(isnull(Qty3,0)) Qty3,
+sum(isnull(Qty4,0)) Qty4,
+sum(QuoteValue) QuoteValue,
+count(case when MonthOpen='TRUE' then 1 else null end) as MonthOpenINQCounts,
+count(case when wk=WeekNo then 1 else null end) as WeekINQCounts,
+count(case when MTD='TRUE' then 1 else null end) as MTDINQCounts,
+sum(case when MonthOpen='TRUE' then isnull(Qty1,0)+isnull(Qty2,0)+isnull(Qty3,0)+isnull(Qty4,0) else null end) as MonthOpenUnitsCounts,
+sum(case when wk=WeekNo then isnull(Qty1,0)+isnull(Qty2,0)+isnull(Qty3,0)+isnull(Qty4,0) else null end) as WeekUnitsCounts,
+sum(case when MTD='TRUE' and wk=WeekNo then isnull(Qty1,0)+isnull(Qty2,0)+isnull(Qty3,0)+isnull(Qty4,0) else null end) as MTDUnitsCounts,
+LastMonthWK,
+count(case when LastMonthOpen='TRUE' then 1 else null end) as LastMonthOpenINQCounts,
+count(case when LastMonthWK=WeekNo then 1 else null end) as LastMonthWeekINQCounts,
+count(case when LastMonthMTD='TRUE' then 1 else null end) as LastMonthMTDINQCounts,
+sum(case when LastMonthOpen='TRUE' then isnull(Qty1,0)+isnull(Qty2,0)+isnull(Qty3,0)+isnull(Qty4,0) else null end) as LastMonthOpenUnitsCounts,
+sum(case when LastMonthWK=WeekNo then isnull(Qty1,0)+isnull(Qty2,0)+isnull(Qty3,0)+isnull(Qty4,0) else null end) as LastMonthWeekUnitsCounts,
+sum(case when LastMonthMTD='TRUE' and LastMonthWK=WeekNo then isnull(Qty1,0)+isnull(Qty2,0)+isnull(Qty3,0)+isnull(Qty4,0) else null end) as LastMonthMTDUnitsCounts,
+--Organ,
+sum(case when YTD='FALSE' then isnull(Qty1,0)+isnull(Qty2,0)+isnull(Qty3,0)+isnull(Qty4,0) else null end) as UptoLastFinYrUnitsCounts,
+count(case when YTD='FALSE' then 1 else null end) as UptoLastFinYrINQCounts,
+expected_month_of_leadclosure,
+count(case when MonthOpen='TRUE' then 1 else null end) as MonthOpenExpCounts,
+count(case when MTD='TRUE' then 1 else null end) as MTDExpCounts,
+count(case when NextMonth='TRUE' then 1 else null end) as NMExpCounts
+from (
+select *,
+--case when Latest_visit_date < @Fromdate then 'TRUE' else 'FALSE' end as MonthOpen,
+case when Latest_visit_date between @FinyearStartDate and @Fromdate then 'TRUE' else 'FALSE' end as MonthOpen,
+case when Latest_visit_date between @Fromdate and @Todate then  datepart(wk,Latest_visit_date) else null end as WK,
+case when Latest_visit_date between @Fromdate and @Todate then 'TRUE' else 'FALSE' end as MTD,
+case when Latest_visit_date between @FinyearStartDate and @Todate then 'TRUE' else 'FALSE' end as YTD,
+case when Latest_visit_date between @NMFromdate and @NMTodate then 'TRUE' else 'FALSE' end as NextMonth,
+
+case when Latest_visit_date < @LMFromdate then 'TRUE' else 'FALSE' end as LastMonthOpen,
+case when Latest_visit_date between @LMFromdate and @LMTodate then  datepart(wk,Latest_visit_date) else null end as LastMonthWK,
+case when Latest_visit_date between @LMFromdate and @LMTodate then 'TRUE' else 'FALSE' end as LastMonthMTD,
+case when Latest_visit_date between @FinyearStartDate and @LMTodate then 'TRUE' else 'FALSE' end as LastMonthYTD,
+
+datepart(yy,Latest_visit_date) as CalYear,
+datepart(mm,Latest_visit_date) as CalMonth,
+datepart(wk,Latest_visit_date) WeekNo,
+day(dateadd(wk,datediff(wk,0,Latest_visit_date),0)) as a,
+case when day(Latest_visit_date)<=3 then dateadd(MM,datediff(MM,0,Latest_visit_date),0)
+else dateadd(wk,datediff(wk,0,Latest_visit_date),0) end as weekFirstday ,
+case when day(Latest_visit_date)>=28 
+then dateadd(dd,-1,dateadd(mm,0,dateadd(mm,datediff(mm,0,Latest_visit_date)+1,0))) 
+else dateadd(wk,datediff(wk,0,Latest_visit_date),4) end as weekLastday
+--select * 
+from FT_Stage_COSEA a
+
+--left outer join
+--(select date,datepart(yy,DATE) as CalYear,datepart(mm,DATE) as CalMonth,datepart(wk,DATE) WeekNo,
+--day(dateadd(wk,datediff(wk,0,DATE),0)) as a,
+--case --when day(date)>=28 then dateadd(dd,-1,dateadd(mm,0,dateadd(mm,datediff(mm,0,DATE)+1,0))) 
+--when day(date)<=3 then dateadd(MM,datediff(MM,0,DATE),0)
+--else dateadd(wk,datediff(wk,0,DATE),0) end as weekFirstday ,
+--case when day(date)>=28 
+--then dateadd(dd,-1,dateadd(mm,0,dateadd(mm,datediff(mm,0,date)+1,0))) 
+--else dateadd(wk,datediff(wk,0,DATE),4) end as weekLastday
+--from companycalendar
+--where datepart(dw,date) not in(1,7) and DFCA<>'4'
+--and ccal='COMPANY'
+----and datepart(yy,DATE)=2018
+----and datepart(mm,DATE)=10
+----order by date
+--)b
+----on a.DATE_OF_ENQUIRY=b.date
+----where status_of_enquiry_visit is not null
+----and DATE_OF_ENQUIRY is not null
+
+--on a.Latest_visit_date=b.date
+where status_of_enquiry_visit is not null
+and Latest_visit_date is not null
+
+
+)a
+group by Sourceofenquiry,Status_of_Enquiry_Visit,CalYear,CalMonth,WK,
+EnquiryReceived_date,weekFirstday,weekLastday,
+Latest_visit_date,--FTSrNo,
+SalespersonName,CompanyName,
+--Country,
+Prod1,Listofcompanies_competing,LastMonthWK,
+--Organ,
+expected_month_of_leadclosure
+--)a
+
+
+update FT_COSEA set  MonthHalf='1-15' where day(Latest_visit_date) between 1 and 15
+update FT_COSEA set  MonthHalf='16-28' where day(Latest_visit_date) between 16 and 28 and CalMonth=2
+update FT_COSEA set  MonthHalf='16-29' where day(Latest_visit_date) =29 and CalMonth=2
+update FT_COSEA set  MonthHalf='16-31' where day(Latest_visit_date) between 16 and 31 and CalMonth in (1,3,5,7,8,10,12)
+update FT_COSEA set  MonthHalf='16-30' where day(Latest_visit_date) between 16 and 30 and CalMonth in (4,6,9,11)
+
+update FT_COSEA set  MonthHalf=null where wk is null
+
+update FT_COSEA set LMEnquiryStatus_ordr=1 where LMEnquiryStatus = 'Negotiation Ongoing (units) (0c,1,2,4d,3,3a,3b)'
+update FT_COSEA set LMEnquiryStatus_ordr=2 where LMEnquiryStatus = 'Total Orders won (Units) (4a,4b)'
+update FT_COSEA set LMEnquiryStatus_ordr=3 where LMEnquiryStatus = 'LOST (Units) (4c)'
+update FT_COSEA set LMEnquiryStatus_ordr=4 where LMEnquiryStatus = 'BALANCE(UNITS)'
+
+
+--update FT_COSEA set ProductSegment='Others' where ltrim(rtrim(ProductSegment))='90265,90225- ACCESSORY'
+--update FT_COSEA set ProductSegment='Others' where ltrim(rtrim(ProductSegment))='CENRTIFUGAL'
+--update FT_COSEA set ProductSegment='Others' where ltrim(rtrim(ProductSegment))='CENTRIFUGAL'
+--update FT_COSEA set ProductSegment='Others' where ltrim(rtrim(ProductSegment))='EPSAC'
+--update FT_COSEA set ProductSegment='NA'  where ltrim(rtrim(ProductSegment))='' or ltrim(rtrim(ProductSegment)) is null
+
+
+--update FT_COSEA set ProductSegment_ordr=1 where ProductSegment='90220-SEPSAC'
+--update FT_COSEA set ProductSegment_ordr=2 where ProductSegment='90222-LEPSAC'
+--update FT_COSEA set ProductSegment_ordr=3 where ProductSegment='90222-OFSAC'
+--update FT_COSEA set ProductSegment_ordr=4 where ProductSegment='90221-DPSAC'
+--update FT_COSEA set ProductSegment_ordr=5 where ProductSegment='90210-RECIP'
+--update FT_COSEA set ProductSegment_ordr=6 where ProductSegment='ROTAIR'
+--update FT_COSEA set ProductSegment_ordr=7 where ProductSegment='OTHERS'
+--update FT_COSEA set ProductSegment_ordr=8 where ProductSegment='NA'
+--update FT_COSEA set ProductSegment_ordr=100 where  ProductSegment_ordr is null
+
+update FT_COSEA set SalespersonName2='DOLLY' where SalespersonName like '%DOLLY%'
+update FT_COSEA set SalespersonName2='NITIN' where SalespersonName like '%NITIN%'
+update FT_COSEA set SalespersonName2='THOMAS T' where SalespersonName like '%THOMAS%'
+
+update FT_COSEA set expected_month_of_leadclosure='ORDERWON' where expected_month_of_leadclosure= 'ORDER WON'
+update FT_COSEA set expected_month_of_leadclosure='ORDERLOST' where expected_month_of_leadclosure= 'ORDER LOST'
+
+end
+
+select * from FT_COSEA --where wk is not null
+--where Status_of_Enquiry_Visit like '%on hold%'
+
+--select Status_of_Enquiry_Visit,WK,count(*) from FT_COSEA 
+--where CalMonth=3 and CalYear=2019
+--group by Status_of_Enquiry_Visit,WK
+
+--CalMonth=2 and CalYear=2019
+--order by Latest_visit_date
+
+--Alter table FT_COSEA add SalespersonName2 nvarchar(255)
+--ProductSegment_ordr int
+
+
+
+
+
+
+
+
+
+
+
+Completion time: 2025-11-19T10:15:16.2699188+05:30

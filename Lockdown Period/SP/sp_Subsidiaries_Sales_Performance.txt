@@ -1,0 +1,454 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Exec sp_Subsidiaries_Sales_Performance
+CREATE proc sp_Subsidiaries_Sales_Performance as
+Begin
+
+Truncate table Subsidiaries_Sales_Performance_Tmp
+Truncate table Subsidiaries_Sales_Performance
+
+
+---------------------------------------------Budget--------------------------------------------------
+Insert into Subsidiaries_Sales_Performance_Tmp(
+--Global
+organ,
+--region,user_names,Division,description
+Dpstcode,
+--dpstname
+AreaCode,
+--AreaName
+--ordr
+budget_year,last_month_budget,ytd_budget,
+this_month_budget,next_month_budget,nextof_next_month_budget,Currency)
+
+select organ,Dpst,Area, 
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+('03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) else year(getdate()-1)+1 end )))
+THEN (Budget_USD) ELSE 0 END) AS budget_year,  
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101) 
+THEN (Budget_USD) ELSE 0 END) AS last_month_budget,  
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (Budget_USD) ELSE 0 END) AS ytd_budget, 
+
+SUM(CASE WHEN date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1,getdate())) 
+AND 
+convert(varchar,dateadd(dd, - 1, getdate()),101) 
+THEN (Budget_USD) ELSE 0 END) AS this_month_budget, 
+
+SUM(CASE WHEN month(date)= datepart(mm, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) 
+THEN (Budget_USD) ELSE 0 END) AS next_month_budget,     
+
+SUM(CASE WHEN month(date) = datepart(mm, dateadd(mm, 2, dateadd(dd, - 1,getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 2, dateadd(dd, - 1, getdate()))) 
+THEN (Budget_USD) ELSE 0 END) AS nextof_next_month_budget,
+
+'USD' as Currency
+
+FROM Sales_Budget a
+where organ='Subsidiary'
+--and Dpst='90257' and Area='685'
+group by Organ,Dpst,Area
+
+
+----------------------------------------End: Budget------------------------------------------------
+------------------------------------------Inflow---------------------------------------------------
+
+Insert into Subsidiaries_Sales_Performance_Tmp(
+--Global
+organ,region,user_names,Division,
+--description
+Dpstcode,dpstname,
+AreaCode,AreaName,CustCode,CustName,
+this_month_inflow,YTD_INFLOW,Ondate_Inflow,Currency
+)
+
+select Organ,Region,user_names,Division,
+Dpst,DpstName,AreaCode,AreaName,CustCode,CustName,
+
+SUM(CASE WHEN OrderDate  BETWEEN CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND getdate()-1 THEN (Sales_USD/1000) ELSE 0 END) AS This_Month_Inflow,
+
+SUM(CASE WHEN OrderDate  BETWEEN '04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND getdate()-1  THEN (Sales_USD)/1000  ELSE 0 END) AS YTD_INFLOW,
+
+SUM(CASE WHEN convert(date,OrderDate) =convert(date,getdate()-1) THEN (Sales_USD/1000) ELSE 0 END) AS Ondate_Inflow,
+
+--SUM(CASE WHEN OrderDate  BETWEEN '04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+--AND (dateadd(dd,- day(getdate()),convert(date,getdate())))  THEN (Sales_USD)/1000  ELSE 0 END) AS INFLOW_Opening,
+
+--SUM(CASE WHEN OrderDate  BETWEEN  
+--dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    
+--AND 
+--dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+--THEN (Sales_USD) / 1000 ELSE 0 END)AS n1_month_inflow,
+
+--SUM(CASE WHEN OrderDate BETWEEN  
+--dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+--AND 
+--dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+--THEN (Sales_USD) / 1000 ELSE 0 END)AS n2_month_inflow,
+
+--SUM(CASE WHEN OrderDate BETWEEN  
+--dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+--AND 
+--dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+--THEN (Sales_USD) / 1000 ELSE 0 END)AS n3_month_inflow
+
+'USD' as Currency
+
+from Sales_Inflow 
+where ltrim(rtrim(organ))='Subsidiary' and 
+concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1) ) 
+--and Dpst='90257' and AreaCode='685'
+group by Organ,Region,user_names,Division,
+Dpst,DpstName,AreaCode,AreaName,CustCode,CustName
+
+
+----------------------------------------End: Inflow------------------------------------------------
+------------------------------------------Sales----------------------------------------------------
+
+insert into Subsidiaries_Sales_Performance_Tmp(organ,region,user_names,Division,DpstCode,dpstname,
+AreaCode,areaname,CustCode,CustName,
+last_year_sale,last_year_ytd,thr_month_sale,this_month_sale,this_year_sale,
+last_month_sale,n1_month_sale,n2_month_sale,n3_month_sale,ondate_sale,Currency)
+
+select organ,region,user_names,Division,Dpst,dpstname,
+AreaCode,areaname,CustCode,CustName,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1) end ))
+THEN (a.Sales_USD) / 1000 ELSE 0 END) AS last_year_sale, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+dateadd(yy, - 1, dateadd(dd, - 1, getdate())) 
+THEN (a.Sales_USD) / 1000 ELSE 0 END) AS last_year_ytd, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_USD) / 1000 ELSE 0 END)AS thr_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND 
+getdate() 
+THEN (a.Sales_USD) / 1000 ELSE 0 END) AS this_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+getdate() 
+THEN (a.Sales_USD) / 1000 ELSE 0 END) AS this_year_sale,   
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_USD) / 1000 ELSE 0 END) AS last_month_sale,
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_USD) / 1000 ELSE 0 END)AS n1_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Sales_USD) / 1000 ELSE 0 END)AS n2_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Sales_USD) / 1000 ELSE 0 END)AS n3_month_sale,
+
+sum(CASE WHEN day(a.invoice_date)=day(getdate()-1)and month(a.invoice_date)=month(getdate()-1)
+and year(a.invoice_date)=year(getdate()-1)THEN (a.Sales_USD) / 1000 ELSE 0 END) AS ondate_sale,
+
+--SUM(CASE WHEN a.Invoice_Date BETWEEN 
+-- CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(yy,-1, dateadd(dd, - 1, getdate()))) 
+--AND 
+-- dateadd(yy,-1,dateadd(dd, - 1, convert(date,getdate())))
+--THEN (a.Sales_USD) / 1000 ELSE 0 END) AS last_year_this_month_sale
+
+
+'USD' as Currency
+
+FROM 	
+ELGi_Sales_Details a 
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+and organ='Subsidiary'
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+
+group by --Global,
+organ,region,user_names,Division,--description,
+dpst,dpstname,AreaCode,areaname,CustCode,CustName
+
+
+----------------------------------------End: Sales------------------------------------------------
+---------------------------------------PendingValue-----------------------------------------------
+
+Insert into Subsidiaries_Sales_Performance_Tmp(
+--Global
+--organ,
+--region,user_names,Division,
+--description
+Dpstcode,--dpstname,
+AreaCode,--AreaName,
+PendValue,
+this_month_PendValue,this_year_PendValue,Currency
+)
+select Dpst,areacode,
+
+SUM(CASE WHEN OrderDate <getdate() THEN (PendValue_USD) / 1000 ELSE 0 END) AS PendValue,
+
+SUM(CASE WHEN OrderDate BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND 
+getdate() 
+THEN (PendValue_USD) / 1000 ELSE 0 END) AS this_month_PendValue,
+
+SUM(CASE WHEN OrderDate BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+getdate() 
+THEN (PendValue_USD) / 1000 ELSE 0 END) AS this_year_PendValue,
+
+
+--sum(case when month(OrderDate)=month(getdate()-1) 
+--and year(orderdate)=year(getdate()-1) then Value/1000000 end) as this_month_PendValue,  
+
+--SUM(CASE WHEN OrderDate BETWEEN 
+--'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+--AND 
+--getdate() 
+--THEN (PendValue_ForeignCurrency) / 1000 ELSE 0 END) AS YTD_PendValue
+
+'USD' as Currency
+
+from Pending_Orders
+where concat(Dpst,areacode) in (select concat(DPSTCode,areacode) from SalesMapping_Global where organ='Subsidiary')
+group by Dpst,areacode 
+
+
+
+------------------------------End: PendingValue------------------------------------------------
+----------------------------------SalesPlan----------------------------------------------------
+
+
+Insert into Subsidiaries_Sales_Performance_Tmp(
+--Global
+organ,
+--region,user_names,Division,
+--description
+Dpstcode,--dpstname,
+AreaCode,--AreaName,
+SalesPlan,Currency
+)
+select Organ,DpstCode,AreaCode,SalesPlan_USD/1000,'USD' as Currency from ELGi_Sales_Plan 
+where organ='Subsidiary'
+and CalMonth=month(getdate()-1) and CalYear=year(getdate()-1)
+
+
+
+
+Insert into Subsidiaries_Sales_Performance(Global,organ,region,user_names,Division,description,
+Dpstcode,dpstname,AreaCode,AreaName,CustCode,CustName,ordr,Currency,
+budget_year,last_month_budget,ytd_budget,
+this_month_budget,next_month_budget,nextof_next_month_budget,last_year_sale,last_year_ytd,
+thr_month_sale,this_month_sale,this_year_sale,last_month_sale,n1_month_sale,n2_month_sale,
+n3_month_sale,this_month_inflow,YTD_INFLOW,PendValue,SalesPlan,this_month_PendValue,this_year_PendValue,
+OpenOrderValue_tillLM,OpenOrderValue_MTD,Ondate_Inflow,ondate_sale)
+select Global,organ,region,user_names,Division,description,
+Dpstcode,dpstname,AreaCode,AreaName,CustCode,CustName,ordr,Currency,
+sum(isnull(budget_year,0)) as budget_year,
+sum(isnull(last_month_budget,0)) as last_month_budget,
+sum(isnull(ytd_budget,0)) as ytd_budget,
+sum(isnull(this_month_budget,0)) as this_month_budget,
+sum(isnull(next_month_budget,0)) as next_month_budget,
+sum(isnull(nextof_next_month_budget,0)) as nextof_next_month_budget,
+sum(isnull(last_year_sale,0)) as last_year_sale,
+sum(isnull(last_year_ytd,0)) as last_year_ytd,
+sum(isnull(thr_month_sale,0)) as thr_month_sale,
+sum(isnull(this_month_sale,0)) as this_month_sale,
+sum(isnull(this_year_sale,0)) as this_year_sale,
+sum(isnull(last_month_sale,0)) as last_month_sale,
+sum(isnull(n1_month_sale,0)) as n1_month_sale,
+sum(isnull(n2_month_sale,0)) as n2_month_sale,
+sum(isnull(n3_month_sale,0)) as n3_month_sale,
+sum(isnull(this_month_inflow,0)) as this_month_inflow,
+sum(isnull(YTD_INFLOW,0)) as YTD_INFLOW,
+sum(isnull(PendValue,0)) as PendValue,
+sum(isnull(SalesPlan,0)) as SalesPlan,
+sum(isnull(this_month_PendValue,0)) as this_month_PendValue,
+sum(isnull(this_year_PendValue,0)) as this_year_PendValue,
+sum(isnull(OpenOrderValue_tillLM,0)) as OpenOrderValue_tillLM,
+sum(isnull(OpenOrderValue_MTD,0)) as OpenOrderValue_MTD,
+sum(isnull(Ondate_Inflow,0)) as Ondate_Inflow,
+sum(isnull(ondate_sale,0)) as ondate_sale
+from Subsidiaries_Sales_Performance_Tmp
+group by Global,organ,region,user_names,Division,description,
+Dpstcode,dpstname,AreaCode,AreaName,CustCode,CustName,ordr,Currency
+
+
+update Subsidiaries_Sales_Performance set organ=a.Organ
+from(select distinct organ,dpst,areacode from ELGi_Sales_Details 
+where organ='Subsidiary'
+and Invoice_Date>='2017-04-01'
+)a
+where Subsidiaries_Sales_Performance.Dpstcode=a.dpst
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.organ is null
+
+update Subsidiaries_Sales_Performance set region=a.Region
+from(select distinct region,dpst,areacode from ELGi_Sales_Details 
+where organ='Subsidiary'
+and Invoice_Date>='2017-04-01'
+)a
+where Subsidiaries_Sales_Performance.Dpstcode=a.dpst
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.region is null
+
+update Subsidiaries_Sales_Performance set user_names=a.user_names
+from(select distinct user_names,dpst,areacode from ELGi_Sales_Details 
+where organ='Subsidiary'
+and Invoice_Date>='2017-04-01'
+)a
+where Subsidiaries_Sales_Performance.Dpstcode=a.dpst
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.user_names is null
+
+update Subsidiaries_Sales_Performance set Division=a.Division
+from(select distinct Division,dpst,areacode from ELGi_Sales_Details 
+where organ='Subsidiary'
+and Invoice_Date>='2017-04-01'
+)a
+where Subsidiaries_Sales_Performance.Dpstcode=a.dpst
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.Division is null
+
+
+update Subsidiaries_Sales_Performance set organ=a.Organ
+from(select distinct organ,DPSTCode,areacode from vw_SALESMAPPING_MASTER where organ='Subsidiary')a
+where Subsidiaries_Sales_Performance.Dpstcode=a.DPSTCode
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.organ is null
+
+update Subsidiaries_Sales_Performance set region=a.Region
+from(select distinct region,DPSTCode,areacode from vw_SALESMAPPING_MASTER where organ='Subsidiary')a
+where Subsidiaries_Sales_Performance.Dpstcode=a.DPSTCode
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.region is null
+
+update Subsidiaries_Sales_Performance set user_names=a.user_names
+from(select distinct user_names,DPSTCode,areacode from vw_SALESMAPPING_MASTER where organ='Subsidiary')a
+where Subsidiaries_Sales_Performance.Dpstcode=a.DPSTCode
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.user_names is null
+
+update Subsidiaries_Sales_Performance set Division=a.Division
+from(select distinct Division,DPSTCode,areacode from vw_SALESMAPPING_MASTER where organ='Subsidiary')a
+where Subsidiaries_Sales_Performance.Dpstcode=a.DPSTCode
+and Subsidiaries_Sales_Performance.AreaCode=a.areacode
+and Subsidiaries_Sales_Performance.Division is null
+
+update Subsidiaries_Sales_Performance set Areaname=a.AreaName
+from (select * from vw_AREA_MASTER)a
+where Subsidiaries_Sales_Performance.areacode=a.Areacode
+and Subsidiaries_Sales_Performance.areaname is null
+
+update Subsidiaries_Sales_Performance set Areacode='622', AreaName='MALAYSIA'
+where organ='Subsidiary' and division='MALAYSIA-CUSTOMER'
+
+
+update Subsidiaries_Sales_Performance set DPSTName=a.DPSTName
+from (select * from vw_dpst_MASTER)a
+where Subsidiaries_Sales_Performance.Dpstcode=a.DPSTcode
+and Subsidiaries_Sales_Performance.dpstname is null
+
+
+update Subsidiaries_Sales_Performance set Vertical1=a.Vertical1
+from (select * from vw_SALESMAPPING_MASTER where organ='Subsidiary')a
+where Subsidiaries_Sales_Performance.dpstcode=a.DPSTCode
+and Subsidiaries_Sales_Performance.areacode=a.Areacode
+
+update Subsidiaries_Sales_Performance set Vertical1='Units' where Vertical1='OSEA UNITS'
+update Subsidiaries_Sales_Performance set Vertical1='AM' where Vertical1='OSEA AS'
+update Subsidiaries_Sales_Performance set Vertical1='' where Vertical1 is null
+
+
+--update Subsidiaries_Sales_Performance set DealerType=a.DealerType
+--from (select * from vw_COSEA_Dealers_Master)a
+--where Subsidiaries_Sales_Performance.organ=a.Organ
+--and Subsidiaries_Sales_Performance.AreaCode=a.AreaCode
+--and ltrim(rtrim(Subsidiaries_Sales_Performance.CustCode))=ltrim(rtrim(a.DealerCode))
+
+--update COSEA_Sales_Performance set DealerType='OTHER DISTRIBUTORS' where DealerType is null and areaname ='THAILAND'
+--update COSEA_Sales_Performance set DealerType='DIRECT' where DealerType is null and areaname <>'THAILAND'
+
+
+--update COSEA_Sales_Performance set DealerTypeOrdr=1 where DealerType='ACTIVE DISTRIBUTORS'
+--update COSEA_Sales_Performance set DealerTypeOrdr=2 where DealerType='OTHER DISTRIBUTORS'
+--update COSEA_Sales_Performance set DealerTypeOrdr=3 where DealerType='DIRECT'
+
+
+
+update Subsidiaries_Sales_Performance set dpstname=a.DPSTName
+from (select * from vw_DPST_MASTER)a
+where Subsidiaries_Sales_Performance.Dpstcode=a.DPSTcode
+and Subsidiaries_Sales_Performance.dpstname is null
+
+
+update Subsidiaries_Sales_Performance set AreaName=a.AreaName
+from (select * from vw_AREA_MASTER)a
+where Subsidiaries_Sales_Performance.AreaCode=a.Areacode
+and Subsidiaries_Sales_Performance.AreaName is null
+
+--Alter table COSEA_Sales_Performance add AreaNameOrdr int
+
+update Subsidiaries_Sales_Performance set AreaNameOrdr=1 where AreaName='Malaysia'
+update Subsidiaries_Sales_Performance set AreaNameOrdr=2 where AreaName='Vietnam'
+update Subsidiaries_Sales_Performance set AreaNameOrdr=3 where AreaName='Phillipines'
+update Subsidiaries_Sales_Performance set AreaNameOrdr=4 where AreaName='Singapore'
+
+
+
+delete from Subsidiaries_Sales_Performance 
+where budget_year + last_month_budget + ytd_budget +
+this_month_budget + next_month_budget + nextof_next_month_budget +
+last_year_sale + last_year_ytd + thr_month_sale + this_month_sale + this_year_sale +
+last_month_sale + n1_month_sale + n2_month_sale + n3_month_sale + this_month_inflow +
+YTD_INFLOW + PendValue + SalesPlan =0
+
+
+
+
+end
+
+select * from Subsidiaries_Sales_Performance
+--select sum(YTD_INFLOW) from COSEA_Sales_Performance where areacode='624'
+
+
+
+Completion time: 2025-11-19T12:36:34.4928972+05:30

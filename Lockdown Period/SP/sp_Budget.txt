@@ -1,0 +1,521 @@
+--exec sp_Budget
+CREATE Proc [dbo].[sp_Budget]
+as
+Begin
+
+
+declare @FromYear varchar(10)=year(getdate())
+declare @ToYear varchar(10)=year(getdate())+1
+
+--select concat(@FromYear,'-04-01')
+--select concat(@ToYear,'-03-01')  
+
+--select * from Sales_Budget where date  between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')  
+
+--Backup and then Truncate
+--select * from intra_sales_budget_details_bkp_08_Dec_17
+--select * from intra_sales_budget_details_bkp_31_Mar_18
+--select * into intra_sales_budget_details_bkp_31_Mar_18 from intra_sales_budget_details
+--Truncate table intra_sales_budget_details
+--select * from intra_sales_budget_details order by fin_year desc
+--select dpst,fin_year from intra_sales_budget_details 
+--where fin_year<>'2018-2019'
+--order by fin_year desc
+
+
+
+delete from Sales_Budget         where date  between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')  
+delete from TempBudget           where date  between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+delete from DPSTwise_Budget      where date  between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+--and dpst not in (select dpstcode from DPST_Master_ATS)
+delete from Itemwise_Budget      where date  between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+delete from SAAME_Budget_Details where dates between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+delete from TPLwise_Budget       where date  between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')
+
+
+--delete from exp_pr_var_bud_0910   where date  between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')
+
+
+--TempBudget-------------------------------------------------------------------------------------------------------------
+
+
+insert into TempBudget(Dpst,Date,Target,Area,SaleType,HoTarget)
+select dpst,date,convert(numeric(16,0),value1)/1000000,area,a,b from
+(select dpst,concat(@FromYear,'-04-01') as date,sum(apr_value) as value1 ,area,0 as a,0 as b  from intra_sales_budget_details
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-05-01'),sum(may_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-06-01'),sum(jun_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-07-01'),sum(jul_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-08-01'),sum(aug_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-09-01'),sum(sep_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-10-01'),sum(oct_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-11-01'),sum(nov_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-12-01'),sum(dec_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@ToYear,'-01-01'),sum(jan_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@ToYear,'-02-01'),sum(feb_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@ToYear,'-03-01'),sum(mar_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+)a
+
+--Truncate Table TempBudget
+
+
+insert into TempBudget(Dpst,Date,Target,Area,SaleType,HoTarget)
+select dpst,date,convert(numeric(16,0),value1)/1000000,AREACODE,a,b from
+(select dpst,concat(@FromYear,'-04-01') as date,sum(AprilValue)*avg(INRConversionRate) as value1 ,AREACODE,0 as a,0 as b  from Australia_Budget_Master
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-05-01'),sum(MayValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-06-01'),sum(JuneValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-07-01'),sum(JulyValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-08-01'),sum(AugustValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-09-01'),sum(SeptValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-10-01'),sum(OctValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-11-01'),sum(NovValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@FromYear,'-12-01'),sum(DecValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@ToYear,'-01-01'),sum(JanValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@ToYear,'-02-01'),sum(FebValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+union all
+select dpst,concat(@ToYear,'-03-01'),sum(MarValue)*avg(INRConversionRate),AREACODE,0 as a,0 as b  from Australia_Budget_Master 
+where FinYear=concat(@FromYear,'-',@ToYear) group by dpst,AREACODE
+)a
+
+
+
+
+--End :TempBudget--------------------------------------------------------------------------------------------------------
+--DPSTwise_Budget--------------------------------------------------------------------------------------------------------
+
+--Commented on 20-Jan-2025
+
+insert into DPSTwise_Budget(Dpst,Date,Target,hist_date,SaleType)
+select dpst,date,sum(value1) as value1,convert(datetime,convert(varchar(10),getdate(),101)),0 from
+(select dpst,concat(@FromYear,'-04-01') as date,sum(apr_value) as value1,area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-05-01'),sum(may_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-06-01'),sum(jun_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-07-01'),sum(jul_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-08-01'),sum(aug_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-09-01'),sum(sep_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-10-01'),sum(oct_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-11-01'),sum(nov_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@FromYear,'-12-01'),sum(dec_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@ToYear,'-01-01'),sum(jan_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@ToYear,'-02-01'),sum(feb_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+union all
+select dpst,concat(@ToYear,'-03-01'),sum(mar_value),area,0 as a,0 as b  from intra_sales_budget_details 
+where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+) a
+group by date,dpst
+
+
+
+--End: DPSTwise_Budget---------------------------------------------------------------------------------------------------
+
+
+
+INSERT INTO Sales_Budget (DPST,DATE,TARGET,AREA,SALETYPE,[hoTARGET],ORGAN) 
+select *,'' from TempBudget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+
+
+update Sales_Budget set organ=a.organ from 
+(SELECT DISTINCT DPST,AREA,ORGAN FROM Sales_Budget where organ !=' ') a 
+where ltrim(rtrim(Sales_Budget.area))=ltrim(rtrim(a.area)) and ltrim(rtrim(Sales_Budget.dpst))=ltrim(rtrim(a.dpst))  
+and date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')
+
+
+
+--select * from Sales_Budget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') and  organ =''
+update Sales_Budget set organ='India' where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')
+and organ ='' and area='001'
+
+
+update Sales_Budget set organ = ltrim(rtrim(a.organ)) from vw_SALESMAPPING_MASTER a where Sales_Budget.area=a.areacode and Sales_Budget.dpst=a.DPSTCode
+
+
+
+update Sales_Budget set organ=a.organ from 
+(select distinct areacode,organ  from vw_SALESMAPPING_MASTER where areacode in (
+select distinct area area  from Sales_Budget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')  and organ = '' ))a 
+where Sales_Budget.organ='' and a.areacode=Sales_Budget.area
+
+
+
+
+--Itemwise_Budget--------------------------------------------------------------------------------------------------------
+
+--Commented on 20-Jan-2025
+
+--insert into Itemwise_Budget(dpst,date,target,area,item_code,qty)
+--select dpst,date,convert(numeric(16,4),value1) as target ,area,item_code,qty from
+--(select dpst,concat(@FromYear,'-04-01') as date,sum(apr_value) as value1 ,area,item_code,sum(apr_qty) as qty  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-05-01'),sum(may_value),area,item_code,sum(may_qty)  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-06-01'),sum(jun_value),area,item_code,sum(jun_qty) from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-07-01'),sum(jul_value),area,item_code,sum(jul_qty)  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-08-01'),sum(aug_value),area,item_code,sum(aug_qty)  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-09-01'),sum(sep_value),area,item_code,sum(sep_qty)  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-10-01'),sum(oct_value),area,item_code,sum(oct_qty) from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-11-01'),sum(nov_value),area,item_code,sum(nov_qty)  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@FromYear,'-12-01'),sum(dec_value),area,item_code,sum(dec_qty) from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@ToYear,'-01-01'),sum(jan_value),area,item_code,sum(jan_qty) from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@ToYear,'-02-01'),sum(feb_value),area,item_code,sum(feb_qty)  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--union all
+--select dpst,concat(@ToYear,'-03-01'),sum(mar_value),area,item_code,sum(mar_qty)  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area,item_code
+--)a
+
+
+--End: Itemwise_Budget---------------------------------------------------------------------------------------------------
+--SAAME_Budget_Details---------------------------------------------------------------------------------------------------
+
+--Commented on 20-Jan-2025
+
+--insert into SAAME_Budget_Details(dpst,tplnumbernew,tplnumber,tplname,dates,bud_qty,bud_value,curr,region,areaname,user_names,
+--curr_val,bud_values,bud_price)
+--select dpst,item_code,tplnumber,item_desc,dates,bud_qty,bud_value/curr_val ,curr,region,areaname,user_names,curr_val,(bud_qty*base_price)/curr_val bud_values, base_price/curr_val
+-- from (
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-04-01') as dates,apr_qty bud_qty,apr_value bud_value,curr,region,areaname,user_names,curr_val,base_price
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode 
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-05-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price  
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-06-01'), may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price 
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-07-01'), may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode 
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-08-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-09-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price 
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-10-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price
+-- from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--	where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-11-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price  
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode 
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@FromYear,'-12-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price 
+-- from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--	where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@ToYear,'-01-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price 
+-- from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--	where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@ToYear,'-02-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price  
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst,item_code,item_code,item_desc,concat(@ToYear,'-03-01'),may_qty,may_value,curr,region,areaname,user_names,curr_val,base_price  
+--from intra_sales_budget_details a inner join vw_SALESMAPPING_MASTER b on a.area=b.areacode and a.dpst=b.DPSTCode
+--where organ='isaame' and a.fin_year=concat(@FromYear,'-',@ToYear)
+--)a
+--where bud_value <>0 and curr='USD'
+
+
+--End: SAAME_Budget_Details----------------------------------------------------------------------------------------------
+--TPLwise_Budget---------------------------------------------------------------------------------------------------------
+
+--Commented on 20-Jan-2025
+
+--insert into TPLwise_Budget(dpst,tplnumbernew,tplnumber,tplname,date,bud_qty,bud_value,bud_price,hist_date,cat_desc,cat_units)
+--select dpst,item_code,tplnumber,item_desc,dates,bud_qty,bud_value,base_price,Null,Null,NUll
+--from (
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-04-01') as dates,apr_qty bud_qty,apr_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-05-01') as dates,may_qty bud_qty,may_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-06-01') as dates,jun_qty bud_qty,jun_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-07-01') as dates,jul_qty bud_qty,jul_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-08-01') as dates,aug_qty bud_qty,aug_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-09-01') as dates,sep_qty bud_qty,sep_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-10-01') as dates,oct_qty bud_qty,oct_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-11-01') as dates,nov_qty bud_qty,nov_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@FromYear,'-12-01') as dates,dec_qty bud_qty,dec_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@ToYear,'-01-01') as dates,jan_qty bud_qty,jan_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@ToYear,'-02-01') as dates,feb_qty bud_qty,feb_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--union all
+--select a.dpst dpst,item_code,item_code tplnumber,item_desc,concat(@ToYear,'-03-01') as dates,mar_qty bud_qty,mar_value bud_value ,curr,curr_val,base_price
+--from intra_sales_budget_details  a where area = '001' and fin_year=concat(@FromYear,'-',@ToYear)
+--)a
+--where bud_value <>0 
+
+
+--End: TPLwise_Budget----------------------------------------------------------------------------------------------------
+
+
+
+update Sales_Budget  set organ ='Subsidiary'
+where dpst in (70002,70012,70013,70016,70022,70023,70024,70026,70027,70028,70029,70030,70051,70052,70053,70056,70061,70062,
+70064,70065,70080,70081,70082,70083,70084,70085,70090,70091,70093,70094,70095,70096,70098)
+
+--update intra_sales_budget_details set curr_val=69 where curr='USD' --for FY 2019-20
+
+update Itemwise_Budget set Budget_USD=[Target]/69 where date <='2020-03-31'
+
+
+
+--Commented on 20-Jan-2025
+--update Itemwise_Budget set Budget_USD=[Target]/(select distinct curr_val from intra_sales_budget_details where curr='USD')
+--where date between 
+--concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+----'2019-04-1' and '2020-03-31'
+
+
+--update Itemwise_Budget set Budget_Foreign_Currency=[Target]/a.curr_val
+--from 
+--(select distinct dpst,area,item_code,curr,curr_val from intra_sales_budget_details)a
+--where Itemwise_Budget.Dpst=a.dpst
+--and Itemwise_Budget.Area=a.area
+--and ltrim(rtrim(Itemwise_Budget.item_code))=ltrim(rtrim(a.item_code))
+--and Itemwise_Budget.date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+
+
+--Method1:
+--update Sales_Budget  set Budget_USD=1000*[Target]/(select distinct curr_val from intra_sales_budget_details where curr='USD')
+--where date between 
+--concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+----'2019-04-1' and '2020-03-31'
+
+--Method2:
+--declare @FromYear varchar(10)=year(getdate())
+
+
+
+update Sales_Budget  set Budget_USD=1000*[Target]/
+(
+select RATE from TTCMCS008ALL 
+where RTYP='SLS' and bcur='IND' and ccur='USD'
+and convert(date,STDT)=(select min(convert(date,stdt)) from TTCMCS008ALL where convert(date,stdt)>=concat(@FromYear,'-04-01')
+and RTYP='SLS' and bcur='IND' and ccur='USD')
+)
+where date between 
+concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+--'2019-04-1' and '2020-03-31'
+
+
+
+update Sales_Budget  set Budget_Foreign_Currency=1000*[Target]/a.curr_val
+from 
+(select distinct dpst,area,curr,curr_val from intra_sales_budget_details)a
+where Sales_Budget.Dpst=a.dpst
+and Sales_Budget.Area=a.area
+and Sales_Budget.date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+
+
+--declare @FromYear varchar(10)=year(getdate())-1
+--declare @ToYear varchar(10)=year(getdate())
+
+
+update Sales_Budget  set Budget_Foreign_Currency=1000*[Target]/a.INRConversionRate
+from 
+(select distinct DPST,AREACODE,Currency,INRConversionRate from Australia_Budget_Master
+where substring(FinYear,1,4)=@FromYear
+)a
+where Sales_Budget.Dpst=a.dpst
+and Sales_Budget.Area=a.AREACODE
+and Sales_Budget.date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+
+
+
+
+
+--Alter Table DPSTwise_Budget add Budget_USD float
+--Alter Table DPSTwise_Budget add Budget_Foreign_Currency float
+
+--update DPSTwise_Budget  set Budget_USD=1000*[Target]/
+--(
+--select RATE from TTCMCS008ALL 
+--where RTYP='SLS' and bcur='IND' and ccur='USD'
+--and convert(date,STDT)=(select min(convert(date,stdt)) from TTCMCS008ALL where convert(date,stdt)>=concat(@FromYear,'-04-01')
+--and RTYP='SLS' and bcur='IND' and ccur='USD')
+--)
+--where date between 
+--concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+----'2019-04-1' and '2020-03-31'
+
+
+
+--update DPSTwise_Budget  set Budget_Foreign_Currency=1000*[Target]/a.curr_val
+--from 
+--(select distinct dpst,area,curr,curr_val from intra_sales_budget_details)a
+--where DPSTwise_Budget.Dpst=a.dpst
+--and DPSTwise_Budget.Area=a.area
+--and Sales_Budget.date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+
+
+End
+
+
+
+---------------------------- FOR VALIDATING AFTER RUN THE BUDGET SCRIPT------------------
+
+--Alter table Itemwise_Budget add Budget_USD float
+
+
+--declare @FromYear varchar(10)=year(getdate())
+--declare @ToYear varchar(10)=year(getdate())+1
+
+--select *  from Sales_Budget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01')  order by organ
+
+
+--select * from TempBudget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+--select *  from DPSTwise_Budget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') --and hist_date !='2012-07-01'
+
+
+--select sum(target)  from Sales_Budget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+--select sum(target)  from TempBudget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') 
+--select sum(target)   from DPSTwise_Budget where date between concat(@FromYear,'-04-01') and concat(@ToYear,'-03-01') --and hist_date !='2014-07-01'
+
+
+--select sum(value1) from (
+--select dpst,concat(@FromYear,'-04-01') as date,sum(apr_value) as value1 ,area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-05-01'),sum(may_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-06-01'),sum(jun_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-07-01'),sum(jul_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-08-01'),sum(aug_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-09-01'),sum(sep_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-10-01'),sum(oct_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-11-01'),sum(nov_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@FromYear,'-12-01'),sum(dec_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@ToYear,'-01-01'),sum(jan_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@ToYear,'-02-01'),sum(feb_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--union all
+--select dpst,concat(@ToYear,'-03-01'),sum(mar_value),area,0 as a,0 as b  from intra_sales_budget_details 
+--where fin_year=concat(@FromYear,'-',@ToYear) group by dpst,area
+--)a
+

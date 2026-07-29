@@ -1,0 +1,97 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--select distinct COMPANY from TZZPUR885ALL order by company
+--exec sp_EPO
+CREATE procedure sp_EPO as
+
+Begin
+
+Truncate table EPO
+Insert into EPO
+select a.T$I$COMP as company,a.T$REFNO,a.T$CCON,a.T$OTBP,null as Supp_Name,a.T$ITEM,null as Item_desc,a.T$QOOR,
+a.T$ODAT,a.T$ORNO,a.T$PONO,null,a.T$PPNO
+,b.emsg as Reason 
+from TZZPUR885ALL a
+--where a.T$REFNO='101154/1'
+left outer join (select distinct COMP,REFNO,PPNO, emsg from TZZPUR886ALL) b
+on a.T$I$COMP=b.COMP
+and a.T$REFNO=b.REFNO
+and a.T$PPNO=b.PPNO
+--where T$orno='' --is null
+order by company,T$ODAT
+
+--select * from TZZPUR886ALL where refno='101154/1'
+
+
+
+Update EPO set Supp_Name=a.custname1
+from vw_Business_Partner a
+where ltrim(rtrim(EPO.T$OTBP))= ltrim(rtrim(a.custcode))
+
+
+--Alter table EPO alter column Item_desc varchar(50)
+--Alter table EPO alter column Reason nvarchar(1024)
+
+
+
+update EPO set Item_desc=a.t_dsca
+from TTCIBD001400 a
+where EPO.company in (400,401,440,450)
+and ltrim(rtrim(EPO.T$item))=ltrim(rtrim(a.t_item))
+
+update EPO set Item_desc=a.dsca
+from TTCIBD001465 a
+where EPO.company in (465)
+and ltrim(rtrim(EPO.T$item))=ltrim(rtrim(a.item))
+
+update EPO set Item_desc=a.dsca
+from TTCIBD001470 a
+where EPO.company in (470)
+and ltrim(rtrim(EPO.T$item))=ltrim(rtrim(a.item))
+
+
+update EPO set Item_desc=a.dsca
+from TTCIBD001490 a
+where EPO.company in (490)
+and ltrim(rtrim(EPO.T$item))=ltrim(rtrim(a.item))
+
+
+update EPO set Item_desc=a.t_dsca
+from TTCIBD001600 a
+where EPO.company in (600)
+and ltrim(rtrim(EPO.T$item))=ltrim(rtrim(a.t_item))
+
+update EPO set Order_Status='Failure'
+where T$orno=''
+
+update EPO set Order_Status='Failure'
+where T$orno is null
+
+update EPO set Order_Status='Failure'
+where T$orno<>'' and T$PONO=0
+
+update EPO set Order_Status='Success' where Order_Status is null
+
+
+delete from EPO where Order_Status='Success'
+
+
+end
+
+
+
+--select * from EPO 
+--where T$orno<>'' and T$PONO=0
+--Order_Status <>'Success'
+--company=600
+--item_desc is null
+
+
+select * from epo 
+--where T$ODAT between @FromDate and @ToDate
+order by company,T$ODAT
+
+
+
+
+Completion time: 2025-11-19T10:09:49.8710877+05:30

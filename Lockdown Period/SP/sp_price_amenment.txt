@@ -1,0 +1,27 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_price_amenment
+--Tables are loaded in Purchase data load
+CREATE proc [dbo].[sp_price_amenment]
+as
+begin
+truncate table price_Amenment 
+insert into price_Amenment 
+select a.*,c.item_desc From (
+select convert(date,a.T$DATE) as Date,a.COMPANY,T$BPID,b.custname1 as Custname,
+T$ITEM,T$ORNO as Old_orno,T$PONO as Old_pono,T$SEQN as Old_seq,T$BQTY as old_qty,
+T$OPRIC as old_pric,T$NORNO,T$NPONO,T$NQTY as New_qty,T$NPRIC as New_pric,
+T$HSNC,T$GSTIN,T$REM1,T$REMK ,
+case when COMPANY in (400,401,416,440,450)then 400 else COMPANY end as comp_new
+ From TZZPUR611All a
+left join vw_Business_Partner b
+on a.T$BPID =b.custcode 
+)a
+left join vw_item_master c
+on concat(a.comp_new,ltrim(rtrim(a.t$item)))=concat(c.company,ltrim(rtrim(c.item)))
+end
+
+
+
+
+Completion time: 2025-11-19T11:44:27.1119629+05:30

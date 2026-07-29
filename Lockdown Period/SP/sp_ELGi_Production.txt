@@ -1,0 +1,580 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_Production
+
+CREATE proc sp_ELGi_Production as
+begin
+
+truncate table ELGi_production_Stage1
+truncate table ELGi_production_Stage2
+
+
+--Closed (current Month) 
+
+----Method 1
+--insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Actual_qty)
+--select COMPANY,CWAR,ITEM,ORNO,TRDT,
+--sum(QSTK) as Actual_qty 
+--from TWHINR110ALL 
+--where KOST=3 and KOOR=1 
+--and ORNO not like '%[a-z]%'
+--and month(TRDT)=month(getdate()-1)
+--and year(TRDT)=year(getdate()-1)
+--group by COMPANY,CWAR,ITEM,ORNO,TRDT
+
+
+----Method 2
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Actual_qty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (7,8,9) then qrdr else 0 end) end) as ClosedQty
+from  TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,ADLD) <= getdate()-1
+and convert(date,RDLD) <= getdate()-1
+and month(convert(date,ADLD))=month(getdate()-1)
+and year(convert(date,ADLD))=year(getdate()-1)
+and month(convert(date,RDLD))=month(getdate()-1)
+and year(convert(date,RDLD))=year(getdate()-1)
+
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+)a
+where ClosedQty<>0
+
+--Advance Closed Qty (Closed Date < Planed Date , Here the Planned date between Current date and End date of a month)
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Actual_qty_Advance)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (7,8,9) then qrdr else 0 end) end) as ClosedQty
+from  TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,ADLD) <= getdate()-1
+and convert(date,RDLD) > getdate()-1
+and month(convert(date,ADLD))=month(getdate()-1)
+and year(convert(date,ADLD))=year(getdate()-1)
+and month(convert(date,RDLD))=month(getdate()-1)
+and year(convert(date,RDLD))=year(getdate()-1)
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+)a
+where ClosedQty<>0
+
+
+
+--Backlog Closed Qty (Closed Date < Planed Date , Here the Planned date belongs to any of the previous months)
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Actual_qty_Backlog)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (7,8,9) then qrdr else 0 end) end) as ClosedQty
+from  TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,ADLD) <= getdate()-1
+and month(convert(date,ADLD))=month(getdate()-1)
+and year(convert(date,ADLD))=year(getdate()-1)
+--and convert(date,RDLD) < getdate()-1
+and month(convert(date,RDLD))<month(getdate()-1)
+and year(convert(date,RDLD))=year(getdate()-1)
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+)a
+where ClosedQty<>0
+
+
+
+
+--Alter table ELGi_production_Stage1 add Actual_qty_Backlog float
+--Alter table ELGi_production_Stage2 add Actual_qty_Backlog float
+--Alter table ELGi_production_Stage3 add Actual_qty_Backlog float
+
+
+
+
+
+
+
+--WIP (Till Yesterday)
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,Date1,WIP_qty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,
+b.date as WIP_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA IN(4,6) then qrdr else 0 end) end) as WIP_qty
+from  TTISFC001ALL a 
+left outer join
+(
+select * from (
+select PDNO,OSTA,convert(date,date) as date,row_number() over (partition by pdno order by date) dateRank 
+from TTICST151ALL
+where OSTA in (4,6)
+--and PDNO='230009816' --for testing Purpose
+)b1
+where dateRank=1
+)b
+on a.PDNO=b.PDNO
+
+where a.PDNO not like '%[a-z]%'
+and b.date< getdate()-1
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,b.date
+)a
+where WIP_qty<>0
+
+
+--Plan Pulling (greater than today)
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,Date1,PlanPullQty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD as Planned_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (4,6) then qrdr else 0 end) end) as WIP_qty
+from  TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD) > getdate()-1
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where WIP_qty<>0
+
+--Plan Pulling (Closed Qty greater than today is covered under Plan Pulling)
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,Date1,PlanPullQty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD as Planned_Date,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (8,9) then qrdr else 0 end) end) as ClosedQty
+from  TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD) > getdate()-1
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where ClosedQty<>0
+
+
+
+--Backlog (Till yesterday)
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Backlog_Qty)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then null else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD) <getdate()-1
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where Planned_qty>0
+
+
+update ELGi_production_Stage1 set Released_qty=isnull(Actual_qty,0) + isnull(Actual_qty_Advance,0) +
+isnull(Actual_qty_Backlog,0) +isnull(WIP_qty,0)
+update ELGi_production_Stage1 set Planned_qty=isnull(Released_qty,0) +isnull(Backlog_Qty,0) -isnull(PlanPullQty,0)
+
+
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Day1)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD)  = (select date1 from vw_next_5workingdays where daterank=1)
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where Planned_qty>0
+
+
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Day2)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD)  = (select date1 from vw_next_5workingdays where daterank=2)
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where Planned_qty>0
+
+
+
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Day3)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD)  = (select date1 from vw_next_5workingdays where daterank=3)
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where Planned_qty>0
+
+
+
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Day4)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD)  = (select date1 from vw_next_5workingdays where daterank=4)
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where Planned_qty>0
+
+
+insert into ELGi_production_Stage1(company,warehouse,item,Ordernum,date1,Day5)
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+and convert(date,RDLD)  >= (select date1 from vw_next_5workingdays where daterank=5) --Modified ON 3-OCT-19
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a
+where Planned_qty>0
+
+
+
+
+--Production order category
+update ELGi_production_Stage1 set Description=b.Description
+from (
+select distinct a.company,Description,prd_from,prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+)b
+where ELGi_production_Stage1.Ordernum between b.prd_from and b.prd_to  
+and ELGi_production_Stage1.company = b.company
+
+
+
+--Item Description
+
+update ELGi_production_Stage1 set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where ELGi_production_Stage1.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(ELGi_production_Stage1.Item))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_production_Stage1 set itemdescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where ELGi_production_Stage1.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(ELGi_production_Stage1.Item))=ltrim(rtrim(a.ITEM))
+
+
+update ELGi_production_Stage1 set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where ELGi_production_Stage1.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(ELGi_production_Stage1.Item))=ltrim(rtrim(a.item))
+
+
+update ELGi_production_Stage1 set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where ELGi_production_Stage1.company =551
+and ltrim(rtrim(ELGi_production_Stage1.Item))=ltrim(rtrim(a.item))
+
+update ELGi_production_Stage1 set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where ELGi_production_Stage1.company =552
+and ltrim(rtrim(ELGi_production_Stage1.Item))=ltrim(rtrim(a.item))
+
+update ELGi_production_Stage1 set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where ELGi_production_Stage1.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(ELGi_production_Stage1.Item))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_production_Stage1 set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where ELGi_production_Stage1.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(ELGi_production_Stage1.Item))=ltrim(rtrim(a.item))
+
+
+
+update ELGi_production_Stage1 set description='Others' where description is null
+
+update ELGi_production_Stage1 set lineNum=a.LINE,SubLineNum=a.SUBL,RegionNum=a.REGN
+from TZZSFC270ALL a
+where ltrim(rtrim(ELGi_production_Stage1.item))=ltrim(rtrim(a.MITM))
+
+update ELGi_production_Stage1 set line=a.Line
+from vw_Item_Line_Master a
+where ELGi_production_Stage1.Description in ('SEPSAC','Encap')
+and ELGi_production_Stage1.LineNum=a.LineNum
+
+
+update ELGi_production_Stage1 set Subline=a.SubLine
+from vw_Item_SubLine_Master a
+where ELGi_production_Stage1.Description in ('SEPSAC','Encap')
+and ELGi_production_Stage1.SubLineNum=a.SubLineNum
+
+
+
+--Old Method
+--update ELGi_production_Stage1 set Region=a.Region
+--from vw_Item_Region_Master a
+--where ELGi_production_Stage1.Description='SEPSAC'
+--and ELGi_production_Stage1.RegionNum=a.RegionNum
+
+
+--New Method
+update ELGi_production_Stage1 set Region='INDIA & INDIA LIKE'
+where warehouse in ('157','257','C57','L57','W57')
+
+update ELGi_production_Stage1 set Region='ROTAIR'
+where warehouse in ('E57')
+
+update ELGi_production_Stage1 set Region='USA/BRAZIL'
+where warehouse in ('A57')
+
+
+--Removing Sub Assembly Parts in 470 Company
+
+delete from ELGi_production_Stage1 where 
+company =470 and 
+ltrim(rtrim(item)) in 
+('20228160','20228270','20364840','20228080','20364830','34030395A','20227680','20228200','340305550','20365950',
+'340200820','340303440','340303640','20226950','34030395B','20226410','20230030','15301557','15306446','15304819',
+'15311262','15306791','15312211','15306841','15308240','15308241','15307935','15307870','15311337','15310632',
+'15303598','15303309','15308468','15308469','35301147','35301161','35302748','35302194','35302707','35301797',
+'35302127','15314209','15314208','15305437')
+
+
+--Removing Manual Book receipt details :353,553 ... warehouse details 
+delete from ELGi_production_Stage1 where company=401 and warehouse like '%3'
+
+delete from ELGi_production_Stage1  where description='SEPSAC' and  warehouse not like '%57'
+--warehouse in ('253' , '153', 'A53', 'C53' , 'D53','E53', 'L53' ,'W53')
+
+delete from ELGi_production_Stage1  where description='Encap' and  warehouse not like '%57'
+
+
+delete from ELGi_production_Stage1  where description='ENGC ' and warehouse in ('353','453')
+delete from ELGi_production_Stage1 where description='ENGC ' and warehouse<>'457' --Added on 23-Nov-2020
+delete from ELGi_production_Stage1  where description='RCD Unit Assy' and warehouse in ('353')
+delete from ELGi_production_Stage1  where description='OE Assy' and warehouse in ('353')
+delete from ELGi_production_Stage1  where description='Railways' and warehouse in ('553')
+delete from ELGi_production_Stage1  where description='RCD BoreWell' and warehouse in ('353','453')
+delete from ELGi_production_Stage1  where description='RCD Spares' and warehouse in ('353','453')
+
+
+
+
+Insert into ELGi_production_Stage2(Description,company,warehouse,item,itemdescr,Ordernum,
+LineNum,Line,SubLineNum,SubLine,RegionNum,Region,
+Planned_qty,Released_qty,WIP_qty,PlanPullQty,Actual_qty,Backlog_Qty,
+BacklogPlanned_qty,BacklogReleased_qty,BacklogWIP_qty,
+This_mnth_ReleasedQty,This_mnth_WIPQty,This_mnth_ActualQty,
+Day1,Day2,Day3,Day4,Day5,Actual_qty_Advance,
+Actual_qty_Backlog
+)
+select
+Description,company,warehouse,item,itemdescr,Ordernum,
+LineNum,Line,SubLineNum,SubLine,RegionNum,Region,
+sum(isnull(Planned_qty,0)) Planned_qty,
+sum(isnull(Released_qty,0)) Released_qty,
+sum(isnull(WIP_qty,0)) WIP_qty,
+sum(isnull(PlanPullQty,0)) PlanPullQty,
+sum(isnull(Actual_qty,0)) Actual_qty,
+sum(isnull(Backlog_Qty,0)) Backlog_Qty,
+sum(isnull(BacklogPlanned_qty,0)) BacklogPlanned_qty,
+sum(isnull(BacklogReleased_qty,0)) BacklogReleased_qty,
+sum(isnull(BacklogWIP_qty,0)) BacklogWIP_qty,
+sum(isnull(This_mnth_ReleasedQty,0)) This_mnth_ReleasedQty,
+sum(isnull(This_mnth_WIPQty,0)) This_mnth_WIPQty,
+sum(isnull(This_mnth_ActualQty,0)) This_mnth_ActualQty,
+sum(isnull(Day1,0)) Day1Qty,
+sum(isnull(Day2,0)) Day2Qty,
+sum(isnull(Day3,0)) Day3Qty,
+sum(isnull(Day4,0)) Day4Qty,
+sum(isnull(Day5,0)) Day5Qty,
+sum(isnull(Actual_qty_Advance,0)) Actual_qty_Advance,
+sum(isnull(Actual_qty_Backlog,0)) Actual_qty_Backlog
+from ELGi_production_Stage1
+group by Description,company,warehouse,item,itemdescr,Ordernum,
+LineNum,Line,SubLineNum,SubLine,RegionNum,Region
+
+
+--select * from ELGi_ProductionLine_Master
+
+Truncate table ELGi_production_Stage3
+
+Insert into ELGi_production_Stage3(Description,company,warehouse,item,
+itemdescr,Ordernum,Date1,LineNum,Line,SubLineNum,SubLine,RegionNum,Region,ProductionLine,FG_Qty,Rnk,
+Actual_qty,Actual_qty_Advance,Actual_qty_Backlog)
+select Description,company,warehouse,item,itemdescr,Ordernum,Date1,LineNum,Line,SubLineNum,SubLine,
+RegionNum,Region,null as ProductionLine,null as FG_qty,
+row_number() over (partition by company,warehouse,item order by company,warehouse,item),
+case when Date1 between dateadd(MM,datediff(MM,0,getdate()),0) and convert(date,getdate()-1)
+then isnull(Actual_qty,0) else 0 end as Actual_qty ,
+isnull(Actual_qty_Advance,0) Actual_qty_Advance,isnull(Actual_qty_Backlog,0) Actual_qty_Backlog
+from ELGi_production_Stage1
+
+update  ELGi_production_Stage3 set planned_qty=0
+update  ELGi_production_Stage3 set Released_qty=0
+update  ELGi_production_Stage3 set WIP_qty=0
+--update  ELGi_production_Stage3 set Actual_qty=0
+--update  ELGi_production_Stage3 set Actual_qty_advance=0
+--update  ELGi_production_Stage3 set Actual_qty_Backlog=0
+
+
+update  ELGi_production_Stage3 set planned_qty=a.Planned_qty
+from (
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then null else (case when osta in (1,2,3) then qrdr else 0 end) end) as Planned_qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+--and convert(date,RDLD) 
+--between dateadd(MM,datediff(MM,0,getdate()),0) and
+--<=dateadd(MS,-3,dateadd(mm,0,dateadd(mm,datediff(mm,0,getdate())+1,0)))
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a1
+where Planned_qty>0
+)a
+where ELGi_production_Stage3.company=a.COMPANY
+and ELGi_production_Stage3.warehouse=a.CWAR
+and ELGi_production_Stage3.item=a.MITM
+and ELGi_production_Stage3.Ordernum=a.PDNO
+
+
+--update  ELGi_production_Stage3 set Actual_qty=a.Actual_qty
+--from (
+--select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+--sum(case when RDLD='9999-01-01 00:00:00.000' then null else (case when osta in (8,9) then qrdr else 0 end) end) as Actual_qty
+--from TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+--and convert(date,RDLD) between dateadd(MM,datediff(MM,0,getdate()),0) and
+--convert(date,getdate()-1)
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+--)a1
+--where Actual_qty>0
+--)a
+--where ELGi_production_Stage3.company=a.COMPANY
+--and ELGi_production_Stage3.warehouse=a.CWAR
+--and ELGi_production_Stage3.item=a.MITM
+--and ELGi_production_Stage3.Ordernum=a.PDNO
+
+
+--update  ELGi_production_Stage3 set Actual_qty_Advance=a.ClosedQty
+--from 
+--(select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+--sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (8,9) then qrdr else 0 end) end) as ClosedQty
+--from  TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+--and convert(date,ADLD) <= getdate()-1
+--and month(convert(date,ADLD))=month(getdate()-1)
+--and year(convert(date,ADLD))=year(getdate()-1)
+--and convert(date,RDLD) > getdate()-1
+--and month(convert(date,RDLD))=month(getdate()-1)
+--and year(convert(date,RDLD))=year(getdate()-1)
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+--)a
+--where ClosedQty<>0
+--)a
+--where ELGi_production_Stage3.company=a.COMPANY
+--and ELGi_production_Stage3.warehouse=a.CWAR
+--and ELGi_production_Stage3.item=a.MITM
+--and ELGi_production_Stage3.Ordernum=a.PDNO
+
+
+
+--update  ELGi_production_Stage3 set Actual_qty_Backlog=a.ClosedQty
+--from 
+--(select * from (
+--select a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD as Closed_Date,
+--sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when a.OSTA in (7,8,9) then qrdr else 0 end) end) as ClosedQty
+--from  TTISFC001ALL a 
+--where a.PDNO not like '%[a-z]%'
+--and convert(date,ADLD) <= getdate()-1
+--and month(convert(date,ADLD))=month(getdate()-1)
+--and year(convert(date,ADLD))=year(getdate()-1)
+----and convert(date,RDLD) < getdate()-1
+--and month(convert(date,RDLD))< month(getdate()-1)
+--and year(convert(date,RDLD))=year(getdate()-1)
+--group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,ADLD
+--)a
+--where ClosedQty<>0
+--)a
+--where ELGi_production_Stage3.company=a.COMPANY
+--and ELGi_production_Stage3.warehouse=a.CWAR
+--and ELGi_production_Stage3.item=a.MITM
+--and ELGi_production_Stage3.Ordernum=a.PDNO
+
+
+update  ELGi_production_Stage3 set WIP_Qty=a.WIP_Qty
+from (
+select * from (
+select a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD,
+sum(case when RDLD='9999-01-01 00:00:00.000' then null else (case when osta in (6) then qrdr else 0 end) end) as WIP_Qty
+from TTISFC001ALL a 
+where a.PDNO not like '%[a-z]%'
+--and convert(date,RDLD) <=convert(date,getdate()-1)
+group by a.COMPANY,a.CWAR,a.MITM,a.PDNO,RDLD
+)a1
+where WIP_Qty>0
+)a
+where ELGi_production_Stage3.company=a.COMPANY
+and ELGi_production_Stage3.warehouse=a.CWAR
+and ELGi_production_Stage3.item=a.MITM
+and ELGi_production_Stage3.Ordernum=a.PDNO
+
+
+update ELGi_production_Stage3 set MonthPlanQty=
+isnull(Planned_qty,0)+isnull(WIP_Qty,0)+isnull(Actual_qty,0)+isnull(Actual_qty_advance,0) + isnull(Actual_qty_Backlog,0)
+
+
+update ELGi_production_Stage3 set FG_qty=a.QSKT
+from (
+select COMPANY,CWAR,ITEM,sum(QSKT) QSKT from fg_inventory
+where convert(date,TRDT)<=convert(date,GETDATE()-1)
+group by COMPANY,CWAR,ITEM
+)a
+where ELGi_production_Stage3.company=a.COMPANY
+and ELGi_production_Stage3.warehouse=a.CWAR 
+and ltrim(rtrim(ELGi_production_Stage3.item))=ltrim(rtrim(a.Item))
+and ELGi_production_Stage3.Rnk=1
+
+--Alter table ELGi_production_Stage3 add FG_qty float
+--Alter table ELGi_production_Stage3 add Rnk int
+
+update ELGi_production_Stage3 set ProductionLine=a.ProductionLine
+from ELGi_ProductionLine_Master a
+where ltrim(rtrim(ELGi_production_Stage3.item))=ltrim(rtrim(a.itemcode))
+
+
+
+delete from ELGi_production_Stage3 where isnull(Planned_qty,0)+isnull(WIP_Qty,0)+
+isnull(Actual_qty,0)+isnull(Actual_qty_advance,0) + isnull(Actual_qty_Backlog,0) =0
+
+
+end
+
+
+
+--Select --company,Ordernum,date1,
+--sum(Actual_qty) Actual_qty,sum(Actual_qty_advance) Actual_qty_advance,
+--sum(Actual_qty_Backlog) Actual_qty_Backlog
+--from ELGi_production_Stage1
+--where ltrim(rtrim(item))='S013864'
+
+--Select sum(Actual_qty) Actual_qty,sum(Actual_qty_advance) Actual_qty_advance,
+--sum(Actual_qty_Backlog) Actual_qty_Backlog
+--from ELGi_production_Stage2
+--where ltrim(rtrim(item))='S013864'
+----and actual_qty_advance<>0
+
+
+--Select sum(Actual_qty) Actual_qty,sum(Actual_qty_advance) Actual_qty_advance,
+--sum(Actual_qty_Backlog) Actual_qty_Backlog
+--from ELGi_production_Stage3
+--where ltrim(rtrim(item))='S013864'
+----and actual_qty_advance<>0
+
+
+
+
+
+Completion time: 2025-11-19T09:48:36.9668591+05:30

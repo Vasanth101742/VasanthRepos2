@@ -1,0 +1,330 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Item_hierarchy
+
+CREATE proc [sp_Item_hierarchy] as 
+begin
+
+Truncate table Item_hierarchy
+
+--Alter table Item_hierarchy add Level12 nvarchar(94)
+--Alter table Item_hierarchy add Level13 nvarchar(94)
+--Alter table Item_hierarchy add Level14 nvarchar(94)
+--Alter table Item_hierarchy add Level15 nvarchar(94)
+--Alter table Item_hierarchy add QANA2 Float
+--Alter table Item_hierarchy add QANA3 Float
+--Alter table Item_hierarchy add QANA4 Float
+--Alter table Item_hierarchy add QANA5 Float
+--Alter table Item_hierarchy add QANA6 Float
+--Alter table Item_hierarchy add QANA7 Float
+--Alter table Item_hierarchy add QANA8 Float
+--Alter table Item_hierarchy add QANA9 Float
+--Alter table Item_hierarchy add QANA10 Float
+--Alter table Item_hierarchy add QANA11 Float
+--Alter table Item_hierarchy add QANA12 Float
+--Alter table Item_hierarchy add QANA13 Float
+--Alter table Item_hierarchy add QANA14 Float
+--Alter table Item_hierarchy add QANA15 Float
+
+Insert into Item_hierarchy(COMPANY,Level1,Level2,Level3,Level4,Level5,Level6,
+Level7,Level8,Level9,Level10,Level11,Level12,Level13,Level14,Level15)
+select * from (
+select distinct a.COMPANY,a.MITM as Level1,
+a.SITM as Level2,
+b.SITM as Level3,
+c.SITM as Level4,
+d.SITM as Level5,
+e.SITM as Level6,
+f.SITM as Level7,
+g.SITM as Level8,
+h.SITM as Level9,
+i.SITM as Level10,
+j.SITM as Level11,
+k.SITM as Level12,
+l.SITM as Level13,
+m.SITM as Level14,
+n.SITM as Level15
+from 
+
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)a
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)b
+on a.COMPANY=b.COMPANY
+and a.SITM=b.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)c
+on b.COMPANY=c.COMPANY
+and b.SITM=c.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)d
+on c.COMPANY=d.COMPANY
+and c.SITM=d.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)e
+on d.COMPANY=e.COMPANY
+and d.SITM=e.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)f
+on e.COMPANY=f.COMPANY
+and e.SITM=f.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)g
+on f.COMPANY=g.COMPANY
+and f.SITM=g.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)h
+on g.COMPANY=h.COMPANY
+and g.SITM=h.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)i
+on h.COMPANY=i.COMPANY
+and h.SITM=i.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)j
+on i.COMPANY=j.COMPANY
+and i.SITM=j.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)k
+on j.COMPANY=k.COMPANY
+and j.SITM=k.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)l
+on k.COMPANY=l.COMPANY
+and k.SITM=l.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)m
+on l.COMPANY=m.COMPANY
+and l.SITM=m.MITM
+left outer join
+(Select distinct COMPANY,MITM, SITM from TTIBOM010ALL)n
+on m.COMPANY=n.COMPANY
+and m.SITM=n.MITM
+
+
+)a
+
+
+
+
+
+update Item_hierarchy set QANA2=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level1))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level2))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA3=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level2))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level3))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA4=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level3))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level4))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA5=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level4))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level5))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA6=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level5))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level6))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA7=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level6))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level7))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA8=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level7))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level8))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA9=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level8))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level9))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA10=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level9))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level10))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA11=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level10))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level11))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA12=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level11))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level12))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA13=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level12))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level13))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA14=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level13))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level14))=ltrim(rtrim(a.SITM))
+
+update Item_hierarchy set QANA15=a.QANA
+from (Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+group by COMPANY,MITM, SITM)a
+where Item_hierarchy.COMPANY=a.COMPANY
+and ltrim(rtrim(Item_hierarchy.Level14))=ltrim(rtrim(a.MITM))
+and ltrim(rtrim(Item_hierarchy.Level15))=ltrim(rtrim(a.SITM))
+
+
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)a
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)b
+--on a.COMPANY=b.COMPANY
+--and a.SITM=b.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)c
+--on b.COMPANY=c.COMPANY
+--and b.SITM=c.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)d
+--on c.COMPANY=d.COMPANY
+--and c.SITM=d.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)e
+--on d.COMPANY=e.COMPANY
+--and d.SITM=e.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)f
+--on e.COMPANY=f.COMPANY
+--and e.SITM=f.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)g
+--on f.COMPANY=g.COMPANY
+--and f.SITM=g.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)h
+--on g.COMPANY=h.COMPANY
+--and g.SITM=h.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)i
+--on h.COMPANY=i.COMPANY
+--and h.SITM=i.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)j
+--on i.COMPANY=j.COMPANY
+--and i.SITM=j.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)k
+--on j.COMPANY=k.COMPANY
+--and j.SITM=k.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)l
+--on k.COMPANY=l.COMPANY
+--and k.SITM=l.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)m
+--on l.COMPANY=m.COMPANY
+--and l.SITM=m.MITM
+--left outer join
+--(Select COMPANY,MITM, SITM,sum(QANA) QANA from TTIBOM010ALL
+--group by COMPANY,MITM, SITM)n
+--on m.COMPANY=n.COMPANY
+--and m.SITM=n.MITM
+
+
+Update Item_hierarchy set BaseItem=coalesce(Level15,Level14,Level13,Level12,Level11,Level10,Level9,Level8,
+Level7,Level6,Level5,Level4,Level3,Level2,Level1)
+
+Update Item_hierarchy set BaseQty=coalesce(QANA15,QANA14,QANA13,QANA12,QANA11,QANA10,QANA9,QANA8,
+QANA7,QANA6,QANA5,QANA4,QANA3,QANA2)
+
+
+Update Item_hierarchy set BAPR=a.BAPR,UnitPrice_INR=a.UnitPrice_INR
+from (
+select * from LN_ItemPriceMaster a
+where efdt in (select max(efdt) from LN_ItemPriceMaster b
+where a.item=b.item)
+--and ltrim(rtrim(item)) like '015402283'
+)a
+where ltrim(rtrim(Item_hierarchy.baseitem))=ltrim(rtrim(a.ITEM))
+
+
+
+----Old Method
+--with CTE_Item_hierarchy as
+--(
+--select COMPANY,MITM,SITM,INDT,EXDT,1 as level from TTIBOM010ALL
+----where EXDT> convert(date,getdate()-1)
+
+--union all
+
+--select a.*,b.level+1 from
+--(select COMPANY,MITM,SITM,INDT,EXDT from TTIBOM010ALL
+----where EXDT> convert(date,getdate()-1)
+--)a
+--inner join CTE_Item_hierarchy b
+--on a.MITM=b.SITM
+--)
+--Insert into Item_hierarchy(COMPANY,MITM,SITM,INDT,EXDT,level)
+--select distinct *  from CTE_Item_hierarchy
+----option(maxrecursion 200)
+
+
+
+
+
+
+end
+
+select * from Item_hierarchy
+where ltrim(rtrim(Level1)) like 'S017705'
+--where level15 is not null
+--where MITM='         X340060'
+--where ltrim(rtrim(MITM)) like 'S017705'
+--order by MITM,level
+
+
+Completion time: 2025-11-19T11:29:32.9171389+05:30

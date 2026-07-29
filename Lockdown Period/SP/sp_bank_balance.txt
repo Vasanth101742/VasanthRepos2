@@ -1,0 +1,28 @@
+--exec sp_bank_balance
+CREATE proc [dbo].[sp_bank_balance]  as
+begin
+
+truncate table bank_balance 
+truncate table bank_balance_period
+
+insert into bank_balance 
+select COMPANY,OTYP,ODOC,OLIN,OCMP,LEAC,DCDT,REFR,AMTH$1,DBCR,FPRD,FYER,BPID,DATE,INTT,
+FTYP,FDOC,CATG,CONT,CTYP,CINV,CORN,CSRN,TCSH,[TRAN],DELE,amnt,ccur,rate$1,
+0 ,''
+from gld_106_cashflow where leac in (select leac from bank_balance_gl)
+and company not in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+insert into bank_balance_period
+select distinct fyer,fprd from bank_balance  
+
+update bank_balance set type = dbcr
+
+update bank_balance set type = 7
+where dbcr = 1 and leac in (select leac from Bank_Balance_GL where  leac <> pleac)
+
+
+update bank_balance set type = 8
+where dbcr = 2 and leac in (select leac from Bank_Balance_GL where  leac <> pleac)
+
+end

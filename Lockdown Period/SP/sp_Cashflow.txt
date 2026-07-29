@@ -1,0 +1,226 @@
+--exec sp_Cashflow
+
+CREATE proc sp_Cashflow as
+
+Begin
+
+
+----Drop table Cashflow_temp
+----Drop table Cashflow
+--create table Cashflow_temp
+--(
+--company varchar(10),
+--InvoiceDate date,
+--Trantype varchar(25),
+--invoice varchar(25),
+--RecvDocDate date,
+--RecvDoctype varchar(25),
+--RecvDocn varchar(25),
+--SalesTypeOrdering int,
+--SalesType varchar(50),
+--ZoneOrdering int,
+--Zone varchar(20),
+--DpstCode varchar(25),
+--DpstName varchar(50),
+--AreaCode varchar(20),
+--AreaName varchar(25),
+--OnDate_Balance float,
+--OnDate_Sales float,
+--OnDate_Collection float,
+--Updt date
+--)
+
+Truncate table Cashflow_temp
+
+--AR Outstanding
+Insert into Cashflow_temp(company,InvoiceDate,Trantype,invoice,RecvDocDate,RecvDoctype,RecvDocn,
+SalesTypeOrdering,SalesType,ZoneOrdering,Zone,
+DpstCode,DpstName,AreaCode,AreaName,OnDate_Balance,Updt)
+select company,InvDate,Trantyp,InvNo,null as RecvDocDate,null as RecvDoctype,null as RecvDocn,
+null as SalesTypeOrdering,null as SalesType,null as ZoneOrdering,null as Zone,
+DPST,DpstName,AreaCode,AreaName,
+--sum(InvAmt) InvAmt,
+--sum(PaidAmt) PaidAmt,
+sum(BalanceAmt) OnDate_Balance,
+convert(date,getdate()-1) as Updt
+from 
+(select * from acr_debtors_details 
+where company like '6%'
+and BalanceAmt not between -1 and 1)a
+group by company,InvDate,Trantyp,InvNo,DPST,DpstName,AreaCode,AreaName
+
+--Sales
+
+Insert into Cashflow_temp(company,InvoiceDate,Trantype,invoice,RecvDocDate,RecvDoctype,RecvDocn,
+SalesTypeOrdering,SalesType,ZoneOrdering,Zone,
+DpstCode,DpstName,AreaCode,AreaName,OnDate_Sales,Updt)
+select Company,Invoice_Date,trantype,Invoice,null as RecvDocDate,null as RecvDoctype,null as RecvDocn,
+null as SalesTypeOrdering,null as SalesType,null as ZoneOrdering,
+Zone,dpst,dpstname,areacode,areaname,
+sum(isnull(Sales_amount,0)*1.18) OnDate_Sales,
+--convert(date,getdate()-1) as Updt
+Invoice_Date as Updt
+from ATS_Sales_Details
+where year(Invoice_Date)=year(getdate()-1)
+and month(Invoice_Date)= month(getdate()-1)
+--and convert(date,Invoice_Date) =convert(date,getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and ltrim(rtrim(Item))<>'FRT'
+group by Company,Invoice_Date,trantype,Invoice,Zone,dpst,dpstname,areacode,areaname
+
+
+--select SalesTypeOrdering,SalesType,ZoneOrdering,Zone,DPSTCode,DPSTName,
+--sum(last_day_sale) last_day_sale,
+----sum(this_month_sale) this_month_sale,
+--convert(date,getdate()-1) as Updt
+--from ATS_Sales_Performance
+--where dpstcode is not null
+--group by SalesTypeOrdering,SalesType,ZoneOrdering,Zone,DPSTCode,DPSTName
+
+
+
+--Collection
+
+
+
+Insert into Cashflow_temp(company,InvoiceDate,Trantype,invoice,RecvDocDate,RecvDoctype,RecvDocn,
+SalesTypeOrdering,SalesType,ZoneOrdering,Zone,
+DpstCode,DpstName,AreaCode,AreaName,OnDate_Collection,Updt)
+select Company,null as Invoice_Date,t_ttyp as trantype,t_ninv as Invoice,t_docd as RecvDocDate,t_tdoc as RecvDoctype,t_docn as RecvDocn,
+null as SalesTypeOrdering,Description as SalesType,Zone_ordr,ZONE,DPSTCode,DPSTName,AreaCode,AreaName,
+sum(t_amth_1) OnDate_Collection, 
+convert(date,getdate()-1) as Updt
+from ATS_ADV_Coll
+where concat(Company,t_ttyp,t_ninv,t_tdoc,t_docn)  
+not in (select distinct concat(company,Trantype,invoice,RecvDoctype,RecvDocn) from Cashflow_temp)
+and month(t_docd)=month(getdate()-1)
+and year(t_docd)=year(getdate()-1)
+--and t_docd =convert(date,getdate()-1)
+--and Recpt_Type='Collection'
+group by Company,t_ttyp,t_ninv,t_docd,t_tdoc,t_docn,Description,Zone_ordr,ZONE,DPSTCode,DPSTName,AreaCode,AreaName
+
+
+update Cashflow_temp set Updt=RecvDocDate where RecvDocDate is not null
+
+
+
+if exists(select * from cashflow where year(updt)=year(convert(date,getdate()-1)) and month(Updt)=month(convert(date,getdate()-1)))
+begin
+delete from cashflow where year(updt)=year(convert(date,getdate()-1)) and month(Updt)=month(convert(date,getdate()-1))
+delete from Cashflow_Consolidated where year(updt)=year(convert(date,getdate()-1)) and month(Updt)=month(convert(date,getdate()-1))
+end
+
+insert into cashflow(company,InvoiceDate,Trantype,invoice,RecvDocDate,RecvDoctype,RecvDocn,
+SalesTypeOrdering,SalesType,ZoneOrdering,Zone,
+DpstCode,DpstName,AreaCode,AreaName,OnDate_Balance,OnDate_Sales,OnDate_Collection,Updt)
+select company,InvoiceDate,Trantype,invoice,RecvDocDate,RecvDoctype,RecvDocn,
+SalesTypeOrdering,SalesType,ZoneOrdering,Zone,
+DpstCode,DpstName,AreaCode,AreaName,
+sum(OnDate_Balance) OnDate_Balance,
+sum(OnDate_Sales) OnDate_Sales,
+sum(OnDate_Collection) OnDate_Collection,Updt 
+from Cashflow_temp
+group by company,InvoiceDate,Trantype,invoice,RecvDocDate,RecvDoctype,RecvDocn,SalesTypeOrdering,SalesType,ZoneOrdering,Zone,
+DpstCode,DpstName,AreaCode,AreaName,Updt
+
+
+
+Insert into Cashflow_Consolidated
+--select * into Cashflow_Consolidated from(
+select updt,
+null as Opening_Balance,
+sum(OnDate_Balance) OnDate_Balance,
+sum(OnDate_Sales) OnDate_Sales,
+--sum(case when updt=convert(date,getdate()-1) then OnDate_Sales else 0 end) OnDate_Sales,
+null as OnDate_Collection,
+null as  Closing_Balance
+from Cashflow
+where 
+year(updt)=year(convert(date,getdate()-1))
+and month(Updt)=month(convert(date,getdate()-1))
+--updt=convert(date,getdate()-1)
+group by updt
+order by updt
+--)a
+
+
+update Cashflow_Consolidated set OnDate_Collection=a.OnDate_Collection
+from (select RecvDocDate,sum(isnull(OnDate_Collection,0)) OnDate_Collection 
+from Cashflow
+group by RecvDocDate
+)a
+where Cashflow_Consolidated.updt=a.RecvDocDate
+
+
+update Cashflow_Consolidated set OnDate_Sales=a.OnDate_Sales
+from (select InvoiceDate,sum(isnull(OnDate_Sales,0)) OnDate_Sales 
+from Cashflow
+group by InvoiceDate
+)a
+where Cashflow_Consolidated.updt=a.InvoiceDate
+
+
+--if exists (select * from Cashflow_Consolidated where datepart(dd,updt)=1)
+--begin
+--update Cashflow_Consolidated set Opening_Balance=
+--where datepart(dd,updt)=1 
+--and updt=dateadd(dd,-1,(select max(updt) from Cashflow_Consolidated))
+--end
+
+
+
+
+Declare @StartDate date=(select dateadd(mm,-1,dateadd(dd,1,EOMONTH(getdate()-1))))
+Declare @EndDate date=(select EOMONTH(getdate()-1))
+Declare @Date date=@StartDate
+Declare @nextday date
+--(select convert(date,dateadd(yy,-1,DATEADD(month, DATEDIFF(month, 0, getdate()-1), 0))))
+--(select CONVERT(date,DATEADD(dd,-(DAY(DATEADD(mm,1,getdate()-1))),DATEADD(mm,1,getdate()-1))))
+
+
+
+while @Date<=@EndDate
+begin
+
+update Cashflow_Consolidated set Opening_Balance=191.84*1000000 where updt=@StartDate
+
+update Cashflow_Consolidated set Closing_Balance=isnull(Opening_Balance,0) + isnull(OnDate_Sales,0) - isnull(OnDate_Collection,0)
+where updt=@Date
+
+set @nextday=dateadd(dd,1,@Date)
+
+while @nextday<=@EndDate
+begin
+
+if exists(select * from Cashflow_Consolidated where updt=@nextday)
+
+begin
+break
+end
+
+set @nextday=dateadd(dd,1,@nextday)
+
+end
+
+update Cashflow_Consolidated set Opening_Balance=a.Closing_Balance
+from(select updt,Closing_Balance from Cashflow_Consolidated where updt=@Date)a
+where Cashflow_Consolidated.updt=@nextday
+and datepart(dd,Cashflow_Consolidated.updt)<>1
+
+set @Date=dateadd(dd,1,@Date)
+
+end
+
+
+
+end
+
+select * from Cashflow_Consolidated
+order by updt
+
+--select * from cashflow where updt='2020-06-23'
+--and OnDate_Sales is not null
+
+--select * from Cashflow_temp where updt='2020-06-23'
+--and OnDate_Sales is not null
+

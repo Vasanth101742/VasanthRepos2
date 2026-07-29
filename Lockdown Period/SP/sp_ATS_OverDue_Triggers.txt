@@ -1,0 +1,157 @@
+--exec sp_ATS_OverDue_Triggers
+CREATE proc sp_ATS_OverDue_Triggers as
+
+Begin
+
+Truncate table ATS_OverDue_Triggers
+
+
+--Lean Trigger
+Insert into ATS_OverDue_Triggers(company,Tri_Dt,DIVI,DEPT,ITEM,LOT_NO,SupplierNum,sceduledqty,duedate,orno,TriggerType)
+select company,DATE,DIVI,DEPT,ITEM,LOTN,SUNO,RQTY,DUDT,PONO,'LEAN' as TriggerType
+from  TZZPUR014ALL where STAT <> 'C' 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+--Alter table ATS_OverDue_Triggers add LGSC Varchar(25)
+
+update ATS_OverDue_Triggers set RPLT=LEAN_MASTER.RPLT, 
+binqty=LEAN_MASTER.SQTY,
+TYPE=LEAN_MASTER.SOPS,
+Company=LEAN_MASTER.COMPANY,
+BUYR=LEAN_MASTER.BUYR,
+LGSC=LEAN_MASTER.LGSC
+from (select * from  TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) LEAN_MASTER  
+where ATS_OverDue_Triggers.DIVI = LEAN_MASTER.divi 
+and ATS_OverDue_Triggers.dept = LEAN_MASTER.dept
+and ATS_OverDue_Triggers.item = LEAN_MASTER.item
+
+update ATS_OverDue_Triggers set LGSC='Allocation' where LGSC='1'
+update ATS_OverDue_Triggers set LGSC='Stock' where LGSC='2'
+update ATS_OverDue_Triggers set LGSC=null where LGSC='0'
+
+update ATS_OverDue_Triggers set TYPE_DESC='Two Bin' where TYPE='1'
+update ATS_OverDue_Triggers set TYPE_DESC='Multi Bin' where TYPE='2'
+update ATS_OverDue_Triggers set TYPE_DESC='Milk run' where TYPE='3'
+update ATS_OverDue_Triggers set TYPE_DESC='MR-Motors' where TYPE='4'
+update ATS_OverDue_Triggers set TYPE_DESC='Forward Cover' where TYPE='5'
+update ATS_OverDue_Triggers set TYPE_DESC='Single Bin' where TYPE='6'
+update ATS_OverDue_Triggers set TYPE_DESC='Fixed Stock' where TYPE='7'
+update ATS_OverDue_Triggers set TYPE_DESC='Reorder Point' where TYPE='8'
+
+--Alter table ATS_OverDue_Triggers add TYPE_DESC varchar(50)
+
+--Method1
+--update ATS_OverDue_Triggers set Exp_DT=
+----select LOT_NO,Tri_Dt,RPLT,
+--CONVERT(date,
+--dateadd(dd,
+--(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt))-2+convert(int,RPLT))%5 --step1
+--+((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt))-2+convert(int,RPLT))/5)*7 --step2
+---(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt))-2), --step3,
+--DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt)) --step4 
+--) 
+----AS Exp_DT from ATS_OverDue_Triggers
+
+
+--Non Lean Trigger
+
+Insert into ATS_OverDue_Triggers(company,LOT_NO,orno,ITEM,--Description,
+Tri_Dt,--RPLT,
+duedate,
+--TYPE,--binqty
+sceduledqty,
+--DIVI,--SUPERMARKET
+--DEPT,--DEPARTMENT
+SupplierNum,--NAMA
+BUYR,--empname,TYPE_DESC,PendingDays
+TriggerType
+)
+select COMPANY,LOTN,ORNO,ITEM,TDAT,DUDT,RQTY,BPID,BUYR,'NON LEAN' as TriggerType from TZZPUR302ALL
+where company like '6%'
+and stat<>'C'
+
+
+
+update ATS_OverDue_Triggers set TYPE=100 where TYPE is null
+update ATS_OverDue_Triggers set TYPE_DESC='NON LEAN' where TriggerType='NON LEAN'
+
+
+update ATS_OverDue_Triggers set PendingDays=a.PendingDays
+from (select LOT_NO ,
+(SELECT
+   (DATEDIFF(dd, duedate, getdate()) )-
+   (DATEDIFF(wk, duedate, getdate()) * 2)-
+   (CASE WHEN DATENAME(dw, duedate) = 'Sunday' THEN 1 ELSE 0 END)-
+   (CASE WHEN DATENAME(dw, getdate()) = 'Saturday' THEN 1 ELSE 0 END)
+) as PendingDays
+from ATS_OverDue_Triggers
+)a
+where ATS_OverDue_Triggers.LOT_NO=a.LOT_NO
+
+Update ATS_OverDue_Triggers set Description=a.Description
+from (select t_dsca as Description,t_item as itemcode from ttcibd001600)a
+where LTRIM(RTRIM(ATS_OverDue_Triggers.ITEM))=LTRIM(RTRIM(a.ItemCode))
+
+Update ATS_OverDue_Triggers set NAMA=v.custname1
+from vw_Business_Partner v
+where ltrim(rtrim(ATS_OverDue_Triggers.SupplierNum))=ltrim(rtrim(v.custcode))
+		
+--Update ATS_OverDue_Triggers set empname=a.emp_name
+--from Employee_Details a 
+--where ATS_OverDue_Triggers.BUYR=a.new_emp_code 
+
+update ATS_OverDue_Triggers set empname=a.NAMA
+from (select * from TTCCOM001ALL where Company=600) a
+where ATS_OverDue_Triggers.BUYR=a.EMNO 
+
+Update ATS_OverDue_Triggers set BUYR=null where BUYR=' '
+Update ATS_OverDue_Triggers set empname=null where BUYR is null
+
+Update ATS_OverDue_Triggers set SUPERMARKET=a.DIVISION_NAME
+from Materials_Division_MASTER		a
+where ATS_OverDue_Triggers.DIVI=a.DIVISION_CODE
+
+Update ATS_OverDue_Triggers set DEPARTMENT=a.Dept_Name 
+from MATERIALS_DEPT_MASTER a
+where ATS_OverDue_Triggers.DEPT=a.Dept_code
+
+Update ATS_OverDue_Triggers set DueType='Within Due' where PendingDays<=0
+Update ATS_OverDue_Triggers set DueType='Over Due' where PendingDays>0
+
+Update ATS_OverDue_Triggers set DueTypeOrdr=1 where DueType='Within Due'
+Update ATS_OverDue_Triggers set DueTypeOrdr=2 where DueType='Over Due'
+
+Update ATS_OverDue_Triggers set DueSlab='Pending Days < 0' where DueType='Within Due' and PendingDays < 0
+Update ATS_OverDue_Triggers set DueSlab='Expected Day after Tomorrow' where DueType='Within Due' and PendingDays = -2
+Update ATS_OverDue_Triggers set DueSlab='Expected Today' where DueType='Within Due' and PendingDays = 0
+
+Update ATS_OverDue_Triggers set DueSlab='1- 5 Days' where DueType='Over Due' and PendingDays between 1 and 5
+Update ATS_OverDue_Triggers set DueSlab='6- 10 Days' where DueType='Over Due' and PendingDays between 6 and 10
+Update ATS_OverDue_Triggers set DueSlab='11- 20 Days' where DueType='Over Due' and PendingDays between 11 and 20
+Update ATS_OverDue_Triggers set DueSlab='Above 20 Days' where DueType='Over Due' and PendingDays > 20
+
+
+Update ATS_OverDue_Triggers set DueSlabOrdr=1 where DueSlab='Pending Days < 0'
+Update ATS_OverDue_Triggers set DueSlabOrdr=2 where DueSlab='Expected Day after Tomorrow'
+Update ATS_OverDue_Triggers set DueSlabOrdr=3 where DueSlab='Expected Today'
+
+Update ATS_OverDue_Triggers set DueSlabOrdr=4 where DueSlab='1- 5 Days'
+Update ATS_OverDue_Triggers set DueSlabOrdr=5 where DueSlab='6- 10 Days'
+Update ATS_OverDue_Triggers set DueSlabOrdr=6 where DueSlab='11- 20 Days'
+Update ATS_OverDue_Triggers set DueSlabOrdr=7 where DueSlab='Above 20 Days'
+
+
+
+end
+
+--select count(*) from ATS_OverDue_Triggers
+
+--select * from ATS_OverDue_Triggers
+--where triggertype='Non Lean'
+
+
+select distinct BUYR,empname from ATS_OverDue_Triggers
+--where buyr='200910'
+
+--select * from TTCCOM001ALL
+--where emno='200910'

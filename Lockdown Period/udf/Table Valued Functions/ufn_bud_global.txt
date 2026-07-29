@@ -1,0 +1,235 @@
+--select * from ufn_bud_global(11,2017)
+--declare @CalMonth int=11
+--declare @CalYear int=2017
+--select case 
+--when @CalMonth=11 then 1  
+--when @CalMonth=12 then 2 else @CalMonth+2 end
+--select case when @CalMonth=12 then @CalYear+1 else @CalYear end
+
+CREATE FUNCTION [dbo].[ufn_bud_global] (@CalMonth int,@CalYear int)
+
+RETURNS @ufn_bud_global TABLE 
+
+(
+Global	varchar(20),
+organ	varchar(20),
+region	varchar(150),
+Zone	varchar(100),
+user_names	varchar(100),
+Division	varchar(50),
+Vertical1	varchar(100),
+Area	nvarchar(255),
+AreaName	varchar(50),
+Dpst	varchar(50),
+DPSTName	varchar(100),
+--item_code varchar(50),
+budget_year	float,
+last_month_budget	float,
+ytd_budget	float,
+this_month_budget	float,
+next_month_budget	float,
+nextof_next_month_budget	float,
+AprBud float,
+MayBud float,
+JunBud float,
+JulBud float,
+AugBud float,
+SepBud float,
+OctBud float,
+NovBud float,
+DecBud float,
+JanBud float,
+FebBud float,
+MarBud float,	
+AprBudLYr float,
+MayBudLYr float,
+JunBudLYr float,
+JulBudLYr float,
+AugBudLYr float,
+SepBudLYr float,
+OctBudLYr float,
+NovBudLYr float,
+DecBudLYr float,
+JanBudLYr float,
+FebBudLYr float,
+MarBudLYr float	
+)
+
+AS
+
+BEGIN
+
+WITH CTE_bud_global
+(
+Global,organ,region,Zone,user_names,Division,Vertical1,Area,AreaName,Dpst,DPSTName,--item_code,
+budget_year,
+last_month_budget,ytd_budget,this_month_budget,next_month_budget,nextof_next_month_budget,
+AprBud,MayBud,JunBud,JulBud,AugBud,SepBud,OctBud,NovBud,DecBud,JanBud,FebBud,MarBud,
+AprBudLYr,MayBudLYr,JunBudLYr,JulBudLYr,AugBudLYr,SepBudLYr,OctBudLYr,NovBudLYr,DecBudLYr,JanBudLYr,FebBudLYr,MarBudLYr
+) -- CTE name and columns
+
+AS (
+
+
+SELECT	Global,organ,region,Zone,user_names,Division,Vertical1,Area,AreaName,Dpst,DPSTName,
+--ltrim(rtrim(item_code)) as item_code,
+	SUM(budget_year) AS budget_year, 
+	SUM(last_month_budget) AS last_month_budget, 
+	SUM(ytd_budget) AS ytd_budget,     
+	SUM(this_month_budget) AS this_month_budget, 
+	SUM(next_month_budget) AS next_month_budget, 
+	SUM(nextof_next_month_budget) AS nextof_next_month_budget,
+	SUM(AprBud) as AprBud,
+	SUM(MayBud) as MayBud,
+ SUM(JunBud) as JunBud,
+	SUM(JulBud) as JulBud,   
+	SUM(AugBud) as AugBud,
+	SUM(SepBud) as SepBud,
+ SUM(OctBud) as OctBud,
+	SUM(NovBud) as NovBud,
+	SUM(DecBud) as DecBud,
+	SUM(JanBud) as JanBud,
+ SUM(FebBud) as FebBud,
+	SUM(MarBud) as MarBud,
+
+	SUM(AprBudLYr) as AprBudLYr,
+	SUM(MayBudLYr) as MayBudLYr,
+ SUM(JunBudLYr) as JunBudLYr,
+	SUM(JulBudLYr) as JulBudLYr,   
+	SUM(AugBudLYr) as AugBudLYr,
+	SUM(SepBudLYr) as SepBudLYr,
+ SUM(OctBudLYr) as OctBudLYr,
+	SUM(NovBudLYr) as NovBudLYr,
+	SUM(DecBudLYr) as DecBudLYr,
+	SUM(JanBudLYr) as JanBudLYr,
+ SUM(FebBudLYr) as FebBudLYr,
+	SUM(MarBudLYr) as MarBudLYr
+
+
+
+FROM (
+
+SELECT	ltrim(rtrim(b.Global)) Global,
+--case when ltrim(rtrim(isnull(a.organ,c.organ)))='ISAAME' then 'SAAME' else ltrim(rtrim(isnull(a.organ,c.organ))) end as organ,
+case when ltrim(rtrim(c.organ))='ISAAME' then 'SAAME' else ltrim(rtrim(c.organ)) end as organ,
+ltrim(rtrim(c.region)) region,
+ltrim(rtrim(c.Zone)) Zone,
+ltrim(rtrim(c.user_names)) user_names,
+ltrim(rtrim(c.Division)) as Division,
+ltrim(rtrim(c.Vertical1)) as Vertical1,
+a.Area,ltrim(rtrim(c.areaname)) areaname,c.DPSTCode as dpst,c.DPSTName,
+--a.item_code,
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end ))) 
+AND 
+('03/31/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear else @CalYear+1 end )))
+THEN (target) ELSE 0 END) AS budget_year,  
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when @CalMonth between 1 and 4 then @CalYear - 1 else @CalYear end ))) 
+AND 
+convert(varchar,dateadd(dd, - 1, RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2) + '/1/' + convert(varchar,@CalYear)),101) 
+THEN (target) ELSE 0 END) AS last_month_budget,  
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end )) 
+AND 
+convert(varchar,dateadd(dd, - 1,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2) +'/'+convert(varchar,datepart(dd,getdate()))+'/' + convert(varchar,@CalYear) ),101) 
+THEN (target) ELSE 0 END) AS ytd_budget, 
+
+SUM(CASE WHEN month(date)= @CalMonth 
+AND year(date) =@CalYear
+THEN (target) ELSE 0 END) AS this_month_budget, 
+
+SUM(CASE WHEN month(date)= case when @CalMonth=12 then 1 else @CalMonth+1 end AND 
+year(date) = case when @CalMonth=12 then @CalYear+1 else @CalYear end
+THEN (target) ELSE 0 END) AS next_month_budget,     
+
+SUM(CASE WHEN month(date) = case 
+when @CalMonth=11 then 1  
+when @CalMonth=12 then 2 else @CalMonth+2 end AND
+year(date) = case 
+when @CalMonth=11 then @CalYear+1
+when @CalMonth=12 then @CalYear+1 else @CalYear end
+THEN (target) ELSE 0 END) AS nextof_next_month_budget,
+
+
+
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =4 THEN [target] ELSE 0 END) as AprBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =5 THEN [target] ELSE 0 END) as MayBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =6 THEN [target] ELSE 0 END) as JunBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =7 THEN [target] ELSE 0 END) as JulBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =8 THEN [target] ELSE 0 END) as AugBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =9 THEN [target] ELSE 0 END) as SepBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =10 THEN [target] ELSE 0 END) as OctBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =11 THEN [target] ELSE 0 END) as NovBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =12 THEN [target] ELSE 0 END) as DecBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)+1 and month(date) =1 THEN [target] ELSE 0 END) as JanBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)+1 and month(date) =2 THEN [target] ELSE 0 END) as FebBud,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)+1 and month(date) =3 THEN [target] ELSE 0 END) as MarBud,
+
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =4 THEN [target] ELSE 0 END) as AprBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =5 THEN [target] ELSE 0 END) as MayBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =6 THEN [target] ELSE 0 END) as JunBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =7 THEN [target] ELSE 0 END) as JulBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =8 THEN [target] ELSE 0 END) as AugBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =9 THEN [target] ELSE 0 END) as SepBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =10 THEN [target] ELSE 0 END) as OctBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =11 THEN [target] ELSE 0 END) as NovBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end)-1 and month(date) =12 THEN [target] ELSE 0 END) as DecBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =1 THEN [target] ELSE 0 END) as JanBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =2 THEN [target] ELSE 0 END) as FebBudLYr,
+sum(case when year(date) =(case when @CalMonth<4 then @CalYear-1 else @CalYear end) and month(date) =3 THEN [target] ELSE 0 END) as MarBudLYr
+
+FROM	Sales_Budget a
+--Itemwise_Budget a
+	INNER JOIN vw_AREA_MASTER b
+		ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.Area))
+	INNER JOIN vw_SALESMAPPING_MASTER c
+		ON ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode))    
+		and ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+
+GROUP BY ltrim(rtrim(b.Global)),--ltrim(rtrim(isnull(a.organ,c.organ))),
+ltrim(rtrim(c.Organ)),ltrim(rtrim(c.region)),ltrim(rtrim(c.Zone)),
+ltrim(rtrim(c.user_names)),ltrim(rtrim(c.Division)),ltrim(rtrim(c.Vertical1)),
+a.Area,ltrim(rtrim(c.areaname)),c.DPSTCode,c.DPSTName
+--,a.item_code
+) AS budget    
+
+GROUP BY Global,organ,region,Zone,user_names,Division,Vertical1,Area,AreaName,Dpst,DPSTName
+--,item_code
+--HAVING      (SUM(budget_year) > 0) or (SUM(last_month_budget) > 0)
+
+
+)
+
+INSERT @ufn_bud_global
+
+SELECT 
+Global,organ,region,Zone,user_names,Division,Vertical1,Area,AreaName,Dpst,DPSTName,--item_code,
+budget_year,
+last_month_budget,ytd_budget,this_month_budget,next_month_budget,nextof_next_month_budget,
+AprBud,MayBud,JunBud,JulBud,AugBud,SepBud,OctBud,NovBud,DecBud,JanBud,FebBud,MarBud,
+AprBudLYr,MayBudLYr,JunBudLYr,JulBudLYr,AugBudLYr,SepBudLYr,OctBudLYr,NovBudLYr,DecBudLYr,JanBudLYr,FebBudLYr,MarBudLYr
+FROM CTE_bud_global
+
+RETURN
+
+END;
+
+
+
+--select sum(Target) FROM	Sales_Budget a
+--	INNER JOIN vw_AREA_MASTER b
+--		ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.Area))
+--	INNER JOIN vw_SALESMAPPING_MASTER c
+--		ON ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode))    
+--		and ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+--		where c.organ='cosea' and Date='2018-03-01 00:00:00.000'
+
+
+--select  sum(JanBud) from ufn_bud_global(1,2018) where organ='cosea'
+--select  sum(FebBud) from ufn_bud_global(2,2018) where organ='cosea'
+--select  sum(MarBud) from ufn_bud_global(3,2018) where organ='cosea'
+

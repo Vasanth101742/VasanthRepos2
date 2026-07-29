@@ -1,0 +1,156 @@
+--exec sp_ATS_MonthPlan_Price
+CREATE proc [dbo].[sp_ATS_MonthPlan_Price] as
+begin
+
+Truncate table ATS_MonthPlan_Price
+
+
+insert into ATS_MonthPlan_Price(ITEM,UPDT,RQTY)
+--select * into ATS_MonthPlan_Price from (
+select ITEM,UPDT,RQTY from TZZPUR409600 a
+where updt=(select max(updt) from TZZPUR409600 b 
+where a.DIVI=b.DIVI and a.item=b.item)
+--and ltrim(rtrim(ITEM)) not in (select distinct ltrim(rtrim(ITEM)) from ATS_Inventory_vs_Lean_Temp)
+--)a
+
+--insert into ATS_MonthPlan_Price(ITEM,UPDT)
+--select ITEM,EFDT from TTDPCG031ALL a 
+--where company like '6%'
+--and EFDT in (select max(EFDT) from TTDPCG031ALL b where company like '6%'
+--and  a.ITEM=b.ITEM
+--group by ITEM)
+--and ltrim(rtrim(ITEM)) in (select distinct ltrim(rtrim(ITEM)) from ATS_Inventory_vs_Lean_Temp)
+--and ltrim(rtrim(ITEM)) not in (select distinct ltrim(rtrim(ITEM)) from ATS_MonthPlan_Price)
+
+insert into ATS_MonthPlan_Price(ITEM,SuppCode)
+select distinct ltrim(rtrim(ITEM)),SuppCode from ATS_Inventory_vs_Lean_Temp
+where ltrim(rtrim(ITEM)) not in (select distinct ltrim(rtrim(ITEM)) from ATS_MonthPlan_Price)
+
+update ATS_MonthPlan_Price set SuppCode=a.SuppCode
+from (select distinct ITEM,SuppCode from ATS_Inventory_vs_Lean_Temp)a
+where ltrim(rtrim(ATS_MonthPlan_Price.ITEM))=ltrim(rtrim(a.ITEM))
+and ATS_MonthPlan_Price.SuppCode is null
+
+
+--Alter table ATS_MonthPlan_Price add CUNI nvarchar(6)
+--Alter table ATS_MonthPlan_Price add CUQP nvarchar(6)
+--Alter table ATS_MonthPlan_Price add CONV float
+--Alter table ATS_MonthPlan_Price add EFDT datetime
+--Alter table ATS_MonthPlan_Price add BAPR float
+--Alter table ATS_MonthPlan_Price add CURN nvarchar(6)
+--Alter table ATS_MonthPlan_Price add STDT datetime
+--Alter table ATS_MonthPlan_Price add RATE float
+--Alter table ATS_MonthPlan_Price add PlanValue float
+--Alter table ATS_MonthPlan_Price add SuppCode varchar(50)
+
+
+
+update ATS_MonthPlan_Price set CUNI=a.t_cuni
+from(select distinct t_item,t_cuni from TTCIBD001600)a
+where ltrim(rtrim(ATS_MonthPlan_Price.ITEM))=ltrim(rtrim(a.t_item))
+
+
+update ATS_MonthPlan_Price set CUQP=a.CUQP
+from(select distinct ITEM,CUQP from TTDIPU001ALL where COMPANY=600)a
+where ltrim(rtrim(ATS_MonthPlan_Price.ITEM))=ltrim(rtrim(a.item))
+
+----Method 1:
+--update ATS_MonthPlan_Price set CONV=a.T$CONV
+--from(select distinct T$ITEM,T$CONV from TTCIBD003ALL where company=600)a
+--where ltrim(rtrim(ATS_MonthPlan_Price.ITEM))=ltrim(rtrim(a.T$ITEM))
+--and CUNI<>CUQP
+
+--Method 2:
+update ATS_MonthPlan_Price set CONV=a.T$CONV
+from(select distinct T$ITEM,T$BASU,T$UNIT,T$CONV
+from TTCIBD003ALL where company=600 and T$APPR=1)a
+where ltrim(rtrim(ATS_MonthPlan_Price.ITEM))=ltrim(rtrim(a.T$ITEM))
+and ltrim(rtrim(ATS_MonthPlan_Price.CUNI))=ltrim(rtrim(a.T$BASU))
+and ltrim(rtrim(ATS_MonthPlan_Price.CUQP))=ltrim(rtrim(a.T$UNIT))
+ 
+--select * from ATS_MonthPlan_Price where CUNI<>CUQP
+
+update ATS_MonthPlan_Price set CONV=1 where CONV is null --and CUNI=CUQP
+
+--select * from ATS_MonthPlan_Price where conv is null and CUNI<>CUQP
+
+----Item Price Update for Month Plan Items
+--update ATS_MonthPlan_Price set EFDT=a.EFDT,BAPR=a.BAPR,CURN=a.CURN
+--from(select ITEM,OTBP,EFDT,BAPR,CURN from TTDPCG031ALL a 
+--where company like '6%'
+--and EXDT='9999-01-01 00:00:00.000'
+--and EFDT in (select max(EFDT) from TTDPCG031ALL b where company like '6%'
+--and  a.ITEM=b.ITEM
+--and a.OTBP=b.OTBP
+--group by ITEM)
+--)a
+--where ltrim(rtrim(ATS_MonthPlan_Price.item))=ltrim(rtrim(a.ITEM))
+--and UPDT is not null
+
+
+----Item Price update for other items not in Month Plan and Inventory
+update ATS_MonthPlan_Price set EFDT=a.EFDT,BAPR=a.BAPR,CURN=a.CURN
+from(select ITEM,OTBP,EFDT,BAPR,CURN from TTDPCG031ALL a 
+where company like '6%'
+and EXDT='9999-01-01 00:00:00.000'
+and EFDT in (select max(EFDT) from TTDPCG031ALL b where company like '6%'
+and  a.ITEM=b.ITEM
+and a.OTBP=b.OTBP 
+group by ITEM)
+)a
+where ltrim(rtrim(ATS_MonthPlan_Price.item))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(ATS_MonthPlan_Price.SuppCode))=ltrim(rtrim(a.OTBP)) 
+----and UPDT is null
+
+--TestCases with Multiple EFDT
+--'000410730'
+--'000903334'
+--'110457960'
+
+
+----Method1 : Fetching the Currency rate at the latest date which is less than or equal to the latest effective date of an Item currency
+--update ATS_MonthPlan_Price set STDT=a.STDT,RATE=a.RATE
+--from (
+--select * from (select *,
+--row_number() over(partition by curn,efdt order by curn,efdt,stdt desc) as Rnk from
+--(select distinct CURN,EFDT from ATS_MonthPlan_Price) a
+--left outer join
+--(select company,BCUR,CCUR,RTYP,STDT,RATE from TCMCS008ALL where BCUR in ('IND','INR')
+--and RTYP='PUR')b
+--on a.EFDT>=b.STDT
+--and a.CURN=b.CCUR
+--)a
+--where Rnk=1
+--)a
+--where ATS_MonthPlan_Price.EFDT=a.EFDT
+--and ATS_MonthPlan_Price.CURN=a.CURN
+
+
+----Method1 : Fetching the Currency rate at the latest date which is less than or equal to the latest effective date of an Item currency
+update ATS_MonthPlan_Price set STDT=a.STDT,RATE=a.RATE
+from (
+select * from 
+(select distinct CURN,EFDT from ATS_MonthPlan_Price
+where CURN not in ('IND','INR')
+) a
+left outer join
+(select company,BCUR,CCUR,RTYP,STDT,RATE from TTCMCS008ALL a
+where BCUR in ('IND','INR') and RTYP='PUR'
+and STDT in (select max(STDT) from TTCMCS008ALL b
+where BCUR in ('IND','INR') and RTYP='PUR'
+and a.CCUR=b.CCUR)
+
+)b
+on a.CURN=b.CCUR
+)a
+where ATS_MonthPlan_Price.CURN=a.CURN
+
+
+update ATS_MonthPlan_Price set RATE=1 where RATE is null
+
+update ATS_MonthPlan_Price set PlanValue=CONV*BAPR*RATE
+
+
+end
+
+--select * from ATS_MonthPlan_Price

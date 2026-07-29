@@ -1,0 +1,122 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Retention
+CREATE proc [dbo].[sp_Retention] as 
+begin
+
+Truncate table Retention_details
+
+insert into Retention_details(company,trantype,Invoice,
+OrderDate,SaleOrderType,OrderNo,PosNum,custcode,custname,areacode,areaname,Region,dpst,
+dpstname,PaymentTerms,PaymentDesc,SalesOrderValue,Rnk) 
+--select * into Retention_details from( 
+select company,trantype,invnum,
+OrderDate,OrderType,OrderNum,PositionNum,custcode,custname,areacode,areaname,Region,dpst,dpstname,PaymentTerms,PaymentDesc,sales,
+ROW_NUMBER() over(partition by company,trantype,invnum order by company,trantype,invnum)
+from Sales_Inflow
+where year(OrderDate)>=2022
+--)a
+
+insert into Retention_details(company,trantype,Invoice,Invoice_Date,DueDate,AccInvValue)
+select distinct Company,t_ttyp,t_ninv,t_docd,t_dued,t_amth_1 from TTFACR200ALL where t_docn=0
+and t_ttyp='IJC'
+--and concat(Company,t_ttyp,t_ninv) not in (select concat(company,trantype,Invoice) from Retention_details)
+
+
+
+update Retention_details set Invoice_Date=a.Invoice_Date,SalesInvValue=a.Sales_amount
+from (select distinct company,SaleOrderType,OrderNo,PositionNo,trantype,Invoice,Invoice_Date,Sales_amount from ELGi_Sales_Details)a
+where Retention_details.company=a.company
+and Retention_details.SaleOrderType=a.SaleOrderType
+and Retention_details.OrderNo=a.OrderNo
+and Retention_details.PosNum=a.PositionNo
+--and Retention_details.Rnk=1
+
+--Alter table Retention_details add DueDate date
+--Alter table Retention_details add AsOnDate date
+--Alter table Retention_details add DaysDiff int 
+--Alter table Retention_details add SalesOrderValue Float 
+--Alter table Retention_details add SalesInvValue Float
+--Alter table Retention_details add AccInvValue Float
+--Alter table Retention_details add Rnk int
+--Alter table Retention_details add SaleOrderType varchar(20)
+--Alter table Retention_details add PosNum varchar(20)
+--Alter table Retention_details add AccInvRecValue Float
+--Alter table Retention_details add AccInvBalValue Float
+--Alter table Retention_details add Vertical1 varchar(50)
+--Alter table Retention_details add FinCustGrp varchar(50)
+
+update Retention_details set DueDate=a.t_dued--,AccInvValue=a.t_amth_1
+from (select distinct Company,t_ttyp,t_ninv,t_docd,t_dued,t_amth_1 from TTFACR200ALL where t_docn=0)a
+where Retention_details.company=a.company
+and Retention_details.trantype=a.t_ttyp
+and Retention_details.invoice=a.t_ninv
+
+
+
+update Retention_details set AccInvValue=a.InvAmt,AccInvRecValue=a.PaidAmt,
+AccInvBalValue=a.BalanceAmt,Vertical1=a.Vertical1,FinCustGrp=a.FinCustGrp
+from (select distinct Company,Trantyp,InvNo,InvAmt,PaidAmt,BalanceAmt,Vertical1,FinCustGrp from ACR_Debtors_Details)a
+where Retention_details.company=a.company
+and Retention_details.trantype=a.Trantyp
+and Retention_details.invoice=a.InvNo
+and Retention_details.Rnk=1
+
+
+update Retention_details set AsOnDate=getdate()-1
+
+update Retention_details set DaysDiff=datediff(dd,DueDate,AsOnDate)
+where DueDate<> '9999-01-01'
+
+--Alter table Retention_details add t_itoa nvarchar(18)
+--Alter table Retention_details add t_stoa nvarchar(18)
+
+update Retention_details set t_itoa=a.t_itoa,t_stoa=a.t_stoa
+from (select distinct company,t_ttyp,t_idoc,t_itoa,t_stoa from Tcisli305all)a
+where Retention_details.company=a.company
+and Retention_details.trantype=a.t_ttyp
+and Retention_details.Invoice=a.t_idoc
+
+--Alter table Retention_details add Bill_To nvarchar(100)
+--Alter table Retention_details add Ship_To nvarchar(100)
+
+update Retention_details set Bill_To=a.NAMA
+from TTCCOM130ALL a
+where ltrim(rtrim(Retention_details.t_itoa))=ltrim(rtrim(a.CADR))
+
+update Retention_details set Ship_To=a.NAMA
+from TTCCOM130ALL a
+where ltrim(rtrim(Retention_details.t_stoa))=ltrim(rtrim(a.CADR))
+
+
+--Alter table Retention_details add TaxRate float
+--Alter table Retention_details add TDS_Amth float
+--Alter table Retention_details add TDS_Invoice float
+--Alter table Retention_details add GST_Invoice float
+update Retention_details set TaxRate=a.t_perc,TDS_Amth=a.t_txah_1
+from (select distinct Company,t_tran,t_idoc,t_perc,t_txah_1 from TCISLI315ALL)a
+where Retention_details.company=a.Company
+and Retention_details.trantype=a.t_tran
+and Retention_details.Invoice=a.t_idoc
+
+update Retention_details set TDS_Invoice=case when SUBSTRING(trantype,2,2)='99' then 0.02
+else (AccInvValue/(1+isnull(TaxRate/100,0.0)))*0.001 end
+update Retention_details set GST_Invoice=(AccInvValue/(1+isnull(TaxRate/100,0.0)))*0.02
+
+--Test case data for value diff tracking
+--400	142	31000298
+end
+
+
+select * from Retention_details
+
+
+
+--select top 100 t_itoa,t_stoa,* from Tcisli305all
+--select top 10 * from elgi_sales_details where Fin_year=2022
+
+
+
+
+
+Completion time: 2025-11-19T12:09:34.2925116+05:30

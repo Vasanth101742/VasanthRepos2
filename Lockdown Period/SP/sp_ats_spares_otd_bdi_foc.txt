@@ -1,0 +1,124 @@
+CREATE proc [dbo].[sp_ats_spares_otd_bdi_foc] as  
+
+Begin
+
+--truncate table slslines_aed_spares_bdi_foc    
+--select * into ATS_Spares_BDI_FOC_Orders from [ELGI-DW].dbo.slslines_aed_spares_bdi_foc
+--alter table ATS_Spares_BDI_FOC_Orders alter column ordertype nvarchar(6)
+--truncate table sales_otd_aed_spares_bdi_foc  
+
+
+truncate table ATS_Spares_BDI_FOC_Orders
+truncate table ATS_Spares_BDI_FOC_Orders_OTD  
+
+insert into ATS_Spares_BDI_FOC_Orders   
+SELECT a.t_cofc as Dpst, 
+a.Company, 
+a.OrderNum, 
+a.PositionNum, 
+a.CustCode,   
+a.t_odat as OrderDate, 
+dateadd(dd,1,a.t_odat) as plann_deliv_date,
+null as orderqty, null as warehouse,
+a.t_item as itemcode,a.saletype as ordertype,'BDI' as Type
+
+FROM CI_Lines a 
+INNER JOIN CI_Header b
+on a.Company=b.company
+and a.invnum=b.invnum
+and a.Trantype=b.Trantyp 
+
+WHERE (a.t_cofc IN ('90041', '90051'))  
+and dateadd(dd,1,a.t_odat) >= '04/01/2011' 
+and dateadd(dd,1,a.t_odat) < getdate()  
+and positionnum < 950 
+--and orderqty > 0 
+and a.saletype in ('640','641','642')  
+ 
+union all  
+
+SELECT b.Dpst, 
+a.Company, 
+a.OrderNum, 
+a.PositionNum, 
+a.CustCode,   
+a.t_odat as OrderDate, 
+dateadd(dd,2,a.t_odat) as plann_deliv_date,
+null as orderqty,null as warehouse,
+a.t_item as itemcode,a.saletype as ordertype,'FOC' as Type
+
+FROM CI_Lines a 
+INNER JOIN CI_Header b
+on a.Company=b.company
+and a.invnum=b.invnum
+and a.Trantype=b.Trantyp 
+
+WHERE (b.Dpst IN ('90041', '90051'))  
+and dateadd(dd,2,a.t_odat) >= '04/01/2011' 
+and dateadd(dd,2,a.t_odat) < getdate()  
+and positionnum < 950 
+--and orderqty > 0 
+and a.saletype in ('623','624','625','626')   
+
+
+delete from ATS_Spares_BDI_FOC_Orders where plann_deliv_date > convert(Datetime,convert(varchar,getdate()-1,101))  
+  
+
+update ATS_Spares_BDI_FOC_Orders set orderqty=a.t_qoor,warehouse=a.WareHouse
+from Sales_Lines a
+where ATS_Spares_BDI_FOC_Orders.Company=a.Company
+and ATS_Spares_BDI_FOC_Orders.OrderNum=a.OrderNum
+and ATS_Spares_BDI_FOC_Orders.PositionNum=a.PositionNum
+
+
+--alter table ATS_Spares_BDI_FOC_Orders_OTD alter column ordertype nvarchar(6)
+
+
+insert into ATS_Spares_BDI_FOC_Orders_OTD (dpst,company,ordernum,positionnum,custcode,orderdate,plan_deliv_date,orderqty,  
+deliverydt,deliveredqty,backordqty,warehouse,itemcode,ordertype,type)  
+
+SELECT a.Dpst, 
+a.Company, 
+a.OrderNum,   
+a.PositionNum,
+a.CustCode, 
+a.OrderDate, 
+a.plann_deliv_date,
+a.orderqty,  
+max(case when isdate(b.INVD) = 1 then  b.INVD else '9999-01-01 00:00:00.000' end) as DeliveryDt,
+sum(B.QIDL) AS DeliveredQty,  
+a.orderqty-sum(B.QIDL) as BackOrderQty,
+a.warehouse,
+a.itemcode,ordertype,type  
+
+FROM ATS_Spares_BDI_FOC_Orders a
+left outer JOIN sales_delivery b
+ON a.Company = b.Company 
+AND a.OrderNum = b.ORNO 
+AND a.PositionNum = b.PONO  
+
+group by a.Dpst, a.Company, a.OrderNum, a.PositionNum, a.CustCode, a.OrderDate, 
+a.plann_deliv_date,a.orderqty,a.warehouse,a.itemcode,a.ordertype,a.type  
+
+
+
+update ATS_Spares_BDI_FOC_Orders_OTD set deliverydt = TmpSlsDelivery.deliverydt  
+from  
+(select Company ,orno as OrderNum ,pono as PositionNum ,max(INVD) as deliverydt  
+from sales_delivery where INVD <> '9999-01-01'  
+group by Company ,ORNO ,PONO )TmpSlsDelivery  
+where ATS_Spares_BDI_FOC_Orders_OTD.deliverydt = '9999-01-01 00:00:00.000' 
+and ATS_Spares_BDI_FOC_Orders_OTD.deliveredqty = orderqty 
+and ATS_Spares_BDI_FOC_Orders_OTD.Company = TmpSlsDelivery.Company 
+AND ATS_Spares_BDI_FOC_Orders_OTD.OrderNum = TmpSlsDelivery.OrderNum 
+AND ATS_Spares_BDI_FOC_Orders_OTD.PositionNum = TmpSlsDelivery.PositionNum  
+
+update  ATS_Spares_BDI_FOC_Orders_OTD set otd = 1  
+update  ATS_Spares_BDI_FOC_Orders_OTD set otd = 0 where orderqty > deliveredqty  
+update  ATS_Spares_BDI_FOC_Orders_OTD set otd = 0  where plan_deliv_date < deliverydt  
+  
+update ATS_Spares_BDI_FOC_Orders_OTD set itemdescription = a.t_dsca  
+from TTCIBD001600 a   
+where a.t_item = ATS_Spares_BDI_FOC_Orders_OTD.itemcode
+
+end

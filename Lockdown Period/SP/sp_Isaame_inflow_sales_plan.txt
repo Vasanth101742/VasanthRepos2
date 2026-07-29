@@ -1,0 +1,435 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Isaame_inflow_sales_plan
+--select * From saame_inflow_sales_plan
+CREATE proc [dbo].[sp_Isaame_inflow_sales_plan]
+as
+begin
+
+
+truncate table  india_inflow_sales_plan
+truncate table saame_inflow_sales_plan
+TRUNCATE TABLE INDIA_VERTICALWISE_BUDGET
+truncate table saame_plan_wise_budget
+truncate table inflow_mothwise
+
+
+insert into india_inflow_sales_plan
+
+SELECT	c.Description,
+
+sum(CASE WHEN day(a.invoice_date)=day(getdate()-1)and month(a.invoice_date)=month(getdate()-1)
+and year(a.invoice_date)=year(getdate()-1)THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS ondate_sale,
+
+SUM(CASE WHEN a.invoice_date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1) end ))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_sale, 
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND
+convert(varchar ,dateadd(yy, - 1, dateadd(dd, - 1, getdate())),101) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_ytd, 
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+getdate() --enable it only on Monthend date
+--dateadd(dd, - 1, getdate())  --disable it only on Monthend date
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_year_sale, 
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101) 
+THEN (a.Sales_amount)/ 1000000 ELSE 0 END) AS last_month_sale,
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND 
+getdate() --enable it only on Monthend date
+--dateadd(dd, - 1, getdate())  --disable it only on Monthend date
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sale,
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS thr_month_sale,
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n1_month_sale,
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n2_month_sale,
+
+
+SUM(CASE WHEN a.invoice_date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n3_month_sale,
+
+sum(case when a.invoice_date between 
+convert(datetime,convert(varchar,datepart(mm,dateadd(yy,-1,dateadd(dd,-1,getdate())))) + '/1/' + datename(yy,dateadd(yy,-1,dateadd(dd,-1,getdate())))) 
+and 
+dateadd(yy,-1,dateadd(dd,-1,convert(date,getdate()))) 
+then (a.Sales_amount)/1000000 else 0 end)as last_year_this_month_sale ,
+null as sales_plan,null as sales_Inflow 
+
+
+FROM 	
+ELGi_Sales_Details a 
+left JOIN vw_AREA_MASTER b
+ON b.AreaCode = a.areacode
+left JOIN vw_DPST_MASTER c 
+ON c.DpstCode = a.Dpst  
+
+WHERE	(c.Description IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')) 
+AND (a.Invoice_Date BETWEEN '04/01/2015' AND GETDATE()) 
+AND a.SaleOrderType in 
+(
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+GROUP BY c.Description
+
+
+---------------saame sales
+
+insert into saame_inflow_sales_plan
+select *  From (
+SELECT c.user_names,
+
+sum(CASE WHEN day(a.invoice_date)=day(getdate()-1)and month(a.invoice_date)=month(getdate()-1)
+and year(a.invoice_date)=year(getdate()-1)THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS ondate_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1) end ))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_sale, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+dateadd(yy, - 1, dateadd(dd, - 1, getdate())) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_ytd, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+getdate() 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_year_sale,   
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+ CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(yy,-1, dateadd(dd, - 1, getdate()))) 
+AND 
+ dateadd(yy,-1,dateadd(dd, - 1, convert(date,getdate())))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_this_month_sale,
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND 
+getdate() 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS thr_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n1_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n2_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n3_month_sale,null as sales_plan,null as Sales_Inflow
+
+
+FROM 	
+ELGi_Sales_Details a 
+	left outer JOIN vw_AREA_MASTER b ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.areacode))
+	left outer JOIN vw_SALESMAPPING_MASTER c
+	ON 	ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode)) 
+	AND ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+	left outer join vw_DPST_MASTER d
+	on ltrim(rtrim(d.DpstCode))=ltrim(rtrim(c.DPSTCode))
+
+
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+
+AND a.SaleOrderType in (
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+--AND concat(a.company,a.SaleOrderType) in (
+--select concat(company,SaleOrderType) from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select concat(company,'') as SaleOrderType from SaleType_Master
+--)
+and  c.Organ = 'SAAME'
+GROUP BY c.user_names
+)a
+
+
+
+------------------end saame sales
+
+
+
+-------------- india budget
+
+INSERT INTO INDIA_VERTICALWISE_BUDGET
+
+select * From (
+select * from (  
+SELECT Description,
+SUM(budget_year) AS budget_year, 
+SUM(last_month_budget) AS last_month_budget, 
+SUM(ytd_budget) AS ytd_budget,   
+SUM(this_month_budget) AS this_month_budget, 
+SUM(next_month_budget) AS next_month_budget, 
+SUM(nextof_next_month_budget) AS nextof_next_month_budget  
+FROM (
+
+SELECT     
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+('03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) else year(getdate()-1)+1 end )))
+THEN (target) / 1000000 ELSE 0 END) AS budget_year,   
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101) 
+THEN (target) / 1000000 ELSE 0 END) AS last_month_budget,   
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (target) / 1000000 ELSE 0 END) AS ytd_budget,   
+
+SUM(CASE WHEN date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1,getdate())) 
+AND 
+convert(varchar,dateadd(dd, - 1, getdate()),101) 
+THEN (target) / 1000000 ELSE 0 END) AS this_month_budget, 
+
+SUM(CASE WHEN month(date)= datepart(mm, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) 
+THEN (target) / 1000000 ELSE 0 END) AS next_month_budget, 
+
+SUM(CASE WHEN month(date) = datepart(mm, dateadd(mm, 2, dateadd(dd, - 1,getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 2, dateadd(dd, - 1, getdate()))) 
+THEN (target) / 1000000 ELSE 0 END) AS nextof_next_month_budget, 
+
+b.Description,dpstname,a.Dpst
+
+FROM DPSTwise_Budget a
+ 
+INNER JOIN vw_DPST_MASTER b 
+ON b.DpstCode = a.Dpst
+
+
+WHERE (b.Description IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')) 
+GROUP BY b.Description,dpstname,Dpst
+
+) AS budget  
+GROUP BY Description
+)a  
+where budget_year <> 0 or ( (last_month_budget) > 0)
+)a
+
+------------end india budget
+------------------------ saame budget
+
+insert into saame_plan_wise_budget
+select *  From (
+SELECT	user_names,
+	SUM(budget_year) AS budget_year, 
+	SUM(last_month_budget) AS last_month_budget, 
+	SUM(ytd_budget) AS ytd_budget,     
+	SUM(this_month_budget) AS this_month_budget, 
+	SUM(next_month_budget) AS next_month_budget, 
+	SUM(nextof_next_month_budget) AS nextof_next_month_budget    
+
+FROM (
+
+SELECT	ltrim(rtrim(b.Global)) Global,
+case when ltrim(rtrim(isnull(a.organ,c.organ)))='ISAAME' then 'SAAME' else ltrim(rtrim(isnull(a.organ,c.organ))) end as organ,
+ltrim(rtrim(c.region)) region,
+ltrim(rtrim(c.Zone)) Zone,
+ltrim(rtrim(c.user_names)) user_names,
+ltrim(rtrim(c.Division)) as Division,
+ltrim(rtrim(c.Vertical1)) as Vertical1,
+a.Area,ltrim(rtrim(c.areaname)) areaname,c.DPSTCode as dpst,c.DPSTName,
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+('03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) else year(getdate()-1)+1 end )))
+THEN (target) ELSE 0 END) AS budget_year,  
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101) 
+THEN (target) ELSE 0 END) AS last_month_budget,  
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (target) ELSE 0 END) AS ytd_budget, 
+
+SUM(CASE WHEN date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1,getdate())) 
+AND 
+convert(varchar,dateadd(dd, - 1, getdate()),101) 
+THEN (target) ELSE 0 END) AS this_month_budget, 
+
+SUM(CASE WHEN month(date)= datepart(mm, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) 
+THEN (target) ELSE 0 END) AS next_month_budget,     
+
+SUM(CASE WHEN month(date) = datepart(mm, dateadd(mm, 2, dateadd(dd, - 1,getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 2, dateadd(dd, - 1, getdate()))) 
+THEN (target) ELSE 0 END) AS nextof_next_month_budget
+
+FROM	Sales_Budget a
+	INNER JOIN vw_AREA_MASTER b
+		ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.Area))
+	INNER JOIN vw_SALESMAPPING_MASTER c
+		ON ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode))    
+		and ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+
+GROUP BY ltrim(rtrim(b.Global)),ltrim(rtrim(isnull(a.organ,c.organ))),
+ltrim(rtrim(c.region)),ltrim(rtrim(c.Zone)),ltrim(rtrim(c.user_names)),ltrim(rtrim(c.Division)),ltrim(rtrim(c.Vertical1)),
+a.Area,ltrim(rtrim(c.areaname)),c.DPSTCode,c.DPSTName
+) AS budget    
+where organ = 'SAAME'
+GROUP BY user_names
+HAVING      (SUM(budget_year) > 0) or (SUM(last_month_budget) > 0)
+)a
+-----------------end saame budget
+
+
+------------ sales plan updation
+
+update india_inflow_sales_plan set sales_plan=a.sales_plan 
+from 
+(select vertical1,sum([plan])as sales_plan from isaame_sales_plan where cal_year=year(getdate()-1) and cal_month=month(getdate()-1)
+group by vertical1)a
+where india_inflow_sales_plan.description=a.vertical1
+
+
+update saame_inflow_sales_plan set sales_plan=a.sales_plan 
+from 
+(select vertical1,sum([plan])as sales_plan from isaame_sales_plan where cal_year=year(getdate()-1) and cal_month=month(getdate()-1)
+group by vertical1)a
+where saame_inflow_sales_plan.user_names=a.vertical1
+
+------------ end sales plan updation
+
+
+
+insert into inflow_mothwise
+select *  from (
+select distinct Vertical1 as vertical,sum(sales/1000000)as inflow,year(OrderDate)as cal_year,month(OrderDate)as cal_Month,null as vertical1    From Sales_Inflow 
+where organ in ('India')
+and  company in (select Company  from ELGI_Companies_Master where CompanyGroup ='ELGI' )
+and concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1)) 
+group by Vertical1,year(OrderDate),month(OrderDate)  
+
+union all
+
+select distinct user_names ,sum(sales/1000000)as inflow,year(OrderDate)as cal_year,month(OrderDate)as cal_Month,null as vertical1    From Sales_Inflow 
+where organ in ('SAAME')
+and  company in (select Company  from ELGI_Companies_Master where CompanyGroup ='ELGI' )
+and concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1)) 
+group by user_names,year(OrderDate),month(OrderDate)  
+)a
+
+update inflow_mothwise set vertical1='Compressor-C&M' where vertical='C&M'
+update inflow_mothwise set vertical1='Compressor-WW' where vertical='WW'
+update inflow_mothwise set vertical1='After Sales' where vertical='AFTERSALES'
+update inflow_mothwise set vertical1='Compressor-RLY' where vertical='RAILWAY'
+update inflow_mothwise set vertical1='Compressor-Direct' where vertical='DIRECT'
+update inflow_mothwise set vertical1='Compressor-Channel' where vertical='CHANNEL'
+
+update inflow_mothwise set vertical1='Africa-Spares' where vertical='Africa-Spares'
+update inflow_mothwise set vertical1='Africa-Units' where vertical='Africa-Units'
+update inflow_mothwise set vertical1='ME-Spares' where vertical='ME-Spares'
+update inflow_mothwise set vertical1='ME-Units' where vertical='ME-Units'
+update inflow_mothwise set vertical1='SA-Spares' where vertical='SA-Spares'
+update inflow_mothwise set vertical1='SA-Units' where vertical='SA-Units'
+
+
+----------------- inflow updation
+update india_inflow_sales_plan set sales_Inflow=a.inflow 
+from 
+(select vertical1,sum(inflow)as inflow from inflow_mothwise where cal_year=year(getdate()-1) and cal_month=month(getdate()-1)
+group by vertical1)a
+where india_inflow_sales_plan.description=a.vertical1
+
+
+update saame_inflow_sales_plan set sales_Inflow=a.inflow
+from 
+(select vertical1,sum(inflow)as inflow from inflow_mothwise where cal_year=year(getdate()-1) and cal_month=month(getdate()-1)
+group by vertical1)a
+where saame_inflow_sales_plan.user_names=a.vertical1
+
+-------- end inflow updation
+
+
+end
+
+
+
+
+
+
+Completion time: 2025-11-19T11:27:54.0436321+05:30

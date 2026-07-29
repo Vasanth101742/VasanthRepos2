@@ -1,0 +1,204 @@
+--exec sp_Bud_sales_Inflow_ID
+--select * from Bud_sales_Inflow_ID
+
+CREATE proc [dbo].[sp_Bud_sales_Inflow_ID] as 
+begin
+
+Truncate table Bud_sales_Inflow_ID
+
+--Alter table Bud_sales_Inflow_ID add SalesPlan_USD float
+
+
+Insert into Bud_sales_Inflow_ID(Organ,DPSTCode,DPSTName,AreaCode,AreaName,
+--DealerCode,DealerName,Category,ProductLine,company,warehouse,
+ItemCode,Cal_month,Cal_year,Fin_month,Fin_year,Budget,Budget_USD,Budget_Foreign_Currency,BudQty) 
+
+select 
+ltrim(rtrim(c.Organ)) as Organ,
+c.DPSTCode,c.DPSTName,
+a.Area,ltrim(rtrim(c.areaname)) as areaname,
+ltrim(rtrim(a.item_code)) as item_code,
+month(a.date) as CalMonth,
+year(a.date) as CalYear,
+case when month(a.date) < 4 then month(a.date)+9 else month(a.date)-3 end Fin_month,
+case when month(a.date) < 4 then year(a.date)-1 else year(a.date) end Fin_year,
+sum(isnull([target],0)) as Budget,
+sum(isnull(Budget_USD,0)) Budget_USD,
+sum(isnull(Budget_Foreign_Currency,0)) Budget_Foreign_Currency,
+sum(a.qty) as BudQty
+FROM	Itemwise_Budget a
+	INNER JOIN vw_AREA_MASTER b
+		ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.Area))
+	INNER JOIN vw_SALESMAPPING_MASTER c
+		ON ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode))    
+		and ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+where organ='ID'
+GROUP BY ltrim(rtrim(b.Global)),ltrim(rtrim(c.Organ)),ltrim(rtrim(c.region)),ltrim(rtrim(c.Zone)),
+ltrim(rtrim(c.user_names)),ltrim(rtrim(c.Division)),ltrim(rtrim(c.Vertical1)),
+a.Area,ltrim(rtrim(c.areaname)),c.DPSTCode,c.DPSTName,a.item_code,month(a.date),year(a.date)
+
+
+
+Insert into Bud_sales_Inflow_ID(Organ,DPSTCode,DPSTName,AreaCode,AreaName,
+CustCode,CustName,company,warehouse,ItemCode,Cal_month,Cal_year,Fin_month,Fin_year,
+Sales_amount,Inflow_amount,Sales_USD,Inflow_USD,Sales_Foreign_currency,Inflow_Foreign_currency,SalesQty) 
+
+select a.organ,a.Dpst,a.dpstname,a.Areacode,a.AreaName,
+a.custcode,a.custname,a.company,a.warehouse,ltrim(rtrim(a.Item)) ,a.cal_Month,a.cal_year,
+a.Fin_month,a.Fin_year,
+sum(Sales_amount) as Sales_amount,
+sum(isnull(inf.sales,0)) as inflow_amount,
+sum(Sales_USD) as Sales_USD,
+sum(Inflow_USD) as Inflow_USD,
+sum(Foreign_currency_amount)  as Sales_Foreign_currency,
+sum(Inflow_Foreign_currency) as  Inflow_Foreign_currency,
+sum(DeliveryQty) as SalesQty
+FROM 	
+ELGi_Sales_Details a 
+full outer join (select Company,OrderDate,OrderNum,PositionNum,Dpst,AreaCode,CustCode, 
+sum(sales) sales,
+sum(Sales_USD) as Inflow_USD,
+sum(Foreign_currency_amount) as Inflow_Foreign_currency
+from  Sales_Inflow
+group by Company,OrderDate,OrderNum,PositionNum,Dpst,AreaCode,CustCode) inf
+on  a.company=inf.Company
+and a.OrderNo=inf.OrderNum
+AND A.PositionNo=inf.PositionNum
+and a.dpst=inf.Dpst
+and a.areacode=inf.AreaCode
+and month(a.Invoice_Date)=month(inf.OrderDate)
+and year(a.Invoice_Date)=year(inf.OrderDate)
+and ltrim(rtrim(a.custcode))=ltrim(rtrim(inf.CustCode))
+
+
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+--AND a.SaleOrderType in (
+--select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select '' as SaleOrderType from SaleType_Master
+--)
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+and a.Organ='ID'
+GROUP BY a.organ,a.Dpst,a.dpstname,a.Areacode,a.AreaName,
+a.custcode,a.custname,a.company,a.warehouse,ltrim(rtrim(a.Item)) ,a.cal_Month,a.cal_year,
+a.Fin_month,a.Fin_year
+
+
+Insert into Bud_sales_Inflow_ID(Organ,DPSTCode,--DPSTName,
+AreaCode,--AreaName,
+Cal_month,Cal_year,Fin_month,Fin_year,SalesPlan_USD)
+select  Organ,DpstCode,AreaCode,CalMonth,CalYear,
+case when CalMonth<4 then CalMonth+9 else CalMonth-3 end as Fin_month,
+case when CalMonth<4 then CalYear-1 else CalYear end as Fin_year,
+SalesPlan_USD
+from ELGi_Sales_Plan where organ='ID'
+
+
+update Bud_sales_Inflow_ID set DPSTName=a.DPSTName
+from (select distinct DPSTCode,DPSTName from Bud_sales_Inflow_ID where DPSTName is not null)a
+where Bud_sales_Inflow_ID.DPSTCode=a.DPSTCode
+and Bud_sales_Inflow_ID.DPSTName is null
+
+update Bud_sales_Inflow_ID set AreaName=a.AreaName
+from (select distinct AreaCode,AreaName from vw_AREA_MASTER)a
+where Bud_sales_Inflow_ID.AreaCode=a.AreaCode
+and Bud_sales_Inflow_ID.AreaName is null
+
+
+update Bud_sales_Inflow_ID set ItemCode='S04208' where ItemCode= 'S04208    '
+
+--select * from ItemMaster_ID where ItemCode like '''%'
+update Bud_sales_Inflow_ID set ItemCode=replace(ltrim(rtrim(ItemCode)),'''','')
+where ItemCode like '''%'
+
+
+update Bud_sales_Inflow_ID set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where ltrim(rtrim(Bud_sales_Inflow_ID.itemcode))=ltrim(rtrim(a.t_item))
+and Bud_sales_Inflow_ID.item_desc is null
+
+
+update Bud_sales_Inflow_ID set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where ltrim(rtrim(Bud_sales_Inflow_ID.itemcode))=ltrim(rtrim(a.item))
+and Bud_sales_Inflow_ID.item_desc is null
+
+
+update Bud_sales_Inflow_COSEA set Item_desc=a.Item_desc
+from (select distinct itemcode,item_desc from Bud_sales_Inflow_COSEA where item_desc is not null) a
+where Bud_sales_Inflow_COSEA.itemcode=a.ItemCode
+and (Bud_sales_Inflow_COSEA.item_desc is null or ltrim(rtrim(Bud_sales_Inflow_COSEA.item_desc))='')
+
+
+
+--Productline Updation
+
+update Bud_sales_Inflow_ID set category=a.category,productline=a.productline
+from ItemMaster_ID a
+where ltrim(rtrim(Bud_sales_Inflow_ID.itemcode))=ltrim(rtrim(a.ItemCode))
+--and Bud_sales_Inflow_COSEA_ver2.company=a.Company
+
+
+
+
+--Dealer/Customer Updation
+--update Bud_sales_Inflow_COSEA set dealerCode=dlr.CustCode,Dealername=dlr.CustName
+--from (select * from DealerMaster_COSEA) dlr
+--where ltrim(rtrim(Bud_sales_Inflow_COSEA.custcode))=ltrim(rtrim(dlr.CustCode))
+--and Bud_sales_Inflow_COSEA.Areacode=dlr.areacode
+
+--Old Method
+--update Bud_sales_Inflow_COSEA_ver2 set dealerCode=dlr.DealerCode,Dealername=dlr.DealerName
+--from Dealer_Master_COSEA dlr
+--where ltrim(rtrim(substring(Bud_sales_Inflow_COSEA_ver2.custcode,4,9)))=ltrim(rtrim(substring(dlr.DealerCode,4,9)))
+--and Bud_sales_Inflow_COSEA_ver2.Areacode=dlr.CountryCode
+
+
+--SalesRep Updation
+
+update Bud_sales_Inflow_ID set SalesRep=Mapping.User_names
+from (
+select DPSTCode,Areacode,User_names from SalesMapping_Global
+where organ='ID'
+)Mapping
+where ltrim(rtrim(Bud_sales_Inflow_ID.DPSTCode))=ltrim(rtrim(Mapping.DPSTCode))
+and Bud_sales_Inflow_ID.Areacode=Mapping.areacode
+
+
+--update Bud_sales_Inflow_ID  set  DealerName='1Direct Sales'
+--where DealerCode is null and Sales_amount<>0
+
+
+
+update Bud_sales_Inflow_ID set category_ordr=1 where  Category= 'EPSAC'
+update Bud_sales_Inflow_ID set category_ordr=2 where  Category= 'OFSAC'
+update Bud_sales_Inflow_ID set category_ordr=3 where  Category= 'DPSAC'
+update Bud_sales_Inflow_ID set category_ordr=4 where  Category= 'RECIP'
+update Bud_sales_Inflow_ID set category_ordr=5 where  Category= 'ACCESSSORIES'
+update Bud_sales_Inflow_ID set category_ordr=6 where  Category= 'SPARES'
+
+update Bud_sales_Inflow_ID set productline_ordr=1 where  Category= 'EPSAC' and ProductLine='S0'
+update Bud_sales_Inflow_ID set productline_ordr=2 where  Category= 'EPSAC' and ProductLine='S1'
+update Bud_sales_Inflow_ID set productline_ordr=3 where  Category= 'EPSAC' and ProductLine='S2'
+update Bud_sales_Inflow_ID set productline_ordr=4 where  Category= 'EPSAC' and ProductLine='L0'
+update Bud_sales_Inflow_ID set productline_ordr=5 where  Category= 'EPSAC' and ProductLine='L1&L2'
+
+update Bud_sales_Inflow_ID set SalesRepOrdr=1 where SalesRep='ID - After Sales'
+update Bud_sales_Inflow_ID set SalesRepOrdr=2 where SalesRep='Cluster 2- SA & CIS'--'T.Thomas'
+update Bud_sales_Inflow_ID set SalesRepOrdr=3 where SalesRep='Nitin Sharma'
+update Bud_sales_Inflow_ID set SalesRepOrdr=4 where SalesRep='Dolly Paul'
+update Bud_sales_Inflow_ID set SalesRepOrdr=5 where SalesRep='KANNAN'
+update Bud_sales_Inflow_ID set SalesRepOrdr=6 where SalesRep='Europe'
+
+
+
+
+delete from Bud_sales_Inflow_ID where  ItemCode like 'NEWTPL%' and Category is null
+delete from Bud_sales_Inflow_ID where  ItemCode like 'Minvo%' and Category is null
+delete from Bud_sales_Inflow_ID where Category ='ROTAIR'
+
+end
+
+
+--select * from Bud_sales_Inflow_ID

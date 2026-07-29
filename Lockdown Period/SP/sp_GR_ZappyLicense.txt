@@ -1,0 +1,18 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+create proc [sp_GR_ZappyLicense]
+as
+begin
+
+select '9gGBAKGrmNd+LdoBE4kwpeJN2wEBAAABAAEADwFOYW1lPUVMR2kgRXF1aXBtZW50cyBMdGQja2V5LTEjQ29tcGFueT1FTEdpIEVxdWlwbWVudHMgTHRkI0VtYWlsPXByYWthc2hrQGVsZ2kuY29tI1JlY29yZERlYWN0aXZhdGlvbnM9VHJ1ZSNQcm9kdWN0PU9EQkMgUG93ZXJQYWNrI1NLVT1PREJDLVBQLUpEQkMtQlJJREdFLVd
+SSy1TVUIjT3JkZXJOdW1iZXI9QklOMjMxMjEzLTg3NTctODUxNDQjQ3VzdG9tZXJDb2RlPSNTdWJzY3JpcHRpb25SZWZOdW09QklOMjMxMjEzLTg3NTctNTgxNDdTI0RhdGVFeHBpcmVzPSNVbml0cz0xAQGjF3k2Nhg7cqiYduok8ULIktDzT+m+3Xrjy+v9rW3jQ/7pfbbLp+vrv1h1ULn9F4s='
+
+
+end 
+
+
+Completion time: 2025-11-19T10:38:05.1677221+05:30

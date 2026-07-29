@@ -1,0 +1,156 @@
+--exec [SP_BI_Reports_Statistics]
+
+
+CREATE PROCEDURE [SP_BI_Reports_Statistics] as    
+
+DECLARE @scopeid AS VARCHAR (200)  
+DECLARE @urlid AS VARCHAR(200)  
+DECLARE @innercount AS int  
+DECLARE @count AS int  
+DECLARE @num as int  
+DECLARE @total as int  
+
+set nocount on  
+
+BEGIN  
+
+----------------------------------------------------------------------------------------------------------------------  
+--Report Subscription Detail  
+----------------------------------------------------------------------------------------------------------------------  
+
+set @total =(select max(rank) from vw_subscriptionDetails)  
+set @num=1  
+
+Truncate table BI_Reports_Subscription_Details  
+
+while @num <=@total  
+
+begin  
+
+insert into BI_Reports_Subscription_Details  
+select * ,(select reportname from 
+vw_subscriptionDetails
+where rank=@num) as reportname,'To' as type from [ELGI-DW].[DBO].[split]((select [to] from 
+vw_subscriptionDetails
+where rank=@num),';')  
+
+union all  
+
+select *,(select reportname from 
+vw_subscriptionDetails
+where rank=@num) as reportname ,'Cc' from [ELGI-DW].[DBO].[split]((select [cc] from 
+vw_subscriptionDetails
+where rank=@num),';')  
+
+set @num=@num+1  
+
+end  
+
+-----------------------------------------------------------------------------------------------------------------  
+--Report Access Detail  
+----------------------------------------------------------------------------------------------------------------------  
+
+Truncate table BI_Reports_Access_Temp
+Truncate table BI_Reports_Access_Details
+Truncate table BI_Access_Policies
+Truncate table BI_Access_Policy_Users
+
+
+--Select * into BI_Reports_Access_Temp from ReportServer.dbo.BI_Reports_Access_Temp
+--Select * into BI_Reports_Access_Details from ReportServer.dbo.BI_Reports_Access_Details
+--Select * into BI_Access_Policies from ReportServer.dbo.BI_Access_Policies
+--Select * into BI_Access_Policy_Users from ReportServer.dbo.BI_Access_Policy_Users
+
+
+
+Insert into BI_Reports_Access_Temp(policyid,itemid,Name)
+--select * into BI_Reports_Access_Details from (
+select distinct a.policyid,a.itemid,a.Name
+from
+(select * from ReportServer.dbo.[catalog] 
+where content is not null 
+and policyid not in ('1DDF8D1A-EA6F-465F-ABE9-C98463EF5754')
+and path not like '%/68f0607b-9378-4bbb-9e70-4da3d7d66838/UniversalBrand/%'
+and path not like '%/Datasource%'
+and policyroot<>0
+)a
+left outer join ReportServer.dbo.secdata b
+on a.policyid=b.policyid
+--)a
+
+insert into BI_Access_Policies
+--Select * into BI_Access_Policies from (
+select *,row_number() over(order by policyid) as Rnk 
+from(Select distinct policyid from BI_Reports_Access_Temp)a
+--)a
+
+
+
+Declare @Count1 int=1
+Declare @TotalPolicies int=(select count(distinct policyid) from BI_Access_Policies)
+Declare @Policyid varchar(100)
+Declare @Data xml
+
+
+while(@Count1<=@TotalPolicies)
+begin
+
+set @Policyid=(select policyid from BI_Access_Policies where Rnk=@Count1)
+
+set @Data =(select [XmlDescription] from ReportServer.dbo.SecData where policyid=@Policyid)
+
+Insert into BI_Access_Policy_Users
+--select * into BI_Access_Policy_Users from (
+select @Policyid as Policyid,item.row.value('GroupUserName[1]','varchar(50)') UserID from @Data.nodes('Policies/Policy') item(row)
+--)a
+
+
+set @Count1=@Count1+1
+end
+
+Insert into BI_Reports_Access_Details(ReportName,UserID)
+--select * into BI_Reports_Access_Details from (
+select Name as ReportName,UserID from 
+(select * from BI_Reports_Access_Temp)a
+left outer join 
+(select * from BI_Access_Policy_Users)b
+on a.policyid=b.policyid
+--)a
+--where a.Name='ATS_Production_Actuals_657WH'
+
+---------------------------------------------------------------------------------------
+
+Truncate Table BI_Reports_Hit_Details
+
+Insert into BI_Reports_Hit_Details (policyid,itemid,Name,TimeStart,TimeEnd,
+TimeProcessing,TimeRendering,[Status],UserName)
+--Select * into BI_Reports_Hit_Details  from(
+select a.*,b.TimeStart,b.TimeEnd,b.TimeProcessing,b.TimeRendering,b.[Status],b.UserName from
+(Select * from BI_Reports_Access_Temp 
+--where itemid='F555C71A-D141-45E8-83F3-9BD63055087E'
+)a
+left outer join
+(select * from ReportServer.[dbo].[ExecutionLogStorage]  
+--where Reportid='F555C71A-D141-45E8-83F3-9BD63055087E'
+)b
+on a.itemid=b.Reportid
+where b.UserName not in ('NT SERVICE\PowerBIReportServer','ELGI\bisadmin')
+--)a
+
+
+
+END
+
+--Select * from BI_Reports_Access_Details where userid like '%mohamm%'
+--Select convert(date,Timestart) as HitDate,UserName,Name,Count(*) from BI_Reports_Hit_Details
+--group by convert(date,Timestart),UserName,Name
+--order by convert(date,Timestart)
+
+
+----Select * from BI_Reports_Subscription_Details
+--Select distinct mail_id from BI_Reports_Subscription_Details
+
+--Select distinct ReportName from BI_Reports_Access_Details where 
+
+Select * from BI_Reports_Hit_Details
+

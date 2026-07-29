@@ -1,0 +1,27 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE proc [dbo].[sp_gr_SOP_salesdetails]
+as
+begin
+
+declare @FromDate date
+declare @ToDate date
+
+
+set @FromDate ='20230401'
+set @ToDate ='20250630'
+
+
+
+select CAST(DATEFROMPARTS(YEAR(a.[Date]), MONTH(a.[Date]), 1) AS date)'MonthYear',a.ItemCode
+,sum(DeliveredQty)'DeliveredQty',sum(AssesValue)AssesValue
+
+From sales_report_LN a
+where  convert(date,a.[Date]) BETWEEN @FromDate AND @ToDate
+and isnull(dpst,'')<>'' and company in (401,490)  and ItemCode in ('S06002','S02471','S02561','S07027','S02142','S04192','S04207','S07059','S02502','S04190','S06041','S06008')
+group by CAST(DATEFROMPARTS(YEAR(a.[Date]), MONTH(a.[Date]), 1) AS date),a.ItemCode
+end 
+
+
+Completion time: 2025-11-19T10:35:52.1371621+05:30

@@ -1,0 +1,68 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE PROCEDURE [dbo].[sp_emp_travel_new](@Reportid varchar(10))
+AS 
+sET NOCOUNT ON
+DECLARE @emp_code numeric(10),
+	@Name char(50),
+ @lvl integer,
+	@level integer,
+	@target numeric(10),
+@strq varchar(500),
+	@rnum int
+
+
+drop table FTABLE
+drop table GROUP_Travel
+drop table Stack_Travel
+
+CREATE TABLE FTABLE (emp_code numeric(10), empname Char(50), glevel int,ordid int)
+CREATE TABLE GROUP_Travel (emp_code numeric(10), empname Char(50), glevel int)
+Create table Stack_Travel (emp_code numeric(10), empname char(50), glevel int)
+
+
+INSERT into GROUP_Travel 
+SELECT emp_code,empname, 1  FROM emp_appr 
+WHERE  convert(varchar(10),emp_code) in (select * from ufn_Split (@Reportid,',')) ORDER BY emp_code DESC
+
+
+
+WHILE EXISTS(SELECT * FROM GROUP_Travel)
+BEGIN
+   SELECT @lvl = 0
+   SELECT @emp_Code= emp_code, @Name=empname FROM GROUP_Travel 
+   DELETE FROM GROUP_Travel WHERE emp_code=@emp_Code	
+   INSERT INTO Stack_Travel VALUES(@emp_Code,@Name,1)
+   SELECT @LEVEL = 1
+ 		select @rnum=1
+
+			WHILE @LEVEL > 0
+	  BEGIN
+      IF EXISTS ( SELECT * FROM Stack_Travel WHERE GLEVEL=@LEVEL )
+						BEGIN
+								SELECT @emp_Code=emp_code, @Name=empname FROM Stack_Travel WHERE Glevel = @Level
+
+							 select @rnum=@rnum+1
+
+        INSERT INTO FTABLE VALUES ( @emp_Code,@Name,@Level,@rnum)
+
+        DELETE FROM Stack_Travel WHERE Glevel = @Level AND emp_code = @emp_Code
+
+								INSERT Stack_Travel		SELECT emp_code, empname, @Level + 1
+								FROM emp_appr WHERE employee_status = 'Live' and  isemp_code = @emp_Code ORDER BY emp_code DESC
+
+        IF @@ROWCOUNT > 0 SELECT @Level = @Level + 1
+     END
+					ELSE SELECT @Level = @Level - 1
+
+   END
+
+		--	select * from FTABLE
+end
+
+--exec proc_emp_travel_new '1210,16414'
+
+
+
+Completion time: 2025-11-19T10:02:00.3742913+05:30

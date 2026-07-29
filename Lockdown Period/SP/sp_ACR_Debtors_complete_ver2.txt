@@ -1,0 +1,67 @@
+--exec sp_acr_debtors '2021-11-08'
+--exec sp_ACR_Debtors_complete_ver2
+
+CREATE proc [dbo].[sp_ACR_Debtors_complete_ver2] as 
+
+Begin
+
+Truncate table ACR_Debtors_complete_ver2
+
+insert into ACR_Debtors_complete_ver2(Company,Trantyp,InvNo,Line,CustNo,CustName,FinCustGrp,VerticalOrdr,
+Vertical1,Vertical,DPST,DpstName,AreaCode,AreaName,InvDate,DueDate,Currency,CurRate,
+InvAmt,PaidAmt,BalanceAmt,InvAmti,PaidAmti,BalanceAmti,Ageing,Ageing_IAS,AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,AgeingOrdr_IAS,Reference,SalesCategory,SalesRepCode,
+SalesRep,CPAY,PayTYP_desc,Indent,Segment )
+select Company,Trantyp,InvNo,Line,CustNo,CustName,FinCustGrp,VerticalOrdr,
+Vertical1,Vertical,DPST,DpstName,AreaCode,AreaName,InvDate,DueDate,Currency,CurRate,
+InvAmt,PaidAmt,BalanceAmt,InvAmti,PaidAmti,BalanceAmti,Ageing,Ageing_IAS,AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,AgeingOrdr_IAS,Reference,SalesCategory,SalesRepCode,
+SalesRep,CPAY,PayTYP_desc,Indent,Segment 
+from ACR_Debtors_complete
+
+delete from ACR_Debtors_complete_ver2 where balanceamt between -0.01 and 0.01
+
+--Remove BTA Customers
+delete from ACR_Debtors_complete_ver2 where  company like '4%' 
+and ltrim(rtrim(Custno))  in 
+(select distinct ltrim(rtrim(CustCode)) from vw_ELGi_BTA_Customers)
+--('CU1E00001','CU1E00002','CU1E00003','CU1E00004','CU1E00005','CU1E00006','CU1E00008','CU1E00009','CU1E00010',
+--'CU1E00011','CU1E00012','CU1E00014','CU1E00015','CU1E00026','CU1E00028','CU1E00203','CU1E00263','CU1E00371',
+--'CU1E00396','CU1E00424','CU1E00477','CU1E00508','CU1E00629','CU1E00676','CU1E00780','CU1E00791','CU1E00798',
+--'CU1E00814','CU1E00885','CU1E00887','CU1E00893','CU1E00914','CU1E00926','CU1E00992','CU1E01015','CU1E99998',
+--'CU1E99999','INT000001','INT000002','INT000006','SRE000003','SU1E00525')
+
+
+
+--insert into ACR_Debtors_complete_ver2(Company,Trantyp,InvNo,--Line,
+--CustNo,CustName,--FinCustGrp,VerticalOrdr,Vertical1,Vertical,
+--DPST,DpstName,AreaCode,AreaName,--InvDate,DueDate,Currency,CurRate,InvAmt,
+----PaidAmt,BalanceAmt,InvAmti,PaidAmti,BalanceAmti,Ageing,Ageing_IAS,AgeingOrdr,
+----FinYear,FinMonth,CalYear,CalMonth,
+----AgeingOrdr_IAS,Reference,SalesCategory,SalesRepCode,
+----SalesRep,CPAY,PayTYP_desc,Indent,Segment,
+--OrderDate,ordertype,OrderNum,OrderValue)
+--select Company,Trantype,InvNum,--Line,
+--CustCode,CustName,--FinCustGrp,VerticalOrdr,Vertical1,Vertical,
+--DPST,DpstName,AreaCode,AreaName,--InvDate,DueDate,Currency,CurRate,InvAmt,
+----PaidAmt,BalanceAmt,InvAmti,PaidAmti,BalanceAmti,Ageing,Ageing_IAS,AgeingOrdr,
+----FinYear,FinMonth,CalYear,CalMonth,
+----AgeingOrdr_IAS,Reference,SalesCategory,SalesRepCode,
+----SalesRep,CPAY,PayTYP_desc,Indent,Segment,
+--OrderDate,ordertype,OrderNum,sum(sales) as OrderValue
+--from sales_inflow 
+--where concat(company,trantype,invnum) in (select concat(company,trantyp,invno) from ACR_Debtors_complete_ver2)
+--group by Company,Trantype,InvNum,--Line,
+--CustCode,CustName,--FinCustGrp,VerticalOrdr,Vertical1,Vertical,
+--DPST,DpstName,AreaCode,AreaName,--InvDate,DueDate,Currency,CurRate,InvAmt,
+----PaidAmt,BalanceAmt,InvAmti,PaidAmti,BalanceAmti,Ageing,Ageing_IAS,AgeingOrdr,
+----FinYear,FinMonth,CalYear,CalMonth,
+----AgeingOrdr_IAS,Reference,SalesCategory,SalesRepCode,
+----SalesRep,CPAY,PayTYP_desc,Indent,Segment,
+--OrderDate,ordertype,OrderNum
+
+
+
+end
+
+--select * from ACR_Debtors_complete_ver2

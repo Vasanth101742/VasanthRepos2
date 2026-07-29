@@ -1,0 +1,71 @@
+
+CREATE proc [dbo].[GR_SOP_Consumption]
+as
+begin
+
+select case when a.company=490 then 'GSC'
+when a.company=401 then 'HO'
+when a.company=500 then 'GULF'
+when a.company=553 then 'MALAYSIA'
+when a.company=552 then 'INDONESIA'
+when a.company=551 then 'AUSTRALIA' end as Region,
+eomonth(TRDT,0) as MonthEndDate,max(g.[Demand_Forecasting_Unit_DFU])'DFU',g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model 'Master_Model',g.Variant,
+ltrim(rtrim(a.ITEM)) ITEM,sum(QSTK) QSTK
+from [ELGi_LN].[dbo].[TWHINR110ALL] a
+left join [ELGi_SOP].dbo.[TPL_MASTER_REF]  g on g.Item=replace(a.ITEM,' ','') and g.Region = (case when a.company=490 then 'India' when a.company=401 then 'India' when a.company=500 then 'India' when a.company=553 then 'Malaysia'
+ when a.company=552 then 'Indonesia' when a.company=551 then 'AUS' end)
+where a.COMPANY in (401,490,500,553,551,552) 
+and KOOR in (1)
+and kost in (5)
+and convert(date,TRDt)>=(select dateadd(dd,1,eomonth(getdate()-1,-24))) 
+group by a.ITEM,eomonth(TRDT,0),a.company, 
+g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model ,g.Variant
+
+
+union all
+
+select 'USA' as Region,
+eomonth(TRDT,0) as MonthEndDate,max(g.[Demand_Forecasting_Unit_DFU])'DFU',g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model 'Master_Model',g.Variant,
+ltrim(rtrim(a.item)) ITEM, sum(QSTK) QSTK
+from [ELGI_US].[dbo].[LN_WHINR110] a
+left join [ELGi_SOP].dbo.[TPL_MASTER_REF]  g on g.Item=replace(a.ITEM,' ','') and g.region='usa'
+where compnr in (3110)
+and KOOR in (1)
+and kost in (5)
+and convert(date,TRDt)>=(select dateadd(dd,1,eomonth(getdate()-1,-24))) 
+group by a.item,eomonth(TRDT,0)
+,g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model ,g.Variant
+
+
+
+union all
+
+select 'Rotair' as Region,
+eomonth(TRDT,0) as MonthEndDate,max(g.[Demand_Forecasting_Unit_DFU])'DFU',g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model 'Master_Model',g.Variant,
+ltrim(rtrim(a.item)) ITEM, sum(QSTK) QSTK
+from [ELGI_US].[dbo].[LN_WHINR110] a
+left join  [ELGi_SOP].dbo.[TPL_MASTER_REF] g on ltrim(rtrim(g.Item))=replace(a.ITEM,' ','') and g.Region='europe'
+where compnr in (1100)
+and KOOR in (1)
+and kost in (5)
+and convert(date,TRDt)>=(select dateadd(dd,1,eomonth(getdate()-1,-24))) 
+group by a.item,eomonth(TRDT,0)
+,g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model ,g.Variant
+
+union all
+
+select 'Brazil' as Region,
+eomonth(TRDT,0) as MonthEndDate,max(g.[Demand_Forecasting_Unit_DFU])'DFU',g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model 'Master_Model',g.Variant,
+ltrim(rtrim(a.item)) ITEM, sum(QSTK) QSTK
+from [ELGI_US].[dbo].[LN_WHINR110] a
+left join  [ELGi_SOP].dbo.[TPL_MASTER_REF] g on ltrim(rtrim(g.Item))=replace(a.ITEM,' ','') and g.Region='brazil'
+where compnr in (2000)
+and KOOR in (1)
+and kost in (5)
+and convert(date,TRDt)>=(select dateadd(dd,1,eomonth(getdate()-1,-24))) 
+group by a.item,eomonth(TRDT,0)
+,g.HP,g.KW,g.Pressure_bar,g.Pressure_psi,g.Model ,g.Variant
+
+end 
+
+--163157

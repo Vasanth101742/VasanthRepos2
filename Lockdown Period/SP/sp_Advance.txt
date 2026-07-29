@@ -1,0 +1,90 @@
+--exec sp_Advance
+
+CREATE proc [dbo].[sp_Advance]
+as
+Begin
+
+truncate table Acc_Advance
+truncate table Acc_Advance_Others 
+
+
+Insert into Acc_Advance(custno,custname1,trantyp,invno,docdt,collection,anptrantyp,anpdocno,doctyp,balamnt,refrence,company,dpst)
+select custno,b.custname1,trantyp,invno,docdt,abs(amnthome) as collection,anptrantyp,anpdocno,doctyp,balamnt,refrence,company,t_dim5 
+from Collection_stage2  a (nolock) 
+inner join (select t_bpid as custcode,t_nama as custname1 from TTCCOM100400) b 
+on b.custcode  = a.custno
+where 	company <> '600' 
+
+--The below comments need to be uncommented
+and doctyp in (9,10,11) 
+and custno  not in ('ZA0001','A03177') 
+and trantyp not in ('B23','B28','B44','B45') 
+and convert(datetime,docdt) >= '04/01/2008' 
+and convert(datetime,docdt) >= dateadd(mm,-2,convert(varchar,datepart(mm,getdate())) + '/01/' + datename(yy,getdate())) 
+and cdocno = 0 
+and ltrim(rtrim(ctrantyp)) = ''
+
+
+delete from Acc_Advance where custno like '%emp%' and trantyp = 'cdj'
+
+delete from Acc_Advance where trantyp in 
+('251','252','351','352','451','452','551','552','751','752','851','852','951','952')
+or trantyp between '2A1' and  '2A6' 
+or trantyp between '2B1' and  '2B6'
+or trantyp between '3A1' and  '3B6'
+or trantyp between '4A1' and  '4B6'
+or trantyp between '5A1' and  '5B6' 
+or trantyp between '7A1' and  '7B6'
+or trantyp between '8A1' and  '8B6'
+or trantyp between '9A1' and  '9B6'
+or trantyp between '2C1' and  '2C6'
+or trantyp between '3C1' and  '3C6'
+or trantyp between '4C1' and  '4C6'
+or trantyp between '5C1' and  '5C6'
+or trantyp between '7C1' and  '7C6'
+or trantyp between '8C1' and  '8C6'
+or trantyp between '9C1' and  '9C6'
+
+ 
+
+delete from Acc_Advance where doctyp = 100
+delete from Acc_Advance where collection < 0
+
+
+delete from Acc_Advance where docdt >= getdate()
+delete from Acc_Advance where custno = 'M00511' and  invno = 11004984  and docdt  = '2011-07-08 00:00:00.000'
+
+
+----Other Updates
+
+
+insert into Acc_Advance_Others(custno,custname1,trantyp,invno,docdt,collection,anptrantyp,anpdocno, doctyp,balamnt,refrence,company)
+
+select custno,custname1,trantyp,invno,docdt,abs(amnthome) as collection,anptrantyp,anpdocno,
+doctyp,balamnt,refrence,company from collection_stage2 a
+inner join (select distinct CustCode,custname1 from vw_Business_Partner) b on b.custcode  = a.custno
+ where company <> '600' 
+
+--This need to be uncommented	
+and doctyp in (9,10,11) and custno  not in ('ZA0001')
+and trantyp not in ('B23','B28','B44','B45') 
+and convert(datetime,docdt) >= '04/01/2008'  
+and convert(datetime,docdt) >= dateadd(mm,-2,convert(varchar,datepart(mm,getdate())) + '/01/' + datename(yy,getdate())) 
+and cdocno = 0 
+and ltrim(rtrim(ctrantyp)) = ''
+--and docdt >= '05/19/2008'
+
+
+
+update Acc_Advance_Others set collection = collection + bankcosthome
+from (select * from Collection_Stage2 where docdt >= '10/01/2009' and amnthome <= 0 and bankcosthome <> 0
+)b
+where  Acc_Advance_Others.company = b.company 
+and Acc_Advance_Others.trantyp = b.trantyp 
+and Acc_Advance_Others.custno = b.custno 
+and Acc_Advance_Others.docdt = b.docdt 
+and Acc_Advance_Others.invno  = b.invno 
+and Acc_Advance_Others.collection = abs(b.amnthome)
+
+
+end

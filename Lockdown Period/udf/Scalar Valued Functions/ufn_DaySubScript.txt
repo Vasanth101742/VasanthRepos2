@@ -1,0 +1,20 @@
+CREATE function [dbo].[ufn_DaySubScript] (@Date as date) Returns varchar(10) as
+begin
+
+Declare @DaySubScript varchar(10)
+
+select @DaySubScript=cast(Day( @Date ) AS VARCHAR(10)) + case 
+when day(@Date) =1 then 'st' 
+when day(@Date) =2 then 'nd' 
+when day(@Date) =3 then 'rd' 
+when day(@Date) between 4 and 20 then 'th' 
+when day(@Date) =21 then 'st' 
+when day(@Date) =22 then 'nd' 
+when day(@Date) =23 then 'rd' 
+when day(@Date) between 24 and 30 then 'th' 
+when day(@Date) =31 then 'st' 
+end --as DaySubscript
+
+Return @DaySubScript
+
+end

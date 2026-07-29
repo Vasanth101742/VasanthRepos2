@@ -1,0 +1,84 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--  exec sp_GSC_A_CLASS_ITEMS
+--  select * From GSC_A_CLASS_ITEMS
+CREATE proc [dbo].[sp_GSC_A_CLASS_ITEMS]
+as
+begin
+
+
+--select * From  GSC_A_CLASS_ITEMS
+truncate table GSC_A_CLASS_ITEMS
+
+insert into GSC_A_CLASS_ITEMS
+
+select a.*,b.BUYER,b.SUPPLIER ,0 as Inflow,0 as Delqty,0 as Allocation,0 as Stock,0 as BinQty,0 as RplDays,'              ' as BinType,
+c.trigger_Date,0 as Net_Req,0 as Wk  From (select ItemCode,b.t_dsca from [dbo].[GSC_LeadTime] a
+											left join TTCIBD001400 b on replace(b.t_item,' ','')=a.ItemCode
+											where ABCclass='A')a 
+left join (
+SELECT  A.ITEM ,B.nama  AS SUPPLIER ,C.NAMA AS BUYER fROM
+	 (SELECT DISTINCT LTRIM(RTRIM(ITEM))AS ITEM,OTBP,BUYR   fROM [ELGi_LN].DBO.TTDIPU001ALL WHERE COMPANY =490)A
+LEFT JOIN [ELGi_LN].DBO.TTCCOM100ALL B 
+ON A.OTBP =B.bpid and company='400'
+LEFT JOIN (select  EMNO, NAMA  From [ELGi_LN].DBO.TTCCOM001ALL where company=400 and nama is not null and NAMA <>'')C
+ON A.BUYR =C.EMNO)b
+on ltrim(rtrim(a.Itemcode)) =ltrim(rtrim(b.ITEM)) 
+left join (select distinct ltrim(rtrim(item))as Item,DUDT as Trigger_Date From TZZPUR014ALL where COMPANY =490 and stat='m')c
+on a.Itemcode =c.Item 
+
+update GSC_A_CLASS_ITEMS set inflow= case when Inf_Qty <1 then 0 else (a.Inf_Qty/3) end  from(
+select LTRIM(rtrim(itemcode))as ITem ,sum(qty) as Inf_Qty From Sales_Inflow where Company =490 and qty>0
+--and convert(Date,OrderDate) between 
+--(select distinct Prev_Working_Day From (
+--select Date as Prev_Working_Day,ROW_NUMBER()over(order by date desc) as rno  From companycalendar where ccal='COMPANY' and DFCA =1 and convert(date,DATE) <=convert(date,OrderDate))a
+--where rno=90) and dateadd(dd,-1,convert(date,getdate())) 
+AND CONVERT(DATE,OrderDate) BETWEEN  (DATEADD(D,-90,CONVERT(DATE,GETDATE()))) AND (CONVERT(DATE,GETDATE()-1))
+group by LTRIM(rtrim(itemcode)))a
+where ltrim(rtrim(GSC_A_CLASS_ITEMS.itemcode))=ltrim(rtrim(a.ITem)) 
+
+update GSC_A_CLASS_ITEMS set delqty=a.delqty   
+from(select ltrim(rtrim(ItemCode))ItemCode,sum(isnull(delqty,0))delqty  From Pending_Orders 
+where Company =490 and convert(date,inv_date) between convert(date,dateadd(d,-day(getdate())+1,getdate())) and convert(date,getdate())
+group by ItemCode)a
+where a.ItemCode =GSC_A_CLASS_ITEMS.Itemcode 
+
+update GSC_A_CLASS_ITEMS set Stock =a.Stock  from(
+ SELECT *  fROM (
+select ltrim(rtrim(T$ITEM)) as Item,sum(T$QHND)as Stock from [wms].dbo.TWHWMD215490 where T$CWAR in ('102') 
+and T$QHND>0 group by ltrim(rtrim(T$ITEM)))A
+WHERE STOCK>0)a
+where a.Item =GSC_A_CLASS_ITEMS.Itemcode 
+
+
+update GSC_A_CLASS_ITEMS set Allocation  =a.Allocated  from(
+SELECT *  fROM (
+select ltrim(rtrim(T$ITEM)) as Item,sum(convert(float,T$QALL))as Allocated  from [wms].dbo.TWHWMD215490 where T$CWAR in ('102') 
+and convert(float,T$QALL)>0 group by ltrim(rtrim(T$ITEM)))A
+WHERE Allocated>0)a
+where a.Item =GSC_A_CLASS_ITEMS.Itemcode 
+
+
+update GSC_A_CLASS_ITEMS set BinQty=a.BinQty ,RplDays=a.RplDays from(
+select LTRIM(RTRIM(T$ITEM))AS Item,sum(t$sqty)as BinQty,sum(T$RPLT )as RplDays From [WMS].dbo.TZZPUR049490 group by LTRIM(RTRIM(T$ITEM)))a
+where a.Item =GSC_A_CLASS_ITEMS.Itemcode 
+
+update GSC_A_CLASS_ITEMS set BinType=isnull(a.SOPS,0)  from(select distinct ltrim(rtrim(item))as Item,sops From TZZPUR049ALL where COMPANY =490 )a
+where a.Item =GSC_A_CLASS_ITEMS.Itemcode 
+
+update GSC_A_CLASS_ITEMS set BinType= case when bintype=1 then 'Two Bin'  when bintype=2 then 'Multi Bin' else '' end
+
+update GSC_A_CLASS_ITEMS set trigger_date=convert(date,trigger_date)
+update GSC_A_CLASS_ITEMS set trigger_date=case when year(trigger_date)<2000 then '' else trigger_date end
+
+update GSC_A_CLASS_ITEMS set Net_Req=Inflow -Delqty 
+
+update GSC_A_CLASS_ITEMS set wk=case when Net_Req<1 then 0 else  round(cast(round(Net_Req/4.0,2) as numeric(36,2)),0) end
+--case when Net_Req>=Allocation then  Net_Req/4 else Allocation/4 end 
+
+--SELECT * fROM GSC_A_CLASS_ITEMS
+
+end
+
+
+Completion time: 2025-11-19T10:39:26.7600725+05:30

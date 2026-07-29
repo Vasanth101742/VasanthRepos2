@@ -1,0 +1,940 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--execute SP_GLD_STAGING
+CREATE PROC SP_GLD_STAGING    
+AS    
+    
+--select * from tzzgld301all - Entity    
+--select * from tzzgld302all - cus /supp    
+--select * from tzzgld303all - glmaster    
+--select * from tzzgld305all    
+--select * from tzzgld307all  
+--select distinct d3  from gl_stack  
+    
+BEGIN    
+    
+TRUNCATE TABLE GL_STACK   
+TRUNCATE TABLE GL_Stack_Testdatalog
+TRUNCATE TABLE GL_Testing
+
+--delete from tzzgld303all where --comp in (500,551,552) and 
+--crby='ituser'
+delete from tzzgld302all where ETCD like '%australia%' and CTDT='2022-01-10 04:51:40.000'
+
+delete from tzzgld302all where ltrim(rtrim(ETCD))=''
+delete from tzzgld303all where CRBY='ituser'
+
+--update tzzgld303all set ETCD='ELGI-BRAZIL' where comp=200
+--update TZZGLD302ALL set LEVL='ELGI-BRAZIL' where LEVL='ELGI-BRASIL'
+--delete from TZZGLD302ALL where levl='ELGI-BRAZIL' and ltrim(rtrim(ETCD))=''
+--update TZZGLD302ALL set ETCD='ELGI-BRAZIL' where BPID='PN0000202'
+
+--update TZZGLD303ALL set ETCD='ELGI-ROTAIR' where comp=110
+--update TZZGLD303ALL set ETCD='ELGI-EUROPE' where comp=170
+
+
+
+------
+--update tzzgld302all set ETCD='ELGI-AUSTRALIA' where LEVL='ELGI-AUSTRALIA'
+--update tzzgld302all set ETCD='ELGI-AUSTRALIA' where LEVL='AUS-ELGI'
+--update tzzgld302all set ETCD='ELGI-GULF',LEVL='ELGI-GULF' where LEVL='GULF-ELGI'
+
+--update tzzgld302all set LEVL='ELGI-AUSTRALIA' where ETCD='ELGI-AUSTRALIA'
+--update tzzgld302all set LEVL='ELGI-GULF' where ETCD='ELGI-GULF'
+
+--update TZZGLD302ALL set ETCD='ELGI-INDIA' where ETCD='ELGI-AUSTRALIA' and BPID='CU1E00804'
+--update tzzgld302all set ETCD='ELGI-BRAZIL' where BPID='PN0000202' and ETCD='ELGI-INDIA'
+----
+
+--if not exists(select * from [ELGi_LN].DBO.tzzgld303all
+--where concat(comp,TTYP,grup)='2002371')
+--begin
+--insert into [ELGi_LN].DBO.tzzgld303all values
+--(200,1,'','','Vasanth',getdate(),'237',1,'SALES',0,0,'',6,'ELGI-BRAZIL','')
+--end
+
+     
+DECLARE @Counter INT , @MaxId INT,@tacrname varchar(50),@tacpname varchar(50),@tglname varchar(50),    
+@dimcnt  NVARCHAR(100),@dimval nvarchar(100), @Source nvarchar(3000), @Source1 nvarchar(3000),
+@grup  int,@comp nvarchar(50),@Gp varchar(5),@catg varchar(30),@entity varchar(50),  
+@LEDGERFROM NVARCHAR(100), @LEDGERTO NVARCHAR(100),@TRANTYPE NVARCHAR(100),@LsSql VARCHAR(3000),@LsSql1 VARCHAR(3000),
+@leac varchar(100),@dim  varchar(100)
+
+Update tzzgld303all set LDFM=ltrim(rtrim(LDFM))
+Update tzzgld303all set LDTO=ltrim(rtrim(LDTO))
+
+--Update tzzgld303all set LDFM=null where LDFM=''
+--Update tzzgld303all set LDTO=null where LDTO=''
+--Update tzzgld303all set ttyp=null where ltrim(rtrim(TTYP))=''
+
+--Update tzzgld303all set LDFM='' where LDFM is null
+--Update tzzgld303all set LDTO='' where LDTO is null
+--Update tzzgld303all set ttyp='' where ltrim(rtrim(TTYP)) is null
+
+
+SELECT @Counter = min(rno) , @MaxId = max(rno)     
+FROM (select *,ROW_NUMBER()OVER( ORDER BY comp,ttyp,ldfm,ldto,[tran]) AS RNO FROM  tzzgld303all
+--where comp=1100 --for testing purpose
+)a    
+--where rno <=10
+--where rno in (229,230,231) --for testing purpose
+   
+   
+WHILE(@Counter IS NOT NULL AND @Counter <= @MaxId)    
+BEGIN    
+    
+select @LEDGERFROM=ldfm,@LEDGERTO=ldto,@TRANTYPE=ttyp,@grup = grup,@comp =comp ,@catg=catg,
+@entity = ETCD,@dimcnt=dimn,@dimval=dimc  
+from(select *,ROW_NUMBER()OVER( ORDER BY comp,ttyp,ldfm,ldto,[tran]) AS RNO FROM  tzzgld303all
+--where comp=600  --for testing purpose
+)a WHERE rno =@Counter    
+     
+--select * from(select *,ROW_NUMBER()OVER( ORDER BY [tran]) AS RNO FROM  tzzgld303all
+----where comp=600  --for testing purpose
+--)a WHERE rno =231
+
+
+
+set @tacrname = 'TTFACR200ALL'
+set @tacpname = 'TTFACP200ALL'
+set @tglname  = 'TTFGLD106ALL'
+
+
+if (@comp = 551 or @comp = 552 or @comp = 553)
+begin
+	set @tacrname = 'TTFACR200551552'
+	set @tacpname = 'TTFACP200551552'
+	set @tglname  = 'TTFGLD106ALL'
+
+end
+      
+
+if (@comp >= 1100)
+begin
+	set @tacrname = '[ELGI_US].DBO.LN_TFACR200'
+	set @tacpname = '[ELGI_US].DBO.LN_TFACP200'
+	set @tglname  = '[ELGI_US].DBO.LN_TFGLD106'
+end
+
+--Commented on 7-Aug-2024
+--if (@comp = 110 or @comp=170)
+--begin
+--	set @tacrname = '[ELGi_Rotair].dbo.[LN_TFACR200]'
+--	set @tacpname = '[ELGi_Rotair].dbo.[LN_TFACP200]'
+--	--set @tglname  = 'TTFGLD106ALL'
+--end
+
+
+
+if (@grup =1)   
+begin  
+ set @Gp = 'AR'  
+	  if (@comp = 551 or @comp = 552 or @comp = 553)
+	  begin
+			  set @Source = 'select ' +  convert(varchar(1),@grup)  + ',company,ttyp,ninv,itbp, convert(date,DOCD ),  
+			  1,ccur,rate$1,rate$2,rate$3,AMTH$1,AMTH$2,AMTH$3,year,prod,'''',dim1,dim2,dim3,dim4,dim5,'''','   
+			  + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''SL'',amnt,amti,REFR    
+			  from ' + @tacrname + ' WHERE docn = 0 and itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +  
+			  convert(varchar(10),@comp) + ' and ttyp = ''' +  @TRANTYPE +  ''''  
+
+			  set @Source1 = 'select ' +  convert(varchar(1),@grup)  + ',company,tdoc,docn,itbp, convert(date,DOCD ),  
+			  1,ccur,rate$1,rate$2,rate$3,AMTH$1,AMTH$2,AMTH$3,year,prod,'''',dim1,dim2,dim3,dim4,dim5,'''','   
+			  + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''RE'',amnt,amti,REFR  
+			  from ' + @tacrname + '  WHERE docn > 0 and itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +      
+			  convert(varchar(10),@comp) + ' and tdoc = ''' +  @TRANTYPE +  ''''  
+
+			  set @leac='T$LEAC'
+			  set @dim='T$dim'
+	  end
+
+	  --if (@comp = 400 or @comp = 401)
+	  if (@comp like '4%')
+		  begin
+			  set @Source = 'select ' +  convert(varchar(1),@grup)  + ',company,t_ttyp,t_ninv,t_itbp, convert(date,t_DOCD ),  
+			  1,t_ccur,t_rate_1,t_rate_2,t_rate_3,t_AMTH_1,t_AMTH_2,t_AMTH_3,t_year,t_prod,'''',t_dim1,t_dim2,t_dim3,t_dim4,t_dim5,
+			   '''','+'''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''SL'',t_amnt,t_amti,t_refr    
+			  from ' + @tacrname + ' WHERE t_docn = 0 and t_itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +
+			  convert(varchar(10),@comp) + ' and t_ttyp = ''' +  @TRANTYPE +  ''''  
+
+			  set @Source1 = 'select ' +  convert(varchar(1),@grup)  + ',company,t_tdoc,t_docn,t_itbp, convert(date,t_DOCD ),  
+			  1,t_ccur,t_rate_1,t_rate_2,t_rate_3,t_AMTH_1,t_AMTH_2,t_AMTH_3,t_year,t_prod,'''',t_dim1,t_dim2,t_dim3,t_dim4,t_dim5,'''',' 
+			  + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''RE'',t_amnt,t_amti,t_refr    
+			  from ' + @tacrname + '  WHERE t_docn > 0 and t_itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +    
+			  convert(varchar(10),@comp) + ' and t_tdoc = ''' + @TRANTYPE +  ''''  
+	   
+	          set @leac='t_leac'
+			  set @dim='t_dim'
+		  end
+
+		if (@comp like '6%')
+		  begin
+			  set @Source = 'select ' +  convert(varchar(1),@grup)  + ',company,t_ttyp,t_ninv,t_itbp, convert(date,t_DOCD ),  
+			  1,t_ccur,t_rate_1,t_rate_2,t_rate_3,t_AMTH_1,t_AMTH_2,t_AMTH_3,t_year,t_prod,'''',t_dim1,t_dim2,t_dim3,t_dim4,t_dim5,
+			   '''','+'''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''SL'',t_amnt,t_amti,t_refr    
+			  from ' + @tacrname + ' WHERE t_docn = 0 and t_itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +
+			  convert(varchar(10),@comp) + ' and t_ttyp = ''' +  @TRANTYPE +  ''''  
+
+			  set @Source1 = 'select ' +  convert(varchar(1),@grup)  + ',company,t_tdoc,t_docn,t_itbp, convert(date,t_DOCD ),  
+			  1,t_ccur,t_rate_1,t_rate_2,t_rate_3,t_AMTH_1,t_AMTH_2,t_AMTH_3,t_year,t_prod,'''',t_dim1,t_dim2,t_dim3,t_dim4,t_dim5,'''',' 
+			  + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''RE'',t_amnt,t_amti,t_refr    
+			  from ' + @tacrname + '  WHERE t_docn > 0 and t_itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +   
+			  convert(varchar(10),@comp) + ' and t_tdoc = ''' + @TRANTYPE +  ''''  
+	   
+	          set @leac='t_leac'
+			  set @dim='t_dim'
+		  end
+
+		  if (@comp ='500')
+		  begin
+			  set @Source = 'select ' +  convert(varchar(1),@grup)  + ',company,t_ttyp,t_ninv,t_itbp, convert(date,t_DOCD ),  
+			  1,t_ccur,t_rate_1,t_rate_2,t_rate_3,t_AMTH_1,t_AMTH_2,t_AMTH_3,t_year,t_prod,'''',t_dim1,t_dim2,t_dim3,t_dim4,t_dim5,
+			   '''','+'''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''SL'',t_amnt,t_amti,t_refr    
+			  from ' + @tacrname + ' WHERE t_docn = 0 and t_itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +
+			  convert(varchar(10),@comp) + ' and t_ttyp = ''' +  @TRANTYPE +  ''''  
+
+			  set @Source1 = 'select ' +  convert(varchar(1),@grup)  + ',company,t_tdoc,t_docn,t_itbp, convert(date,t_DOCD ),  
+			  1,t_ccur,t_rate_1,t_rate_2,t_rate_3,t_AMTH_1,t_AMTH_2,t_AMTH_3,t_year,t_prod,'''',t_dim1,t_dim2,t_dim3,t_dim4,t_dim5,'''',' 
+			  + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''RE'',t_amnt,t_amti,t_refr    
+			  from ' + @tacrname + '  WHERE t_docn > 0 and t_itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  company = ' +    
+			  convert(varchar(10),@comp) + ' and t_tdoc = ''' + @TRANTYPE +  ''''  
+	   
+	          set @leac='t_leac'
+			  set @dim='t_dim'
+		  end
+
+
+	if (@comp >=1100)
+	begin
+			set @Source = 'select ' +  convert(varchar(1),@grup)  + ',compnr as company,ttyp,ninv,itbp, convert(date,DOCD),  
+			1,ccur,rate_1,rate_2,rate_3,AMTH_1,AMTH_2,AMTH_3,
+			case when prod<4 then year-1 else year end as year,
+			case when prod<4 then prod+9 else prod-3 end as prod,
+			'''',dim1,dim2,dim3,dim4,dim5,'''','   
+			+ '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''SL'',amnt,amti,refr     
+			from ' + @tacrname + ' WHERE docn = 0 and itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  compnr = ' 
+			+ convert(varchar(10),@comp) + ' and ttyp = ''' +  @TRANTYPE +  ''''  
+
+			set @Source1 = 'select ' +  convert(varchar(1),@grup)  + ',compnr as company,tdoc,docn,itbp, convert(date,DOCD),  
+			1,ccur,rate_1,rate_2,rate_3,AMTH_1,AMTH_2,AMTH_3,
+			case when prod<4 then year-1 else year end as year,
+			case when prod<4 then prod+9 else prod-3 end as prod,
+			'''',dim1,dim2,dim3,dim4,dim5,'''','   
+			+ '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''RE'',amnt,amti,refr  
+			from ' + @tacrname + '  WHERE docn > 0 and itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  compnr = ' +      
+			convert(varchar(10),@comp) + ' and tdoc = ''' +  @TRANTYPE +  ''''  
+
+			set @leac='t_leac'
+			set @dim='t_dim'
+	end
+
+
+    --Commented on 7-Aug-2024	
+	--if (@comp = 110 or @comp=170)
+	--begin
+	--		set @Source = 'select ' +  convert(varchar(1),@grup)  + ',compnr,ttyp,ninv,itbp, convert(date,DOCD ),  
+	--		1,ccur,rate_1,0 as rate_2,0 as rate_3,AMTH_1,AMTH_2 ,AMTH_3, year-1,prod,'''',dim1,dim2,dim3,dim4,dim5,'''','   
+	--		+ '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''SL'',amnt,amti,null as REFR     
+	--		from ' + @tacrname + ' WHERE docn = 0 and itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  compnr = ' +  
+	--		convert(varchar(3),@comp)+'0' 
+	--		 + ' and ttyp = ''' +  @TRANTYPE +  ''''  
+
+	--		set @Source1 = 'select ' +  convert(varchar(1),@grup)  + ',compnr,tdoc,docn,itbp, convert(date,DOCD),  
+	--		1,ccur,rate_1,0 as rate_2,0 as rate_3,AMTH_1,AMTH_2,AMTH_3,year-1,prod,'''',dim1,dim2,dim3,dim4,dim5,'''','   
+	--		+ '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''RE'',amnt,amti,null as REFR  
+	--		from ' + @tacrname + '  WHERE docn > 0 and itbp IN (SELECT DISTINCT bpid FROM tzzgld302all) '  + ' and  compnr = ' +      
+	--		convert(varchar(3),@comp)+'0' 
+	--		 + ' and tdoc = ''' +  @TRANTYPE +  ''''  
+
+	--		 set @leac='LEAC'
+	--		 set @dim='dim'
+	--end
+
+End  
+
+
+
+if (@grup =2)   
+begin  
+ set @Gp = 'AP'  
+	 
+ set @Source = 'select ' + convert(varchar(1),@grup) + ',company,ttyp,ninv,ifbp,convert(date,DOCD ),1,ccur,
+ round(rate$1,2),round(rate$2,2),round(rate$3,2),round(AMTH$1,2),round(AMTH$2,2),round(AMTH$3,2),
+ year,prod,'''',  dim1,dim2,dim3,dim4,dim5,'''','   
+ + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''PU'' ,
+ round(amnt,2),round(amti,2),REFR  
+ from ' + @tacpname + '  WHERE docn = 0 and ifbp IN (SELECT DISTINCT bpid FROM tzzgld302all)' + ' and company = ' + 
+ convert(varchar(10),@comp) + ' and  ttyp = ''' +  @TRANTYPE +  ''''  
+   
+ set @Source1 = 'select ' + convert(varchar(1),@grup) + ',company,tdoc,docn,ifbp,convert(date,DOCD ),1,ccur,
+ round(rate$1,2),round(rate$2,2),round(rate$3,2),round(AMTH$1,2),round(AMTH$2,2),round(AMTH$3,2),
+ year,prod,'''',  dim1,dim2,dim3,dim4,dim5,'''','   
+ + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''PY'',
+ round(amnt,2),round(amti,2),REFR  
+ from ' + @tacpname + '  WHERE docn > 0 and ifbp IN (SELECT DISTINCT bpid FROM tzzgld302all)' + ' and company = ' +  
+ convert(varchar(10),@comp) + ' and  tdoc = ''' +  @TRANTYPE +  ''''  
+	
+ set @leac='leac'	
+ set @dim='dim'
+	
+ if (@comp >= 1100)
+ begin
+ set @Source = 'select ' + convert(varchar(1),@grup) + ',compnr as company,ttyp,ninv,ifbp,convert(date,DOCD),1,ccur,
+ round(rate_1,2),round(rate_2,2),round(rate_3,2),round(AMTH_1,2),round(AMTH_2,2),round(AMTH_3,2),
+ case when prod<4 then year-1 else year end as year,
+ case when prod<4 then prod+9 else prod-3 end as prod,
+ '''', dim1,dim2,dim3,dim4,dim5,'''','   
+ + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''PU'' ,
+ round(amnt,2),round(amti,2),REFR  
+ from ' + @tacpname + '  WHERE docn = 0 and ifbp IN (SELECT DISTINCT bpid FROM tzzgld302all)' + ' and compnr = ' +  
+ convert(varchar(10),@comp) + ' and  ttyp = ''' +  @TRANTYPE +  ''''  
+   
+ set @Source1 = 'select ' + convert(varchar(1),@grup) + ',compnr as company,tdoc,docn,ifbp,convert(date,DOCD),1,ccur,
+ round(rate_1,2),round(rate_2,2),round(rate_3,2),round(AMTH_1,2),round(AMTH_2,2),round(AMTH_3,2),
+ case when prod<4 then year-1 else year end as year,
+ case when prod<4 then prod+9 else prod-3 end as prod,
+ '''', dim1,dim2,dim3,dim4,dim5,'''',' 
+ + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''PY'',
+ round(amnt,2),round(amti,2),REFR  
+ from ' + @tacpname + '  WHERE docn > 0 and ifbp IN (SELECT DISTINCT bpid FROM tzzgld302all)' + ' and compnr = ' +  
+ convert(varchar(10),@comp) + ' and  tdoc = ''' +  @TRANTYPE +  ''''   
+  
+
+ set @leac='t_leac'
+ set @dim='t_dim'
+ end
+	
+	  
+--Commented on 7-Aug-2024
+ --if (@comp = 110 or @comp=170)
+ --begin
+ --set @Source = 'select ' + convert(varchar(1),@grup) + ',compnr,ttyp,ninv,ifbp,convert(date,DOCD),1,ccur,
+ --round(rate_1,2), 0 as rate_2,0 as rate_3,round(AMTH_1,2),round(AMTH_2,2),round(AMTH_3,2),year-1,prod,'''', 
+ --dim1,dim2,dim3,dim4,dim5,'''','   
+ --+ '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''PU'' ,
+ --round(amnt,2), round(amti,2),null as REFR     
+ --from ' + @tacpname + '  WHERE docn = 0 and ifbp IN (SELECT DISTINCT bpid FROM tzzgld302all)' + ' and compnr = ' +  
+ --convert(varchar(3),@comp)+'0' 
+ --+ ' and  ttyp = ''' +  @TRANTYPE +  ''''  
+   
+ --set @Source1 = 'select ' + convert(varchar(1),@grup) + ',compnr,tdoc,docn,ifbp,convert(date,DOCD),1,ccur,round(rate_1,2),  
+ --0 as rate_2,0 as rate_3,round(AMTH_1,2),round(AMTH_2,2),round(AMTH_3,2),
+ --year-1,prod,'''', dim1,dim2,dim3,dim4,dim5,'''','   
+ --+ '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''PY'',
+ --round(amnt,2), round(amti,2),null as REFR     
+ --from ' + @tacpname + '  WHERE docn > 0 and ifbp IN (SELECT DISTINCT bpid FROM tzzgld302all)' + ' and compnr = ' +  
+ --convert(varchar(3),@comp)+'0' 
+ --+ ' and  tdoc = ''' +  @TRANTYPE +  ''''   
+ 
+ --set @leac='leac'
+ --set @dim='dim'
+
+ --end
+
+
+End  
+
+
+
+
+if (@grup =3 or @grup =4)   
+begin  
+ set @Gp = 'AR'  
+ if @grup =4  
+ begin  
+ set @Gp = 'AP'  
+ end  
+
+ --if(@comp>=400)  
+ --if(@comp like '4%')
+ --begin
+ set @Source = 'select ' + convert(varchar(1),@grup) + ',company,t$otyp,t$odoc,t$bpid,convert(date,T$DCDT ),t$intt,t$ccur,
+ convert(float,T$RATE$1),convert(float,T$RATE$2),convert(float,T$RATE$3),
+ case when T$DBCR=2 then (-1)*convert(float,T$AMTH$1) else convert(float,T$AMTH$1) end ,
+ case when T$DBCR=2 then (-1)*convert(float,T$AMTH$2) else convert(float,T$AMTH$2) end ,
+ case when T$DBCR=2 then (-1)*convert(float,T$AMTH$3) else convert(float,T$AMTH$3) end ,
+ convert(float,t$fyer),convert(float,T$FPRD),t$leac,t$dim1,t$dim2,t$dim3,t$dim4,t$dim5,T$DBCR,'   
+ + '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''',0,''GL'',
+ case when T$DBCR=2 then (-1)*convert(float,T$amnt) else convert(float,T$amnt) end ,
+ case when T$DBCR=2 then (-1)*convert(float,T$amnt) else convert(float,T$amnt) end ,
+ t$REFR
+ from ' + @tglname + ' WHERE T$BPID IN (SELECT DISTINCT bpid FROM tzzgld302all)'  + ' and company = ' +  convert(varchar(10),@comp)  
+ --end
+
+ 
+ --set @Source1 ='' 
+ --set @Source1 = 'select ' + convert(varchar(1),@grup) + ',company,tdoc,docn,ifbp,convert(date,DOCD ),1,ccur,rate$1,  
+ --rate$2,rate$3,AMTH$1,AMTH$2,AMTH$3,year,prod,'''',  dim1,dim2,dim3,dim4,dim5,'''','   
+ --+ '''' + @entity +  ''','  + '''' + @gp +  ''',' + '''' + @catg +  ''','''','''','''' ,0,''PY'',amnt    
+ --from ' + @tacpname + '  WHERE docn > 0 and ifbp IN (SELECT DISTINCT bpid FROM tzzgld302all)' + ' and company = ' +  convert 
+ --(varchar(3),@comp) + ' and  tdoc = ''' +  @TRANTYPE +  ''''  
+
+ 
+ set @leac='T$LEAC'	 
+ set @dim='T$dim'
+
+End  
+    
+
+	--IF (len(@LEDGERFROM) = 0    and len(@LEDGERTO) = 0)
+	--Begin
+	set @LsSql = 'INSERT INTO GL_STACK (source,comp,t$otyp,t$odoc,t$bpid,T$DCDT,t$intt,t$ccur,
+	T$RATE$1,T$RATE$2,T$RATE$3,T$AMTH$1,T$AMTH$2,T$AMTH$3,t$fyer,T$FPRD,
+	t$leac,t$dim1,t$dim2,t$dim3,t$dim4,t$dim5,
+	T$DBCR,d1,d2,d3,d4,d5,d6,ordby,dsrc,Bvalue,AMTI,Reference)'  + @Source 
+	--end
+
+
+	set @LsSql1 =''
+
+	IF len(@Source1) > 0   
+	begin
+	set @LsSql1 = 'INSERT INTO GL_STACK(source,comp,t$otyp,t$odoc,t$bpid,T$DCDT,t$intt,t$ccur,T$RATE$1,
+	T$RATE$2,T$RATE$3,T$AMTH$1,T$AMTH$2,T$AMTH$3,t$fyer,T$FPRD,t$leac,t$dim1,t$dim2,t$dim3,t$dim4,t$dim5,
+	T$DBCR,d1,d2,d3,d4,d5,d6,ordby,dsrc,Bvalue,AMTI,Reference)'  + @Source1 
+	End	
+
+
+
+ 
+ --IF (len(@LEDGERFROM) > 0    and len(@LEDGERTO) = 0)
+ if (@grup =3 or @grup =4) and (len(@LEDGERFROM) > 0    and len(@LEDGERTO) = 0)     
+ BEGIN    
+ select ''''+@LEDGERFROM+'''',''''+@LEDGERTO+''''
+ set @LsSql = @LsSql + ' AND '+ @leac + '=''' + @LEDGERFROM  + ''''  
+ END     
+     
+ --IF (len(@LEDGERFROM) > 0    and len(@LEDGERTO) > 0)
+ if (@grup =3 or @grup =4) and (len(@LEDGERFROM) > 0    and len(@LEDGERTO) > 0)
+ BEGIN    
+ select ''''+@LEDGERFROM+'''',''''+@LEDGERTO+''''
+ set @LsSql = @LsSql + ' AND ' + @leac +' BETWEEN ' +''''+ @LEDGERFROM  + ''''+' AND ' + ''''+ @LEDGERTO + ''''
+
+  IF len(@dimval) > 2     
+  BEGIN    
+  set @LsSql = @LsSql + ' AND ' + @dim +  @dimcnt + ' in (' +  '''' + replace(@dimval,',',''',''') + ''')'    
+  END     
+
+ END    
+  
+    
+ -- print  @comp
+ 
+ 
+ --create table GL_Testing
+ --(
+ --LsSql varchar(max),
+ --LsSql1 varchar(max)
+ --)
+ --Alter table GL_Testing add RNO int
+ insert into GL_Testing(RNO,LsSql,lsSql1)
+ select @Counter,@LsSql,@LsSql1
+ 
+
+ 
+ --BEGIN TRY
+ exec(@LsSql)    
+ --Insert into GL_Stack_Testdatalog
+ ----select * into GL_Stack_Testdatalog from(
+ --select ldfm,ldto,ttyp,grup,comp ,catg,ETCD,dimn,dimc,RNO  
+ --from(select *,ROW_NUMBER()OVER( ORDER BY [tran]) AS RNO FROM  tzzgld303all)a WHERE rno = @Counter
+ ----)a
+ -- END TRY
+ --BEGIN CATCH
+ -- SELECT
+ --   ERROR_NUMBER() AS ErrorNumber,
+ --   ERROR_STATE() AS ErrorState,
+ --   ERROR_SEVERITY() AS ErrorSeverity,
+ --   ERROR_PROCEDURE() AS ErrorProcedure,
+ --   ERROR_LINE() AS ErrorLine,
+ --   ERROR_MESSAGE() AS ErrorMessage;
+ --END CATCH;
+
+ IF len(@LsSql) > 0   
+ begin
+	 exec(@LsSql1)   
+ end
+
+-- PRINT CONVERT(VARCHAR,@Counter) + '. LEDGER FROM is ' + @LEDGERFROM  +' LEDGER TO IS '+ @LEDGERTO    
+--Alter table GL_Stack_Testdatalog add rno int
+
+Insert into GL_Stack_Testdatalog
+--select * into GL_Stack_Testdatalog from(
+select ldfm,ldto,ttyp,grup,comp ,catg,ETCD,dimn,dimc,RNO  
+from(select *,ROW_NUMBER()OVER( ORDER BY comp,ttyp,ldfm,ldto,[tran]) AS RNO FROM  tzzgld303all)a WHERE rno = @Counter
+--)a
+
+select @Counter --For Testing
+--select @LEDGERFROM,@LEDGERTO,@TRANTYPE,@grup,@comp,@catg,@entity,@dimcnt,@dimval --Testing
+
+SET @Counter  = @Counter  + 1     
+
+END    
+
+
+
+--update GL_Stack set d1='ELGI-ROTAIR' where comp=1100
+--update GL_Stack set d1='ELGI-EUROPE' where comp=1700
+
+update GL_Stack set d1=a.CompName
+from [ELGi_US].dbo.vw_elgi_offshore_companies a
+where GL_Stack.comp=a.company
+
+
+update gl_stack set d4 = levl 
+from tzzgld302all 
+where ltrim(rtrim(gl_stack.d1)) = ltrim(rtrim(tzzgld302all.ETCD)) 
+and  ltrim(rtrim(gl_stack.t$bpid)) = ltrim(rtrim(tzzgld302all.bpid))  
+
+
+--update GL_STACK set  d3 = 'OTHERS EXP DN/CN'  where ordby=  '4' 
+update GL_STACK set d3= 'OTHERS EXP CN/DN' where d3 in ('OTHERS EXP CN/DN','OTHERS EXP DN/CN','Other Exp CN/DN')
+
+update GL_STACK set ordby=  '1' where  d3 = 'Sales'   
+update GL_STACK set ordby=  '2' where  d3 = 'Receipts'   
+update GL_STACK set ordby=  '3' where  d3 = 'Warranty CN/DN'  
+--update GL_STACK set ordby=  '4' where  d3 = 'Other DN/CN'  
+update GL_STACK set ordby=  '4' where  d3 = 'OTHERS EXP CN/DN'
+    
+update GL_STACK set ordby=  '1' where  d3 = 'Purchase'   
+update GL_STACK set ordby=  '2' where  d3 = 'Payments'   
+update GL_STACK set ordby=  '3' where  d3 = 'Warranty DN/CN'  
+--update GL_STACK set ordby=  '4' where  d3 = 'Other CN/DN'  
+
+update GL_STACK set ordby=  10  where  ordby = 0
+
+
+--Alter table GL_STACK alter column ordbydesc varchar(50)
+
+update GL_STACK set ordbydesc='Sales/Purchase' where ordby=1
+update GL_STACK set ordbydesc='Receipts/Payments' where ordby=2
+update GL_STACK set ordbydesc='Warranty CN/DN / Warranty DN/CN' where ordby=3
+--update GL_STACK set ordbydesc='Other DN/CN / Other CN/DN' where ordby=4
+update GL_STACK set ordbydesc=d3 where ordby in (4,10)
+
+
+----Old Method---------------
+
+--update GL_STACK set d5='ELGI' --null --Needs to be replaced with null after correcting the Master data
+--update GL_STACK set d5=left(d4, CHARINDEX('-', d4)) where comp like '4%' and d4 is not null
+--update GL_STACK set d5=replace(d5,'-','')
+--update GL_STACK set d5=RIGHT(d4, LEN(d4) - CHARINDEX('-', d4)) where comp not like '4%' and d4 is not null
+
+
+
+--update GL_STACK set d7=null
+--update GL_STACK set d7=concat(d5,'-',d2) where d4 is not null and d2 is not null  --len(concat(d4,d5))>2
+--update GL_STACK set d7Ordr=1 where d7='ELGi-AR'
+--update GL_STACK set d7Ordr=2 where d7 not like 'ELGi-AP' and d7 like '%-AP%'
+--update GL_STACK set d7Ordr=3 where d7 not like 'ELGi-AR' and d7 like '%-AR%'
+--update GL_STACK set d7Ordr=4 where d7='ELGi-AP'
+
+--update GL_STACK set d8=1 where d7Ordr in (1,2)
+--update GL_STACK set d8=2 where d7Ordr in (3,4)
+
+---------Method2------------------
+
+update GL_STACK set d5=RIGHT(d1, LEN(d1) - CHARINDEX('-', d1))
+update GL_STACK set d7=concat(d5,'-',d2)
+
+update GL_STACK set d7Ordr=1 where d7 like '%-AR%'
+update GL_STACK set d7Ordr=2 where d7 like '%-AP%'
+
+
+update GL_STACK set d9=RIGHT(d1, LEN(d1) - CHARINDEX('-', d1))+'-'+RIGHT(d4, LEN(d4) - CHARINDEX('-', d4))
+
+update GL_STACK set d9reverse=a.d9
+from (select distinct d9,RIGHT(d9, LEN(d9) - CHARINDEX('-', d9))+'-'+left(d9,CHARINDEX('-', d9)-1) as d9reverse from GL_STACK)a
+where GL_STACK.d9=a.d9reverse
+
+update GL_STACK set d9group=a.EntityGroup
+from (select distinct Entity,EntityGroup from Entitygroup_Master)a
+where GL_STACK.d9=a.Entity
+
+update GL_STACK set d9Ordr=1 where d9=d9group
+update GL_STACK set d9Ordr=2 where d9<>d9group
+
+update GL_STACK set d8=1 where d7Ordr =d9Ordr
+update GL_STACK set d8=2 where d7Ordr <>d9Ordr
+
+
+----End: Method2------------------
+
+
+update GL_STACK set CalMonth=t$fprd+3 where t$fprd<=9
+update GL_STACK set CalMonth=t$fprd-9 where t$fprd>9
+
+update GL_STACK set CalYear=t$fyer where t$fprd<=9
+update GL_STACK set CalYear=t$fyer+1 where t$fprd>9
+
+update GL_STACK set Month_Name=substring(datename(mm,dateadd(mm,convert(int,CalMonth),-1)),1,3)
+
+
+update GL_STACK set d4=null where ltrim(rtrim(d4))=''
+
+--Method1 --Commented as of 22Mar2024
+--update GL_STACK set GEN_AMNT=T$AMTH$2,Calculation_Curency='USD' where ltrim(rtrim(d1)) in ('ELGI-GULF','ELGI-INDONESIA')
+--update GL_STACK set GEN_AMNT=T$AMTH$1,Calculation_Curency=t$ccur where ltrim(rtrim(d1)) not in ('ELGI-GULF','ELGI-INDONESIA')
+--update GL_STACK set GEN_AMNT=AMTI where ltrim(rtrim(d1)) not in ('ELGI-GULF','ELGI-INDONESIA') and (comp like '4%' or comp like '6%' )
+
+
+--Method2:
+update GL_STACK set GEN_AMNT=AMTI
+
+
+update GL_STACK set GEN_AMNT=(-1)*GEN_AMNT where d2='AP'
+--update GL_STACK set GEN_AMNT=(-1)*GEN_AMNT where T$DBCR=2
+
+update GL_STACK set Calculation_Curency='USD' where ltrim(rtrim(d4)) in ('ELGI-GULF','ELGI-INDONESIA')
+update GL_STACK set Calculation_Curency='AUD' where ltrim(rtrim(d4)) in ('ELGI-AUSTRALIA')
+update GL_STACK set Calculation_Curency='BRL' where ltrim(rtrim(d4)) in ('ELGI-BRAZIL')
+update GL_STACK set Calculation_Curency='EUR' where ltrim(rtrim(d4)) in ('ELGI-EUROPE','ELGI-ROTAIR','ROTAIR-EUROPE')
+
+--Alter table GL_STACK_Temp add Reference nvarchar(100)
+
+Truncate table GL_STACK_Temp
+insert into GL_STACK_Temp([source],comp,t$otyp,t$odoc,t$bpid,T$DCDT,t$intt,
+t$ccur,T$RATE$1,T$RATE$2,T$RATE$3,T$AMTH$1,T$AMTH$2,T$AMTH$3,t$fyer,T$FPRD,
+t$leac,t$dim1,t$dim2,t$dim3,t$dim4,t$dim5,T$DBCR,d1,d2,d3,d4,d5,d6,ordby,
+dsrc,Bvalue,ordbydesc,d7,d7Ordr,d8,CalYear,CalMonth,Month_Name,AMTI,GEN_AMNT,
+--AR_AP_Diff,Entity_Diff,Overall_Diff,Closing_Diff,
+Calculation_Curency,Rnk1,Rnk2,Rnk3,Rnk4,d9,d9Ordr,d9reverse,d9group,Reference) 
+select [source],comp,t$otyp,t$odoc,t$bpid,T$DCDT,t$intt,
+t$ccur,T$RATE$1,T$RATE$2,T$RATE$3,T$AMTH$1,T$AMTH$2,T$AMTH$3,t$fyer,T$FPRD,
+t$leac,t$dim1,t$dim2,t$dim3,t$dim4,t$dim5,T$DBCR,d1,d2,d3,d4,d5,d6,ordby,
+dsrc,Bvalue,ordbydesc,d7,d7Ordr,d8,CalYear,CalMonth,Month_Name,AMTI,GEN_AMNT,
+--AR_AP_Diff,Entity_Diff,Overall_Diff,Closing_Diff,
+Calculation_Curency,
+row_number() over(partition by d9group,t$fyer,T$FPRD,d8,ordby order by d9group,t$fyer,T$FPRD,d8,ordby) as Rnk1, 
+row_number() over(partition by d9group,t$fyer,T$FPRD,d8 order by d9group,t$fyer,T$FPRD,d8) as Rnk2,
+row_number() over(partition by d9group,t$fyer,T$FPRD,ordby order by d9group,t$fyer,T$FPRD,ordby) as Rnk3,
+row_number() over(partition by d9group,t$fyer,T$FPRD order by d9group,t$fyer,T$FPRD) as Rnk4,
+d9,d9Ordr,d9reverse,d9group,Reference
+from GL_Stack
+
+
+Truncate table GL_STACK
+insert into GL_STACK([source],comp,t$otyp,t$odoc,t$bpid,T$DCDT,t$intt,
+t$ccur,T$RATE$1,T$RATE$2,T$RATE$3,T$AMTH$1,T$AMTH$2,T$AMTH$3,t$fyer,T$FPRD,
+t$leac,t$dim1,t$dim2,t$dim3,t$dim4,t$dim5,T$DBCR,d1,d2,d3,d4,d5,d6,ordby,
+dsrc,Bvalue,ordbydesc,d7,d7Ordr,d8,CalYear,CalMonth,Month_Name,AMTI,GEN_AMNT,
+--AR_AP_Diff,Entity_Diff,Overall_Diff,Closing_Diff,
+Calculation_Curency,Rnk1,Rnk2,Rnk3,Rnk4,d9,d9Ordr,d9reverse,d9group,Reference) 
+select [source],comp,t$otyp,t$odoc,t$bpid,T$DCDT,t$intt,
+t$ccur,T$RATE$1,T$RATE$2,T$RATE$3,T$AMTH$1,T$AMTH$2,T$AMTH$3,t$fyer,T$FPRD,
+t$leac,t$dim1,t$dim2,t$dim3,t$dim4,t$dim5,T$DBCR,d1,d2,d3,d4,d5,d6,ordby,
+dsrc,Bvalue,ordbydesc,d7,d7Ordr,d8,CalYear,CalMonth,Month_Name,AMTI,GEN_AMNT,
+--AR_AP_Diff,Entity_Diff,Overall_Diff,Closing_Diff,
+Calculation_Curency,Rnk1,Rnk2,Rnk3,Rnk4,d9,d9Ordr,d9reverse,d9group,Reference
+from GL_STACK_Temp
+
+--Truncate table GL_STACK_Temp
+
+----------------------------------------------------------------------------------
+--update GL_STACK set AR_AP_Diff=c.Diff
+--from (
+--select isnull(a.CalYear,b.CalYear) as CalYear,
+--isnull(a.CalMonth,b.CalMonth) as CalMonth,
+--isnull(a.d4,b.d4) as d4,
+----isnull(a.d7,b.d7) as d7,
+--isnull(a.ordby,b.ordby) as ordby,
+----isnull(a.ordbydesc,b.ordbydesc) ordbydesc,
+--isnull(AMTI_AR,0) AMTI_AR,
+--isnull(AMTI_AP,0) AMTI_AP,
+--isnull(AMTI_AR,0)-isnull(AMTI_AP,0) as Diff from 
+--(select CalYear,CalMonth,d4,ordby,--ordbydesc,d7,comp,
+--sum(GEN_AMNT) AMTI_AR from GL_Stack
+--where 
+--d7Ordr in (1)
+----d4 like 
+----'ELGI-GULF'
+----'%ELGI-Australia%'
+----and CalYear=2022
+----and CalMonth=8
+--group by CalYear,CalMonth,d4,ordby--ordbydesc,d7,comp,
+--)a
+--full outer join
+--(select CalYear,CalMonth,d4,ordby,--ordbydesc,d7,comp,
+--sum(GEN_AMNT) AMTI_AP from GL_Stack
+--where
+--d7Ordr in (2)
+----d4 like --'ELGI-GULF'
+----'%ELGI-Australia%'
+----and CalYear=2022
+----and CalMonth=8
+--group by CalYear,CalMonth,d4,ordby--ordbydesc,d7,comp,
+--)b
+--on a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--and a.d4=b.d4
+--and a.ordby=b.ordby
+--)c
+--where GL_STACK.CalYear=c.CalYear
+--and GL_STACK.CalMonth=c.CalMonth
+--and GL_STACK.d4=c.d4
+--and GL_STACK.ordby=c.ordby
+--and GL_STACK.d8=1
+--and GL_STACK.Rnk1=1
+
+
+
+
+--update GL_STACK set AR_AP_Diff=c.Diff
+--from (
+--select isnull(a.CalYear,b.CalYear) as CalYear,
+--isnull(a.CalMonth,b.CalMonth) as CalMonth,
+--isnull(a.d4,b.d4) as d4,
+----isnull(a.d7,b.d7) as d7,
+--isnull(a.ordby,b.ordby) as ordby,
+----isnull(a.ordbydesc,b.ordbydesc) ordbydesc,
+--isnull(AMTI_AR,0) AMTI_AR,
+--isnull(AMTI_AP,0) AMTI_AP,
+--isnull(AMTI_AR,0)-isnull(AMTI_AP,0) as Diff from 
+--(select CalYear,CalMonth,d4,ordby,--ordbydesc,d7,comp,
+--sum(GEN_AMNT) AMTI_AR from GL_Stack
+--where d7Ordr in (4)
+----d4 like 
+----'ELGI-GULF'
+----'%ELGI-Australia%'
+----and CalYear=2022
+----and CalMonth=8
+--group by CalYear,CalMonth,d4,ordby--ordbydesc,d7,comp,
+--)a
+--full outer join
+--(select CalYear,CalMonth,d4,ordby,--ordbydesc,d7,comp,
+--sum(GEN_AMNT) AMTI_AP from GL_Stack
+--where d7Ordr in (3)
+----d4 like --'ELGI-GULF'
+----'%ELGI-Australia%'
+----and CalYear=2022
+----and CalMonth=8
+--group by CalYear,CalMonth,d4,ordby--ordbydesc,d7,comp,
+--)b
+--on a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--and a.d4=b.d4
+--and a.ordby=b.ordby
+--)c
+--where GL_STACK.CalYear=c.CalYear
+--and GL_STACK.CalMonth=c.CalMonth
+--and GL_STACK.d4=c.d4
+--and GL_STACK.ordby=c.ordby
+--and GL_STACK.d8=2
+--and GL_STACK.Rnk1=1
+
+--update GL_STACK set Entity_Diff=c.Diff
+--from (
+--select isnull(a.CalYear,b.CalYear) as CalYear,
+--isnull(a.CalMonth,b.CalMonth) as CalMonth,
+--isnull(a.d4,b.d4) as d4,
+--isnull(AMTI_AR,0) AMTI_AR,
+--isnull(AMTI_AP,0) AMTI_AP,
+--isnull(AMTI_AR,0)-isnull(AMTI_AP,0) as Diff from 
+--(select CalYear,CalMonth,d4,
+--sum(GEN_AMNT) AMTI_AR from GL_Stack
+--where d7Ordr in (1)
+--group by CalYear,CalMonth,d4
+--)a
+--full outer join
+--(select CalYear,CalMonth,d4,
+--sum(GEN_AMNT) AMTI_AP from GL_Stack
+--where d7Ordr in (2)
+--group by CalYear,CalMonth,d4
+--)b
+--on a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--and a.d4=b.d4
+--)c
+--where GL_STACK.CalYear=c.CalYear
+--and GL_STACK.CalMonth=c.CalMonth
+--and GL_STACK.d4=c.d4
+--and GL_STACK.d8=1
+--and GL_STACK.Rnk2=1
+
+
+--update GL_STACK set Entity_Diff=c.Diff
+--from (
+--select isnull(a.CalYear,b.CalYear) as CalYear,
+--isnull(a.CalMonth,b.CalMonth) as CalMonth,
+--isnull(a.d4,b.d4) as d4,
+--isnull(AMTI_AR,0) AMTI_AR,
+--isnull(AMTI_AP,0) AMTI_AP,
+--isnull(AMTI_AR,0)-isnull(AMTI_AP,0) as Diff from 
+--(select CalYear,CalMonth,d4,
+--sum(GEN_AMNT) AMTI_AR from GL_Stack
+--where d7Ordr in (4)
+--group by CalYear,CalMonth,d4
+--)a
+--full outer join
+--(select CalYear,CalMonth,d4,
+--sum(GEN_AMNT) AMTI_AP from GL_Stack
+--where d7Ordr in (3)
+--group by CalYear,CalMonth,d4
+--)b
+--on a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--and a.d4=b.d4
+--)c
+--where GL_STACK.CalYear=c.CalYear
+--and GL_STACK.CalMonth=c.CalMonth
+--and GL_STACK.d4=c.d4
+--and GL_STACK.d8=2
+--and GL_STACK.Rnk2=1
+
+--update GL_STACK set Overall_Diff=c.Diff
+--from (
+--select isnull(a.CalYear,b.CalYear) as CalYear,
+--isnull(a.CalMonth,b.CalMonth) as CalMonth,
+--isnull(a.d4,b.d4) as d4,
+--isnull(a.d8,b.d8) as d8,
+--isnull(a.ordby,b.ordby) as ordby,
+--isnull(AMTI_AR,0) AMTI_AR,
+--isnull(AMTI_AP,0) AMTI_AP,
+--isnull(AMTI_AR,0)-isnull(AMTI_AP,0) as Diff from 
+--(select CalYear,CalMonth,d4,d8,ordby,ordbydesc,
+--avg(AR_AP_Diff) AMTI_AR from GL_Stack
+--where d8 in (1)
+----and d4='ELGI-GULF'
+----and CalYear=2022
+----and CalMonth=7
+--group by CalYear,CalMonth,d4,d8,ordby,ordbydesc
+--)a
+--full outer join
+--(select CalYear,CalMonth,d4,d8,ordby,ordbydesc,
+--avg(AR_AP_Diff) AMTI_AP from GL_Stack
+--where d8 in (2)
+----and d4='ELGI-GULF'
+----and CalYear=2022
+----and CalMonth=7
+--group by CalYear,CalMonth,d4,d8,ordby,ordbydesc
+--)b
+--on a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--and a.d4=b.d4
+----and a.d8=b.d8
+--and a.ordby=b.ordby
+----where a.d4='ELGI-GULF'
+----and a.CalYear=2022
+----and a.CalMonth=7
+--)c
+--where GL_STACK.CalYear=c.CalYear
+--and GL_STACK.CalMonth=c.CalMonth
+--and GL_STACK.d4=c.d4
+--and GL_STACK.d8=c.d8
+--and GL_STACK.ordby=c.ordby
+--and GL_STACK.Rnk3=1
+
+
+--update GL_STACK set Closing_Diff=c.Diff
+--from (
+--select isnull(a.CalYear,b.CalYear) as CalYear,
+--isnull(a.CalMonth,b.CalMonth) as CalMonth,
+--isnull(a.d4,b.d4) as d4,
+--isnull(AMTI_AR,0) AMTI_AR,
+--isnull(AMTI_AP,0) AMTI_AP,
+--isnull(AMTI_AR,0)-isnull(AMTI_AP,0) as Diff from 
+--(select CalYear,CalMonth,d4,
+--avg(Entity_Diff) AMTI_AR from GL_Stack
+--where d8 in (1)
+--group by CalYear,CalMonth,d4
+--)a
+--full outer join
+--(select CalYear,CalMonth,d4,
+--avg(Entity_Diff) AMTI_AP from GL_Stack
+--where d8 in (2)
+--group by CalYear,CalMonth,d4
+--)b
+--on a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--and a.d4=b.d4
+----where a.d4='ELGI-GULF'
+----and a.CalYear=2022
+----and a.CalMonth=7
+--)c
+--where GL_STACK.CalYear=c.CalYear
+--and GL_STACK.CalMonth=c.CalMonth
+--and GL_STACK.d4=c.d4
+--and GL_STACK.Rnk4=1
+
+
+
+--------------------------------------------------------------------------------------
+
+--update GL_STACK set AR_AP_Diff=c.Diff
+--from (
+--select isnull(a.CalYear,b.CalYear) as CalYear,
+--isnull(a.CalMonth,b.CalMonth) as CalMonth,
+--isnull(a.d9group,b.d9group) as d9group,
+--isnull(a.d4,b.d4) as d4,
+----isnull(a.d7,b.d7) as d7,
+--isnull(a.ordby,b.ordby) as ordby,
+----isnull(a.ordbydesc,b.ordbydesc) ordbydesc,
+--isnull(AMTI_AR,0) AMTI_AR,
+--isnull(AMTI_AP,0) AMTI_AP,
+--isnull(AMTI_AR,0)-isnull(AMTI_AP,0) as Diff from 
+--(select CalYear,CalMonth,d9group,d4,ordby,--ordbydesc,d7,comp,
+--sum(GEN_AMNT) AMTI_AR from GL_Stack
+--where 
+--d7Ordr in (1)
+----d4 like 
+----'ELGI-GULF'
+----'%ELGI-Australia%'
+----and CalYear=2022
+----and CalMonth=8
+--group by CalYear,CalMonth,d9group,d4,ordby--ordbydesc,d7,comp,
+--)a
+--full outer join
+--(select CalYear,CalMonth,d9group,d4,ordby,--ordbydesc,d7,comp,
+--sum(GEN_AMNT) AMTI_AP from GL_Stack
+--where
+--d7Ordr in (2)
+----d4 like --'ELGI-GULF'
+----'%ELGI-Australia%'
+----and CalYear=2022
+----and CalMonth=8
+--group by CalYear,CalMonth,d9group,d4,ordby--ordbydesc,d7,comp,
+--)b
+--on a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--and a.d9group=b.d9group
+--and a.d4=b.d4
+--and a.ordby=b.ordby
+--)c
+--where GL_STACK.CalYear=c.CalYear
+--and GL_STACK.CalMonth=c.CalMonth
+--and GL_STACK.d9group=c.d9group
+--and GL_STACK.d4=c.d4
+--and GL_STACK.ordby=c.ordby
+--and GL_STACK.d8=1
+--and GL_STACK.Rnk1=1
+
+
+
+
+END     
+    
+    
+--select * from GL_STAck where comp=200
+  
+--truncate table C  
+  -- select * from GL_STACK  
+
+   -- select count(*) from GL_STACK  
+  --select * from tzzgld307all  
+  
+ -- select d1,d4,d2,d5,d3, sum(t$amth$1) as Value  from GL_STACK  group by d1,d4,d3,d2,d5 order  by  d1,d4,d3,d2,d5  
+  
+
+  
+  
+  --select LEFT(d4, CHARINDEX('-', d4)-1) As Part1,RIGHT(d4, LEN(d4) - CHARINDEX('-', d4)) As Part2 ,* from GL_STACK  
+  
+ -- select * from tzzgld302all
+
+  --update tzzgld303all set dimc = 'SUBAR01,SUBAR02,SUBAR03,SUBAR04' where ldfm = 'AB0604002'
+  --update tzzgld303all set dimc = 'SUBAP01,SUBAP02,SUBAP03,SUBAP04' where ldfm = 'LC0405004'
+
+
+
+
+Completion time: 2025-11-19T10:18:11.1009682+05:30

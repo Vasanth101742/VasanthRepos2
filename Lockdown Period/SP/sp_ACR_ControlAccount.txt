@@ -1,0 +1,114 @@
+--exec sp_ACR_ControlAccount '2024-05-15'
+CREATE proc sp_ACR_ControlAccount(@AS_OF_DATE date) as   
+  
+Begin  
+
+--DECLARE @AS_OF_DATE DATE='2023-04-30'
+Declare @Finyear varchar(10)=case when month(@AS_OF_DATE)<4 then year(@AS_OF_DATE)-1 else year(@AS_OF_DATE) end
+declare @Finmonth varchar(10) =case when month(@AS_OF_DATE)<4 then month(@AS_OF_DATE)+9 else month(@AS_OF_DATE)-3 end
+--select @Finyear
+--select @Finmonth
+
+Truncate table ACR_ControlAccount_Temp  
+Truncate table ACR_ControlAccount  
+  
+--Alter table ACR_ControlAccount add ClosingBalance float  
+--Truncate table TTFGLD203400  
+--Truncate table TTFGLD201400
+  
+Insert into ACR_ControlAccount_Temp(YEAR,CONO,LEAC,OpeningBalance)  
+select YEAR,CONO,LEAC,  
+sum(convert(float,FOBH$1)) as OeningBalance  
+from TTFGLD203400  
+where   
+leac in (select distinct ledgercode from vw_Debtors_Ledgers)  
+group by YEAR,CONO,LEAC  
+  
+  
+Insert into ACR_ControlAccount_Temp(YEAR,CONO,LEAC,CurrentValue)  
+select  YEAR,CONO,LEAC,  
+sum(convert(float,FDAH$1) - convert(float,FCAH$1))  as CurrentValue  
+from TTFGLD201400  
+where  year < @Finyear and  PTYP=1  
+and leac in (select distinct ledgercode from vw_Debtors_Ledgers)  
+group by YEAR,CONO,LEAC  
+  
+
+ Insert into ACR_ControlAccount_Temp(YEAR,CONO,LEAC,CurrentValue)  
+select  YEAR,CONO,LEAC,  
+sum(convert(float,FDAH$1) - convert(float,FCAH$1))  as CurrentValue  
+from TTFGLD201400  
+where year = @Finyear and  convert(int,PRNO) <= @FinMonth  and  PTYP=1  
+and leac in (select distinct ledgercode from vw_Debtors_Ledgers)  
+group by YEAR,CONO,LEAC  
+  
+--Alter table ACR_ControlAccount add CurrentValue float  
+--sp_rename 'ACR_ControlAccount.OeningBalance','OpeningBalance'  
+  
+  
+insert into ACR_ControlAccount(YEAR,CONO,LEAC,OpeningBalance,CurrentValue)  
+select YEAR,CONO,LEAC,  
+sum(OpeningBalance) OpeningBalance,  
+sum(CurrentValue) CurrentValue  
+from ACR_ControlAccount_Temp  
+group by YEAR,CONO,LEAC  
+  
+  
+update ACR_ControlAccount set ClosingBalance=isnull(OpeningBalance,0)+isnull(CurrentValue,0)  
+  
+--Truncate table ACR_ControlAccount_Temp  
+  
+end  
+  
+
+--select sum(closingBalance) from ACR_ControlAccount  
+--where year=(year(getdate()-1))
+--and CONO like '4%'
+
+
+--Truncate Table TTFGLD201400
+--Truncate Table TTFGLD203400
+
+
+--select --YEAR,CONO,LEAC, SUM(CurrentValue),sum(isnull(OpeningBalance,0)+ isnull(CurrentValue,0)) 
+--*  from ACR_ControlAccount_Temp
+--where year=2022 
+--AND CONO='401' AND LEAC='AB0601000'
+----GROUP BY YEAR,CONO,LEAC
+
+--select  YEAR,CONO,LEAC,PRNO,
+--sum(convert(float,FDAH$1)) - sum(convert(float,FCAH$1))  as CurrentValue  
+----convert(float,FDAH$1) - convert(float,FCAH$1) 
+-- from TTFGLD201400  
+--where  YEAR =2022  and PRNO<=10 
+--and  PTYP=1  
+--and cono='401' and leac='AB0601000'
+----and leac in (select distinct ledgercode from vw_Debtors_Ledgers)  
+--group by YEAR,CONO,LEAC,PRNO
+  
+
+
+
+--select YEAR,CONO,LEAC,  
+--sum(convert(float,FOBH$1)) as OeningBalance  
+--from TTFGLD203400  
+--where   
+--leac in (select distinct ledgercode from vw_Debtors_Ledgers)  
+--and year=2022
+--group by YEAR,CONO,LEAC  
+
+
+
+
+--select  YEAR,CONO,LEAC,  
+--sum(convert(float,FDAH$1)) - sum(convert(float,FCAH$1))  as CurrentValue  
+--from TTFGLD201400  
+--where  year <2022   and  PTYP=1 -- and PRNO<=9
+----and cono='401' and 
+--and leac='AB0601000'
+----and leac in (select distinct ledgercode from vw_Debtors_Ledgers)  
+--group by YEAR,CONO,LEAC  
+
+
+
+----select 4264827432.92 + 525896841.559994 -4789639330

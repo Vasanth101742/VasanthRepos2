@@ -1,0 +1,146 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--exec sp_Employee_Punch_details
+CREATE proc [dbo].[sp_Employee_Punch_details] as
+
+Begin
+
+Truncate table Employee_Punch_details
+Truncate table Emp_Onduty_Temp
+Truncate table Emp_Leave_Temp
+
+Insert into Employee_Punch_details(attendance_date,emp_code,shift_code,
+in1,out1,in2,out2,in3,out3,in4,out4,details,new_emp_code)
+select * from Employee_Punch_details_stage
+
+update Employee_Punch_details set in1=null where in1=0
+update Employee_Punch_details set in2=null where in2=0
+update Employee_Punch_details set in3=null where in3=0
+update Employee_Punch_details set in4=null where in4=0
+update Employee_Punch_details set out1=null where out1=0
+update Employee_Punch_details set out2=null where out2=0
+update Employee_Punch_details set out3=null where out3=0
+update Employee_Punch_details set out4=null where out4=0
+
+Update Employee_Punch_details set AttendDate=convert(date,substring(attendance_date,5,4)+'-'+substring(attendance_date,1,2)+'-'+substring(attendance_date,3,2))
+
+
+Insert into Emp_Onduty_Temp
+select *  from 
+(select distinct convert(date,date) as OndutyDate from companycalendar --where date='2018-11-03' 
+)a
+left outer join
+(select distinct emp_code,shift_code,
+convert(date,from_date) from_date,convert(date,to_date) to_date
+--,convert(date,applied_date) applied_date 
+from Employee_onduty_request
+where convert(date,applied_date)>=(select min(attenddate) from Employee_Punch_details)
+--and emp_code='11281' 
+)b
+on 
+a.OndutyDate between b.from_date and b.to_date
+--and a.emp_code=b.emp_code
+--where b.emp_code is not null
+where b.from_date is not null
+order by b.from_date,b.to_date,a.OndutyDate
+
+Insert into Employee_Punch_details
+select null,emp_code,shift_code,null,null,null,null,null,null,null,null,null,null,from_date,to_date,null,null,
+null,null,null,null,null,null,OndutyDate,'OnDuty',null from Emp_Onduty_Temp
+
+
+
+Insert into Emp_Leave_Temp
+select * from 
+(select distinct convert(date,date) as OndutyDate from companycalendar --where date='2018-11-03' 
+)a
+left outer join
+(select distinct emp_code,shift_code,
+convert(date,from_date) from_date,convert(date,to_date) to_date
+--,convert(date,applied_date) applied_date 
+from Employee_leave_master
+where convert(date,applied_date)>=(select min(attenddate) from Employee_Punch_details)
+--and emp_code='11281' 
+)b
+on 
+a.OndutyDate between b.from_date and b.to_date
+--and a.emp_code=b.emp_code
+--where b.emp_code is not null
+where b.from_date is not null
+order by b.from_date,b.to_date,a.OndutyDate
+
+Insert into Employee_Punch_details
+select null,emp_code,shift_code,null,null,null,null,null,null,null,null,null,null,from_date,to_date,null,null,
+null,null,null,null,null,null,OndutyDate,'Leave',null from Emp_Leave_Temp
+
+
+Update Employee_Punch_details set InTime=
+convert(datetime,substring(attendance_date,5,4)+'-'+substring(attendance_date,1,2)+'-'+substring(attendance_date,3,2)+' '+
+substring(coalesce(in1,in2,in3,in4),1,2)+':'+substring(coalesce(in1,in2,in3,in4),3,2)+':'+'00.000')
+
+Update Employee_Punch_details set OutTime=
+convert(datetime,substring(attendance_date,5,4)+'-'+substring(attendance_date,1,2)+'-'+substring(attendance_date,3,2)+' '+
+substring(coalesce(out4,out3,out2,out1),1,2)+':'+substring(coalesce(out4,out3,out2,out1),3,2)+':'+'00.000')
+
+Update Employee_Punch_details set Mins=datediff(MINUTE,InTime,OutTime)
+Update Employee_Punch_details set Hrs=Mins/60
+Update Employee_Punch_details set Mins=datediff(MINUTE,InTime,OutTime)%60
+
+
+--Alter table Employee_Punch_details add Gender varchar(50)
+--Alter table Employee_Punch_details add EmpName varchar(100)
+--Alter table Employee_Punch_details add NewEmpCode int
+
+Update Employee_Punch_details set NewEmpCode=a.new_emp_code,new_emp_code=a.new_emp_code,EmpName=a.emp_name,
+Gender=a.sex,Band=a.band,ucode=a.ucode,uname=a.uname
+from 
+(select emp_code,new_emp_code,emp_name,sex,band,ucode,uname from [ELGi_Intranet].dbo.Employee_Detail)a
+where Employee_Punch_details.emp_code=a.emp_code
+
+Update Employee_Punch_details set NewEmpCode=a.new_emp_code,EmpName=a.emp_name,
+Gender=a.sex,Band=a.band,ucode=a.ucode,uname=a.uname
+from 
+(select emp_code,new_emp_code,emp_name,sex,band,ucode,uname from [ELGi_Intranet].dbo.Employee_Detail)a
+where Employee_Punch_details.emp_code=a.new_emp_code
+and  Employee_Punch_details.empname is null
+
+
+Update Employee_Punch_details set AttendStatus='Present'
+where InTime is not null and OutTime is not null and AttendStatus is null
+
+Update Employee_Punch_details set AttendStatus='Absent'
+where InTime is null and OutTime is null and AttendStatus is null
+
+
+Update Employee_Punch_details set AttendStatus='Others'
+where InTime is null and OutTime is not null  and AttendStatus is null
+Update Employee_Punch_details set AttendStatus='Others'
+where InTime is not null and OutTime is null  and AttendStatus is null
+
+
+Update Employee_Punch_details set AttendStatusOrdr=1 where AttendStatus='Present'
+Update Employee_Punch_details set AttendStatusOrdr=2 where AttendStatus='OnDuty'
+Update Employee_Punch_details set AttendStatusOrdr=3 where AttendStatus='Absent'
+Update Employee_Punch_details set AttendStatusOrdr=4 where AttendStatus='Leave'
+Update Employee_Punch_details set AttendStatusOrdr=5 where AttendStatus='Others'
+
+
+Delete from Employee_Punch_details where AttendDate>=convert(date,getdate())
+delete from Employee_Punch_details where uname not in ('Head Office','ACP','GSC','CBE-Branch','PVD','Foundry')
+
+
+end
+
+--Alter table Employee_Punch_details add AttendStatusOrdr int
+
+select * from Employee_Punch_details where AttendDate='2019-04-09'
+
+
+--select * from Employee_Punch_details where AttendDate>=convert(date,getdate())
+
+
+
+
+
+Completion time: 2025-11-19T10:02:38.3708495+05:30

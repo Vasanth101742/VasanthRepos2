@@ -1,0 +1,125 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- exec sp_subsidiaries_dashboard
+
+CREATE proc [dbo].[sp_subsidiaries_dashboard]
+as
+begin
+
+truncate  table subsidiaries_dashboard
+insert into subsidiaries_dashboard
+
+	select *,''firsttrigger,''product,'' name,'' plan_del_date,''saleorder_date,'' commitment_date,''arival_date,0 delqty,'' custcode,
+	 0 otd,'' as bcklog,''NEWITEM
+		--into subsidiaries_dashboard
+	from (
+	select a.*,b.PDNO From (
+select company,t$cuno,ltrim(rtrim(t$item))t$item,t$sord,t$spos,count(*) as nooftrigger,
+sum(case when T$STAT=1 then 1 else 0 end) as noofsalesorder_processed
+ From tZZsls220401490 WHERE T$CUNO IN ('su1e00847','su1r01967','su1e00804','sre000013','su1e00880','su1e00625')
+	and convert(date,T$ODAT)>='2021-01-01'
+	group by company,t$cuno,t$item,t$sord,t$spos
+)a
+left join (select company,orno,pono,srnb,pdno from TZZSFC289ALL where company in (401,490))b -- pdno
+on a.COMPANY =b.COMPANY and 
+a.t$sord=b.ORNO
+and a.t$spos=b.PONO)a
+
+
+	--alter table subsidiaries_dashboard add  firsttrigger varchar(100)
+	--alter table subsidiaries_dashboard add product varchar(100)
+	--alter table subsidiaries_dashboard add name varchar(100)
+	--alter table subsidiaries_dashboard add plan_del_date date
+	--alter table subsidiaries_dashboard add saleorder_date date
+	--		alter table subsidiaries_dashboard alter column commitment_date date
+	--alter table subsidiaries_dashboard alter column arival_date date
+	--alter table subsidiaries_dashboard add delqty float
+	--alter table subsidiaries_dashboard add custcode varchar(100)
+	
+
+
+
+	alter table subsidiaries_dashboard alter column firsttrigger varchar(100)
+	alter table subsidiaries_dashboard alter column product varchar(100)
+	alter table subsidiaries_dashboard alter column name varchar(100)
+	alter table subsidiaries_dashboard alter column plan_del_date date
+	alter table subsidiaries_dashboard alter column saleorder_date date
+		alter table subsidiaries_dashboard alter column commitment_date date
+	alter table subsidiaries_dashboard alter column arival_date date
+	alter table subsidiaries_dashboard alter column delqty float
+		alter table subsidiaries_dashboard alter column otd float
+		alter table subsidiaries_dashboard alter column bcklog varchar(100)
+	alter table subsidiaries_dashboard alter column custcode varchar(100)
+		alter table subsidiaries_dashboard ALTER COLUMN NEWITEM varchar(100)
+
+
+	update subsidiaries_dashboard set saleorder_date=b.t_odat,delqty=b.t_qidl,custcode=b.t_ofbp
+	from (select company,T_ORNO,T_PONO,t_ofbp,CONVERT(DATE,t_odat)t_odat,sum(t_qidl)t_qidl
+ from TTDSLS401ALL 
+	WHERE  Company IN (401,490) 
+	group by company,T_ORNO,T_PONO,t_ofbp,CONVERT(DATE,t_odat))b
+where  subsidiaries_dashboard.company =b.Company
+and subsidiaries_dashboard.t$sord=b.T_ORNO
+and subsidiaries_dashboard.t$spos=b.t_pono
+
+	update subsidiaries_dashboard set name=
+case when t$cuno='su1e00847' then 'ELGI USA' when t$cuno='su1r01967' then 'ROTAIR'
+when t$cuno='sre000013' then 'ELGI BRAZIL'when t$cuno='su1e00804' then 'ELGI AUSTRALIA'when t$cuno='su1e00880' then 'ELGI INDONESIA'
+when t$cuno='su1e00625' then 'ELGI GULF'end
+
+	update subsidiaries_dashboard set product=b.Division from (select distinct itemcode,Division From ota_tpl_master)b
+	where ltrim(rtrim(subsidiaries_dashboard.t$item))=ltrim(rtrim(b.ITEMCODE))
+
+update subsidiaries_dashboard set plan_del_date=b.RDLD from (select company,RDLD,PDNO From TTISFC001ALL where company in (401,490))b
+where subsidiaries_dashboard.PDNO=b.PDNO
+
+	
+update subsidiaries_dashboard set commitment_date= 
+case when year(plan_del_date)>200 then dateadd(d,
+case when t$cuno in ('su1e00847','su1r01967','su1e00804') then 65
+when t$cuno in ('sre000013')then 80
+when t$cuno in ('su1e00880','su1e00625')then 50 end,plan_del_date) else plan_del_date end
+
+update subsidiaries_dashboard set arival_date= 
+case when year(saleorder_date)>200 then dateadd(d,
+case when t$cuno in ('su1e00847','su1r01967','su1e00804') then 70  
+when t$cuno in ('sre000013')then 85
+when t$cuno in ('su1e00880','su1e00625')then 55 end,saleorder_date) else saleorder_date end
+
+update subsidiaries_dashboard set otd= 
+case when saleorder_date<=commitment_date then 100 else 0 end
+
+update subsidiaries_dashboard set bcklog= t$item where otd=0 and noofsalesorder_processed=1
+
+update subsidiaries_dashboard set NEWITEM= t$item WHERE noofsalesorder_processed=1
+
+update subsidiaries_dashboard set bcklog='YES' 
+WHERE LTRIM(RTRIM(T$ITEM)) NOT IN (SELECT DISTINCT LTRIM(RTRIM(T$ITEM)) from TTDSLS401ALL 	WHERE  Company IN (401,490))
+
+--select * From subsidiaries_dashboard WHERE T$ITEM='S014886'
+
+
+TRUNCATE TABLE TMP_subsidiaries_dashboard
+INSERT INTO TMP_subsidiaries_dashboard
+
+SELECT T$CUNO,T$ITEM,PRODUCT,NAME,OTD,bcklog,NEWITEM,
+MAX(PLAN_DEL_DATE)PLAN_DEL_DATE,MAX(saleorder_date)saleorder_date,
+MAX(commitment_date)commitment_date,MAX(arival_date)arival_date,
+SUM(NOOFTRIGGER)NOOFTRIGGER,
+SUM(NOOFSALESORDER_PROCESSED)NOOFSALESORDER_PROCESSED,
+0 DELQTY --INTO TMP_subsidiaries_dashboard
+ FROM subsidiaries_dashboard
+	GROUP BY T$CUNO,T$ITEM,PRODUCT,NAME,OTD,bcklog,NEWITEM
+	ORDER BY plan_del_date DESC
+
+	UPDATE TMP_subsidiaries_dashboard SET DELQTY=t_qidl FROM (
+	 SELECT COMPANY,LTRIM(RTRIM(T_ITEM))T_ITEM,SUM(t_qidl)t_qidl from TTDSLS401ALL 
+	WHERE  Company IN (401,490) 
+	GROUP BY COMPANY,LTRIM(RTRIM(T_ITEM)))B
+	WHERE  TMP_subsidiaries_dashboard.T$ITEM=B.T_ITEM
+
+	end
+
+
+
+Completion time: 2025-11-19T12:36:00.7046618+05:30

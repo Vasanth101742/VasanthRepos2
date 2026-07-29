@@ -1,0 +1,138 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE Proc [SP_LN_DMS]
+as
+begin
+
+
+
+Select *, 
+case when [Defect Aging] < 45 then  '45 Days'
+when [Defect Aging] between 46 and 90 then '45-90 Days'
+when [Defect Aging] between 91 and 150 then '91-150 Days'
+when [Defect Aging] between 151 and 300 then '151-300 Days'
+when [Defect Aging] > 300 then  'Greater 300 Days' end 'Aging Comment'
+,
+
+case when a.[Product Line] like '%Parts%' then 'Inward'
+when a.[Product Line] in ('LEPSAC - EG SERIES','LEPSAC - AB SERIES') then 'LEPSAC'
+else a.[Product Line] end 'ProductLineComment'
+
+
+from (
+select a.defect_id,B.source_name'Source',
+(case when C.productline_name='-' then h.inloc_name else C.productline_name end)  'Product Line',A.model'Model',d.part_name'Part Category',
+k.cat_name as 'Defect Category'
+,l.cat_name as 'Defect Sub Category'
+,e.ref_name 'Specification Reference',
+case when f.resp_name in ('Design-Electrical','Design','ATIO','Design Electrical - PLC','NPPO','NPPO-Quality') then 'Design'
+when f.resp_name in ('Manufacturing Engineering','ME','ME-Layout') then 'ME'
+when f.resp_name in ('Global sourcing','SCM','Global support centre (GSC)','Materials') then 'SCM'
+when f.resp_name in ('ELGI VALVES - ASSEMBLY','Assembly') then 'Assembly'
+when f.resp_name in ('ENGINE','Supplier','Stores- Material fed to assembly') then 'Supplier'
+when f.resp_name in ('Airend','TOP BLOCK','PVD','ELGi Foundry','Motor plant') then 'In-House'
+when f.resp_name in ('Inward quality','Line Quality','') then 'Quality'
+else f.resp_name end 'Responsible Function',
+f.resp_name 'Resp Name'
+
+
+
+,g.criticality_name as 'Criticality',a.sup_name as 'Supplier Name',h.inloc_name'Inward Location'
+,i.producttype_name'Product Type',a.target_date as 'Target Date'
+,(case when a.occurence='S' then 'Once' when a.occurence='C' then 'Chronic' end)'Occurence'
+,isnull(r.Occurence,s.Occurence) as 'Occurence Count'
+
+,(j.emp_name+' '+j.emp_initial+' ['+convert(nvarchar,j.emp_code)+']')'Created By'
+,(case 
+					when defect_status='P' then 'Pending' 
+					when defect_status='AS' then 'Assigning Phase' 
+					when defect_status='CAPA' then 'CAPA'
+					when defect_status='SUB' then 'Sub Task'
+					when defect_status='A' then 'Approval'
+					when defect_status='C' then 'Closed'
+					when defect_status='W' then 'Waiting'
+					when defect_status='CL' then 'Clarification'
+					when defect_status='PS' then 'Subsidary Confirmation'
+					when defect_status='RE' then 'Reopen'
+					when defect_status='R' then 'Rejected'
+					when defect_status='CA' then 'Containment Action'
+					when defect_status='ESUB' then 'Employee Feedback - Assigning Phase'
+					else 'Others'
+					end) 'Defect Status'
+	,(case 
+					when defect_status in ('P','AS','CAPA','SUB','W','CL','PS') then 'Pending' 
+					when defect_status='A' then 'Waiting Approval'
+					when defect_status='C' then 'Closed'
+					else 'Pending' end) 'Temp Defect Status'
+
+,datediff(DAY,isnull(a.created_at,getdate()),isnull(a.closed_date,getdate())) as 'Defect Aging'
+,a.reopen_status 'Defect Reopen Status'
+,isnull(m.resp_name,'')'Subtask 1 - Responsible Function',isnull(m.aging,'')'Subtask 1 - Aging'
+,isnull(n.resp_name,'')'Subtask 2 - Responsible Function',isnull(n.aging,'')'Subtask 2 - Aging'
+,isnull(o.resp_name,'')'Subtask 3 - Responsible Function',isnull(o.aging,'')'Subtask 3 - Aging'
+,isnull(p.resp_name,'')'Subtask 4 - Responsible Function',isnull(p.aging,'')'Subtask 4 - Aging'
+,isnull(q.resp_name,'')'Subtask 5 - Responsible Function',isnull(q.aging,'')'Subtask 5 - Aging'
+,'' as 'Effectiveness Monitoring - Comments [CLOSED]'
+,'' as 'Effectiveness Monitoring - Comments [OPEN]'
+from dms_master a
+	left Join dms_source_master  b on b.source_id=a.source_id
+	left Join dms_productline_master c on c.productline_id=a.product_line
+	left join dms_part_category_master  D ON D.part_id=A.part_cat
+	left join dms_spec_ref_master   e on e.ref_id=a.spec_ref
+	left join (select distinct resp_id,resp_name from dms_resp_function_master ) f on f.resp_id=a.resp_func
+	left join dms_criticality_master  g on g.criticality_id=a.criticality
+	left join dms_inwardlocation_master h on h.inloc_id = a.inward_loc
+	left join dms_producttype_master i on i.producttype_id=a.product_type 
+	left join [ELGi_Intranet].dbo.Employee_Detail j on j.emp_code=a.created_by
+	left join dms_defect_category_master k on k.cat_id=a.defect_cat
+	left join [dms_defect_category_master] l on l.cat_id=a.defect_subcat
+
+	left join (select ROW_NUMBER() OVER(partition by defect_id order by defect_id)'Id',defect_id,b.resp_name,target_date
+												,datediff(DAY,a.created_at,isnull(a.action_closed_date,getdate())) as'Aging' 
+											from dms_subtask_capa_assigning a
+											left join (select distinct resp_id,resp_name from dms_resp_function_master) b on b.resp_id=a.resp_func
+											)m on m.defect_id=a.defect_id and m.Id=1
+
+	left join (select ROW_NUMBER() OVER(partition by defect_id order by defect_id)'Id',defect_id,b.resp_name,target_date 
+											,datediff(DAY,a.created_at,isnull(a.action_closed_date,getdate())) as'Aging' 
+											from dms_subtask_capa_assigning a
+											left join (select distinct resp_id,resp_name from dms_resp_function_master) b on b.resp_id=a.resp_func
+											)n on n.defect_id=a.defect_id and n.Id=2
+
+	left join (select ROW_NUMBER() OVER(partition by defect_id order by defect_id)'Id',defect_id,b.resp_name,target_date
+											,datediff(DAY,a.created_at,isnull(a.action_closed_date,getdate())) as'Aging'  
+											from dms_subtask_capa_assigning a
+											left join (select distinct resp_id,resp_name from dms_resp_function_master) b on b.resp_id=a.resp_func
+											)o on o.defect_id=a.defect_id and o.Id=3
+
+	left join (select ROW_NUMBER() OVER(partition by defect_id order by defect_id)'Id',defect_id,b.resp_name,target_date 
+											,datediff(DAY,a.created_at,isnull(a.action_closed_date,getdate())) as'Aging' 
+												from dms_subtask_capa_assigning a
+											left join (select distinct resp_id,resp_name from dms_resp_function_master) b on b.resp_id=a.resp_func
+											)p on p.defect_id=a.defect_id and p.Id=4
+
+	left join (select ROW_NUMBER() OVER(partition by defect_id order by defect_id)'Id',defect_id,b.resp_name,target_date 
+											,datediff(DAY,a.created_at,isnull(a.action_closed_date,getdate())) as'Aging' 
+											from dms_subtask_capa_assigning a
+											left join (select distinct resp_id,resp_name from dms_resp_function_master) b on b.resp_id=a.resp_func
+											)q on q.defect_id=a.defect_id and q.Id=5
+
+left join (select defect_id,resp_func,
+											row_number() over (partition by a.sup_name,defect_cat,defect_subcat,part_cat order by	defect_id)'Occurence'
+											from dms_master a) r on r.defect_id=a.defect_id 
+											and r.resp_func in (select distinct resp_id from dms_resp_function_master	where resp_name='Supplier')
+											
+left join (select defect_id,resp_func,
+											row_number() over (partition by a.product_line,defect_cat,defect_subcat,part_cat order by defect_id)'Occurence'
+											from dms_master a) s on s.defect_id=a.defect_id 
+											and s.resp_func not in (select distinct resp_id from dms_resp_function_master where resp_name='Supplier')
+
+					--						where  isnull(f.resp_name,'')<>''
+) a 
+
+
+end
+
+
+
+Completion time: 2025-11-19T11:34:42.0081474+05:30

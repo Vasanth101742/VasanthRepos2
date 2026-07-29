@@ -1,0 +1,108 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--  exec sp_shipment_mismatch_ln_wms
+CREATE proc [dbo].[sp_shipment_mismatch_ln_wms]
+as
+begin
+
+
+truncate table shipment_mismatch_ln_wms
+insert into shipment_mismatch_ln_wms
+
+select * From (
+select * From (
+
+--------- sales order
+select T$SHPM,Item,avg(convert(float,Plan_Qty))Plan_Qty,avg(convert(float,Shp_Qty))Shp_Qty,T$ORNO,T$PONO,avg(convert(float,T$PLST))T$PLST,
+avg(convert(float,T$OORG))T$OORG
+  From (
+select a.T$SHPM,b.Item,a.Plan_Qty,A.Shp_Qty,A.T$ORNO,A.T$PONO,a.T$OORG,T$PLST  From (
+select T$SHPM,T$ORNO,T$PONO,T$SEQN,T$QPLI as Plan_Qty,T$QACI as Shp_Qty,T$PLST,T$OORG From [WMS].dbo.TWHINH480490 where COMPANY =490 AND T$OORG in (1))a
+left join (select OrderNum,PositionNum,t_sqnb ,ltrim(rtrim(ItemCode)) as Item   From Sales_Lines where Company =490)b
+on a.T$ORNO =b.OrderNum 
+and a.T$PONO =b.PositionNum 
+and a.T$SEQN =b.t_sqnb )A
+group by T$SHPM,Item,T$ORNO,T$PONO
+
+union all
+---- production order
+select T$SHPM,Item,avg(convert(float,Plan_Qty))Plan_Qty,avg(convert(float,Shp_Qty))Shp_Qty,T$ORNO,T$PONO,avg(convert(float,T$PLST))T$PLST,
+avg(convert(float,T$OORG))T$OORG  From (
+select a.T$SHPM,b.Item,a.Plan_Qty,A.Shp_Qty,A.T$ORNO,A.T$PONO,T$PLST,T$OORG  From (
+select T$SHPM,T$ORNO,T$PONO,T$SEQN,T$QPLI as Plan_Qty,T$QACI as Shp_Qty,T$PLST,T$OORG From [WMS].dbo.TWHINH480490 where COMPANY =490 AND T$OORG in (50))a
+left join (select T$PDNO,T$PONO,ltrim(rtrim(t$sitm)) as Item   From TTICST001ALL  where Company =490)b
+on a.T$ORNO =b.T$PDNO 
+and a.T$PONO =b.T$PONO )A
+group by T$SHPM,Item,T$ORNO,T$PONO
+
+union all
+---- SFC Production manual
+select T$SHPM,Item,avg(convert(float,Plan_Qty))Plan_Qty,avg(convert(float,Shp_Qty))Shp_Qty,T$ORNO,T$PONO,avg(convert(float,T$PLST))T$PLST,
+avg(convert(float,T$OORG))T$OORG  From (
+select a.T$SHPM,b.Item,a.Plan_Qty,A.Shp_Qty,A.T$ORNO,A.T$PONO,T$PLST,T$OORG  From (
+select T$SHPM,T$ORNO,T$PONO,T$SEQN,T$QPLI as Plan_Qty,T$QACI as Shp_Qty,T$PLST,T$OORG From [WMS].dbo.TWHINH480490 where COMPANY =490 AND T$OORG in (51))a
+left join (select T$ORNO ,T$PONO,T$SEQN,ltrim(rtrim(T$ITEM)) as Item   From TWHINH220ALL where Company =490)b
+on a.T$ORNO =b.T$ORNO 
+and a.T$PONO =b.T$PONO
+and a.T$SEQN=b.T$SEQN )A
+group by T$SHPM,Item,T$ORNO,T$PONO
+
+union all
+--- supplier return
+select T$SHPM,Item,avg(convert(float,Plan_Qty))Plan_Qty,avg(convert(float,Shp_Qty))Shp_Qty,T$ORNO,T$PONO,avg(convert(float,T$PLST))T$PLST,
+avg(convert(float,T$OORG))T$OORG  From (
+select a.T$SHPM,b.Item,a.Plan_Qty,A.Shp_Qty,A.T$ORNO,A.T$PONO,T$PLST,T$OORG  From (
+select T$SHPM,T$ORNO,T$PONO,T$SEQN,T$QPLI as Plan_Qty,T$QACI as Shp_Qty,T$PLST,T$OORG From [WMS].dbo.TWHINH480490 where COMPANY =490 AND T$OORG in (80))a
+left join (select T$ORNO ,T$PONO,T$SEQN,ltrim(rtrim(T$ITEM)) as Item   From TWHINH220ALL where Company =490)b
+on a.T$ORNO =b.T$ORNO 
+and a.T$PONO =b.T$PONO
+and a.T$SEQN=b.T$SEQN )A
+group by T$SHPM,Item,T$ORNO,T$PONO
+
+union all
+--- tranfer manual
+select T$SHPM,Item,avg(convert(float,Plan_Qty))Plan_Qty,avg(convert(float,Shp_Qty))Shp_Qty,T$ORNO,T$PONO,avg(convert(float,T$PLST))T$PLST,
+avg(convert(float,T$OORG))T$OORG  From (
+select a.T$SHPM,b.Item,a.Plan_Qty,A.Shp_Qty,A.T$ORNO,A.T$PONO,T$PLST,T$OORG  From (
+select T$SHPM,T$ORNO,T$PONO,T$SEQN,T$QPLI as Plan_Qty,T$QACI as Shp_Qty,T$PLST,T$OORG From [WMS].dbo.TWHINH480490 where COMPANY =490 AND T$OORG in (72))a
+left join (select T$ORNO ,T$PONO,T$SEQN,ltrim(rtrim(T$ITEM)) as Item   From TWHINH220ALL where Company =490)b
+on a.T$ORNO =b.T$ORNO 
+and a.T$PONO =b.T$PONO
+and a.T$SEQN=b.T$SEQN )A
+group by T$SHPM,Item,T$ORNO,T$PONO
+
+)a
+
+
+LEFT JOIN (
+select a.*,b.STATUS as Wms_Header_Status From (
+select substring(EXTERNORDERKEY,5,20)as WMS_Shipment,sku as WMS_ItemCode,sum(ORIGINALQTY)ORIGINALQTY,
+sum(SHIPPEDQTY)SHIPPEDQTY,SALESORDERDOCUMENT,SALESORDERLINE,avg(STATUS) as Wms_Line_Status,orderkey,
+convert(date,ACTUALSHIPDATE)ACTUALSHIPDATE  from [WMS].dbo.wmwhse1_ORDERDETAIL 
+--where ORDERKEY in(select distinct ORDERKEY  From [WMS].dbo.wmwhse1_ORDERS where REFERENCETYPE is not null)
+--and substring(EXTERNORDERKEY,5,20)='sho093207'
+group by substring(EXTERNORDERKEY,5,20),sku,SALESORDERDOCUMENT,SALESORDERLINE,convert(date,ACTUALSHIPDATE),orderkey)a
+inner join (select distinct ORDERKEY,status  From [WMS].dbo.wmwhse1_ORDERS where REFERENCETYPE is not null)b
+on a.ORDERKEY =b.ORDERKEY 
+)B
+ON A.T$SHPM =B.WMS_Shipment 
+AND A.Item =B.WMS_ItemCode
+)a 
+
+
+
+--where SALESORDERLINE is null
+--where STATUS =95
+--and T$PLST <>5
+--and SHIPPEDQTY<>Shp_Qty 
+--and convert(date,ACTUALSHIPDATE) <'2019-03-08'
+--and T$SHPM ='sho093207'
+--order by ACTUALSHIPDATE desc
+end
+
+--select *  From [WMS].dbo.wmwhse1_ORDERS   
+--where REFERENCETYPE is null
+
+
+Completion time: 2025-11-19T12:17:07.9436964+05:30

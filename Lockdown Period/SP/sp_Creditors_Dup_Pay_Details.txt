@@ -1,0 +1,425 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Creditors_Dup_Pay_Details
+
+CREATE proc [dbo].[sp_Creditors_Dup_Pay_Details] as
+
+begin
+
+Truncate table Creditors_Dup_Pay_Details
+Truncate table Creditors_Dup_Pay
+
+--Alter table Creditors_Dup_Pay_Details add SuppInvNo2 varchar(50)
+--Alter table Creditors_Dup_Pay add SuppInvNo2 varchar(50)
+
+--Alter table Creditors_Dup_Pay_Details add CalYear int
+--Alter table Creditors_Dup_Pay_Details add CalMonth int
+--Alter table Creditors_Dup_Pay_Details add Month_Name varchar(20)
+--Alter table Creditors_Dup_Pay_Details add FinYear int
+--Alter table Creditors_Dup_Pay_Details add FinMonth int
+
+
+Insert into Creditors_Dup_Pay_Details(
+SuppInvNo,SuppCode,SuppName,Company,DocDate,DocType,DocNo,DueDate,PaidDate,
+PaidDocType,PaidDocNo,PaidAmth,rownum,Condition)
+select * from (
+select a.SuppInvNo,a.SuppCode,a.SuppName,a.Company,a.InvDate as DocDate,
+a.TranType as DocType,a.InvNo as DocNo,a.DueDate,--a.InvAmth,
+PaidDate,a.PaidDocType,a.PaidDocNo,a.PaidAmth,
+ROW_NUMBER() over (partition by a.SuppInvNo,a.SuppCode,a.PaidAmth order by a.SuppInvNo,a.SuppCode,a.PaidAmth) rownum,
+1 as Condition
+from (
+select * from ACP_As_of_Date_Payments
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+)a
+inner join
+(
+--NewCondn 1:
+select * from (
+select SuppInvNo,suppcode,SuppName,PaidAmth,count(distinct InvNo) InvCounts
+from ACP_As_of_Date_Payments
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+group by SuppInvNo,suppcode,SuppName,PaidAmth
+)a
+where InvCounts>1
+and PaidAmth not between -100 and 100 
+)b
+on a.SuppCode=b.SuppCode
+and a.SuppInvNo=b.SuppInvNo
+and a.PaidAmth=b.PaidAmth
+)complete
+where rownum>=1
+order by SuppInvNo,suppcode,SuppName,PaidAmth,rownum
+
+
+Insert into Creditors_Dup_Pay_Details(
+SuppInvNo,SuppCode,SuppName,Company,DocDate,DocType,DocNo,DueDate,PaidDate,
+PaidDocType,PaidDocNo,PaidAmth,rownum,Condition)
+select * from (
+select a.SuppInvNo,a.SuppCode,a.SuppName,a.Company,a.InvDate as DocDate,
+a.TranType as DocType,a.InvNo as DocNo,
+a.DueDate,--a.InvAmth,
+PaidDate,a.PaidDocType,a.PaidDocNo,a.PaidAmth,
+ROW_NUMBER() over (partition by a.SuppInvNo,a.PaidAmth order by a.SuppInvNo,a.PaidAmth) rownum,
+2 as Condition
+from (
+select * from ACP_As_of_Date_Payments
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+)a
+inner join
+(
+--NewCondn 2:
+select * from (
+select SuppInvNo,PaidAmth,count(distinct InvNo) InvCounts
+from ACP_As_of_Date_Payments
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+group by SuppInvNo,PaidAmth
+)a
+where InvCounts>1
+and PaidAmth not between -100 and 100 
+)b
+on a.SuppInvNo=b.SuppInvNo
+and a.PaidAmth=b.PaidAmth
+)complete
+where rownum>=1
+order by SuppInvNo,PaidAmth,rownum
+
+
+--Insert into Creditors_Dup_Pay_Details(
+--SuppInvNo,SuppCode,SuppName,Company,DocDate,DocType,DocNo,DueDate,PaidDate,
+--PaidDocType,PaidDocNo,PaidAmth,rownum,Condition)
+--select * from (
+--select a.SuppInvNo,a.SuppCode,a.SuppName,a.Company,a.InvDate as DocDate,
+--a.TranType as DocType,a.InvNo as DocNo,
+--a.DueDate,--a.InvAmth,
+--PaidDate,a.PaidDocType,a.PaidDocNo,a.PaidAmth,
+--ROW_NUMBER() over (partition by a.SuppInvNo,a.SuppCode,a.SuppName,a.InvNo order by a.SuppInvNo,a.SuppCode,a.SuppName) rownum,
+--3 as Condition
+--from (
+--select * from ACP_As_of_Date_Payments
+--where 
+--company like '4%' 
+----and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+----and InvDate between '2020-06-01' and '2020-06-30'
+--and PaidDate is not null
+--and SuppInvNo is not null
+----and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+--)a
+--inner join
+--(
+----NewCondn 3:
+--select * from (
+--select SuppInvNo,suppcode,SuppName,count(distinct InvNo) InvCounts
+--from ACP_As_of_Date_Payments
+--where 
+--company like '4%' 
+----and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+----and InvDate between '2020-06-01' and '2020-06-30'
+--and PaidDate is not null
+--and SuppInvNo is not null
+----and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+--group by SuppInvNo,suppcode,SuppName,PaidAmth
+--)a
+--where InvCounts>1
+----and PaidAmth not between -100 and 100 
+--)b
+--on a.SuppCode=b.SuppCode
+--and a.SuppName=b.SuppName
+--and a.SuppInvNo=b.SuppInvNo
+--)complete
+--where rownum>=1
+--order by SuppInvNo,SuppCode,SuppName,DocNo
+
+
+
+Insert into Creditors_Dup_Pay_Details(
+SuppInvNo,SuppInvNo2,
+SuppCode,SuppName,Company,DocDate,DocType,DocNo,DueDate,PaidDate,
+PaidDocType,PaidDocNo,PaidAmth,rownum,Condition)
+select * from (
+select a.SuppInvNo,b.SuppInvNo2,
+a.SuppCode,a.SuppName,a.Company,a.InvDate as DocDate,
+a.TranType as DocType,a.InvNo as DocNo,
+a.DueDate,--a.InvAmth,
+PaidDate,a.PaidDocType,a.PaidDocNo,a.PaidAmth,
+ROW_NUMBER() over (partition by a.SuppInvNo,a.SuppCode,a.SuppName,a.InvNo order by a.SuppInvNo,a.SuppCode,a.SuppName) rownum,
+3 as Condition
+from (
+select *,dbo.ufn_REMOVE_SPECIAL_CHARACTER(SuppInvNo) SuppInvNo2 
+from ACP_As_of_Date_Payments
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+)a
+inner join
+(
+--NewCondn 4:
+select * from (
+select SuppInvNo2,--SuppInvNo,
+suppcode,SuppName,PaidAmth,count(distinct InvNo) InvCounts
+from (select dbo.ufn_REMOVE_SPECIAL_CHARACTER(SuppInvNo) SuppInvNo2, 
+company,SuppInvNo,suppcode,SuppName,PaidDate,PaidAmth,InvNo
+from ACP_As_of_Date_Payments)a
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+group by SuppInvNo2,--SuppInvNo,
+suppcode,SuppName,PaidAmth
+)a
+where InvCounts>1
+--and PaidAmth not between -100 and 100 
+)b
+on a.SuppCode=b.SuppCode
+and a.SuppName=b.SuppName
+and a.PaidAmth=b.PaidAmth
+and a.SuppInvNo2=b.SuppInvNo2
+)complete
+where rownum>=1
+order by SuppCode,SuppName,paidamth
+
+
+--dbo.ufn_REMOVE_SPECIAL_CHARACTER  --Function Created to remove special Characters
+
+
+
+update Creditors_Dup_Pay_Details set CalYear=year(PaidDate)
+update Creditors_Dup_Pay_Details set CalMonth=month(PaidDate)
+update Creditors_Dup_Pay_Details set Month_Name=substring(Datename(mm,PaidDate),1,3)
+update Creditors_Dup_Pay_Details set Finyear=CalYear-1 where CalMonth<4
+update Creditors_Dup_Pay_Details set Finyear=CalYear where CalMonth>=4
+update Creditors_Dup_Pay_Details set FinMonth=CalMonth+9 where CalMonth<4
+update Creditors_Dup_Pay_Details set FinMonth=CalMonth-3 where CalMonth>=4
+
+
+
+
+
+-----Consolidated--------------------------------------------------------------------------
+
+Insert into Creditors_Dup_Pay(SuppInvNo,suppcode,SuppName,PaidAmth,InvCounts,Condition)
+select * from (
+select SuppInvNo,suppcode,SuppName,PaidAmth,count(distinct InvNo) InvCounts,
+1 as Condition
+from ACP_As_of_Date_Payments
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+group by SuppInvNo,suppcode,SuppName,PaidAmth
+)a
+where InvCounts>1
+and PaidAmth not between -100 and 100 
+
+
+Insert into Creditors_Dup_Pay(SuppInvNo,PaidAmth,InvCounts,Condition)
+select * from (
+select SuppInvNo,PaidAmth,count(distinct InvNo) InvCounts,
+2 as Condition
+from ACP_As_of_Date_Payments
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+group by SuppInvNo,PaidAmth
+)a
+where InvCounts>1
+and PaidAmth not between -100 and 100 
+
+--Insert into Creditors_Dup_Pay(SuppInvNo,suppcode,SuppName,InvCounts,Condition)
+--select * from (
+--select SuppInvNo,suppcode,SuppName,count(distinct InvNo) InvCounts,
+--3 as Condition
+--from ACP_As_of_Date_Payments
+--where 
+--company like '4%' 
+----and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+----and InvDate between '2020-06-01' and '2020-06-30'
+--and PaidDate is not null
+--and SuppInvNo is not null
+----and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+--group by SuppInvNo,suppcode,SuppName,PaidAmth
+--)a
+--where InvCounts>1
+
+
+----Old Method before excluding Special characters in SuppInvNo
+--Insert into Creditors_Dup_Pay(suppcode,SuppName,PaidAmth,InvCounts,Condition)
+--select * from (
+--select suppcode,SuppName,PaidAmth,count(distinct InvNo) InvCounts,
+--3 as Condition
+--from ACP_As_of_Date_Payments
+--where 
+----company like '4%' 
+----and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+----and InvDate between '2020-06-01' and '2020-06-30'
+----and 
+--PaidDate is not null
+--and SuppInvNo is not null
+----and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+--group by suppcode,SuppName,PaidAmth
+--)a
+--where InvCounts>1
+--and PaidAmth not between -100 and 100 
+
+
+
+--New Method
+Insert into Creditors_Dup_Pay(SuppInvNo2,--SuppInvNo,
+suppcode,SuppName,PaidAmth,InvCounts,Condition)
+select * from (
+select SuppInvNo2,--SuppInvNo,
+suppcode,SuppName,PaidAmth,count(distinct InvNo) InvCounts,
+3 as Condition
+from (select dbo.ufn_REMOVE_SPECIAL_CHARACTER(SuppInvNo) SuppInvNo2, 
+company,SuppInvNo,suppcode,SuppName,PaidDate,PaidAmth,InvNo
+from ACP_As_of_Date_Payments)a
+where 
+--company like '4%' 
+--and company not in (411,412,413,414,415,416,417,418,419,420,421,422)
+--and InvDate between '2020-06-01' and '2020-06-30'
+--and 
+PaidDate is not null
+and SuppInvNo is not null
+--and SuppInvNo='CM11-1718-3181/21.'
+--and paiddate>='2019-04-01'
+and paiddate between '2020-04-01' and '2021-03-31'
+--and ltrim(rtrim(suppinvno)) in 
+--('MES/ATS/190245','MES/AT/S/190245','MES/AT/S/190246','MES/ATS/190246')
+group by SuppInvNo2,--SuppInvNo,
+suppcode,SuppName,PaidAmth
+)a
+where InvCounts>1
+--and PaidAmth not between -100 and 100 
+
+
+
+update Creditors_Dup_Pay set ConditionDesc='Same SuppInvNo,PaidAmt,Vendor but Diff DocNo' where Condition=1
+update Creditors_Dup_Pay set ConditionDesc='Same SuppInvNo,PaidAmt but Diff DocNo' where Condition=2
+--update Creditors_Dup_Pay set ConditionDesc='Same SuppInvNo,Vendor but Diff DocNo' where Condition=3
+update Creditors_Dup_Pay set ConditionDesc='Same PaidAmt,Vendor but Diff DocNo' where Condition=3
+
+
+update Creditors_Dup_Pay_Details set ConditionDesc='Same SuppInvNo,PaidAmt,Vendor but Diff DocNo' where Condition=1
+update Creditors_Dup_Pay_Details set ConditionDesc='Same SuppInvNo,PaidAmt but Diff DocNo' where Condition=2
+--update Creditors_Dup_Pay_Details set ConditionDesc='Same SuppInvNo,Vendor but Diff DocNo' where Condition=3
+update Creditors_Dup_Pay_Details set ConditionDesc='Same PaidAmt,Vendor but Diff DocNo' where Condition=3
+
+
+--Deleting the Duplicate occurences across the conditions 
+
+--For Checking the Duplicate occurences across the conditions
+--select SuppInvNo,SuppCode,PaidAmth,count(distinct Condition) Counts from Creditors_Dup_Pay_Details
+--group by SuppInvNo,SuppCode,PaidAmth
+--having count(distinct Condition)>1
+
+delete from Creditors_Dup_Pay_Details 
+where concat(SuppInvNo,SuppCode,PaidAmth) in 
+(select concat(SuppInvNo,SuppCode,PaidAmth) from Creditors_Dup_Pay_Details where Condition=1)
+and Condition>1
+
+
+delete from Creditors_Dup_Pay_Details 
+where concat(SuppInvNo,SuppCode,PaidAmth) in 
+(select concat(SuppInvNo,SuppCode,PaidAmth) from Creditors_Dup_Pay_Details where Condition=2)
+and Condition>2
+
+
+----For Checking the Duplicate occurences across the conditions
+--select SuppInvNo,PaidAmth,count(distinct Condition) Counts from Creditors_Dup_Pay
+--group by SuppInvNo,PaidAmth
+--having count(distinct Condition)>1
+
+--select suppcode,PaidAmth,count(distinct Condition) Counts from Creditors_Dup_Pay
+--group by suppcode,PaidAmth
+--having count(distinct Condition)>1
+
+
+delete  from Creditors_Dup_Pay
+where concat(SuppInvNo,PaidAmth) in 
+(select concat(SuppInvNo,PaidAmth) from Creditors_Dup_Pay where Condition=1)
+and  Condition>1
+
+delete  from Creditors_Dup_Pay
+where concat(suppcode,PaidAmth) in 
+(select concat(suppcode,PaidAmth) from Creditors_Dup_Pay where Condition=1)
+and  Condition>1
+
+
+
+end
+
+--select * from Creditors_Dup_Pay_Details where SuppInvNo='TEA/COFFEE/JUL 19'
+
+select * from Creditors_Dup_Pay_Details where ltrim(rtrim(suppinvno)) in 
+('MES/ATS/190245','MES/AT/S/190245','MES/AT/S/190246','MES/ATS/190246')
+
+
+
+
+Completion time: 2025-11-19T09:21:19.1333445+05:30

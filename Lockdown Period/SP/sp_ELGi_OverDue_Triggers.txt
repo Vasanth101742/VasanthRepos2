@@ -1,0 +1,309 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_OverDue_Triggers
+CREATE proc [dbo].[sp_ELGi_OverDue_Triggers] as
+
+Begin
+
+Truncate table ELGi_OverDue_Triggers
+
+--Select * from [bisdb].elgi_ln.dbo.ELGi_OverDue_Triggers
+
+--Alter table ELGi_OverDue_Triggers add PendingQty float
+--Alter table ELGi_OverDue_Triggers add Revision varchar(50)
+
+
+--Lean Trigger
+Insert into ELGi_OverDue_Triggers(company,Tri_Dt,DIVI,DEPT,ITEM,LOT_NO,SupplierNum,sceduledqty,duedate,orno,TriggerType,
+PendingQty,Revision)
+select company,DATE,DIVI,DEPT,ITEM,LOTN,SUNO,RQTY,DUDT,PONO,'LEAN' as TriggerType,
+RQTY,REVI
+from  TZZPUR014ALL where STAT <> 'C' 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+--Alter table ELGi_OverDue_Triggers add LGSC Varchar(25)
+
+update ELGi_OverDue_Triggers set RPLT=LEAN_MASTER.RPLT, 
+binqty=LEAN_MASTER.SQTY,
+TYPE=LEAN_MASTER.SOPS,
+Company=LEAN_MASTER.COMPANY,
+BUYR=LEAN_MASTER.BUYR,
+LGSC=LEAN_MASTER.LGSC
+from (select * from  TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')) LEAN_MASTER  
+where ELGi_OverDue_Triggers.DIVI = LEAN_MASTER.divi 
+and ELGi_OverDue_Triggers.dept = LEAN_MASTER.dept
+and ELGi_OverDue_Triggers.item = LEAN_MASTER.item
+
+update ELGi_OverDue_Triggers set LGSC='Allocation' where LGSC='1'
+update ELGi_OverDue_Triggers set LGSC='Stock' where LGSC='2'
+update ELGi_OverDue_Triggers set LGSC=null where LGSC='0'
+
+update ELGi_OverDue_Triggers set TYPE_DESC='Two Bin' where TYPE='1'
+update ELGi_OverDue_Triggers set TYPE_DESC='Multi Bin' where TYPE='2'
+update ELGi_OverDue_Triggers set TYPE_DESC='Milk run' where TYPE='3'
+update ELGi_OverDue_Triggers set TYPE_DESC='MR-Motors' where TYPE='4'
+update ELGi_OverDue_Triggers set TYPE_DESC='Forward Cover' where TYPE='5'
+update ELGi_OverDue_Triggers set TYPE_DESC='Single Bin' where TYPE='6'
+update ELGi_OverDue_Triggers set TYPE_DESC='Fixed Stock' where TYPE='7'
+update ELGi_OverDue_Triggers set TYPE_DESC='Reorder Point' where TYPE='8'
+
+--Alter table ELGi_OverDue_Triggers add TYPE_DESC varchar(50)
+
+--Method1
+--update ELGi_OverDue_Triggers set Exp_DT=
+----select LOT_NO,Tri_Dt,RPLT,
+--CONVERT(date,
+--dateadd(dd,
+--(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt))-2+convert(int,RPLT))%5 --step1
+--+((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt))-2+convert(int,RPLT))/5)*7 --step2
+---(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt))-2), --step3,
+--DATEADD(d,CASE DATEPART(dw,Tri_Dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Tri_Dt)) --step4 
+--) 
+----AS Exp_DT from ELGi_OverDue_Triggers
+
+
+--Non Lean Trigger
+--Alter table ELGi_OverDue_Triggers add PendingQty float
+--Alter table ELGi_OverDue_Triggers add Revision varchar(50)
+
+Insert into ELGi_OverDue_Triggers(company,LOT_NO,orno,ITEM,--Description,
+Tri_Dt,--RPLT,
+duedate,
+--TYPE,--binqty
+sceduledqty,
+--DIVI,--SUPERMARKET
+--DEPT,--DEPARTMENT
+SupplierNum,--NAMA
+BUYR,--empname,TYPE_DESC,PendingDays
+TriggerType,
+PendingQty,
+Revision
+)
+select COMPANY,LOTN,ORNO,ITEM,TDAT,DUDT,RQTY,BPID,BUYR,'NON LEAN' as TriggerType,PQTY,REVI from TZZPUR302ALL
+where company like '4%'
+and stat<>'C'
+
+
+
+update ELGi_OverDue_Triggers set TYPE=100 where TYPE is null
+update ELGi_OverDue_Triggers set TYPE_DESC='NON LEAN' where TriggerType='NON LEAN'
+
+
+update ELGi_OverDue_Triggers set PendingDays=a.PendingDays
+from (select Company,LOT_NO ,
+(SELECT
+   (DATEDIFF(dd, duedate, getdate()) )-
+   (DATEDIFF(wk, duedate, getdate()) * 2)-
+   (CASE WHEN DATENAME(dw, duedate) = 'Sunday' THEN 1 ELSE 0 END)-
+   (CASE WHEN DATENAME(dw, getdate()) = 'Saturday' THEN 1 ELSE 0 END)
+) as PendingDays
+from ELGi_OverDue_Triggers
+)a
+where ELGi_OverDue_Triggers.Company=a.Company
+and ELGi_OverDue_Triggers.LOT_NO=a.LOT_NO
+
+
+Update ELGi_OverDue_Triggers set NAMA=v.custname1
+from vw_Business_Partner v
+where ltrim(rtrim(ELGi_OverDue_Triggers.SupplierNum))=ltrim(rtrim(v.custcode))
+
+		
+-----------Item Dscription Updations--------------------------------------------------------
+--Update ELGi_OverDue_Triggers set Description=a.Description
+--from (select t_dsca as Description,t_item as itemcode from ttcibd001600)a
+--where LTRIM(RTRIM(ELGi_OverDue_Triggers.ITEM))=LTRIM(RTRIM(a.ItemCode))
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,500,551,552,480) and CompanyGroup ='ELGi')
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.ITEM))
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.DSCA))
+from ttcibd001470 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.ITEM))
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.item))
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.dsca))
+from TTCIBD001500 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company =500 )
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.item))
+
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company in (551))
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.item))
+
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company in (552))
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.item))
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.dsca))
+from ttcibd001581 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company in (581) )
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.item))
+
+--added on 19/6/2025
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.dsca))
+from ttcibd001480 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where Company in (480) )
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.item))
+
+
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.t_dsca)) 
+from TTCIBD001600 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS')
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.t_item))
+
+
+update ELGi_OverDue_Triggers set Description=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where ELGi_OverDue_Triggers.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(ELGi_OverDue_Triggers.Item))=ltrim(rtrim(a.item))
+
+
+----------End: Item Description Updations---------------------------------------------------
+
+--Update ELGi_OverDue_Triggers set empname=a.emp_name
+--from Employee_Details a 
+--where ELGi_OverDue_Triggers.BUYR=a.new_emp_code 
+
+update ELGi_OverDue_Triggers set BUYR=a.BUYR
+from (select distinct COMPANY,ITEM,BUYR from TTDIPU001ALL
+--where ltrim(rtrim(item))='970301480'
+)a
+where ELGi_OverDue_Triggers.company=a.COMPANY
+and ltrim(rtrim(ELGi_OverDue_Triggers.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+
+update ELGi_OverDue_Triggers set empname=a.NAMA
+from (select * from TTCCOM001ALL where company=400)a
+where ELGi_OverDue_Triggers.BUYR=a.EMNO 
+
+Update ELGi_OverDue_Triggers set BUYR=null where BUYR=' '
+Update ELGi_OverDue_Triggers set empname=null where BUYR is null
+
+Update ELGi_OverDue_Triggers set SUPERMARKET=a.DIVISION_NAME
+from Materials_Division_MASTER		a
+where ELGi_OverDue_Triggers.DIVI=a.DIVISION_CODE
+
+Update ELGi_OverDue_Triggers set DEPARTMENT=a.Dept_Name 
+from MATERIALS_DEPT_MASTER a
+where ELGi_OverDue_Triggers.DEPT=a.Dept_code
+
+Update ELGi_OverDue_Triggers set DueType='Within Due' where PendingDays<=0
+Update ELGi_OverDue_Triggers set DueType='Over Due' where PendingDays>0
+
+Update ELGi_OverDue_Triggers set DueTypeOrdr=1 where DueType='Within Due'
+Update ELGi_OverDue_Triggers set DueTypeOrdr=2 where DueType='Over Due'
+
+Update ELGi_OverDue_Triggers set DueSlab='Expected in Future' where DueType='Within Due' and PendingDays < 0
+Update ELGi_OverDue_Triggers set DueSlab='Expected Day after Tomorrow' where DueType='Within Due' and PendingDays = -2
+Update ELGi_OverDue_Triggers set DueSlab='Expected Today' where DueType='Within Due' and PendingDays = 0
+
+Update ELGi_OverDue_Triggers set DueSlab='1- 5 Days' where DueType='Over Due' and PendingDays between 1 and 5
+Update ELGi_OverDue_Triggers set DueSlab='6- 10 Days' where DueType='Over Due' and PendingDays between 6 and 10
+Update ELGi_OverDue_Triggers set DueSlab='11- 20 Days' where DueType='Over Due' and PendingDays between 11 and 20
+Update ELGi_OverDue_Triggers set DueSlab='Above 20 Days' where DueType='Over Due' and PendingDays > 20
+
+Update ELGi_OverDue_Triggers set DueSlabOrdr=1 where DueSlab='Expected Today'
+Update ELGi_OverDue_Triggers set DueSlabOrdr=2 where DueSlab='Expected Day after Tomorrow'
+Update ELGi_OverDue_Triggers set DueSlabOrdr=3 where DueSlab='Expected in Future'
+--Update ELGi_OverDue_Triggers set DueSlabOrdr=3 where DueSlab='Pending Days < 0'
+
+
+Update ELGi_OverDue_Triggers set DueSlabOrdr=4 where DueSlab='1- 5 Days'
+Update ELGi_OverDue_Triggers set DueSlabOrdr=5 where DueSlab='6- 10 Days'
+Update ELGi_OverDue_Triggers set DueSlabOrdr=6 where DueSlab='11- 20 Days'
+Update ELGi_OverDue_Triggers set DueSlabOrdr=7 where DueSlab='Above 20 Days'
+
+--Alter table ELGi_OverDue_Triggers add OverDueCounts int
+--Alter table ELGi_OverDue_Triggers add TypeOrder int
+Update ELGi_OverDue_Triggers set OverDueCounts=1 where DueType='Over Due'
+
+
+Update ELGi_OverDue_Triggers set TypeOrder=1 where TYPE_DESC='Milk run'
+Update ELGi_OverDue_Triggers set TypeOrder=2 where TYPE_DESC='Two Bin'
+Update ELGi_OverDue_Triggers set TypeOrder=3 where TYPE_DESC='Multi Bin'
+Update ELGi_OverDue_Triggers set TypeOrder=4 where TYPE_DESC='MR-Motors'
+Update ELGi_OverDue_Triggers set TypeOrder=5 where TYPE_DESC='NON LEAN'
+Update ELGi_OverDue_Triggers set TypeOrder=6 where TYPE_DESC='Single Bin'
+
+update ELGi_OverDue_Triggers set Category=a.CATG,VARI=a.VARI2
+from (select *,case when VARI is null or ltrim(rtrim(VARI))='' then null else VARI end as VARI2 from TZZINV310ALL where company=400) a
+where ltrim(rtrim(ELGi_OverDue_Triggers.item))=ltrim(rtrim(a.item))
+--and ELGi_OverDue_Triggers.company=a.company 
+and ELGi_OverDue_Triggers.company like '4%'
+
+update ELGi_OverDue_Triggers set VARI='Others' where VARI is null
+
+update ELGi_OverDue_Triggers set VARI_Order=1 where VARI='SEPSAC'
+update ELGi_OverDue_Triggers set VARI_Order=2 where VARI='DPSAC'
+update ELGi_OverDue_Triggers set VARI_Order=3 where VARI='LEPSAC'
+update ELGi_OverDue_Triggers set VARI_Order=4 where VARI='RCD'
+update ELGi_OverDue_Triggers set VARI_Order=5 where VARI='RLY'
+update ELGi_OverDue_Triggers set VARI_Order=6 where VARI='OFSAC'
+update ELGi_OverDue_Triggers set VARI_Order=7 where VARI='ACCESSORIES'
+update ELGi_OverDue_Triggers set VARI_Order=8 where VARI='DRIER ASSY'
+update ELGi_OverDue_Triggers set VARI_Order=9 where VARI='MOTOR'
+update ELGi_OverDue_Triggers set VARI_Order=10 where VARI='PACKING & CONS'
+--update ELGi_OverDue_Triggers set VARI_Order=11 where VARI='MOTOR' GSC
+update ELGi_OverDue_Triggers set VARI_Order=12 where VARI='ROTAIR'
+update ELGi_OverDue_Triggers set VARI_Order=13 where VARI='CAC'
+update ELGi_OverDue_Triggers set VARI_Order=14 where VARI='Sub Assly Parts'
+update ELGi_OverDue_Triggers set VARI_Order=15 where VARI='Others'
+
+
+
+
+
+
+end
+
+
+--select distinct TYPE,TYPE_DESC from ELGi_OverDue_Triggers
+
+--select count(*) from ELGi_OverDue_Triggers
+
+--select * from ELGi_OverDue_Triggers
+--where triggertype='Non Lean'
+
+
+--select distinct BUYR,empname from ELGi_OverDue_Triggers
+select * from Elgi_Overdue_Triggers
+--where ltrim(rtrim(ITEM))='970301480'
+
+--select distinct BUYR,empname from ELGi_OverDue_Triggers
+--where buyr='200910'
+--order by buyr
+
+
+
+Completion time: 2025-11-19T09:47:13.1346958+05:30

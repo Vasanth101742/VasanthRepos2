@@ -1,0 +1,104 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec SP_SalesHistory_Thailand 
+CREATE PROC [dbo].[SP_SalesHistory_Thailand] 
+as
+
+begin
+
+Truncate table SalesHistory_Thailand
+
+Insert into SalesHistory_Thailand
+--select * into SalesHistory_Thailand  from (
+select company,trantype,Invoice,Invoice_Date,
+sum(DeliveryQty) DeliveryQty,sum(Sales_amount) Sales_amount,
+dpst,dpstname,areacode,areaname,custcode,custname,Item,Item_desc,productgrp,Fin_year,Fin_month,null as Month_Name 
+from ELGi_Sales_Details a
+WHERE	a.Invoice_Date >='2017-04-01'
+and a.sales_category not in (1)
+AND a.areacode ='623'
+and a.Organ='COSEA'
+group by company,trantype,Invoice,Invoice_Date,
+dpst,dpstname,areacode,areaname,custcode,custname,Item,Item_desc,productgrp,Fin_year,Fin_month 
+--)a
+order by invoice_date
+
+
+Insert into SalesHistory_Thailand
+select Company,TranType,InvoiceNum,Date as Invoice_Date,
+sum(DeliveredQty) DeliveredQty,sum(AssesValue) AssesValue,
+Dpst,null as dpstname,Area,null as AreaName,CustCode,null as CustName,ItemCode,
+null as ItemDesc,null as Productgrp,null as Fin_year,null as Fin_month,null as Mont_Name
+from TmpSlsDespData_baan where Area='623'
+and date>='2013-04-01'
+and SaleType in (0)
+group by Company,TranType,InvoiceNum,Date,Dpst,Area,CustCode,ItemCode
+order by invoice_date
+
+
+update SalesHistory_Thailand set dpstname=a.DPSTName
+from vw_DPST_MASTER a
+where SalesHistory_Thailand.dpst=a.DPSTcode
+and SalesHistory_Thailand.dpstname is null
+
+update SalesHistory_Thailand set areaname=a.AreaName
+from vw_AREA_MASTER a
+where SalesHistory_Thailand.areacode=a.areacode
+and SalesHistory_Thailand.areaname is null
+
+
+update SalesHistory_Thailand set custname=a.custname1
+from vw_Business_Partner a
+where SalesHistory_Thailand.custcode=substring(ltrim(rtrim(a.custcode)),4,20)
+and SalesHistory_Thailand.custname is null
+
+
+update SalesHistory_Thailand set Item_desc=a.DSCA
+from TTCIBD001490 a
+where SalesHistory_Thailand.company=490
+and ltrim(rtrim(SalesHistory_Thailand.Item))=ltrim(rtrim(a.Item))
+and SalesHistory_Thailand.Item_desc is null
+
+
+update SalesHistory_Thailand set Item_desc=a.t_dsca
+from TTCIBD001400 a
+where SalesHistory_Thailand.company in (400,401,440)
+and ltrim(rtrim(SalesHistory_Thailand.Item))=ltrim(rtrim(a.t_item))
+and SalesHistory_Thailand.Item_desc is null
+
+
+--update SalesHistory_Thailand set productgrp=a.ProductGrp
+--from (select * from vw_salesmapping_master where organ not in ('India','Subsidiary')) a
+--where SalesHistory_Thailand.dpst=a.DPSTCode
+--and SalesHistory_Thailand.areacode=a.Areacode
+--and SalesHistory_Thailand.productgrp is null
+
+
+update SalesHistory_Thailand set productgrp=a.Category
+from (select distinct ItemCode,Category,ProductLine from Bud_sales_Inflow_COSEA)a
+where ltrim(rtrim(SalesHistory_Thailand.Item))=ltrim(rtrim(a.ItemCode))
+
+update SalesHistory_Thailand set productgrp=a.Category
+from (select distinct ItemCode,Category,ProductLine from Bud_sales_Inflow_ID)a
+where ltrim(rtrim(SalesHistory_Thailand.Item))=ltrim(rtrim(a.ItemCode))
+and productgrp is null
+
+
+
+
+--Alter table SalesHistory_Thailand alter column Month_Name varchar(20)
+
+update SalesHistory_Thailand set Fin_month=case when month(Invoice_Date)<4 then month(Invoice_Date)+9 else month(Invoice_Date)-3 end 
+update SalesHistory_Thailand set Fin_year=case when month(Invoice_Date)<4 then year(Invoice_Date)-1 else year(Invoice_Date) end
+update SalesHistory_Thailand set Month_Name=datename(mm,Invoice_Date)
+
+
+end
+
+select * from SalesHistory_Thailand
+--where Item_desc is null
+order by invoice_date
+
+
+
+Completion time: 2025-11-19T12:14:53.0370310+05:30

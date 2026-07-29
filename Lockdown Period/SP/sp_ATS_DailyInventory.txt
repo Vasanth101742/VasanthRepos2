@@ -1,0 +1,310 @@
+--exec sp_ATS_DailyInventory
+CREATE proc sp_ATS_DailyInventory as
+Begin
+
+
+Truncate table ATS_DailyInventory_Stage1
+Truncate table ATS_DailyInventory
+Truncate table ATS_DailyInventory2
+
+
+Insert into ATS_DailyInventory_Stage1 (COMPANY,CWAR,ITEMCODE,TRDT,QSKT,amnt)
+--select * into ATS_DailyInventory_Stage1 from (
+select a.COMPANY,a.CWAR,a.ITEM as ItemCode,b.T$TRDT TRDT,b.QSKT,(c.Amnt/b.QSTK)*b.QSKT from 
+(select COMPANY,CWAR,ITEM
+--,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$QSTK) QSTK,sum(T$QSKT) QSKT from TWHINA112ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP
+having sum(T$QSKT)>0)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.T$CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.T$ITEM))
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$AMNT$1) amnt from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP)c
+on b.COMPANY=c.COMPANY
+and b.T$CWAR=c.T$CWAR
+and b.T$ITEM=c.T$ITEM
+and b.T$TRDT=c.T$TRDT
+and b.T$SEQN=c.T$SEQN
+and b.T$INWP=c.T$INWP
+
+where a.company in ('600')
+and a.CWAR  in ('639', '649',
+'651','652','653','654','655','667','674','675')
+--)a
+
+
+
+update ATS_DailyInventory_Stage1 set item_desc=d.Description
+from
+(select t_dsca as Description,t_item as itemcode from ttcibd001600)d
+where ltrim(rtrim(ATS_DailyInventory_Stage1.itemcode)) = ltrim(rtrim(d.itemcode))
+
+--BuyerCode and SuppCode for Lean Items
+update ATS_DailyInventory_Stage1 set BuyerCode=a.BUYR,SuppCode=a.SUNO1
+from (
+select * from TZZPUR049ALL a
+where a.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BUYR is not null
+--and ltrim(rtrim(ITEM))='110460710'
+) a
+where substring(ATS_DailyInventory_Stage1.company,1,1)=substring(a.COMPANY,1,1) and 
+ltrim(rtrim(ATS_DailyInventory_Stage1.itemcode)) = ltrim(rtrim(a.ITEM))
+
+
+--BuyerCode and SuppCode for Non Lean Items
+update ATS_DailyInventory_Stage1 set BuyerCode=a.BUYR,SuppCode=a.OTBP
+from (
+select * from TTDIPU001ALL a
+where a.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) a
+where ATS_DailyInventory_Stage1.company=a.COMPANY
+and ltrim(rtrim(ATS_DailyInventory_Stage1.itemcode)) = ltrim(rtrim(a.ITEM))
+and ATS_DailyInventory_Stage1.BuyerCode is null
+
+
+update ATS_DailyInventory_Stage1 set BuyerName=a.emp_name
+from
+(select emp_code,new_emp_code,emp_name from [ELGi_Intranet].dbo.Employee_Detail) a 
+where ATS_DailyInventory_Stage1.BuyerCode= a.new_emp_code
+
+update ATS_DailyInventory_Stage1 set SuppName=a.custname1
+from vw_Business_Partner a
+where ATS_DailyInventory_Stage1.SuppCode=a.custcode
+
+
+update ATS_DailyInventory_Stage1 set binQty=a.SQTY,SOPS=a.SOPS,DivCode=a.DIVI,DeptCode=a.DEPT
+from (select * from TZZPUR049ALL 
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) a
+where ltrim(rtrim(ATS_DailyInventory_Stage1.itemcode)) = ltrim(rtrim(a.ITEM))
+
+update ATS_DailyInventory_Stage1 set DivName=a.DIVISION_NAME
+from Materials_Division_MASTER a
+where ATS_DailyInventory_Stage1.divcode=a.DIVISION_CODE
+
+
+update ATS_DailyInventory_Stage1 set DeptName=a.Dept_Name
+from MATERIALS_DEPT_MASTER a
+where ATS_DailyInventory_Stage1.Deptcode=a.Dept_code
+
+update ATS_DailyInventory_Stage1 set BinType='TWO BIN' where sops=1
+update ATS_DailyInventory_Stage1 set BinType='MULTIBIN' where sops=2
+update ATS_DailyInventory_Stage1 set BinType='MILKRUN' where sops=3
+update ATS_DailyInventory_Stage1 set BinType='MR-MOTORS' where sops=4
+update ATS_DailyInventory_Stage1 set BinType='FWD COVER' where sops=5
+update ATS_DailyInventory_Stage1 set BinType='SINGLE BIN' where sops=6
+
+
+
+--Drop table ATS_DailyInventory
+
+Insert into ATS_DailyInventory
+--select * into ATS_DailyInventory from( 
+select --COMPANY,CWAR,
+ItemCode,Item_desc,BuyerCode,BuyerName,
+SuppCode,SuppName,DivCode,DivName,DeptCode,DeptName,BinType,
+avg(binQty) as binQty,
+sum(case when cwar in ('639','649') then 0 else QSKT end ) as QSKT,
+sum(case when cwar in ('639','649') then 0 else amnt end )/sum(case when cwar in ('639','649') then 1 else QSKT end ) as UnitPrice,
+sum(case when cwar in ('639','649') then 0 else amnt end) as amnt,
+sum(case when cwar = '651' then QSKT else null end) as '651',
+sum(case when cwar = '652' then QSKT else null end) as '652',
+sum(case when cwar = '653' then QSKT else null end) as '653',
+sum(case when cwar = '654' then QSKT else null end) as '654',
+sum(case when cwar = '655' then QSKT else null end) as '655',
+sum(case when cwar = '667' then QSKT else null end) as '667',
+sum(case when cwar = '671' then QSKT else null end) as '671',
+sum(case when cwar = '674' then QSKT else null end) as '674',
+sum(case when cwar = '675' then QSKT else null end) as '675',
+null as ExcessQty,
+null as ExcessVal,
+sum(case when cwar = '639' then QSKT else null end) as '639',
+sum(case when cwar='639' then amnt else 0 end) as Amnt_639WH,
+null as ExcessQty_639WH,
+null as ExcessVal_639WH,
+sum(case when cwar='639' then amnt else 0 end )/sum(case when cwar='639' then QSKT else 1 end )UnitPrice_639WH,
+null as Productgroup_MRP,
+
+sum(case when cwar = '649' then QSKT else null end) as '649',
+sum(case when cwar='649' then amnt else 0 end) as Amnt_649WH,
+null as ExcessQty_649WH,
+null as ExcessVal_649WH,
+sum(case when cwar='649' then amnt else 0 end )/sum(case when cwar='649' then QSKT else 1 end )UnitPrice_649WH
+
+from ATS_DailyInventory_stage1
+--where DeptCode is not null
+--and ItemCode='         004101028'
+group by --COMPANY,CWAR,
+ItemCode,Item_desc,BuyerCode,BuyerName,
+SuppCode,SuppName,DivCode,DivName,DeptCode,DeptName,BinType
+--)a
+
+
+--Alter table ATS_DailyInventory add [649]	float
+--Alter table ATS_DailyInventory add Amnt_649WH	float
+--Alter table ATS_DailyInventory add ExcessQty_649WH	float
+--Alter table ATS_DailyInventory add ExcessVal_649WH	float
+--Alter table ATS_DailyInventory add UnitPrice_649WH	float
+
+--Alter table ATS_DailyInventory alter column ExcessQty float
+--Alter table ATS_DailyInventory alter column ExcessVal float
+
+
+update ATS_DailyInventory set ExcessQty=QSKT-binQty where QSKT>binQty
+update ATS_DailyInventory set ExcessVal=(QSKT-binQty)*UnitPrice  where QSKT>binQty
+
+
+--Alter table ATS_DailyInventory add ExcessQty_639WH float
+--Alter table ATS_DailyInventory add ExcessVal_639WH float
+--Alter table ATS_DailyInventory add UnitPrice_639WH float
+
+update ATS_DailyInventory set ExcessQty_639WH=[639]-binQty where [639]>binQty
+update ATS_DailyInventory set ExcessVal_639WH=([639]-binQty)*UnitPrice_639WH  where [639]>binQty
+
+update ATS_DailyInventory set ExcessQty_649WH=[649]-binQty where [649]>binQty
+update ATS_DailyInventory set ExcessVal_649WH=([649]-binQty)*UnitPrice_649WH  where [649]>binQty
+
+--Alter table ATS_DailyInventory add Productgroup_MRP varchar(50)
+
+--update ATS_DailyInventory set Productgroup_MRP=a.[Group]
+--from ATS_MRP_Itemwise_LeadTime a
+--where ltrim(rtrim(ATS_DailyInventory.ItemCode))=ltrim(rtrim(a.TPL))
+
+
+
+-------------------------------Ver2
+
+--Drop table ATS_DailyInventory2
+
+Insert into ATS_DailyInventory2
+--select * into ATS_DailyInventory2 from( 
+select COMPANY,CWAR,
+ItemCode,Item_desc,BuyerCode,BuyerName,
+SuppCode,SuppName,DivCode,DivName,DeptCode,DeptName,BinType,
+avg(binQty) as binQty,
+sum(QSKT) as QSKT,
+sum(amnt)/sum (QSKT) as UnitPrice,
+sum(amnt) as amnt,
+sum(case when cwar = '651' then QSKT else null end) as '651',
+sum(case when cwar = '652' then QSKT else null end) as '652',
+sum(case when cwar = '653' then QSKT else null end) as '653',
+sum(case when cwar = '654' then QSKT else null end) as '654',
+sum(case when cwar = '655' then QSKT else null end) as '655',
+sum(case when cwar = '667' then QSKT else null end) as '667',
+sum(case when cwar = '671' then QSKT else null end) as '671',
+sum(case when cwar = '674' then QSKT else null end) as '674',
+sum(case when cwar = '675' then QSKT else null end) as '675',
+null as ExcessQty,
+null as ExcessVal,
+null as PriceSource,
+null as Currency,
+null as CurRate,
+sum(case when cwar = '639' then QSKT else null end) as '639',
+null as Productgroup_MRP
+from ATS_DailyInventory_stage1
+--where DeptCode is not null
+--and ItemCode='         004101028'
+group by COMPANY,CWAR,
+ItemCode,Item_desc,BuyerCode,BuyerName,
+SuppCode,SuppName,DivCode,DivName,DeptCode,DeptName,BinType
+--)a
+
+
+--Alter table ATS_DailyInventory2 alter column ExcessQty float
+--Alter table ATS_DailyInventory2 alter column ExcessVal float
+--Alter table ATS_DailyInventory2 alter column PriceSource varchar(25)
+--Alter table ATS_DailyInventory2 alter column Currency varchar(25)
+--Alter table ATS_DailyInventory2 alter column CurRate float
+--Alter table ATS_DailyInventory2 add Productgroup_MRP varchar(50)
+
+
+update ATS_DailyInventory2 set UnitPrice=null where company=600 and DeptCode is not null
+
+
+--Unit price update from the Monthly file data provided by ATS Materials Team 
+update ATS_DailyInventory2 set UnitPrice=a.Unitprice,PriceSource='FileData',Currency='IND',CurRate=1
+from 
+(
+select * from
+(select *,row_number() over (partition by Company,Wh,Item order by Company,Wh,Item,period desc) rnk from 
+(select Company,Wh,Item,concat(Year,Month) as Period,avg(isnull(Unitprice,0)) Unitprice
+--,count(Unitprice) Unitprice 
+from ATS_Inv_UnitPrice
+group by Company,Wh,Item,concat(Year,Month))a
+)b
+where rnk=1
+) a
+where ATS_DailyInventory2.company=a.Company
+and ltrim(rtrim(ATS_DailyInventory2.cwar))=ltrim(rtrim(a.Wh))
+and ltrim(rtrim(ATS_DailyInventory2.ItemCode))=ltrim(rtrim(a.Item))
+and ATS_DailyInventory2.DeptCode is not null
+
+
+----Unit price update from the PBS Table for the missing items in the File shared by ATS
+----Method 1
+----update ATS_DailyInventory2 set UnitPrice=a.BAPR
+----from (select OTBP,ITEM,BAPR,EXDT from TTDPCG031ALL where EXDT >getdate()--'9999-01-01 00:00:00.000'
+----and PRBK='pur000001' )a
+----where ltrim(rtrim(ATS_DailyInventory2.SuppCode))=ltrim(rtrim(a.OTBP))
+----and ltrim(rtrim(ATS_DailyInventory2.ItemCode))=ltrim(rtrim(a.ITEM))
+----and ATS_DailyInventory2.UnitPrice is null
+
+
+
+--Method 2 
+update ATS_DailyInventory2 set PriceSource='PBS',Currency=b.CURN,CurRate=b.RATE,UnitPrice=b.BAPR
+from (
+select * from (
+select *,ROW_NUMBER() over (partition by a.otbp,a.item,a.curn,a.bapr,a.efdt order by b.stdt desc) DateRnk from 
+(select OTBP,ITEM,CURN,BAPR,EFDT,EXDT from TTDPCG031ALL where EXDT >getdate()-1
+and PRBK='pur000001')a
+left outer join
+(select CCUR,RATE,STDT from TTCMCS008ALL where ccur<>'IND' and bcur='IND')b
+on a.CURN=b.CCUR
+and a.EFDT>=b.STDT
+where ltrim(rtrim(a.OTBP)) <>''
+)a
+where DateRnk=1
+)b
+where ltrim(rtrim(ATS_DailyInventory2.SuppCode))=ltrim(rtrim(b.OTBP))
+and ltrim(rtrim(ATS_DailyInventory2.ItemCode))=ltrim(rtrim(b.ITEM))
+and ATS_DailyInventory2.DeptCode is not null
+and ATS_DailyInventory2.UnitPrice is null
+
+
+update ATS_DailyInventory2 set CurRate=1 where PriceSource='PBS' and Currency='IND'
+and ATS_DailyInventory2.DeptCode is not null
+
+update ATS_DailyInventory2 set UnitPrice=UnitPrice*CurRate where PriceSource='PBS'
+and ATS_DailyInventory2.DeptCode is not null
+
+
+update ATS_DailyInventory2 set amnt=isnull(UnitPrice,0)* QSKT where DeptCode is not null
+
+
+update ATS_DailyInventory2 set ExcessQty=QSKT-binQty where QSKT>binQty 
+update ATS_DailyInventory2 set ExcessVal=(QSKT-binQty)*UnitPrice  where QSKT>binQty
+
+
+
+update ATS_DailyInventory2 set deptcode=9999,deptname='ZZZ' where DeptCode is null
+
+delete from ATS_DailyInventory2 where QSKT is null or QSKT=0
+
+
+
+end
+
+select * from ATS_DailyInventory where [639] is not null
+--where ltrim(rtrim(ItemCode)) in ('3899YS013','S38010')
+--select * from ATS_DailyInventory2 where ltrim(rtrim(ItemCode)) in ('3899YS013','S38010')
+

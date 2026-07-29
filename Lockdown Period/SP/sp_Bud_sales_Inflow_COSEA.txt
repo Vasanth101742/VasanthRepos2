@@ -1,0 +1,183 @@
+--exec sp_Bud_sales_Inflow_COSEA
+--select * from Bud_sales_Inflow_COSEA
+
+CREATE proc [sp_Bud_sales_Inflow_COSEA] as 
+begin
+
+Truncate table Bud_sales_Inflow_COSEA
+
+Insert into Bud_sales_Inflow_COSEA(Organ,DPSTCode,DPSTName,AreaCode,AreaName,
+--DealerCode,DealerName,Category,ProductLine,company,warehouse,
+ItemCode,Cal_month,Cal_year,Fin_month,Fin_year,Budget,Budget_USD,Budget_Foreign_Currency,BudQty) 
+
+select 
+ltrim(rtrim(c.Organ)) as Organ,
+c.DPSTCode,c.DPSTName,
+a.Area,ltrim(rtrim(c.areaname)) as areaname,
+ltrim(rtrim(a.item_code)) as item_code,
+month(a.date) as CalMonth,
+year(a.date) as CalYear,
+case when month(a.date) < 4 then month(a.date)+9 else month(a.date)-3 end Fin_month,
+case when month(a.date) < 4 then year(a.date)-1 else year(a.date) end Fin_year,
+sum(target) as Budget, 
+sum(Budget_USD) as Budget_USD,
+sum(Budget_Foreign_Currency)  as Budget_Foreign_Currency,
+sum(qty) as BudQty
+FROM	Itemwise_Budget a
+	INNER JOIN vw_AREA_MASTER b
+		ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.Area))
+	INNER JOIN vw_SALESMAPPING_MASTER c
+		ON ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode))    
+		and ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+where organ='COSEA'
+GROUP BY ltrim(rtrim(b.Global)),ltrim(rtrim(c.Organ)),ltrim(rtrim(c.region)),ltrim(rtrim(c.Zone)),
+ltrim(rtrim(c.user_names)),ltrim(rtrim(c.Division)),ltrim(rtrim(c.Vertical1)),
+a.Area,ltrim(rtrim(c.areaname)),c.DPSTCode,c.DPSTName,a.item_code,month(a.date),year(a.date)
+
+
+--Alter table Bud_sales_Inflow_COSEA add Budget_Foreign_Currency float,Sales_Foreign_currency float,Inflow_Foreign_currency float
+
+Insert into Bud_sales_Inflow_COSEA(Organ,DPSTCode,DPSTName,AreaCode,AreaName,
+CustCode,CustName,company,warehouse,ItemCode,Cal_month,Cal_year,Fin_month,Fin_year,
+Sales_amount,Inflow_amount,Sales_USD,Inflow_USD,Sales_Foreign_currency,Inflow_Foreign_currency,SalesQty,Item_desc) 
+
+select a.organ,a.Dpst,a.dpstname,a.Areacode,a.AreaName,
+a.custcode,a.custname,a.company,a.warehouse,ltrim(rtrim(a.Item)) ,a.cal_Month,a.cal_year,
+a.Fin_month,a.Fin_year,sum(Sales_amount) as Sales_amount,
+sum(isnull(inf.sales,0)) as inflow_amount,
+sum(isnull(Sales_USD,0)) as Sales_USD,
+sum(isnull(inf.Inflow_USD,0)) as Inflow_USD,
+sum(isnull(Foreign_currency_amount,0)) as Sales_Foreign_currency,
+sum(isnull(Inflow_Foreign_currency,0)) as Inflow_Foreign_currency,
+sum(DeliveryQty) as SalesQty,
+Item_desc 
+FROM 	
+ELGi_Sales_Details a 
+full outer join 
+(select Company,OrderDate,OrderNum,PositionNum,Dpst,AreaCode,CustCode, 
+sum(sales) sales,
+sum(Sales_USD) as Inflow_USD,
+sum(Foreign_currency_amount) as Inflow_Foreign_currency
+from Sales_Inflow
+group by Company,OrderDate,OrderNum,PositionNum,Dpst,AreaCode,CustCode) inf
+on  a.company=inf.Company
+and a.OrderNo=inf.OrderNum
+AND A.PositionNo=inf.PositionNum
+and a.dpst=inf.Dpst
+and a.areacode=inf.AreaCode
+and month(a.Invoice_Date)=month(inf.OrderDate)
+and year(a.Invoice_Date)=year(inf.OrderDate)
+and ltrim(rtrim(a.custcode))=ltrim(rtrim(inf.CustCode))
+
+
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+and a.Organ='COSEA'
+GROUP BY a.organ,a.Dpst,a.dpstname,a.Areacode,a.AreaName,
+a.custcode,a.custname,a.company,a.warehouse,ltrim(rtrim(a.Item)) ,a.cal_Month,a.cal_year,
+a.Fin_month,a.Fin_year,Item_desc
+
+
+
+update Bud_sales_Inflow_COSEA set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.itemcode))=ltrim(rtrim(a.t_item))
+and Bud_sales_Inflow_COSEA.item_desc is null
+
+
+update Bud_sales_Inflow_COSEA set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.itemcode))=ltrim(rtrim(a.item))
+and Bud_sales_Inflow_COSEA.item_desc is null
+
+update Bud_sales_Inflow_COSEA set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.itemcode))=ltrim(rtrim(a.item))
+and Bud_sales_Inflow_COSEA.item_desc is null
+
+
+update Bud_sales_Inflow_COSEA set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.itemcode))=ltrim(rtrim(a.item))
+and Bud_sales_Inflow_COSEA.item_desc is null
+
+
+update Bud_sales_Inflow_COSEA set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001553 a
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.itemcode))=ltrim(rtrim(a.item))
+and Bud_sales_Inflow_COSEA.item_desc is null
+
+
+update Bud_sales_Inflow_COSEA set Item_desc=a.Item_desc
+from (select distinct itemcode,item_desc from Bud_sales_Inflow_COSEA where item_desc is not null) a
+where Bud_sales_Inflow_COSEA.itemcode=a.ItemCode
+and (Bud_sales_Inflow_COSEA.item_desc is null or ltrim(rtrim(Bud_sales_Inflow_COSEA.item_desc))='')
+
+
+update Bud_sales_Inflow_COSEA set category=a.category,productline=a.productline
+from ItemMaster_COSEA a
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.itemcode))=ltrim(rtrim(a.ItemCode))
+--and Bud_sales_Inflow_COSEA_ver2.company=a.Company
+
+--Old Method
+--update Bud_sales_Inflow_COSEA_ver2 set dealerCode=dlr.DealerCode,Dealername=dlr.DealerName
+--from Dealer_Master_COSEA dlr
+--where ltrim(rtrim(substring(Bud_sales_Inflow_COSEA_ver2.custcode,4,9)))=ltrim(rtrim(substring(dlr.DealerCode,4,9)))
+--and Bud_sales_Inflow_COSEA_ver2.Areacode=dlr.CountryCode
+
+--New Method
+update Bud_sales_Inflow_COSEA set dealerCode=dlr.CustCode,Dealername=dlr.CustName
+from (select * from DealerMaster_COSEA) dlr
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.custcode))=ltrim(rtrim(dlr.CustCode))
+and Bud_sales_Inflow_COSEA.Areacode=dlr.areacode
+
+
+update Bud_sales_Inflow_COSEA set SalesRep=dlr.SalesRep
+from (
+select * from DealerMaster_COSEA
+union
+select * from customerMaster_COSEA
+) dlr
+where ltrim(rtrim(Bud_sales_Inflow_COSEA.custcode))=ltrim(rtrim(dlr.CustCode))
+and Bud_sales_Inflow_COSEA.Areacode=dlr.areacode
+
+
+update Bud_sales_Inflow_COSEA  set  DealerName='1Direct Sales'
+where DealerCode is null and Sales_amount<>0
+
+
+
+update Bud_sales_Inflow_COSEA set category_ordr=1 where  Category= 'EPSAC'
+update Bud_sales_Inflow_COSEA set category_ordr=2 where  Category= 'OFSAC'
+update Bud_sales_Inflow_COSEA set category_ordr=3 where  Category= 'DPSAC'
+update Bud_sales_Inflow_COSEA set category_ordr=4 where  Category= 'RECIP'
+update Bud_sales_Inflow_COSEA set category_ordr=5 where  Category= 'ACCESSSORIES'
+update Bud_sales_Inflow_COSEA set category_ordr=6 where  Category= 'SPARES'
+
+update Bud_sales_Inflow_COSEA set productline_ordr=1 where  Category= 'EPSAC' and ProductLine='S0'
+update Bud_sales_Inflow_COSEA set productline_ordr=2 where  Category= 'EPSAC' and ProductLine='S1'
+update Bud_sales_Inflow_COSEA set productline_ordr=3 where  Category= 'EPSAC' and ProductLine='S2'
+update Bud_sales_Inflow_COSEA set productline_ordr=4 where  Category= 'EPSAC' and ProductLine='L0'
+update Bud_sales_Inflow_COSEA set productline_ordr=5 where  Category= 'EPSAC' and ProductLine='L1&L2'
+
+
+end
+
+
+
+--select * from Bud_sales_Inflow_COSEA where Fin_year=2017 and Fin_month=7 
+--and CustCode in ('CU1A00004','CU1A00010','CU1A03273','CU1A03464','CU1A03805','CU1C00001','CU1C00014','CU1C01251',
+--'CU1F00001','CU1J00005','CU1K00002','CU1L00001','CU1M00003','CU1M00004','CU1M00009','CU1M03798','CU1N00005',
+--'CU1P00008','CU1P00009','CU1P02910','CU1Q00003','CU1R02532','CU1T00001','DC0011','DE0001','DH0021','DH0027','DJ0003',
+--'DJ0005','DJ0014','DL0005','DN0013','DS0004','DS0007','DS0029','DS0049','DT0002','DT0004','DX0003')
+----and DealerName like '1Direct Sales' 
+----and SalesRep like '%kh%'
+
+
+
+--select * from DealerMaster_COSEA 
+--where CustCode in  ('CU1A00004','CU1A00010','CU1A03273','CU1A03464','CU1A03805','CU1C00001','CU1C00014','CU1C01251',
+--'CU1F00001','CU1J00005','CU1K00002','CU1L00001','CU1M00003','CU1M00004','CU1M00009','CU1M03798','CU1N00005',
+--'CU1P00008','CU1P00009','CU1P02910','CU1Q00003','CU1R02532','CU1T00001','DC0011','DE0001','DH0021','DH0027','DJ0003',
+--'DJ0005','DJ0014','DL0005','DN0013','DS0004','DS0007','DS0029','DS0049','DT0002','DT0004','DX0003')

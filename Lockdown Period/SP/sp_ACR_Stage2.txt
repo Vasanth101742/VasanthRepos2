@@ -1,0 +1,452 @@
+--exec sp_Debtors_DocdtWise
+--exec sp_ACR_Stage2
+CREATE PROCEDURE  [dbo].[sp_ACR_Stage2]
+as
+
+begin
+
+declare @gdate as datetime
+select @gdate = getdate()
+
+Truncate table ACR_Tmp1
+Truncate table ACR_Tmp2
+Truncate table ACR_Tmp3
+Truncate table ACR_Tmp4
+Truncate table ACR_Stage2
+
+
+insert into ACR_Tmp1 
+select  a.Company, a.Trantyp, a.InvNo, a.[LineNo],  a.DocDt, a.CustNo, a.PurNo,  a.DocTyp, a.CTranTyp,
+a.CDocNo, a.AmntHome, a.SalRep, c.Area, a.CurDiffAmnt, a.BalAmnt, a.Refrence, a.FDisAmntHome, 
+a.SDisAmntHome, a.TDisAmntHome,  a.PayDiff, a.PayDiffHome, a.Proj, b.FinCustGrp, 
+a.AmntInv, a.FdisAmntInv, a.SDisAmntInv, a.TDisAmntInv, a.PayDiffInv,  a.BankCost, 
+a.BankCostHome, a.DueDt, a.PayTerm, a.BalHome, a.BalAnti, a.BalAntiHome, a.Fyear,a.Fprod,
+a.Cur, a.CurRate,null,'','','',0,a.SalRep,0,0,0,0,0,0,0,0,0,0,0,0
+from ACR_Stage1 a
+left outer join
+(select distinct itbp as CustCode,cfcg as FinCustGrp from TTCCOM112ALL where company=400) b
+on ltrim(rtrim(a.CustNo))=ltrim(rtrim(b.CustCode))
+left outer join 
+(select distinct ofbp as CustCode,creg as Area from TTCCOM110ALL where company=400) c
+on ltrim(rtrim(a.CustNo)) = ltrim(rtrim(c.CustCode))
+
+where a.Company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi') 
+and b.FinCustGrp <> '004' 
+and a.doctyp in (1) and (a.cdocno = 0)
+--and CustNo='CUSW00003' and invno='17009040' --For Testing
+
+	
+--Old Method
+--from ACR_Stage1 a,
+--(select distinct itbp as CustCode,cfcg as FinCustGrp from TTCCOM112ALL where company=400) b,
+--(select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) c
+--where  a.CustNo = b.CustCode 
+--and a.CustNo = c.CustCode 
+--and b.FinCustGrp <> '004' 
+--and a.doctyp in (1) and (a.cdocno = 0)
+
+insert into ACR_Tmp1 
+select  a.Company, a.Trantyp, a.InvNo, a.[LineNo],  a.DocDt, a.CustNo, a.PurNo,  a.DocTyp, a.CTranTyp,
+a.CDocNo, a.AmntHome, a.SalRep, c.Area, a.CurDiffAmnt, a.BalAmnt, a.Refrence, a.FDisAmntHome, 
+a.SDisAmntHome, a.TDisAmntHome,  a.PayDiff, a.PayDiffHome, a.Proj, b.FinCustGrp, 
+a.AmntInv, a.FdisAmntInv, a.SDisAmntInv, a.TDisAmntInv, a.PayDiffInv,  a.BankCost, 
+a.BankCostHome, a.DueDt, a.PayTerm, a.BalHome, a.BalAnti, a.BalAntiHome, a.Fyear,a.Fprod,
+a.Cur, a.CurRate,null,'','','',0,a.SalRep,0,0,0,0,0,0,0,0,0,0,0,0
+from ACR_Stage1 a
+left outer join
+(select distinct itbp as CustCode,cfcg as FinCustGrp from TTCCOM112ALL where company=600) b
+on ltrim(rtrim(a.CustNo))=ltrim(rtrim(b.CustCode))
+left outer join 
+(select distinct ofbp as CustCode,creg as Area from TTCCOM110ALL where company=400) c
+on ltrim(rtrim(a.CustNo)) = ltrim(rtrim(c.CustCode))
+
+where a.Company in (select company from ELGI_Companies_Master where CompanyGroup='ATS') 
+and b.FinCustGrp <> '004' 
+and a.doctyp in (1) and (a.cdocno = 0)
+--and CustNo='CUSW00003' and invno='17009040' --For Testing
+
+
+	
+update ACR_Tmp1 set cur='IND' where cur='INR' 	
+	
+update ACR_Tmp1 set SlsRef=a.refa,
+area_tmp=a.area,
+payterm=a.PaymentTerm
+--ProductGrp = a.dpst,                                                      --Commented on 5 May 2017
+from  Sales_Header a 
+where a.company = ACR_Tmp1.company 
+and a.OrderNum = ACR_Tmp1.PurNo
+and a.CustCode  = ACR_Tmp1.CustNo 
+--and #Tmp1.Company in (400,600,490)                                        --Commented on 5 May 2017
+--(100 ,101,102,104,105) 
+and ACR_Tmp1.DocTyp = 1 
+and ACR_Tmp1.CDocNo = 0 
+	
+	
+
+update ACR_Tmp1 set proj=replace(Proj,'e','f') 
+where doctyp=1 and cdocno=0
+--update #Tmp1 set ProductGrp = cast(proj as int)                           --Commented on 5 May 2017
+--where ProductGrp = 999999 
+--and isnumeric(proj) =1 
+--and  #Tmp1.DocTyp = 1 and #Tmp1.CDocNo = 0 
+	
+--update #Tmp1 set ProductGrp = 90040   
+--where ProductGrp = 999999 
+--and docdt <= '06/30/2000' 
+--and company in
+--(600,490)
+----(101,102) 
+--and #Tmp1.DocTyp = 1 and #Tmp1.CDocNo = 0
+
+update ACR_Tmp1 set tdivision=0 
+where  ACR_Tmp1.DocTyp = 1 and ACR_Tmp1.CDocNo = 0
+	
+update ACR_Tmp1 set tdivision = b.DivisionCode 
+from Division_Master a, vw_DPST_Master b 
+where b.DpstCode = ACR_Tmp1.ProductGrp
+and a.DivisionCode = b.DivisionCode
+and ACR_Tmp1.DocTyp = 1 
+and ACR_Tmp1.CDocNo = 0
+and ACR_Tmp1.company not like '6%'
+
+
+update ACR_Tmp1 set tdivision = b.DivisionCode 
+from Division_Master a, DPST_Master_ATS b 
+where b.DpstCode = ACR_Tmp1.ProductGrp
+and a.DivisionCode = b.DivisionCode
+and ACR_Tmp1.DocTyp = 1 
+and ACR_Tmp1.CDocNo = 0
+and ACR_Tmp1.company like '6%'
+
+	
+update ACR_Tmp1 set tdivision=10  
+where tdivision=0 and ACR_Tmp1.DocTyp = 1 and ACR_Tmp1.CDocNo = 0
+
+update ACR_Tmp1 set crep_c=SalRep 
+where ACR_Tmp1.DocTyp = 1 and ACR_Tmp1.CDocNo = 0
+
+--update #Tmp1 set #Tmp1.area_tmp  = cast(area as int)                             --Commented on 5 May 2017
+--where isnumeric(area) =1 
+--and ltrim(rtrim(area)) <> '\' 
+--and #Tmp1.DocTyp = 1 and #Tmp1.CDocNo = 0
+
+--update #Tmp1 set crep_area=0                                                     --Commented on 5 May 2017
+--where #Tmp1.DocTyp = 1 and #Tmp1.CDocNo = 0
+
+	
+--update #Tmp1 set #Tmp1.crep_area = a.area                                        --Commented on 5 May 2017
+--from SalesRepByDivAndArea a  
+--where  a.Division = #Tmp1.tdivision 
+--and a.Area = #Tmp1.area_tmp 
+--and a.SalesRep = #Tmp1.crep_c 
+--and a.ExpiryDate is null  
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0                                                     
+
+--update #Tmp1 set #Tmp1.crep_area = #Tmp1.crep_c	                                 --Commented on 5 May 2017
+--where  #Tmp1.crep_area =0 
+--and  len(str(#Tmp1.crep_c)) = 2
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+
+--update #Tmp1 set #Tmp1.crep_area = #Tmp1.area_tmp 	                               --Commented on 5 May 2017
+--where  #Tmp1.crep_area =0  
+--and len(str(#Tmp1.crep_c)) <> 2 
+--and #Tmp1.area_tmp <> 0
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+--update #Tmp1 set #Tmp1.crep_area = 0 	                                             --Commented on 5 May 2017
+--where  #Tmp1.crep_area =0  
+--and len(str(#Tmp1.crep_c)) <> 2 
+--and #Tmp1.area_tmp = 0
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+--update #Tmp1 set #Tmp1.crep_c = 1 	                                                 --Commented on 5 May 2017
+--where  #Tmp1.crep_area =0  
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+--update #Tmp1 set #Tmp1.crep_area = 11 	                                              --Commented on 5 May 2017
+--where  #Tmp1.crep_area  in(13,14) 
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+--update #Tmp1 set #Tmp1.crep_area = 21 	                                               --Commented on 5 May 2017
+--where  #Tmp1.crep_area  in(22,23,24) 
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+--update #Tmp1 set #Tmp1.crep_area = 42 	                                                --Commented on 5 May 2017
+--where  #Tmp1.crep_area = 44 
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+--update #Tmp1 set #Tmp1.crep_area = 54 	    --Commented on 5 May 2017
+--where  #Tmp1.crep_area = 55 
+--and #Tmp1.DocTyp = 1 
+--and #Tmp1.CDocNo = 0
+
+insert into ACR_Tmp2 
+select max(a.docdt)as docdt,a.company,a.CustNo,a.Trantyp,a.invno,a.[lineno],
+--sum(isnull(a.AmntHome,0)) as AmntHome, --Commented on 20-Jul-2018
+sum(isnull(a.AmntHome,0) + isnull(PayDiffHome,0) + isnull(CurDiffAmnt,0) + isnull(FDisAmntHome,0)) as AmntHome, --Added on 20-Jul-2018
+sum(a.CurDiffAmnt) as CurDiffAmnt,sum(a.FDisAmntHome) as FDisAmntHome,sum(a.SDisAmntHome) as SDisAmntHome,
+sum(a.TDisAmntHome) as TDisAmntHome,sum(a.PayDiff) as PayDiff,sum(a.PayDiffHome) as PayDiffHome,
+--sum(isnull(a.AmntInv,0)) as AmntInv,  --Commented on 20-Jul-2018
+sum(isnull(a.AmntInv,0) + isnull(PayDiffInv,0) + isnull(FDisAmntInv,0) ) as AmntInv, --Added on 20-Jul-2018
+sum(a.FdisAmntInv) as FdisAmntInv,sum(a.SDisAmntInv) as SDisAmntInv,
+sum(a.TDisAmntInv) as TDisAmntInv,sum(a.PayDiffInv) as PayDiffInv,sum(a.BankCost) as BankCost,
+sum(a.BankCostHome) as BankCostHome,0,0  
+
+from ACR_Stage1 a
+where a.CDocNo <> 0 
+and  a.CTranTyp != '   '
+--	and CustNo='CUSW00003' and invno='17009040' --For Testing
+
+group by  a.company,a.custno,trantyp,a.invno,a.[lineno]
+
+	
+update ACR_Tmp1 set AamntHome=b.AmntHome,FDisAmntHome=b.FDisAmntHome,SDisAmntHome=b.SDisAmntHome,
+TDisAmntHome=b.TDisAmntHome,PayDiff= b.PayDiff,PayDiffHome=b.PayDiffHome,[AamntInv] = b.AmntInv, 
+CurDiffAmnt= b.CurDiffAmnt,FdisAmntInv = b.FdisAmntInv ,SDisAmntInv = b.SDisAmntInv,
+TDisAmntInv= b.TDisAmntInv,PayDiffInv=b.PayDiffInv,BankCost=b.BankCost,BankCostHome=b.BankCostHome
+from ACR_Tmp2 b 
+where  ACR_Tmp1.company=b.company   
+and  ACR_Tmp1.CustNo=b.custno 
+and  ACR_Tmp1.TranTyp = b.trantyp 
+and ACR_Tmp1.InvNo = b.invno
+and ACR_Tmp1.[LineNo]= b.[LineNo] 
+and ACR_Tmp1.doctyp=1 
+
+
+update ACR_Tmp1 set AamntInv=0 where AamntInv is null 
+update ACR_Tmp1 set AamntHome=0 where AamntHome is null
+update ACR_Tmp1 set Abalamnt= 0,ABalHome=0  where abs(ACR_Tmp1.AamntInv) = abs(ACR_Tmp1.AmntInv)
+
+update ACR_Tmp1 set Abalamnt= abs(ACR_Tmp1.AmntInv) - abs(ACR_Tmp1.Aamntinv)  
+where abs(ACR_Tmp1.AamntInv) <> abs(ACR_Tmp1.AmntInv)
+
+update ACR_Tmp1 set aBalHome= abs(ACR_Tmp1.amnthome) - abs(ACR_Tmp1.AamntHome)  
+where abs(ACR_Tmp1.AamntInv) <> abs(ACR_Tmp1.AmntInv)
+and (ACR_Tmp1.cur = 'IND'   and ACR_Tmp1.currate = 1.00)
+
+update ACR_Tmp1 set aBalHome= ACR_Tmp1.abalamnt * ACR_Tmp1.currate  
+where abs(ACR_Tmp1.AamntInv) <> abs(ACR_Tmp1.AmntInv)
+and (ACR_Tmp1.cur <> 'IND'  
+and ACR_Tmp1.currate <> 1.00)
+
+update ACR_Tmp1 set ACR_Tmp1.aBalHome= 0,ACR_Tmp1.aamnthome = ACR_Tmp1.aamnthome + 1 
+where abs(ACR_Tmp1.AamntInv) <> abs(ACR_Tmp1.AmntInv)
+and aBalHome =1
+
+--declare @gdate as datetime
+--select @gdate = getdate()
+
+update ACR_Tmp1 set diffdays= datediff(day,ACR_Tmp1.duedt,@gdate ) 
+where @gdate > convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+
+update ACR_Tmp1 set dueamt = aBalHome 
+where @gdate  >= convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+		
+update ACR_Tmp1 set DAmtHC30 = ABalHome  
+where diffdays <= 30 and @gdate > convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+
+update ACR_Tmp1 set DAmtHC31_60 = ABalHome  
+where (diffdays >= 31 and diffdays <= 60) and @gdate  > convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+
+update ACR_Tmp1 set DAmtHC61_90 = ABalHome  where (diffdays >= 61 and diffdays <= 90) 
+and @gdate  > convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+
+update ACR_Tmp1 set DAmtHC91_180 = ABalHome  
+where (diffdays >= 91 and diffdays <= 180) 
+and @gdate  > convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+
+update ACR_Tmp1 set DAmtHCGT180 = ABalHome  
+where diffdays >= 181 and @gdate > convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+
+update ACR_Tmp1 set undueamt = aBalHome 
+where @gdate  < convert(datetime,convert(varchar,ACR_Tmp1.duedt,101)) 
+
+
+--Truncate Table ACR_Stage2
+insert into ACR_Stage2( 
+company,Trantyp,InvNo ,[LineNo] ,CustNo ,ProductGrp,Division,Area,CustomerGroup,SalRep ,
+DocDt ,Cur, CurRate,UnlinkCrdInvCur,UnlinkCrdHomeCur,InvAmntInInvCur ,InvAmntInHomeCur,
+FDisAmntInvCur,FDisAmntHomeCur ,SDisAmntInvCur,SDisAmntHomeCur ,TDisAmntInvCur,TDisAmntHomeCur,
+PayDiffInv,PayDiffHome ,BankCostInvCur ,BankCostHomeCur ,CurDiffBas ,CurDiffAmnt ,RealCurDiff ,
+DueDt ,Refrence ,PayTerm , Proj ,PurNo ,RecAmntInvCur ,RecAmntHomeCur ,
+RecAntiInvCur ,RecAntiHomeCur ,BalAmntInvCur ,BalAmntHomeCur ,BalAntiInvCur ,BalAntiHomeCur,
+Fyear ,Fprod ,SalRepAsInACR , DueAmt, UnDueAmt, DueAmtHC30 ,DueAmtHC31_60 ,
+DueAmtHC61_90 ,DueAmtHC91_180, DueAmtHCGT180)  
+
+select  company,trantyp,invno,[lineno],custno,productgrp,tdivision,crep_area,fincustgrp,crep_c,
+docdt,cur,currate,0,0,AmntInv,amnthome,
+fdisamntinv,fdisamnthome,sdisamntinv,sdisamnthome,tdisamntinv,tdisamnthome,
+paydiffinv,paydiffhome,bankcost,bankcosthome,0,curdiffamnt,0,
+DueDt,refrence,PayTerm,proj,purno,aamntinv,aamnthome,
+0,0,abalamnt,ABalHome,BalAnti,BalAntiHome,
+Fyear,Fprod,salrep,dueamt,undueamt,DAmtHC30,DAmtHC31_60,
+DAmtHC61_90,DAmtHC91_180,DAmtHCGT180 
+from ACR_Tmp1 
+--where (ACR_Tmp1.abalhome <> 0 or ACR_Tmp1.abalamnt <> 0) 
+where ACR_Tmp1.abalamnt not between -1 and 1 --Method 2 updated on 20-May-2024
+--and concat(company,Trantyp,InvNo)='480ICC33000174' for testing purpose
+
+----------------------------------------------------------------------------------------------------------------
+--Part 2:
+----------------------------------------------------------------------------------------------------------------
+
+delete from ACR_Stage1 where DocDt<'1950-01-01'
+
+insert into ACR_Tmp3 (Company,Trantyp,InvNo,[LineNo],DocDt,CustNo,PurNo,DocTyp,CTranTyp,
+CDocNo,AmntHome,SalRep,Area,CurDiffAmnt,BalAmnt,Refrence,FDisAmntHome,
+SDisAmntHome,TDisAmntHome,PayDiff,PayDiffHome,Proj,FinCustGrp,
+AmntInv,FdisAmntInv,SDisAmntInv,TDisAmntInv,PayDiffInv,BankCost,
+BankCostHome,DueDt,PayTerm,BalHome,BalAnti,BalAntiHome,Fyear,Fprod,
+Cur,CurRate,ProductGrp,slsref,area_tmp,tdivision,crep_c,crep_area,
+AamntInv,AamntHome,ABalHome,ABalAmnt,DAmtHC30,DAmtHC31_60,DAmtHC61_90,DAmtHC91_180,DAmtHCGT180,diffdays,dueamt,undueamt)
+
+select  a.Company, a.Trantyp, a.InvNo, a.[LineNo],  a.DocDt, a.CustNo, a.PurNo,  a.DocTyp, a.CTranTyp,
+a.CDocNo, a.AmntHome, a.SalRep, c.Area, a.CurDiffAmnt, a.BalAmnt, a.Refrence, a.FDisAmntHome, 
+a.SDisAmntHome, a.TDisAmntHome,  a.PayDiff, a.PayDiffHome, replace(a.Proj,'e','f'), '   ', 
+a.AmntInv, a.FdisAmntInv, a.SDisAmntInv, a.TDisAmntInv, a.PayDiffInv,  a.BankCost, 
+a.BankCostHome, a.DueDt, a.PayTerm, a.BalHome, a.BalAnti, a.BalAntiHome, a.Fyear,a.Fprod,
+a.Cur, a.CurRate,null,'','0','0','0',a.SalRep,
+'0','0','0','0','0','0','0','0','0','0','0','0'
+from    ACR_Stage1 a,
+(select distinct itbp as CustCode,cfcg as FinCustGrp from TTCCOM112ALL where company=400) b,
+(select distinct ofbp as CustCode,creg as Area from TTCCOM110ALL where company=400) c
+
+where a.CustNo = b.CustCode 
+and a.CustNo = c.CustCode 
+and doctyp in(4,9,10,11,12) 
+and cdocno = 0
+--	and CustNo='CUSW00003' and invno='17009040' --For Testing
+
+
+
+
+insert into ACR_Tmp4(company,CustNo,Trantyp,invno,[lineno],
+AmntHome,
+CurDiffAmnt,FDisAmntHome,SDisAmntHome,TDisAmntHome,PayDiff,PayDiffHome,
+AmntInv,
+FdisAmntInv,SDisAmntInv,TDisAmntInv,PayDiffInv,BankCost,BankCostHome,BalHome,balamnt)
+
+select a.company,a.CustNo,a.Trantyp,a.invno,a.[lineno],
+sum(isnull(a.AmntHome,0) + isnull(PayDiffHome,0) + isnull(CurDiffAmnt,0) + isnull(FDisAmntHome,0)) as AmntHome, --Modified on 20-Jul-2018
+0,0,0,0,0,0,
+sum(isnull(a.AmntInv,0) + isnull(PayDiffInv,0) + isnull(FDisAmntInv,0) ) as AmntInv, --Modified on 20-Jul-2018
+0,0,0,0,0,0,0,0
+from  ACR_Stage1 a
+where a.CTranTyp <> '   ' 
+and a.CDocNo   <> 0  
+--	and CustNo='CUSW00003' and invno='17009040' --For Testing
+group by a.company,a.CustNo,a.Trantyp,a.invno,a.[lineno]
+
+
+update ACR_Tmp3 set [AamntInv] = b.AmntInv,[AamntHome] = b.AmntHome 
+from ACR_Tmp4 b 
+where  ACR_Tmp3.company=b.company   and  ACR_Tmp3.CustNo=b.custno 
+and  ACR_Tmp3.TranTyp = b.trantyp 
+and ACR_Tmp3.InvNo = b.invno  
+and ACR_Tmp3.[LineNo]= b.[LineNo] 
+	
+	
+update ACR_Tmp3 set AamntInv=0 where AamntInv is null
+update ACR_Tmp3 set AamntHome=0 where AamntHome is null
+
+update ACR_Tmp3 set Abalamnt= 0,ABalHome=0  
+where abs(ACR_Tmp3.AamntInv) = abs(ACR_Tmp3.AmntInv)
+
+update ACR_Tmp3 set Abalamnt= AmntInv + aamntinv  
+where abs(ACR_Tmp3.AamntInv) <> abs(ACR_Tmp3.AmntInv)
+
+update ACR_Tmp3 set ABalHome= amnthome + aamnthome 
+where abs(ACR_Tmp3.AamntInv) <> abs(ACR_Tmp3.AmntInv)
+	 
+
+update ACR_Tmp3 set diffdays = datediff(day,ACR_Tmp3.duedt,@gdate)  where 	 @gdate  > ACR_Tmp3.duedt
+update ACR_Tmp3 set dueamt   = aBalHome where @gdate  >  ACR_Tmp3.duedt
+update ACR_Tmp3 set DAmtHC30 = ABalHome where diffdays <= 30 and  @gdate  > ACR_Tmp3.duedt
+update ACR_Tmp3 set DAmtHC31_60 = ABalHome where (diffdays >= 31 and diffdays <= 60) and @gdate > ACR_Tmp3.duedt
+update ACR_Tmp3 set DAmtHC61_90  = ABalHome where (diffdays >= 61 and diffdays <= 90) and  @gdate > ACR_Tmp3.duedt
+update ACR_Tmp3 set DAmtHC91_180 = ABalHome where (diffdays >= 91 and diffdays <= 180) and  @gdate > ACR_Tmp3.duedt
+update ACR_Tmp3 set DAmtHCGT180  = ABalHome where diffdays >= 181 and  @gdate > ACR_Tmp3.duedt
+update ACR_Tmp3 set undueamt     = aBalHome where @gdate  < ACR_Tmp3.duedt
+
+
+--Alter table ACR_Stage2 alter column SalRepAsInACR nvarchar(18)
+	  
+insert into ACR_Stage2( company,Trantyp,InvNo ,[LineNo] ,CustNo ,
+ProductGrp,Division,Area,
+CustomerGroup,SalRep ,DocDt ,Cur,CurRate,
+BalAmntInvCur ,BalAmntHomeCur,
+InvAmntInInvCur ,InvAmntInHomeCur,FDisAmntInvCur,FDisAmntHomeCur ,
+SDisAmntInvCur,SDisAmntHomeCur ,TDisAmntInvCur,TDisAmntHomeCur,
+PayDiffInv,PayDiffHome ,BankCostInvCur ,BankCostHomeCur ,
+CurDiffBas ,CurDiffAmnt ,RealCurDiff ,DueDt ,
+Refrence ,PayTerm , Proj ,
+PurNo ,RecAmntInvCur ,RecAmntHomeCur ,RecAntiInvCur ,RecAntiHomeCur ,
+UnlinkCrdInvCur,UnlinkCrdHomeCur,BalAntiInvCur ,BalAntiHomeCur,
+Fyear ,Fprod ,SalRepAsInACR , DueAmt, UnDueAmt, 
+DueAmtHC30 ,DueAmtHC31_60 ,DueAmtHC61_90 ,DueAmtHC91_180, DueAmtHCGT180	
+)
+								
+								
+select company,trantyp,invno,[lineno],custno,
+null,0,0,  
+fincustgrp,0,docdt,cur,currate,
+abalamnt,abalhome,
+--BalAmnt,BalHome,
+AmntInv,AmntHome,FdisAmntInv,FDisAmntHome, 
+SDisAmntInv,SDisAmntHome,TDisAmntInv,TDisAmntHome,
+PayDiffInv,PayDiffHome,BankCost,BankCostHome,
+0,CurDiffAmnt,0,DueDt,
+refrence,0,proj,
+PurNo,0,0,0,0,
+0,0,0,0,
+Fyear,Fprod,salrep,dueamt,undueamt,
+DAmtHC30,DAmtHC31_60,DAmtHC61_90,DAmtHC91_180,DAmtHCGT180
+
+from ACR_Tmp3 
+--where (ACR_Tmp3.abalhome <> 0 or ACR_Tmp3.abalamnt <> 0)
+where ACR_Tmp3.abalamnt not between -1 and 1 --Method 2 updated on 20-May-2024
+and concat(company,Trantyp,InvNo)='480ICC33000174'
+--and concat(Company,Trantyp,InvNo)='50077114000004' for testing purpose
+
+
+
+--Added on 5 MAY 2017
+
+-------------------------------------AREA UPDATION------------------------------------------
+
+
+update  ACR_Stage2 set Area=v.CustAreaCode
+from vw_Business_Partner v
+where ltrim(rtrim(ACR_Stage2.CustNo))=ltrim(rtrim(v.custcode))
+
+--Below Code Updated on 03-Dec-2020
+
+--Alter table ACR_Stage2 add diffdays float
+
+update ACR_Stage2 set BalAmntHomeCur =abs(InvAmntInHomeCur)-abs(RecAmntHomeCur)
+
+--declare @gdate as datetime
+--select @gdate = getdate()
+
+update ACR_Stage2 set diffdays = datediff(day,DueDt,@gdate)  where 	 @gdate  > DueDt
+update ACR_Stage2 set dueamt   = BalAmntHomeCur where @gdate  >  DueDt
+update ACR_Stage2 set DueAmtHC30 = BalAmntHomeCur where diffdays <= 30 and  @gdate  > DueDt
+update ACR_Stage2 set DueAmtHC31_60 = BalAmntHomeCur where (diffdays >= 31 and diffdays <= 60) and @gdate > DueDt
+update ACR_Stage2 set DueAmtHC61_90  = BalAmntHomeCur where (diffdays >= 61 and diffdays <= 90) and  @gdate > DueDt
+update ACR_Stage2 set DueAmtHC91_180 = BalAmntHomeCur where (diffdays >= 91 and diffdays <= 180) and  @gdate > DueDt
+update ACR_Stage2 set DueAmtHCGT180  = BalAmntHomeCur where diffdays >= 181 and  @gdate > DueDt
+update ACR_Stage2 set undueamt     = BalAmntHomeCur where @gdate  < DueDt
+
+
+
+end

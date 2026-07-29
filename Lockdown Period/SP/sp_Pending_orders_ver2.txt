@@ -1,0 +1,900 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Exec [sp_Pending_orders_ver2]
+CREATE Proc [sp_Pending_orders_ver2] as
+begin
+
+Truncate table Pending_orders
+
+
+Insert into Pending_orders(Company,CustCode,ItemCode,OrderDate,OrderNum,PositionNum,seq,
+ord_qty,--ShipQty,DelQty,PendQty,
+TaxCode,DeliveryDate,WareHouse,Price,DiscPerc1,DiscPerc2,
+t_rats_1,t_oamt,Value,diffdays
+--,Item_desc,Custname,Dpstname,areacode,areaname,Dpst,ordertype,Buyer,
+--origin,orjn,Indent,STOCK_440_act,STOCK_440_onhand,STOCK_401_act,
+--STOCK_401_onhand,STOCK_416_act,STOCK_416_onhand,STOCK_450_act,
+--STOCK_450_onhand,STOCK_490_act,STOCK_490_onhand,STOCK_DEL_act,
+--STOCK_DEL_onhand,STOCK_CAL_act,STOCK_CAL_onhand,Baan_orderno,
+--Baan_positionno,Cancel_Qty,Zone,OrderMonthNo,OrderMonth,OrderMonthYear
+--Origin_desc,Region,Sale_Type,Tax_Desc,HSN_CODE,GSTN_NO,PRICE_ORIGIN,
+--BP_SEQ_NO,Ref,Old_orderno,Old_positionno,State,Sales_Inv_Address,Cust_Inv_Address
+--Sales_GSTN_NO,Cust_GSTN_NO,SALES_SEQ,Cust_SEQ,cust_state,Sales_state,plan_del_Date,
+--disc_origin,Blocked,currency,plan_recp_date,MaxQty,Monthwise_Ordqty,ExportOrder,
+--invoice,inv_date,dest_type,issue_item,itemtype,itemclass,isss,estimated_date,
+--lead_days,NATIONAL_HOLIDAYS,typ,shpment_date,Delay_days,trantype,Mitachi,
+--Hanva,ShipmentNo,packingslip_comp_Date,STOCK_490_blocked,Next_Due_Date1,
+--Next_Due_Date2,Reason1,Reason2,Supplier,PendValue_USD,Rate_USD,
+--PendValue_ForeignCurrency,shipment,CurrRate,Cust_Req_Date
+)
+select L.Company,L.CustCode,L.ItemCode,L.OrderDate,L.OrderNum ,L.PositionNum,L.t_sqnb,--L.invnum,
+L.t_qoor as ord_qty,L.TaxCode,L.DeliveryDate,L.WareHouse,
+(l.Price* (case when h.t_rats_1=0 or h.t_rats_1 is null then 1 else h.t_rats_1 end)) as Price,
+DiscPerc1,DiscPerc2,H.t_rats_1,L.t_oamt, 
+(l.t_oamt* (case when h.t_rats_1=0 or h.t_rats_1 is null then 1 else h.t_rats_1 end)) as Value,
+DATEDIFF(dd,L.OrderDate,getdate())as diffdays
+From Sales_Header h
+inner join (Select * from Sales_Lines where orderdate>='2022-04-01'
+and t_clyn<>1
+and t_qoor > 0
+--and t_sqnb=0 
+) L
+on H.Company =L.Company 
+and ltrim(rtrim(H.OrderNum))=ltrim(rtrim(L.OrderNum))
+
+
+--Fetching Shipping Qty
+Update Pending_orders set ShipQty=a.ShipQty
+from (
+select COMPANY,WORN as OrderNum , WPON as PosNum,sum(convert(float,QSHP))as ShipQty 
+from TWHINH431ALL 
+where convert(float,QSHP)>0 and company in (401) and WORG =1
+ group by COMPANY,WORN,WPON
+union all
+select COMPANY,t$orno as OrderNum , t$pono as PosNum,sum(t$qpli)as ShipQty  from  TWHINH480ALL
+where t$qpli>0 and COMPANY in (490) group by COMPANY,t$orno ,t$pono
+
+)a
+where Pending_orders.Company=a.COMPANY
+and Pending_orders.OrderNum=a.OrderNum
+and Pending_orders.PositionNum=a.PosNum
+
+
+--Fetching Deliverd Qty
+Update Pending_orders set DelQty=c.DelQty
+from (select COMPANY,ORNO,PONO,sum(QIDL) as DelQty from 
+sales_delivery
+--TTDSLS406ALL 
+where QIDL>0 
+--and INVN <>0 
+group by COMPANY,ORNO,PONO
+)c
+where Pending_orders.Company=c.COMPANY
+and Pending_orders.OrderNum=c.ORNO
+and Pending_orders.PositionNum=c.PONO
+
+
+--update pending_orders set Cancel_Qty=a.qty 
+--from (select company,OrderNum,PositionNum,t_clyn,sum(t_qoor)as qty 
+--From Sales_Lines 
+--where t_clyn=1 and t_qoor>0 
+--group by OrderNum,PositionNum,t_clyn,Company 
+--)a
+--where a.Company =pending_orders.Company 
+--and a.OrderNum =pending_orders.OrderNum 
+--and a.PositionNum =pending_orders.PositionNum 
+
+
+
+update Pending_orders set PendQty=ord_qty-isnull(DelQty,0)
+update pending_orders set ShipQty =isnull(ShipQty,0)-isnull(DelQty,0)
+
+delete from Pending_orders where PendQty=0
+delete from Pending_Orders  where CONCAT(company,ordertype) in
+(select distinct CONCAT(company,saleordertype)as type  From saletype_master where Sales_Category =1)
+
+
+update pending_orders set Cust_Req_Date=a.Cust_Date
+from (select distinct SaleOrderno,PONO,item,Cust_Date from utn_ver1)a
+where pending_orders.OrderNum=a.SaleOrderno
+and pending_orders.PositionNum=a.PONO
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.Item))
+
+update pending_orders set Cust_Req_Date=a.elgi_requesteddispatchdatebycustomer
+from (select distinct substring(elgi_aonumber,11,3) as Company,--elgi_aonumber,
+substring(elgi_aonumber,1,9) as elgi_aonumber ,elgi_requesteddispatchdatebycustomer 
+from [ELGI_CRM].dbo.Salesorder_CRM
+where elgi_requesteddispatchdatebycustomer is not null and elgi_aonumber is not null)a
+where pending_orders.OrderNum=a.elgi_aonumber
+and pending_orders.Company=a.Company
+
+update pending_orders set plan_del_date=a.t_ddta,ISSS=A.InvIssStat  
+from (select distinct Company,OrderNum,PositionNum,t_ddta,InvIssStat from Sales_Lines) a
+where pending_orders.Company =a.Company
+and pending_orders.OrderNum =a.OrderNum
+and pending_orders.PositionNum =a.PositionNum 
+
+update pending_orders set plan_recp_date=a.planrecdate  
+from (select distinct Company,OrderNum,PositionNum,planrecdate from Sales_Lines) a
+where pending_orders.Company =a.Company
+and pending_orders.OrderNum =a.OrderNum
+and pending_orders.PositionNum =a.PositionNum
+
+
+update pending_orders set Dpst=h.Dpst,
+ordertype=H.ordertype,
+origin=h.origin,
+Indent=case when h.t_corn=' ' then h.RefA else h.t_corn end
+from (select distinct Company,OrderNum,ordertype,Dpst,origin,RefA,t_corn From Sales_Header where dpst not like '%[a-z]%') h
+where pending_orders.OrderNum =h.OrderNum 
+and pending_orders.Company =h.Company 
+
+update pending_orders set orjn='EDI' where Origin=3 
+update pending_orders set orjn='Manual' where Origin<>3 
+
+-----------------DPST Update for 551,552---------------------------------
+update Pending_Orders   set  dpst  = TTCIBD001551.dpst 
+from 
+(select b.dpst,item from TTCIBD001551 a 
+inner join  producttype_aust_master b on a.CTYP = b.t$ctyp) TTCIBD001551
+where Pending_Orders.Company=551
+and ltrim(rtrim(TTCIBD001551.item)) = ltrim(rtrim(Pending_Orders.ItemCode )) 
+
+
+update Pending_Orders  set  dpst  = TTCIBD001552.dpst from 
+(select b.dpst,item from  TTCIBD001552 a
+inner join  producttype_indo_master b on a.CTYP = b.t$ctyp) TTCIBD001552
+where Pending_Orders.Company=552
+and ltrim(rtrim(TTCIBD001552.item)) = ltrim(rtrim(Pending_Orders.ItemCode)) 
+
+
+--------------End: DPST Update for 551,552--------------------------------
+-----------------Buyer, Supplier Update-----------------------------------
+	
+update Pending_orders  set Buyer= a.BUYER,supplier=a.SUPPLIER 
+From (
+SELECT  A.ITEM ,B.NAMA  AS SUPPLIER ,C.NAMA AS BUYER 
+FROM (SELECT DISTINCT LTRIM(RTRIM(ITEM))AS ITEM,OTBP,BUYR 
+FROM TTDIPU001ALL WHERE COMPANY =490)A
+LEFT OUTER JOIN (select * from TTCCOM100ALL where company=400) B
+ON A.OTBP =B.bpid 
+LEFT OUTER JOIN (select  EMNO, NAMA,COMPANY  From TTCCOM001ALL 
+where company=400 and nama is not null and NAMA <>'')C
+ON A.BUYR =C.EMNO
+)a
+where LTRIM(RTRIM(Pending_orders.ItemCode)) =LTRIM(RTRIM(a.ITEM)) 
+AND Pending_orders.Company =490
+
+
+update Pending_orders set Buyer= a.BUYER,supplier=a.SUPPLIER
+from (
+SELECT  A.ITEM ,B.NAMA AS SUPPLIER ,C.NAMA AS BUYER 
+FROM(SELECT DISTINCT LTRIM(RTRIM(ITEM))AS ITEM,OTBP,BUYR 
+FROM TTDIPU001ALL WHERE COMPANY <>490)A
+LEFT OUTER JOIN (select * from TTCCOM100ALL where company=400) B
+ON A.OTBP =B.bpid 
+LEFT OUTER JOIN (select  EMNO, NAMA,COMPANY 
+From TTCCOM001ALL where company=400 and nama is not null and NAMA <>'')C
+ON A.BUYR =C.EMNO)a
+where LTRIM(RTRIM(Pending_orders.ItemCode)) =LTRIM(RTRIM(a.ITEM)) 
+AND Pending_orders.Company <>490
+
+-----------------End: Buyer, Supplier Update--------------------------------
+
+update pending_orders set Baan_orderno=b.OORN,Baan_positionno=b.OPOS
+from (select * From tsacom999all where type=2)b
+where ltrim(rtrim(OrderNum)) =ltrim(rtrim(b.NORN ))
+and ltrim(rtrim(PositionNum)) =ltrim(rtrim(b.NPOS))
+
+
+update pending_orders set custname=a.custname1
+from vw_Business_Partner a
+where pending_orders.custcode=a.custcode
+
+update pending_orders set custname=a.SEAK 
+from (select * from TTCCOM110ALL where company=551) a
+where pending_orders.custcode=a.OFBP 
+and pending_orders.Company in (551)
+
+update pending_orders set custname=a.SEAK 
+from (select * from TTCCOM110ALL where company=552) a
+where pending_orders.custcode=a.OFBP 
+and pending_orders.Company in (552)
+
+
+update pending_orders set dpstname=a.DPSTName
+from vw_DPST_MASTER a
+where pending_orders.dpst=a.dpstcode
+
+-------------------------Area, Zone Update---------------------------------
+
+update Pending_orders set areacode=a.Area  
+from Sales_Header a
+where Pending_orders.company =a.Company 
+and Pending_orders.OrderNum =a.OrderNum 
+
+update Pending_orders set areacode=a.CustAreaCode 
+from vw_Business_Partner a
+where ltrim(rtrim(Pending_orders.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Pending_orders.areacode))=''
+and Pending_orders.company not in (551,552,951)
+
+update Pending_orders set areacode =b.IndentArea
+from (select distinct concat('0',substring(RefA,2,2)) IndentArea,* From Sales_Header 
+where len(ltrim(rtrim(RefA)))=9 and RefA is not null
+and concat('0',substring(RefA,2,2)) like '%[0-9]%'
+)b
+where Pending_orders.company =b.Company 
+and Pending_orders.OrderNum =b.OrderNum
+and Pending_orders.areacode like '0%' 
+AND Pending_orders.company not in (551,552,951) 
+
+update Pending_orders set areacode=a.CustAreaCode 
+from vw_Business_Partner  a
+where ltrim(rtrim(Pending_orders.CustCode))=ltrim(rtrim(a.custcode)) 
+and Pending_orders.areacode is null
+and Pending_orders.company not in (551,552,951)
+
+update Pending_orders set areacode=a.CustAreaCode 
+from vw_Business_Partner_IAS a
+where ltrim(rtrim(Pending_orders.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(Pending_orders.areacode))=''
+and Pending_orders.company in (951)
+
+update Pending_orders set areacode=a.CustAreaCode 
+from vw_Business_Partner_IAS  a
+where ltrim(rtrim(Pending_orders.CustCode))=ltrim(rtrim(a.custcode)) 
+and Pending_orders.areacode is null
+and Pending_orders.company in (951)
+
+
+--Special Case: Updating Areacode for Australia and Indonesia companies (551,552)
+update Pending_orders set areacode='631' where company=551 and OrderDate >='2017-04-01'
+update Pending_orders set areacode='624' where company=552 and OrderDate >='2017-04-01'
+
+update pending_orders set areaname=a.AreaName
+from vw_AREA_MASTER  a
+where ltrim(rtrim(pending_orders.Areacode)) =ltrim(rtrim(a.Areacode ))
+
+update pending_orders set Zone=a.ATS_Zone 
+from vw_AREA_MASTER  a
+where ltrim(rtrim(pending_orders.Areacode)) =ltrim(rtrim(a.Areacode ))
+and ltrim(rtrim(pending_orders.Company)) like '6%' 
+
+update pending_orders set Zone=a.Zone 
+from vw_AREA_MASTER  a
+where ltrim(rtrim(pending_orders.Areacode)) =ltrim(rtrim(a.Areacode ))
+and ltrim(rtrim(pending_orders.Company)) not like '6%' 
+
+
+-------------------------End: Area,Zone Update---------------------------------
+----------------------------Item Desc Update---------------------------------
+
+update pending_orders set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where pending_orders.company like '4%' and item_desc is null
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.t_item))
+
+update pending_orders set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001465 a
+where pending_orders.company =465
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.item))
+
+update pending_orders set item_desc=ltrim(rtrim(a.dsca))
+from ttcibd001470 a
+where pending_orders.company =470
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.item))
+
+
+update pending_orders set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where pending_orders.company =490
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.item))
+
+update pending_orders set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001500 a
+where pending_orders.company =500
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.item))
+
+update pending_orders set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where pending_orders.company =551
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.item))
+
+
+update pending_orders set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where pending_orders.company =552
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.item))
+
+
+update pending_orders set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where pending_orders.company like '6%'
+and ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(a.t_item))
+
+
+------------------------End : Item Desc Update--------------------------------
+
+update pending_orders set Origin_desc='Dealer Portal' WHERE pending_orders.origin=3
+update pending_orders set Origin_desc='Manual' WHERE pending_orders.origin<>3
+update pending_orders set Origin_desc='Converted' WHERE convert(date,OrderDate)='2017-07-03'
+ 
+update pending_orders set Region='Exports' WHERE substring(OrderNum,1,2)='29'
+update pending_orders set Region='Domestic' WHERE substring(OrderNum,1,2)<>'29'
+
+update pending_orders set sale_type='NON FOC'
+update pending_orders set sale_type='FOC'
+WHERE CONCAT(COMPANY,ordertype) IN (SELECT CONCAT(COMPANY,SALEORDERTYPE) FROM saletype_master WHERE Sales_Category IN (1) )
+
+
+update pending_orders set ref=b.t_corn 
+from (select distinct company,OrderNum,PositionNum,ltrim(rtrim(ItemCode))as Item,t_corn from Sales_Lines )b
+where pending_orders.Company =b.Company
+and pending_orders.OrderNum=b.OrderNum 
+and pending_orders.PositionNum =b.PositionNum 
+and ltrim(rtrim(pending_orders.ItemCode)) =ltrim(rtrim(b.Item)) 
+
+update pending_orders set HSN_CODE=b.t_hcod_l 
+from (select distinct company,OrderNum,PositionNum,ltrim(rtrim(ItemCode))as Item,t_hcod_l from Sales_Lines )b
+where pending_orders.Company =b.Company
+and pending_orders.OrderNum=b.OrderNum 
+and pending_orders.PositionNum =b.PositionNum 
+and ltrim(rtrim(pending_orders.ItemCode)) =ltrim(rtrim(b.Item)) 
+
+update pending_orders set PRICE_ORIGIN=case when  b.t_porg =4 then 'Manual' ELSE 'System' end
+from (select distinct company,OrderNum,PositionNum,ltrim(rtrim(ItemCode))as Item,t_porg from Sales_Lines )b
+where pending_orders.Company =b.Company
+and pending_orders.OrderNum=b.OrderNum 
+and pending_orders.PositionNum =b.PositionNum 
+and ltrim(rtrim(pending_orders.ItemCode)) =ltrim(rtrim(b.Item)) 
+
+update pending_orders set BP_SEQ_NO=b.t_rnsb_l 
+from (select distinct company,OrderNum,PositionNum,ltrim(rtrim(ItemCode))as Item,t_rnsb_l from Sales_Lines )b
+where pending_orders.Company =b.Company
+and pending_orders.OrderNum=b.OrderNum 
+and pending_orders.PositionNum =b.PositionNum 
+and ltrim(rtrim(pending_orders.ItemCode)) =ltrim(rtrim(b.Item)) 
+
+
+update pending_orders set shipment=a.shpm
+from(select distinct * From (
+select shpm,COMPANY,WORN as OrderNum , WPON as PosNum
+from TWHINH431ALL 
+where convert(float,QSHP)>0 and company in (401) and WORG =1
+union all
+select t$shpm,COMPANY,t$orno as OrderNum , t$pono as PosNum from  TWHINH480ALL
+where t$qpli>0 and COMPANY in (490) 
+)a)a
+where pending_orders.Company =a.Company
+and pending_orders.OrderNum=a.OrderNum 
+and pending_orders.PositionNum =a.PosNum 
+
+
+update pending_orders set GSTN_NO=b.FOVN  from (
+select distinct A.company,A.OrderNum,A.PositionNum,ltrim(rtrim(A.ItemCode))as Item,A.t_rnsb_l,B.FOVN 
+from Sales_Lines A 
+LEFT OUTER JOIN (SELECT DISTINCT SEQN$L,FOVN,BPID  FROM TTCTAX400ALL where Company=400 and CATG$L =9) B
+ON A.t_rnsb_l=B.SEQN$L
+and a.CustCode =b.BPID 
+)b
+where pending_orders.Company =b.Company
+and pending_orders.OrderNum=b.OrderNum 
+and pending_orders.PositionNum =b.PositionNum 
+and ltrim(rtrim(pending_orders.ItemCode)) =ltrim(rtrim(b.Item)) 
+
+
+----------------------------Tax Update------------------------------------------
+
+update Pending_Orders set TaxCode=a.TaxCode 
+from (select distinct OrderNum,PositionNum,TaxCode from Sales_Lines 
+where concat(OrderNum,PositionNum,t_sqnb) in 
+(select concat(OrderNum,PositionNum,max(t_sqnb)) From Sales_Lines 
+where Company =490 and invnum=0 group by OrderNum,PositionNum)   
+and Company =490
+)a
+where Pending_Orders.OrderNum=a.OrderNum 
+and Pending_Orders.PositionNum =a.PositionNum    
+and Pending_Orders.Company =490 
+
+
+update Pending_Orders set TaxCode=a.TaxCode 
+from (select distinct OrderNum,PositionNum,TaxCode 
+from Sales_Lines 
+where concat(OrderNum,PositionNum,t_sqnb) in
+(select concat(OrderNum,PositionNum,max(t_sqnb)) From Sales_Lines where Company =401  and invnum=0 group by OrderNum,PositionNum)   
+and Company =401
+)a
+where Pending_Orders.OrderNum=a.OrderNum 
+and Pending_Orders.PositionNum =a.PositionNum    
+and Pending_Orders.Company =401 
+
+
+update pending_orders set Tax_Desc= b.DSCA 
+from  (SELECT DISTINCT CVAT,DSCA  fROM TTCMCS037ALL where company=400)b
+where pending_orders.taxcode=b.CVAT 
+
+
+------------------------End: Tax Update------------------------------------------
+
+update pending_orders set Old_orderno=b.Old_ordernum 
+from (select distinct company,T$ORNO as Old_ordernum,T$PONO as Old_positionnum,
+T$NORN as new_ordernum,T$NPON as new_positionnum  From TZZPUR930All 
+where T$SALE=1 and COMPANY =490) B
+where pending_orders.Company =b.COMPANY 
+and pending_orders.OrderNum =b.new_ordernum 
+and pending_orders.PositionNum =b.new_positionnum 
+
+update pending_orders set Old_positionno=b.Old_positionnum
+from (select distinct company,T$ORNO as Old_ordernum,T$PONO as Old_positionnum,
+T$NORN as new_ordernum,T$NPON as new_positionnum  From TZZPUR930All 
+where T$SALE=1 and COMPANY =490) B
+where pending_orders.Company =b.COMPANY 
+and pending_orders.OrderNum =b.new_ordernum 
+and pending_orders.PositionNum =b.new_positionnum 
+
+
+update pending_orders set state=a.state 
+from (select a.Company,a.OrderNum,b.CSTE as state
+From (select distinct t_itad,Company,OrderNum  From Sales_Header)a
+left outer join (select distinct CSTE,CADR from  TTCCOM130ALL where company=400)b
+on ltrim(rtrim(a.t_itad)) =ltrim(rtrim(b.CADR)) 
+)a
+where pending_orders.Company =a.Company 
+and pending_orders.OrderNum =a.OrderNum 
+
+
+update pending_orders set cust_Inv_Address=cadr
+from (select * from TTCCOM112ALL  where COMPANY =400)a
+where pending_orders.CustCode =a.itbp
+
+update pending_orders set Cust_GSTN_NO=b.FOVN,cust_SEQ=b.SEQN$L
+from (SELECT DISTINCT FOVN,SEQN$L,BPID,CADR$L FROM  TTCTAX400ALL 
+where company=400 and CATG$L =9)b
+where pending_orders.CustCode =b.BPID
+and pending_orders.cust_Inv_Address=b.CADR$L
+
+
+update pending_orders set Sales_Inv_Address =b.Sales_Inv_Address,ExportOrder=b.t_expo_l 
+from (select distinct COMPANY,t_itad as Sales_Inv_Address,CustCode,ORDERNUM,t_expo_l   from sales_header A)b
+where pending_orders.company=b.COMPANY
+and pending_orders.custcode=b.CustCode
+and pending_orders.ordernum=b.ORDERNUM
+
+
+update pending_orders set Sales_GSTN_NO =b.FOVN,SALES_SEQ =b.SEQN$L
+from (SELECT DISTINCT FOVN,SEQN$L,BPID,CADR$L FROM  TTCTAX400ALL where company=400 and CATG$L =9)b
+where pending_orders.CustCode =b.BPID
+and pending_orders.Sales_Inv_Address =b.CADR$L
+
+update pending_orders set cust_state=b.cste
+from (select distinct cadr,cste  From TTCCOM130ALL where company=400)b
+where pending_orders.Sales_Inv_Address =b.CADR 
+
+	
+update pending_orders set Sales_state=b.cste
+from (select distinct cadr,cste  From TTCCOM130ALL where company=400)b
+where pending_orders.Cust_Inv_Address =b.CADR 
+
+update pending_orders set disc_origin=a.disc_origin from 
+(select distinct OrderNum,PositionNum,Company,t_dorg_1,case when t_dorg_1 =2 then 'NA'
+when t_dorg_1 =4 then 'Manual'
+when t_dorg_1 =8 then 'Discount Structure'
+when t_dorg_1 =10 then 'Price Book'
+end as disc_origin From Sales_Lines ) a
+where pending_orders.Company =a.Company
+and pending_orders.OrderNum =a.OrderNum
+and pending_orders.PositionNum =a.PositionNum 
+
+
+update pending_orders set Blocked=a.status from 
+(select distinct OrderNum,Company,Blocked,case when Blocked =1 then 'Yes'else 'No'End as status From Sales_Header)a
+where pending_orders.Company =a.Company
+and pending_orders.OrderNum =a.OrderNum
+--and pending_orders.PositionNum =a.PositionNum 
+
+
+---------------------Stock Update-----------------------------------------------
+
+update pending_orders set STOCK_440_act=b.qhnd from 
+(select company,item, ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd
+from twhwmd215all
+where Company=440  
+and cwar in ('024','290','291','591','e91','287')
+group by company,item
+) b
+WHERE ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490--b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+
+update pending_orders set STOCK_440_onhand=b.qhnd from 
+(select company,item,sum(qhnd)qhnd
+from twhwmd215all
+where Company=440  
+and cwar in ('024','290','291','591','e91','287')
+group by company,item
+) b
+WHERE ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490--b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+
+update pending_orders set STOCK_401_act=b.qhnd from 
+(select company,item,((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd
+from twhwmd215all
+where Company=401  
+and cwar in ('253','353','453','553','209','210','211','O53','L46','246','346','L53','252','901','212','561')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490--=b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+
+update pending_orders set STOCK_401_onhand=b.qhnd from 
+(select company,item,sum(qhnd)qhnd
+from twhwmd215all
+where Company=401  
+and cwar in ('253','353','453','553','209','210','211','O53','L46','246','346','L53','252','901','212','561')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490--b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+update pending_orders set STOCK_416_act=b.qhnd from  
+(select company,item,((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd
+from twhwmd215all
+where Company=416  
+and cwar in ('049')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+update pending_orders set STOCK_416_onhand=b.qhnd from 
+(select company,item,sum(qhnd)qhnd
+from twhwmd215all
+where Company=416  
+and cwar in ('049')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490--b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+update pending_orders set STOCK_450_act=b.qhnd from 
+(select company,item,((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd
+from twhwmd215all
+where Company=450  
+and cwar in ('251','174')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+
+update pending_orders set STOCK_450_onhand=b.qhnd from 
+(select company,item,sum(qhnd)qhnd
+from twhwmd215all
+where Company=450
+and cwar in ('251','174')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490--b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+
+update pending_orders set STOCK_490_act=b.qhnd from
+(select company,item,((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd
+from twhwmd215all
+where Company=490  
+and cwar in ('102')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490--b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+update pending_orders set STOCK_490_onhand=b.qhnd from 
+(select company,item,sum(qhnd)qhnd
+from twhwmd215all
+where Company=490  
+and cwar in ('102')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+update pending_orders set STOCK_490_blocked=b.QBLK from 
+(select company,item,sum(QBLK)QBLK
+from twhwmd215all
+where Company=490  
+and cwar in ('102')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+
+update pending_orders set STOCK_DEL_act=b.qhnd from 
+(select company,item,((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd
+from twhwmd215all
+where Company=490  
+and LTRIM(RTRIM(cwar)) in ('DEL')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+
+update pending_orders set STOCK_DEL_onhand=b.qhnd from 
+(select company,item,sum(qhnd)qhnd
+from twhwmd215all
+where Company=490  
+and LTRIM(RTRIM(cwar)) in ('DEL')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+	
+
+update pending_orders set STOCK_CAL_act=b.qhnd from 
+(select company,item,((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd
+from twhwmd215all
+where Company=490  
+and LTRIM(RTRIM(cwar)) in ('CAL')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+		
+update pending_orders set STOCK_CAL_onhand=b.qhnd from 
+(select company,item,sum(qhnd)qhnd
+from twhwmd215all
+where Company=490  
+and LTRIM(RTRIM(cwar)) in ('CAL')
+group by company,item
+) b
+where ltrim(rtrim(pending_orders.ItemCode))=ltrim(rtrim(b.item)) 
+and pending_orders.company=490 --b.COMPANY
+--and pending_orders.warehouse=b.CWAR
+
+---------------------End : Stock Update-----------------------------------------------
+
+
+update pending_orders set OrderMonthNo=month(OrderDate)
+update pending_orders set OrderMonthYear=year(OrderDate)
+update pending_orders set OrderMonth=datename(m,orderdate) 
+
+
+update Pending_Orders set currency=a.Currency,CurrRate=a.t_rats_1  from 
+(select distinct company,OrderNum,Currency,t_rats_1 From Sales_Header)a 
+where Pending_Orders .Company =a.Company 
+and Pending_Orders .OrderNum =a.OrderNum  
+
+update Pending_Orders set MaxQty =a.Max_Qty  from Itemwise_Qty  a
+where ltrim(rtrim(Pending_Orders.ItemCode)) =ltrim(rtrim(a.Item)) 
+
+update Pending_Orders set Monthwise_Ordqty  =a.qty   
+from (select sum(qty)qty,ItemCode  from Sales_Inflow 
+where  month(OrderDate)=month(getdate()-1) and year(OrderDate)=year(getdate()-1)
+and concat(company,ordertype) in (select CONCAT(company,saleordertype) 
+from saletype_master where Sales_Category not in (1)) 
+group by ItemCode) a
+where ltrim(rtrim(Pending_Orders.ItemCode)) =ltrim(rtrim(a.ItemCode))
+and ltrim(rtrim(Pending_Orders.ItemCode)) in (select distinct Item from Itemwise_qty)
+
+update Pending_Orders set invoice =a.invnum,trantype=a.Trantype 
+from (select distinct company,OrderNum,PositionNum,Trantype,invnum from  CI_Lines)a
+where Pending_Orders.Company =a.company
+and Pending_Orders.OrderNum =a.OrderNum 
+and Pending_Orders.PositionNum =a.PositionNum 
+ 
+update Pending_Orders set inv_date  =a.invdate 
+from (select distinct company,invnum,Trantyp,max(t_idat) as invdate from  CI_Header group by invnum,company,Trantyp)a
+where Pending_Orders.invoice=a.invnum 
+and Pending_Orders.company=a.company
+and Pending_Orders.trantype=a.Trantyp
+
+
+update Pending_Orders set dest_type ='OPEN AT HOME OFFICE' WHERE invoice is null 
+update Pending_Orders set dest_type ='IN TRANSIT TO SUBSIDIARIES' WHERE CONVERT(DATE,GETDATE()) BETWEEN CONVERT(DATE,inv_date) AND CONVERT(DATE,inv_date+51)
+update Pending_Orders set dest_type ='REACHED TO SUBSIDIARY' WHERE GETDATE() >=CONVERT(DATE,inv_date+52)  
+
+update Pending_Orders set issue_item=a.InvIssStat 
+from (select distinct company,OrderNum,PositionNum,InvIssStat from Sales_Lines )a
+where Pending_Orders.Company =a.Company 
+and Pending_Orders.OrderNum =a.OrderNum 
+and Pending_Orders.PositionNum =a.PositionNum 
+
+update Pending_Orders set issue_item ='Main Item' where Pending_Orders.issue_item='1'
+update Pending_Orders set issue_item ='Component' where Pending_Orders.issue_item='2'
+
+update Pending_Orders set itemclass=a.Category from (select distinct ltrim(rtrim(item)) as Item,Category 
+From ITEM_ABC_CLASIFICATION_MASTER)a
+where ltrim(rtrim(Pending_Orders.ItemCode)) =a.Item
+
+
+update Pending_Orders set lead_days=elgi_leadtimeindays from(select ltrim(rtrim(elgi_itemcode))elgi_itemcode,
+max(elgi_leadtimeindays)elgi_leadtimeindays From [ELGi_CRM].dbo.product_CRM
+where (elgi_leadtimeindays is not null and elgi_leadtimeindays>0) group by ltrim(rtrim(elgi_itemcode)))a
+where ltrim(rtrim(Pending_Orders.ItemCode))=ltrim(rtrim(a.elgi_itemcode))
+
+update Pending_Orders set lead_days=30 where lead_days <1 and Company =490
+update Pending_Orders set lead_days=30 where lead_days is null and Company =490
+
+update Pending_Orders set itemtype=b.KITM from (SELECT DISTINCT LTRIM(RTRIM(ITEM))AS ITEM,
+CASE WHEN KITM=1 THEN 'P'when KITM=2 then 'M' when KITM=4 then 'C'when KITM=5 then 'S' end as KITM
+FROM TTCIBD001490)b
+WHERE ltrim(rtrim(Pending_Orders.ItemCode)) =b.ITEM 
+
+
+update Pending_Orders set estimated_date=dbo.UFN_working_wkdays(orderdate,lead_days)
+
+update Pending_Orders set NATIONAL_HOLIDAYS=(select count(*) from TTCCCP020400
+where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between Pending_Orders.OrderDate and Pending_Orders.estimated_date)
+
+update Pending_Orders set estimated_date=dbo.UFN_working_wkdays(estimated_date,NATIONAL_HOLIDAYS)
+
+update Pending_Orders set typ='TYP'  where company in(490)and ordertype  in ('516','AMC')
+update Pending_Orders set typ='DOM' WHERE (Pending_Orders.Dpst  BETWEEN '90000' AND '90091') AND TYP<>'BDI'  
+update Pending_Orders set typ='EXP' WHERE DPST in ('90231','90213','90257','90293') AND TYP<>'BDI' AND TYP<>'DOM'
+update Pending_Orders set typ='SUB' WHERE (DPST BETWEEN '70000' AND '70099') AND TYP<>'BDI' AND TYP<>'DOM' AND TYP<>'EXP'
+update Pending_Orders set typ='RLY' WHERE (DPST='90092') AND TYP<>'BDI' AND TYP<>'DOM' AND TYP<>'EXP' AND TYP<>'SUB'
+
+
+update Pending_Orders set packingslip_comp_Date=A.CDAT 
+from (select distinct COMPANY,shpm,CDAT From TWHINH430ALL)a
+WHERE Pending_Orders.ShipmentNo=A.SHPM 
+and Pending_Orders.Company =a.COMPANY 
+
+
+update Pending_Orders  set Delay_days=(select count(*) from TTCCCP020400 where CCAL ='COMPANY' and DFCA <>4
+and date between Pending_Orders.OrderDate  and Pending_Orders.inv_date)
+
+delete from Pending_Orders where 
+concat(ordernum,positionnum) in ('252000876230','34200083540','34200083640','34200087610','352000180200','24100510520','24100510580',
+'98000027610','99000140410','98000031010','95000067210','341003829630','99000149320','99000152030','341003896120','34100393350',
+'99000162710','98000035310','96000006620','99000174520','95000088230','98000037620','95000103840','96000009820','98000040410','96000008920')
+and company in (490)
+
+update Pending_orders set next_due_date1=a.next_due_date,next_due_date2=a.next_due_date2,reason1=a.reason,reason2=a.reason2
+from(select next_due_date,next_due_date2,reason,reason2,ordernum,positionnum From GSC_OVERDUE_PARTS)a
+where Pending_orders.ordernum=a.ordernum
+and Pending_orders.positionnum=a.PositionNum
+and Pending_orders.company=490 
+
+Truncate table Pendvalue_USD_Conversion
+update Pending_orders set PendValue_USD=null
+update Pending_orders set PendValue_ForeignCurrency=null
+
+-- value= (price*penqty)- (penqty*price*DiscPerc1)/100  --- Price value (with discount it is correct)
+update Pending_orders set value=value*(ord_qty- Cancel_Qty-delqty) --/ord_qty  
+update Pending_orders set value=value/(case when ord_qty=0 or isnull(ord_qty,0)=0 then 1 else ord_qty end)
+
+update Pending_orders set t_oamt=t_oamt*(ord_qty- Cancel_Qty-delqty) --/ord_qty
+update Pending_orders set t_oamt=t_oamt/(case when ord_qty=0 or isnull(ord_qty,0)=0 then 1 else ord_qty end)
+
+
+Insert into Pendvalue_USD_Conversion
+--select * into Pendvalue_USD_Conversion from(
+select *,Value/RATE as value_in_USD from (
+select *,row_number() over (partition by Company, ordertype,OrderNum,PositionNum,PendQty,DelQty,Value order by daysdiff) as Rnk from 
+(select *,datediff(dd,STDT,OrderDate) as DaysDiff from 
+(select Company, ordertype,OrderNum,PositionNum,currency,OrderDate,PendQty,DelQty,Value from Pending_Orders
+where PendQty<>0
+and Currency<>'USD'
+--and year(OrderDate)>=(select year(getdate()-1)-2)
+--where company=490 and Trantype='432' and invnum='18000778'-- and OrderNum='292004614'
+)a
+left outer join 
+(select BCUR,CCUR,STDT,RATE from TTCMCS008ALL 
+where RTYP='SLS' and bcur='IND' and ccur='USD' and RATE>10)b
+on convert(date,a.OrderDate)<>convert(date,b.STDT)
+)a
+where DaysDiff >=0--is not null
+)b
+where rnk=1
+--)a
+
+
+
+update Pending_orders set PendValue_USD=a.value_in_USD,Rate_USD=a.RATE
+from Pendvalue_USD_Conversion a
+where Pending_orders.Company=a.Company
+and Pending_orders.ordertype=a.OrderType
+and Pending_orders.OrderNum=a.OrderNum
+and Pending_orders.PositionNum=a.PositionNum
+and Pending_orders.DelQty=a.DelQty
+and Pending_orders.company<>552
+
+
+
+------------------------------
+----New Logic under development:
+
+--insert into Pendvalue_USD_Conversion(OrderDate,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk)
+--select OrderDate,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk from (
+--select *,datediff(dd,STDT,OrderDate) as DaysDiff,
+--row_number() over (partition by OrderDate,currency order by datediff(dd,STDT,OrderDate)) as Rnk 
+--from (select distinct convert(date,OrderDate) OrderDate,Currency from pending_orders
+----where currency='MYR'
+--)a
+--left outer join 
+--(select BCUR,CCUR,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+--where RTYP='SLS' 
+--and ccur='USD'
+----and convert(date,stdt)='2024-01-08'
+--group by BCUR,CCUR,convert(date,STDT))b
+--on a.currency=b.bcur
+--and a.OrderDate>=b.STDT
+--)a
+--where Rnk=1
+
+---------------------------
+
+update Pending_orders  set PendValue_USD=Value/a.CurrencyRate,
+Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=552
+and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=552)
+and FromCurrency='USD' and ToCurrency='INR'
+)a
+where Pending_orders.company=a.Company
+--and LN_Sales_Details_ver2.Currency=a.Currency
+and Pending_orders.company=552
+
+--update Pending_orders set t_rats_1=a.t_rats_1
+--from(select distinct currency,orderdate,t_rats_1 from Pending_orders where t_rats_1 <>0 and Currency='USD' )a
+--where Pending_orders.Currency='USD'
+--and Pending_orders.t_rats_1=0
+--and Pending_orders.currency=a.currency
+--and convert(date,Pending_orders.OrderDate)=convert(date,a.OrderDate)
+
+
+update Pending_orders set t_rats_1=1 where t_rats_1=0 and  Currency in ('IND','INR')
+
+update Pending_orders set PendValue_USD=t_oamt where Currency='USD'  and Rate_USD is null 
+update Pending_orders set PendValue_ForeignCurrency=value/(case when t_rats_1 =0 then 1 else t_rats_1 end)
+
+--- As karun requested below ordertypes are removed
+delete from  pending_orders where company=401 and ordertype in ('214','226','244','285')
+
+end 
+
+select Cancel_Qty,* from Pending_orders
+where concat(company,OrderNum,PositionNum)='490343016388150'
+--where Cancel_Qty is not null
+
+--Test Case Data
+--Select t_clyn,t_qoor,* from Sales_Lines where orderdate>='2022-04-01'
+----and t_sqnb=0 
+----and t_clyn<>1
+----and t_qoor > 0
+--and concat(company,OrderNum,PositionNum)='490343016388150'
+
+
+Completion time: 2025-11-19T11:41:22.0044630+05:30

@@ -1,0 +1,154 @@
+--exec sp_ATS_ADV_Coll
+
+CREATE proc sp_ATS_ADV_Coll as
+
+begin
+
+Truncate table ATS_ADV_Coll
+
+Insert into ATS_ADV_Coll
+--select * into ATS_ADV_Coll from (
+select * from(
+select Company,t_docd,t_ttyp,t_ninv,t_tdoc,t_docn,t_trec,null as DPSTCode,null as DPSTName,null as AreaCode,null as AreaName,
+null as ZONE,sum(isnull(t_amth_1,0)+isnull(t_padh_1,0)+isnull(t_dc1h_1,0)+isnull(t_cdam_1,0)) t_amth_1 ,
+null as Description,null as Zone_ordr,null as Recpt_Type,t_itbp,null as CustName,
+null as DPSTType,null as DPSTTypeOrdr
+from TTFACR200ALL 
+where company like '6%' and t_docn<>0 
+and t_trec in (2,8)
+--and t_docd between '2018-08-01' and '2018-08-31'
+group by Company,t_docd,t_ttyp,t_ninv,t_tdoc,t_docn,t_trec,t_itbp
+)a
+where t_amth_1<>0
+--)b
+
+
+Insert into ATS_ADV_Coll
+select * from(
+select Company,t_docd,t_ttyp,t_ninv,t_tdoc,t_docn,t_trec,null as DPSTCode,null as DPSTName,null as AreaCode,null as AreaName,
+null as ZONE,sum(isnull(t_amth_1,0)+isnull(t_padh_1,0)+isnull(t_dc1h_1,0)+isnull(t_cdam_1,0)) t_amth_1 ,
+null as Description,null as Zone_ordr,null as Recpt_Type,t_itbp,null as CustName,
+null as DPSTType,null as DPSTTypeOrdr
+from TTFACR200ALL 
+where company like '6%' and t_docn=0 
+and t_trec in (9,10,11)
+--and t_docd between '2018-08-01' and '2018-08-31'
+group by Company,t_docd,t_ttyp,t_ninv,t_tdoc,t_docn,t_trec,t_itbp
+)a
+where t_amth_1<>0
+
+update ATS_ADV_Coll set Recpt_Type='Collection' where t_trec in (2,8,10)
+update ATS_ADV_Coll set Recpt_Type='Advance' where t_trec in (9,11)
+
+
+
+
+update ATS_ADV_Coll set DPSTCode=dpst--,AreaCode=a.areacode --Areacode from the IndentNo to be ignored
+from LN_Sales_Details_ver2 a
+where ATS_ADV_Coll.Company=a.Company
+and ATS_ADV_Coll.t_ttyp=a.Trantype
+and ATS_ADV_Coll.t_ninv=a.Invoice
+
+update ATS_ADV_Coll set AreaCode=a.area  --Area Code from the Sales Order
+from (
+select distinct b.Company,b.OrderType,b.OrderNum,--a.Company,a.saletype,a.OrderNum,
+a.Trantype,a.invnum,b.Area 
+from CI_Lines a 
+inner join Sales_Header b
+on a.Company=b.Company
+and a.OrderNum=b.OrderNum
+and a.saletype=b.OrderType
+where a.Company in (select company from ELGI_Companies_Master where companygroup='ATS')
+)a
+where ATS_ADV_Coll.Company=a.Company
+and ATS_ADV_Coll.t_ttyp=a.Trantype
+and ATS_ADV_Coll.t_ninv=a.invnum
+and Recpt_Type='Collection'
+
+--Fetching Area from Customer Master for Advance Receipts
+update ATS_ADV_Coll set AreaCode=a.CustAreaCode
+from vw_Business_Partner a
+where ltrim(rtrim(ATS_ADV_Coll.CustCode))=ltrim(rtrim(a.custcode))
+and AreaCode is null and Recpt_Type='Advance'
+
+update ATS_ADV_Coll set AreaName=a.AreaName,ZONE=a.ATS_Zone
+from vw_AREA_MASTER a
+where ATS_ADV_Coll.AreaCode=a.Areacode
+
+update ATS_ADV_Coll set DPSTName=a.DPSTName,Description=a.Description
+from DPST_Master_ATS a
+where ATS_ADV_Coll.DPSTCode=a.DPSTcode
+
+
+update ATS_ADV_Coll set Description='Domestic' where Zone in ('South','North','West','East')
+update ATS_ADV_Coll set Description='Exports' where Zone not in ('South','North','West','East')
+
+update ATS_ADV_Coll set Zone='Others' where Zone is null
+update ATS_ADV_Coll set AreaCode='Others' where AreaCode is null
+update ATS_ADV_Coll set AreaCode='Others' where ltrim(rtrim(AreaCode)) =''
+update ATS_ADV_Coll set AreaCode='Others' where AreaCode ='000'
+update ATS_ADV_Coll set AreaName='Others' where AreaCode is null
+update ATS_ADV_Coll set AreaName='Others' where AreaCode ='Others'
+
+update ATS_ADV_Coll set Description='Domestic' where Description is null and AreaCode in (select distinct Areacode from Area_Master_Domestic)
+update ATS_ADV_Coll set Description='Exports' where Description is null and AreaCode not in (select distinct Areacode from Area_Master_Domestic)
+
+
+
+update ATS_ADV_Coll set Zone_ordr=1 where ZONE='South'
+update ATS_ADV_Coll set Zone_ordr=2 where ZONE='North'
+update ATS_ADV_Coll set Zone_ordr=3 where ZONE='West'
+update ATS_ADV_Coll set Zone_ordr=4 where ZONE='East'
+update ATS_ADV_Coll set Zone_ordr=5 where ZONE='Others'
+
+update ATS_ADV_Coll set t_amth_1=(-1)*t_amth_1
+
+delete from ATS_ADV_Coll where Recpt_Type='Collection' and t_amth_1<0
+
+update ATS_ADV_Coll set DPSTType ='AfterSales' where DPSTCode in ('90041','90045','90048')
+update ATS_ADV_Coll set DPSTType ='Marketing'  where DPSTCode not in ('90041','90045','90048')
+update ATS_ADV_Coll set DPSTType ='Others'  where DPSTCode is null
+update ATS_ADV_Coll set DPSTName ='Others'  where DPSTCode is null
+update ATS_ADV_Coll set DPSTCode ='Others'  where DPSTCode is null
+--('90040','90042','90050')
+
+update ATS_ADV_Coll set DPSTTypeOrdr=1 where DPSTType ='Marketing'
+update ATS_ADV_Coll set DPSTTypeOrdr=2 where DPSTType ='AfterSales'
+update ATS_ADV_Coll set DPSTTypeOrdr=3 where DPSTType ='Others'
+
+
+
+
+update ATS_ADV_Coll set custname=a.custname1
+from vw_Business_Partner a
+where ATS_ADV_Coll.custcode=a.custcode
+
+---DELETING FOC DATA
+
+
+--delete from ATS_ADV_Coll where custno like '%emp%' and trantyp = 'cdj'
+
+delete from ATS_ADV_Coll  where t_ttyp in 
+('251','252','351','352','451','452','551','552','751','752','851','852','951','952')
+or t_ttyp between '2A1' and  '2A6' 
+or t_ttyp between '2B1' and  '2B6'
+or t_ttyp between '3A1' and  '3B6'
+or t_ttyp between '4A1' and  '4B6'
+or t_ttyp between '5A1' and  '5B6' 
+or t_ttyp between '7A1' and  '7B6'
+or t_ttyp between '8A1' and  '8B6'
+or t_ttyp between '9A1' and  '9B6'
+or t_ttyp between '2C1' and  '2C6'
+or t_ttyp between '3C1' and  '3C6'
+or t_ttyp between '4C1' and  '4C6'
+or t_ttyp between '5C1' and  '5C6'
+or t_ttyp between '7C1' and  '7C6'
+or t_ttyp between '8C1' and  '8C6'
+or t_ttyp between '9C1' and  '9C6'
+
+
+--delete from ATS_ADV_Coll where DPSTCode is null
+
+
+
+end

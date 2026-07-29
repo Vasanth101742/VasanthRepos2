@@ -1,0 +1,220 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Stock_Out_ATS
+
+CREATE proc sp_Stock_Out_ATS
+as
+begin
+
+Truncate table TwoBin_Stock_Out_ATS
+Truncate table RPLDATA_ATS_Milkrun 
+Truncate table Milkrun_Stock_Out_ATS
+
+
+
+insert into TwoBin_Stock_Out_ATS(company,DIVI,DEPT,ITEM,SUPP,Trig_Dt,QTY,LOT_NO)
+select COMPANY,DIVI,DEPT,ITEM,SUNO,DATE,RQTY,LOTN from TZZPUR014ALL 
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and STAT='M'
+
+--Sp_rename 'TwoBin_Stock_Out_ATS.ID','SOPS'
+
+update TwoBin_Stock_Out_ATS set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BITM<>1
+)a
+where TwoBin_Stock_Out_ATS.DIVI=a.DIVI
+and TwoBin_Stock_Out_ATS.DEPT=a.DEPT
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.SUPP))=ltrim(rtrim(a.SUNO1))
+
+
+update TwoBin_Stock_Out_ATS set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BITM<>1
+)a
+where TwoBin_Stock_Out_ATS.DIVI=a.DIVI
+and TwoBin_Stock_Out_ATS.DEPT=a.DEPT
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.SUPP))=ltrim(rtrim(a.SUNO2))
+
+
+update TwoBin_Stock_Out_ATS set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BITM<>1
+)a
+where TwoBin_Stock_Out_ATS.DIVI=a.DIVI
+and TwoBin_Stock_Out_ATS.DEPT=a.DEPT
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.SUPP))=ltrim(rtrim(a.SUNO3))
+
+
+update TwoBin_Stock_Out_ATS set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BITM<>1
+)a
+where TwoBin_Stock_Out_ATS.DIVI=a.DIVI
+and TwoBin_Stock_Out_ATS.DEPT=a.DEPT
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.SUPP))=ltrim(rtrim(a.SUNO4))
+
+
+update TwoBin_Stock_Out_ATS set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BITM<>1
+)a
+where TwoBin_Stock_Out_ATS.DIVI=a.DIVI
+and TwoBin_Stock_Out_ATS.DEPT=a.DEPT
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(TwoBin_Stock_Out_ATS.SUPP))=ltrim(rtrim(a.SUNO5))
+
+
+update TwoBin_Stock_Out_ATS set Exp_DT= 
+dateadd(dd,
+(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt)) - 2 +convert(int,RPLT)) %5 +
+((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt))-2+convert(int,RPLT))/5)*7 -
+(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt))-2),
+DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt))
+
+
+update TwoBin_Stock_Out_ATS set SUPERMARKET=a.Dept_Name
+from Materials_Dept_MASTER a
+where TwoBin_Stock_Out_ATS.DEPT=a.Dept_code
+
+
+update TwoBin_Stock_Out_ATS set DEPARTMENT=a.DIVISION_NAME
+from Materials_Division_MASTER a
+where TwoBin_Stock_Out_ATS.DIVI=a.DIVISION_CODE
+
+update TwoBin_Stock_Out_ATS set NAMA=a.custname1
+from vw_Business_Partner a
+where ltrim(rtrim(SUPP)) = ltrim(rtrim(a.custcode))
+
+update TwoBin_Stock_Out_ATS set Description=a.t_dsca
+from TTCIBD001600 a
+where ltrim(rtrim(TwoBin_Stock_Out_ATS.ITEM)) = ltrim(rtrim(a.t_item))
+
+update TwoBin_Stock_Out_ATS set empname=a.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail a
+where TwoBin_Stock_Out_ATS.BUYR =  a.emp_code 
+
+update TwoBin_Stock_Out_ATS set empname=a.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail a
+where TwoBin_Stock_Out_ATS.BUYR =  a.new_emp_code 
+
+update TwoBin_Stock_Out_ATS set Stock_DT=GETDATE() - 1  
+
+delete from TwoBin_Stock_Out_ATS where SOPS<>1
+
+
+------------------------
+--MILKRUN STOCK OUT
+
+insert into RPLDATA_ATS_Milkrun 
+select a.* from 
+(select * from TZZPUR014ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) a 
+inner join (select * from TZZPUR049ALL 
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BITM<>1
+) b
+on a.DIVI = b.DIVI and a.DEPT = b.DEPT and a.ITEM = b.ITEM and b.SOPS = 3 
+
+
+
+insert into Milkrun_Stock_Out_ATS
+
+SELECT f.ITEM, 
+CONVERT(char, CONVERT(datetime, f.DATE), 103) AS Trig_Dt, 
+--CONVERT(char, CONVERT(datetime, DATEADD(day, convert(int,b.RPLT), f.DATE)), 103) AS Exp_DT, 
+convert(char,convert(datetime,
+DATEADD(d,CASE DATEPART(dw,f.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,f.DATE) +
+(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,f.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,f.DATE)) - 2 +convert(int,b.RPLT)) %5 +
+((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,f.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,f.DATE))-2+convert(int,b.RPLT))/5)*7-
+(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,f.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,f.DATE))-2)
+,103),103) AS Exp_DT,
+b.RPLT, 
+f.SUNO as SUPP,
+b.DIVI, 
+b.BUYR, 
+f.RQTY as QTY, 
+a.Dept_code as ID, 
+a.Dept_Name as SUPERMARKET, 
+d.DIVISION_NAME as DEPARTMENT, 
+b.DEPT,
+' ' as group_leader, 
+h.custname1 as  NAMA, 
+g.t_dsca as  Description,  
+c.emp_name as  empname, 
+CONVERT(char, GETDATE() - 1, 103) AS Stock_DT, 
+f.LOTN as LOT_NO,
+b.company,
+e.status,
+e.itemcount,
+b.SLOQ
+
+FROM MATERIALS_DEPT_MASTER a 
+RIGHT OUTER JOIN (select * from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and BITM<>1
+) b  
+ON a.Dept_code = b.DEPT
+LEFT OUTER JOIN  [ELGi_Intranet].dbo.Employee_Detail c 
+ON b.BUYR =  c.new_emp_code 
+LEFT OUTER JOIN  Materials_Division_MASTER d 
+ON b.DIVI = d.DIVISION_CODE  
+RIGHT OUTER JOIN
+(SELECT COUNT(ITEM) as itemcount,
+case when COUNT(ITEM) > 1 then 'M' else 'S' end  as status,  
+ITEM, DIVI, DEPT 
+FROM RPLDATA_ATS_Milkrun
+WHERE (STAT = 'M') 
+GROUP BY ITEM, DIVI, DEPT
+HAVING (COUNT(ITEM) >= 1)
+) AS e 
+INNER JOIN RPLDATA_ATS_Milkrun f 
+ON e.DIVI = f.DIVI
+AND e.DEPT = f.DEPT 
+AND e.ITEM = f.ITEM 
+
+LEFT OUTER JOIN TTCIBD001600 g 
+ON f.ITEM = g.t_item 
+ON LTRIM(RTRIM(b.ITEM)) = LTRIM(RTRIM(f.ITEM)) 
+AND b.DIVI = f.DIVI
+AND b.DEPT = f.DEPT 
+
+LEFT OUTER JOIN vw_Business_Partner h 
+ON f.suno = h.custcode
+
+WHERE (f.STAT = 'm') 
+--and (ComItemData.company = 101)  
+--and derivedtbl_1.itemcount >= lean_master_ats.SLOQ
+
+GROUP BY f.ITEM, f.DATE, f.suno, b.DEPT, b.BUYR, 
+f.RQTY,a.Dept_code, a.Dept_Name, d.DIVISION_NAME, b.DIVI,h.custname1, g.t_dsca, c.new_emp_code, 
+c.emp_name, b.RPLT,f.LOTN,b.company,e.status,e.itemcount,b.SLOQ
+
+
+
+
+end
+
+
+select * from TwoBin_Stock_Out_ATS
+
+
+Completion time: 2025-11-19T12:34:42.3716412+05:30

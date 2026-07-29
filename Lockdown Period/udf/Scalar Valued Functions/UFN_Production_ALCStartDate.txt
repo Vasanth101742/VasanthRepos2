@@ -1,0 +1,21 @@
+--@AssemblyLine as Varchar(50),
+CREATE function [dbo].[UFN_Production_ALCStartDate](@ALCDays as int)
+returns date
+as
+begin
+declare @ALCStartDate date
+declare @Date date=convert(date,getdate())
+
+set @ALCStartDate=
+(select ALCStartDate--,@Date,datepart(dw,@Date)  
+From (
+select Date as ALCStartDate,ROW_NUMBER()over(order by date desc) as rno  From TTCCCP020400
+
+where ccal='COMPANY' and DFCA =1 and convert(date,DATE) <=convert(date,@date))a
+where rno=
+case when @date in (select distinct date From TTCCCP020400
+ where ccal='COMPANY' and DFCA =1)then @ALCDays+1 else @ALCDays end
+)
+
+return @ALCStartDate 
+END

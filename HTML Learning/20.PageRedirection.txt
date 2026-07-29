@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+
+   <head>
+      <title>Meta Tags Example</title>
+      <meta name = "keywords" content = "HTML, Meta Tags, Metadata" />
+      <meta name = "description" content = "Learning about Meta Tags." />
+      <meta name = "revised" content = "Tutorialspoint, 3/7/2014" />
+      <meta http-equiv = "refresh" content = "10; url = http://www.google.com" />
+   </head>
+	
+   <body>
+      <p>This Page will be redirected to google home page in 10 seconds </p>
+   </body>
+	
+</html>

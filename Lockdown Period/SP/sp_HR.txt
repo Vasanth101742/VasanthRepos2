@@ -1,0 +1,81 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec SP_HR
+CREATE proc [sp_HR] as
+
+Begin
+
+truncate table ELGI_HR_stage
+
+
+insert into ELGI_HR_stage
+(GLOBAL,company,Emp_Name,OLD_BAAN_EMPCODE,EMP_CODE,ERANK,Designation,Org_Unit,Division_Name,Function_Name,
+Department,Band,Location,Emp_Status,Reason,Seperation_Date,Transfer_Date,
+Start_Date,Data_Load_Date,num,FinMonthNo,FinMonthName,FinYear,Fin_Year,Vertical_ordr,vertical,Function2,Function2_ordr,Emp_Status1)
+select 
+GLOBAL,company,Emp_Name,OLD_BAAN_EMPCODE,EMP_CODE,ERANK,Designation,Org_Unit,Division_Name,Function_Name,
+Department,Band,Location,Emp_Status,Reason,Seperation_Date,Transfer_Date,
+Start_Date,Data_Load_Date,num,FinMonthNo,FinMonthName,FinYear,Fin_Year,Vertical_ordr,vertical,Function2,Function2_ordr,
+case when seperation_date>=(select(dateadd(d,-1,convert(datetime,convert(varchar,year(getdate()))+'-'+RIGHT('00'+CAST(month(getdate()) AS VARCHAR(2)),2)+'-01'))))
+and [GLOBAL]='DOMESTIC' then 'ACTIVE' else Emp_Status end as Emp_Status1 
+from vw_elgi_HR
+
+
+--Alter table ELGI_HR drop column New_Division,New_Function,New_Department,EE_Subgroup
+
+
+if exists (select * from ELGI_hr where Data_Load_Date=
+dateadd(d,-1,convert(date,convert(varchar,year(getdate()))+'-'+RIGHT('00'+CAST(month(getdate()) AS VARCHAR(2)),2)+'-01')))
+begin
+delete from ELGI_hr  where Data_Load_Date=
+dateadd(d,-1,convert(date,convert(varchar,year(getdate()))+'-'+RIGHT('00'+CAST(month(getdate()) AS VARCHAR(2)),2)+'-01'))
+end
+
+if exists (select * from ELGI_hr where year(Data_Load_Date)=year(getdate()-1) and month(Data_Load_Date)=month(getdate()-1))
+begin
+delete from ELGI_hr where year(Data_Load_Date)=year(getdate()-1) and month(Data_Load_Date)=month(getdate()-1)
+end
+
+insert into ELGI_hr
+select * from ELGI_HR_stage
+where data_load_date=(select max(data_load_date) from vw_elgi_HR)
+--where data_load_date='2022-03-31' 
+
+update ELGI_HR set Location=A.uname
+from (
+select * from(
+select *,row_number() over(partition by new_emp_code order by emp_code) rnk from [ELGi_Intranet].dbo.Employee_Detail)a
+where rnk=1
+) A
+where ELGI_HR.EMP_CODE=A.new_emp_code
+
+
+update ELGI_HR set Division_Name=a.Division_Name,Function_Name=a.Function_Name,Department=a.Department
+from (select * from hr_master where company=101)a
+where ELGI_HR.EMP_CODE=a.Emp_Code 
+and a.company=101
+
+
+update ELGI_HR set Location='USA' where EMP_CODE='800464'
+update ELGI_HR set Location='PATTONS' where EMP_CODE='800465'
+update ELGI_HR set Location='PATTONS' where EMP_CODE='800466'
+update ELGI_HR set Location='PATTONS' where EMP_CODE='800467'
+update ELGI_HR set Location='PATTONS' where EMP_CODE='800468'
+update ELGI_HR set Location='PATTONS' where EMP_CODE='800469'
+update ELGI_HR set Location='ITALY' where EMP_CODE='800486'
+
+
+update elgi_hr set OLD_BAAN_EMPCODE=800460,EMP_CODE=800460 
+where Emp_Name ='MONCHIERO MASSIMO                  '
+and EMP_CODE=800482
+
+end
+
+
+--select * from elgi_hr
+
+
+
+
+
+Completion time: 2025-11-19T11:17:32.3771338+05:30

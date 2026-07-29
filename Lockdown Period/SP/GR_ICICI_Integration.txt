@@ -1,0 +1,21 @@
+CREATE  proc [dbo].[GR_ICICI_Integration]
+
+as
+begin 
+
+truncate table [GR_Invoice_Details]
+truncate table GR_dealer_balance
+truncate table [GR_dealer_balance_History]
+
+insert into [GR_Invoice_Details]
+select * from [LN].[Integration].[dbo].[GR_Invoice_Details]
+
+insert into GR_dealer_balance
+select *   from [LN].[Integration].[dbo].[dealer_balance]
+
+insert into [GR_dealer_balance_History]
+select *   from [LN].[Integration].[dbo].[dealer_balance_History]
+
+
+end 
+

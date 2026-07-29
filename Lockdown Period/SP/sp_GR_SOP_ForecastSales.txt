@@ -1,0 +1,145 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE proc [dbo].[sp_GR_SOP_ForecastSales]
+as
+begin
+
+declare @FromDate date
+declare @ToDate date
+
+--create table GR_SOP_ForecastSales
+--(ItemCode nvarchar(30),Monthyear nvarchar(15),Qty decimal(19,2))
+
+truncate table GR_SOP_ForecastSales
+
+
+set @FromDate ='20230401'
+set @ToDate =convert(date,getdate())
+
+
+
+
+
+;WITH sales_monthly AS (
+    SELECT 
+        ItemCode,
+        CAST(DATEFROMPARTS(YEAR(a.[Date]), MONTH(a.[Date]), 1) AS DATE) AS sale_month,
+        SUM(DeliveredQty) AS DeliveredQty
+    FROM sales_report_LN a
+		where  convert(date,a.[Date]) BETWEEN @FromDate AND @ToDate
+		and a.CustCode not in ('CRE000013','CRE000082','CU1E00625','CU1E00804','CU1E00847','CRE000109','CU1E00880','CU1R01967','CRE000189')
+		and isnull(dpst,'')<>'' and company in (401,490,500,553,551,552) 
+		and ItemCode in (select distinct DFUCode from [elgi_sop].[dbo].[Sales_RRS_Details_DFUwise])
+    GROUP BY 
+        ItemCode,
+        YEAR(a.[Date]),
+        MONTH(a.[Date])
+),
+forecast_values AS (
+    SELECT 
+        ItemCode,
+        sale_month,
+        DATENAME(month, sale_month) AS month_name,
+        AVG(DeliveredQty) OVER (
+            PARTITION BY itemcode
+            ORDER BY sale_month
+            ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+        ) AS forecast_value
+    FROM sales_monthly
+)
+
+insert into GR_SOP_ForecastSales
+
+SELECT ItemCode,CAST(DATEFROMPARTS(YEAR(sale_month), MONTH(sale_month), 1) AS DATE)'MonthYear',round(forecast_value,0)'forecast_value'
+FROM forecast_values where isnull(ItemCode,'')<>'' 
+ORDER BY ItemCode, sale_month;
+
+---- Future Month
+
+
+;WITH base_data AS (
+    SELECT 
+        ROW_NUMBER() OVER (ORDER BY  CAST(DATEFROMPARTS(YEAR(a.[Date]), MONTH(a.[Date]), 1) AS DATE)) AS month_num,
+		ItemCode,
+        CAST(DATEFROMPARTS(YEAR(a.[Date]), MONTH(a.[Date]), 1) AS DATE) AS sale_month,
+       sum(DeliveredQty)DeliveredQty
+   FROM sales_report_LN a
+    WHERE CONVERT(DATE, a.[Date]) BETWEEN @FromDate AND @ToDate
+	and a.CustCode not in ('CRE000013','CRE000082','CU1E00625','CU1E00804','CU1E00847','CRE000109','CU1E00880','CU1R01967','CRE000189')
+      AND ISNULL(dpst, '') <> ''
+      AND company IN (401,490,500,553,551,552)  and   ItemCode in (select distinct DFUCode from [ELGi_SOP].[dbo].[Sales_RRS_Details_DFUwise] )
+	 GROUP BY ItemCode, CAST(DATEFROMPARTS(YEAR(a.[Date]), MONTH(a.[Date]), 1) AS DATE)
+),
+
+
+
+regression_data AS (
+    SELECT itemcode,
+        COUNT(*) AS n,
+        case when SUM(month_num)=0 then 1 else SUM(month_num) end   AS sum_x,
+        case when SUM(DeliveredQty)=0 then 1 else SUM(DeliveredQty) end  AS sum_y,
+        case when SUM(month_num * DeliveredQty)=0 then 1 else SUM(month_num * DeliveredQty) end  AS sum_xy,
+        case when SUM(month_num * month_num)=0 then 1 else SUM(month_num * month_num) end  AS sum_xx,
+        case when MAX(month_num)=0 then 1 else MAX(month_num) end AS last_month_num,
+         MAX(sale_month)  AS last_sale_month
+    FROM base_data 
+	group by ItemCode
+),
+
+regression_data1 AS (
+    SELECT *    FROM regression_data where (n * sum_xx - sum_x * sum_x)>0 or (n * sum_xx - sum_x * sum_x)>0
+	
+),
+
+
+
+
+coefficients AS (
+    SELECT 
+        CAST((n * sum_xy - sum_x * sum_y) AS FLOAT) / (n * sum_xx - sum_x * sum_x) AS slope,
+        CAST((sum_y * sum_xx - sum_x * sum_xy) AS FLOAT)/(n * sum_xx - sum_x * sum_x) AS intercept,
+        last_month_num,
+        last_sale_month,ItemCode
+    FROM regression_data1
+),
+
+
+
+
+
+
+forecast_months AS (
+    SELECT 1 AS offset UNION ALL
+    SELECT 2 UNION ALL
+    SELECT 3 UNION ALL
+    SELECT 4 UNION ALL
+    SELECT 5 UNION ALL
+    SELECT 6
+),
+
+forecast AS (
+    SELECT 
+         ItemCode,
+        DATEADD(MONTH, fm.offset, c.last_sale_month) AS sale_month,
+        CAST(c.slope * (c.last_month_num + fm.offset) + c.intercept AS INT) AS ForecastQty
+    FROM forecast_months fm
+    CROSS JOIN coefficients c
+)
+
+
+
+
+insert into GR_SOP_ForecastSales
+
+SELECT * FROM forecast
+ORDER BY sale_month;
+
+
+
+
+
+
+end
+
+
+Completion time: 2025-11-19T10:35:13.0719424+05:30

@@ -1,0 +1,57 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--Exec sp_Salesorder_with_Fabno
+
+CREATE proc sp_Salesorder_with_Fabno as
+begin
+
+Truncate table Salesorder_with_Fabno
+
+insert into Salesorder_with_Fabno
+--select * into Salesorder_with_Fabno from (
+select distinct a.Company,a.WareHouse,a.ItemCode,a.OrderDate,a.ordertype,a.OrderNum, 
+a.PositionNum,a.CustCode,null as CustName,b.PDNO,c.CWAR,c.ITEM,c.IDAT,c.SERL
+from 
+(select distinct h.Company,L.WareHouse,L.ItemCode,L.OrderDate,h.ordertype,h.OrderNum,L.PositionNum,L.CustCode
+from (select * From Sales_Header where company in (select Company from ELGI_Companies_Master where CompanyGroup='ELGI')) h
+inner join Sales_Lines L
+on h.Company =l.Company 
+and ltrim(rtrim(h.OrderNum))=ltrim(rtrim(L.OrderNum))
+where LTRIM(RTRIM(L.ItemCode)) not in ('FRT' ,'EXPORT-FREIGHT','M000037703')
+and t_sqnb =0
+and h.t_clyn<>1
+and l.t_clyn<>1
+--and h.ordernum like '%531004804%'
+)a
+inner join (select distinct COMPANY,ORNO,PONO,PDNO from TZZSFC289ALL
+where concat(company,PDNO) in (select distinct concat(COMPANY,PDNO) from TTISFC001ALL)
+)b
+on a.Company=b.COMPANY
+and ltrim(rtrim(a.OrderNum))=ltrim(rtrim(b.ORNO))
+and ltrim(rtrim(a.PositionNum))=ltrim(rtrim(b.PONO))
+inner join (select distinct COMPANY,CWAR,ITEM,IDAT,SERL,ORNO
+--,case when BOUT=1 then 'Yes'
+--when BOUT=2 then 'No' end as FG_BLK 
+from TWHLTC500ALL
+where OSER=2 --and QHND<>0
+)c
+on b.company=c.company
+and b.PDNO=c.ORNO
+--where year(OrderDate)>=2022
+--order by OrderDate
+--)a
+
+
+
+
+
+
+end
+
+Select * from Salesorder_with_Fabno
+
+
+
+
+Completion time: 2025-11-19T12:15:30.8445937+05:30

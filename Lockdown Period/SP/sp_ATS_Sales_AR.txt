@@ -1,0 +1,153 @@
+--exec sp_ATS_Sales_AR
+CREATE proc sp_ATS_Sales_AR as
+begin
+
+Truncate table ATS_Sales_AR
+Truncate table ATS_Sales_AR_Tmp
+
+
+Insert into ATS_Sales_AR
+--Drop table ATS_Sales_AR
+--select * into ATS_Sales_AR from(
+select company,Invoice_Date,trantype,Invoice,null as Orderdate,SaleOrderType,OrderNo,PositionNo,
+null as ProductGroups,Item,Item_desc,DeliveryQty,
+areacode,areaname,dpst,dpstname,custcode,custname,Zone,Region,
+Sales_amount,t_txah_1 as TaxAmt,null as FRT,null as BDI,null as Auction,
+cal_Month,cal_year,Fin_month,Fin_year,LOBCode,
+substring(LineOfBusiness,1,len(LineOfBusiness)-1) as LineOfBusiness,Segment,SalesRepCode,SalesRep,null as Del_address,
+null as InvAmt,null as PaidAmt, null as Balance,
+dense_rank() over(partition by company,trantype,Invoice order by OrderNo,PositionNo,Item,DeliveryQty) as AR_Rnk,
+--dense_rank() over(partition by company,trantype,Invoice--,OrderNo,PositionNo 
+--order by PositionNo,item,DeliveryQty
+--) as AR_Rnk,
+null as AR_Rnk2,
+null as AR_Rnk3
+From ATS_Sales_Details 
+where dpst not in ('90110')
+and invoice_date>='2017-04-01'
+and SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+--)a
+
+--Alter table ATS_Sales_AR alter column ProductGroups varchar(100)
+--Alter table ATS_Sales_AR alter column Del_address varchar(100)
+--Alter table ATS_Sales_AR alter column Orderdate date null
+--Alter table ATS_Sales_AR alter column InvAmt float null
+--Alter table ATS_Sales_AR alter column PaidAmt float null
+--Alter table ATS_Sales_AR alter column Balance float null
+--Alter table ATS_Sales_AR alter column FRT float null
+--Alter table ATS_Sales_AR alter column BDI float null
+--Alter table ATS_Sales_AR alter column Auction float null
+--Alter table ATS_Sales_AR add AR_Rnk3 int null
+
+
+
+
+
+
+update ATS_Sales_AR set ProductGroups=b.ProductGroups
+from (select distinct ProductGroups,Item  from ATS_Prd_Master_New)b  
+where LTRIM(RTRIM(ATS_Sales_AR.Item )) = LTRIM(RTRIM(b.Item)) 
+
+update ATS_Sales_AR set Orderdate=convert(date,c.OrderDate)
+from Sales_Header c
+where ltrim(rtrim(ATS_Sales_AR.OrderNo))  = ltrim(rtrim(c.OrderNum ))
+AND ltrim(rtrim(ATS_Sales_AR.Company)) = ltrim(rtrim(c.Company ))
+AND ltrim(rtrim(ATS_Sales_AR.CustCode)) = ltrim(rtrim(c.CustCode ))
+--AND ltrim(rtrim(ATS_Sales_AR.areacode)) = ltrim(rtrim(c.Area)) 
+
+
+update ATS_Sales_AR set Del_address=b.Del_address
+from
+(select *,concat(nama,namb,namc)as Del_address From (select company,OrderNum,t_itad From Sales_Header)a
+left join (select distinct CADR,NAMA,NAMB,NAMC  from ttccom130400 )b
+on ltrim(rtrim(a.t_itad))=ltrim(rtrim(b.CADR)) 
+)b
+where ATS_Sales_AR.company =b.Company 
+and ATS_Sales_AR.OrderNo =b.OrderNum 
+
+
+update ATS_Sales_AR set FRT=a.Sales_amount+t_amth_2
+from FRT_Sales a
+where ATS_Sales_AR.company=a.Company
+and ATS_Sales_AR.trantype=a.trantype
+and ATS_Sales_AR.Invoice=a.Invoice
+
+
+update ATS_Sales_AR set BDI=a.Sales_amount
+from LN_SALES_BDI a
+where ATS_Sales_AR.company=a.Company
+and ATS_Sales_AR.trantype=a.trantype
+and ATS_Sales_AR.Invoice=a.Invoice
+
+
+update ATS_Sales_AR set Auction=a.Sales_amount
+from Auction_sales a
+where ATS_Sales_AR.company=a.Company
+and ATS_Sales_AR.trantype=a.trantype
+and ATS_Sales_AR.Invoice=a.Invoice
+
+
+update ATS_Sales_AR set InvAmt =ACR.InvAmt ,PaidAmt =ACR.PaidAmt,Balance=ACR.BalanceAmt
+from (
+select * from ACR_Debtors_Details 
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+)ACR
+where ATS_Sales_AR.company=ACR.Company
+and ATS_Sales_AR.trantype=ACR.Trantyp
+and ATS_Sales_AR.Invoice=ACR.InvNo
+
+
+
+--Insert into ATS_Sales_AR_Tmp
+----Drop table ATS_Sales_AR_Tmp
+----select * into ATS_Sales_AR_Tmp from (
+--select company,Invoice_Date,trantype,Invoice,Orderdate,SaleOrderType,OrderNo,PositionNo,ProductGroups,Item,
+--Item_desc,DeliveryQty,areacode,areaname,dpst,dpstname,custcode,custname,Zone,Region,Sales_amount,
+--TaxAmt,FRT,BDI,Auction,cal_Month,cal_year,Fin_month,Fin_year,LOBCode,LineOfBusiness,Segment,
+--SalesRepCode,SalesRep,Del_address,InvAmt,PaidAmt,Balance,AR_Rnk,
+--dense_rank() over(partition by company,trantype,Invoice,OrderNo order by invamt,item) as AR_Rnk2,
+--dense_rank() over(partition by company,trantype,Invoice order by OrderNo) as AR_Rnk3
+--from ATS_Sales_AR
+----)a
+
+--Truncate table ATS_Sales_AR
+
+--insert into ATS_Sales_AR
+--select * from ATS_Sales_AR_Tmp
+
+
+
+update ATS_Sales_AR set InvAmt=null,PaidAmt=null,Balance=null,FRT=null,BDI=null,Auction=null
+from ATS_Sales_AR where AR_Rnk > 1 
+
+--update ATS_Sales_AR set InvAmt=null,PaidAmt=null,Balance=null,FRT=null,BDI=null,Auction=null
+--from ATS_Sales_AR where AR_Rnk = 1 and AR_Rnk2 > 1 and InvAmt is not null
+
+--update ATS_Sales_AR set InvAmt=null,PaidAmt=null,Balance=null,FRT=null,BDI=null,Auction=null
+--from ATS_Sales_AR where AR_Rnk = 1 and AR_Rnk2 = 1 and AR_Rnk3 > 1 and  InvAmt is not null
+
+
+end
+
+--select *,Sales-AR as diff from (
+--select Invoice_Date,concat(company,trantype,invoice) colA,
+--sum(isnull(Sales_amount,0)+isnull(TaxAmt,0)+isnull(FRT,0)+isnull(BDI,0)+isnull(Auction,0)) as Sales,sum(InvAmt)  as AR
+--from ATS_Sales_AR 
+--where invoice_date>='2017-04-01'
+--group by Invoice_Date,concat(company,trantype,invoice)
+--)a
+----where Sales-AR not between -2 and 2
+--order by invoice_date
+
+
+--select Sales_amount,TaxAmt,FRT,bdi,auction,* from ATS_Sales_AR where concat(company,trantype,Invoice)='60061318001348'
+--order by AR_Rnk,AR_Rnk2,AR_Rnk3
+----and AR_Rnk = 1 and AR_Rnk > 1 and InvAmt <>0
+----select t_amth_1,* from TTFACR200ALL where concat(company,t_ttyp,t_ninv)='60061318001348'
+----select t_amth_1,t_txah_1,* from CI_Lines where concat(company,Trantype,invnum)='60061318001348'
+
+
+
+--select * from ATS_Sales_AR where OrderNo='603009607' and CustCode='CU1T06511'
+
+--select * from Sales_Header where OrderNum='603009607' and CustCode='CU1T06511'

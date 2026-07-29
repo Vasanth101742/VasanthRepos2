@@ -1,0 +1,61 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--select * From stock_min_max
+--exec sp_stock_min_max
+---------Tables are loaded in purchase data load
+CREATE proc sp_stock_min_max
+as
+begin
+
+truncate table stock_min_max
+insert into stock_min_max 
+
+SELECT ltrim(rtrim(a.T$ITEM)) AS Item,b.DSCA as Item_desc,t$cwar as Warehouse,t$mioq as Minqty,t$maoq as Maxqty,
+'' as stock_onhand,''as stock_act,''as pending_order_stock from 
+  (select * fROM TWHWMD210951 where t$cwar in (102,202))a
+LEFT JOIN TTCIBD001951 B
+ON ltrim(rtrim(A.T$ITEM)) =ltrim(rtrim(B.ITEM)) 
+
+
+update stock_min_max set stock_act =b.qhnd from
+(select company,CWAR ,ITEM ,((sum(QHND))-(sum(QLAL)+sum(QBLK)))as qhnd
+from TWHWMD215ALL 
+where Company=951
+and CWAR  in ('102','202')
+group by company,CWAR,item
+) b
+where ltrim(rtrim(stock_min_max.item))=ltrim(rtrim(b.ITEM)) 
+and stock_min_max.Warehouse=b.CWAR
+
+
+update stock_min_max set stock_onhand=b.qhnd from 
+(select company,CWAR,ITEM,sum(QHND)qhnd
+from TWHWMD215all
+where Company=951
+and CWAR in ('102','202')
+group by company,CWAR,ITEM
+) b
+where ltrim(rtrim(stock_min_max.item))=ltrim(rtrim(b.ITEM)) 
+and stock_min_max.Warehouse=b.CWAR
+
+update stock_min_max set pending_order_stock=b.pnd_qty  from 
+(
+select ITEMCODE,sum((ord_qty-Cancel_Qty)-DelQty)AS pnd_qty From Pending_Orders 
+where CustCode='CU1I00910'
+AND Company IN (490)
+and ((ord_qty-Cancel_Qty)-DelQty)>0
+--and  ltrim(rtrim(itemcode))='00041503A'
+group by ItemCode 
+
+)b
+where ltrim(rtrim(stock_min_max.item))=ltrim(rtrim(b.ITEMCODE)) 
+end
+
+
+
+
+
+
+
+
+Completion time: 2025-11-19T12:22:20.5480139+05:30

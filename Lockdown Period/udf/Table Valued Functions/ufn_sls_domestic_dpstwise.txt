@@ -1,0 +1,151 @@
+--declare @CalMonth int=4
+--Declare @CalYear int=2018
+--select convert(date,CONVERT(varchar, @CalMonth) + '/1/' + CONVERT(varchar,@CalYear-1)),
+--dateadd(dd,-1,dateadd(mm,1,convert(date,CONVERT(varchar, @CalMonth) + '/1/'+  CONVERT(varchar,@CalYear-1))))
+--CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/'+  CONVERT(varchar,@CalYear-1)
+
+
+CREATE FUNCTION [dbo].[ufn_sls_domestic_dpstwise] (@CalMonth int,@CalYear int)
+
+RETURNS @ufn_sls_domestic_dpstwise TABLE 
+
+(
+Description	varchar(50),
+DPSTcode	varchar(20),
+dpstname	varchar(100),
+ondate_sale	float,
+last_year_sale	float,
+last_year_ytd	float,
+this_year_sale	float,
+last_month_sale	float,
+this_month_sale	float,
+thr_month_sale	float,
+n1_month_sale	float,
+n2_month_sale	float,
+n3_month_sale	float,
+last_year_this_month_sale	float
+)
+
+AS
+
+BEGIN
+
+WITH CTE_sls_domestic_dpstwise
+(Description	,DPSTcode	,dpstname	,ondate_sale	,last_year_sale	,last_year_ytd	,this_year_sale	,last_month_sale	,
+this_month_sale	,thr_month_sale	,n1_month_sale	,n2_month_sale	,n3_month_sale	,last_year_this_month_sale) -- CTE name and columns
+
+AS (
+SELECT	c.Description, c.DPSTcode,c.dpstname,
+
+sum(CASE WHEN day(a.invoice_date)=day(getdate()-1)and month(a.invoice_date)=@CalMonth
+and year(a.invoice_date)=@CalYear THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS ondate_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 2 else @CalYear-1 end )) 
+AND 
+'03/31/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear-1 else @CalYear end ))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_sale, 
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 2 else @CalYear-1 end )) )
+AND 
+convert(date,CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/' + CONVERT(varchar,@CalYear-1))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_ytd, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end )))
+AND 
+convert(date,CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/' + CONVERT(varchar,@CalYear))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_year_sale,   
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_month_sale,
+
+SUM(CASE WHEN month(a.Invoice_Date) =@CalMonth
+and year(a.Invoice_Date) =@CalYear
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sale,
+
+--SUM(CASE WHEN a.Invoice_Date BETWEEN 
+--CONVERT(varchar,@CalMonth)  + '/1/' + CONVERT(varchar,@CalYear)
+--AND 
+--dateadd(dd,-1,dateadd(mm, 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)))
+--THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS thr_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n1_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n2_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n3_month_sale,
+
+--SUM(CASE WHEN a.Invoice_Date BETWEEN 
+--CONVERT(varchar, @CalMonth) + '/1/' + CONVERT(varchar,@CalYear-1)
+--AND 
+--CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/'+  CONVERT(varchar,@CalYear-1)
+--THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_this_month_sale
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,CONVERT(varchar, @CalMonth) + '/1/' + CONVERT(varchar,@CalYear-1))
+AND 
+dateadd(dd,-1,dateadd(mm,1,convert(date,CONVERT(varchar, @CalMonth) + '/1/'+  CONVERT(varchar,@CalYear-1))))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_this_month_sale
+
+FROM 	
+ELGi_Sales_Details a 
+left JOIN vw_AREA_MASTER b
+ON b.AreaCode = a.areacode
+left JOIN vw_DPST_MASTER c 
+ON c.DpstCode = a.Dpst  
+
+WHERE	(c.Description IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')) 
+AND (a.Invoice_Date BETWEEN '04/01/2015' AND GETDATE()) 
+AND a.SaleOrderType in 
+(
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+
+GROUP BY c.Description,c.DPSTName,c.DPSTcode
+
+)
+
+
+
+INSERT @ufn_sls_domestic_dpstwise
+
+SELECT Description	,DPSTcode	,dpstname	,ondate_sale	,last_year_sale	,last_year_ytd	,this_year_sale	,last_month_sale	,this_month_sale	,
+thr_month_sale	,n1_month_sale	,n2_month_sale	,n3_month_sale	,last_year_this_month_sale
+FROM CTE_sls_domestic_dpstwise
+
+RETURN
+
+END;
+
+
+
+
+
+Completion time: 2025-11-10T14:25:17.3661185+05:30

@@ -1,0 +1,391 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Triggers_Inventory_Production
+
+CREATE proc sp_Triggers_Inventory_Production as 
+begin
+
+
+Truncate table Triggers_Inventory_Production
+Truncate table PTO_Order_Itemslist
+
+--PTO Production orders
+
+--Alter table Triggers_Inventory_Production add SuppCode varchar(50)
+--Alter table Triggers_Inventory_Production add SuppName varchar(50)
+--Alter table Triggers_Inventory_Production add BuyerCode varchar(50)
+--Alter table Triggers_Inventory_Production add BuyerName varchar(50)
+
+Insert into Triggers_Inventory_Production(company,warehouse,
+item,itemdescr,Description,prodorderno,date1,planned_Qty,CalYear,CalMonth,Remarks)
+--select * into Triggers_Inventory_Production from (
+select company,warehouse,item,itemdescr,Description,prodorderno,date1,
+sum(planned_Qty) planned_Qty,
+year(date1) as CalYear,
+month(date1) as CalMonth,
+'Production'
+from ELGi_Production_details
+where company like '4%'
+and osta in (1,2,3)
+and ltrim(rtrim(ITEM)) not in 
+(select distinct ltrim(rtrim(ITEM)) from TZZSFC211ALL 
+where FGTM in (2,4,6)) -->2,4,6 belongs to DEM Category rest others are PTO
+and ltrim(rtrim(ITEM)) not in (Select distinct ltrim(rtrim(item)) from tzzpur049ALL)
+--and warehouse in ('209','210' , '212', '252', '253','353', '453', '553', 'CON', 'D53', 'U53')
+--and prodorderno in (select distinct T$PDNO from TZZSFC207ALL where T$STAT=2) --Shortage Orders
+group by company,warehouse,item,itemdescr,Description,prodorderno,date1
+--)a
+
+
+--Description Update
+--Method 1
+update Triggers_Inventory_Production set Category=a.CATG
+--Description=a.VARI2
+from (select *
+--case when VARI is null or ltrim(rtrim(VARI))='' then null else VARI end as VARI2 
+from TZZINV310ALL where company=400) a
+where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+--and Triggers_Inventory_Production.company=a.company 
+and Triggers_Inventory_Production.company like '4%'
+
+
+--Method 2
+
+
+update Triggers_Inventory_Production set Description=a.AssemblyLine
+from (select * from Production_Series_Master) a
+where Triggers_Inventory_Production.company=a.company 
+and substring(Triggers_Inventory_Production.prodorderno,1,3)=substring(a.PO_Series,1,3)
+
+
+--Planned_Value Update
+----Method 1.1: production Item Price from Inventory
+update Triggers_Inventory_Production set Planned_Value=AvgUnitPrice * planned_Qty,PriceSource='From_Inventory'
+from (select distinct ltrim(rtrim(item)) item ,sum(qskt) qskt,sum(Amnt4) Amnt4 ,
+sum(Amnt4)/sum(qskt) as AvgUnitPrice
+from inventorydetails
+where company like '4%'
+--where ltrim(rtrim(item))='S016478'
+--'         000216320'
+group by ltrim(rtrim(item))
+having sum(qskt)<>0
+)a
+where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+and Triggers_Inventory_Production.planned_Qty<>0
+and Triggers_Inventory_Production.Planned_Value is null
+
+
+----Method 1.2: production Item Price from Inventory(WIP)
+update Triggers_Inventory_Production set Planned_Value=Amnt4,PriceSource='From_Inventory'
+from (select distinct ltrim(rtrim(item)) item ,sum(qskt) qskt,sum(Amnt4) Amnt4
+from inventorydetails a
+where company like '4%' 
+and ordt in (select max(ordt) from inventorydetails b
+where a.company=b.company
+and a.item=b.item
+)
+--and ltrim(rtrim(item))= 'S017705' --For Testing
+group by ltrim(rtrim(item))
+)a
+where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+and Triggers_Inventory_Production.planned_Qty<>0
+
+
+
+--Method 1.3
+update Triggers_Inventory_Production set Planned_Value=Planned_qty*unitprice_INR,PriceSource='From_LN_PriceMaster'
+from (
+select * from 
+(select distinct item from Triggers_Inventory_Production
+where planned_qty is not null --and planned_value is null
+--and ltrim(rtrim(item))='S017378'--'X021238'
+)a
+left outer join (select level1,sum(unitprice_INR) unitprice_INR from item_hierarchy
+--where ltrim(rtrim(level1))='S017378'--'X021238'
+group by level1
+) b
+on ltrim(rtrim(a.item))=ltrim(rtrim(b.level1))
+)a
+where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+
+
+----Method 1.3 Updating Trigger Item Price from LN Price Master by Supplier
+--update Triggers_Inventory_Production set Planned_Value=Planned_qty*unitprice_INR,PriceSource='From_LN_PriceMaster'
+--from (
+--select * from 
+--(select distinct item from Triggers_Inventory_Production
+--where Planned_qty is not null and Planned_Value is null)a
+--left outer join (
+--select baseitem,sum(unitprice_INR) unitprice_INR 
+--from (select *,row_number() over (partition by baseitem order by baseitem) as Rnk from item_hierarchy)a
+--where Rnk=1
+--and ltrim(rtrim(level1))='X021238'
+----'000511160'
+--group by baseitem
+--) b
+--on ltrim(rtrim(a.item))=ltrim(rtrim(b.baseitem))
+
+--)a
+--where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+
+---------------------------------------------------------------------------------------
+Truncate table PTO_Order_Itemslist
+Insert into PTO_Order_Itemslist
+select distinct baseitem from (
+select company,warehouse,item--,prodorderno,sum(planned_qty) planned_qty
+from Triggers_Inventory_Production
+where prodorderno is not null
+group by company,warehouse,item--,prodorderno
+)a
+left outer join (
+select distinct level1,baseitem,Rnk
+--,sum(baseqty) baseqty,sum(unitprice_INR) unitprice_INR ,
+--sum(baseqty * unitprice_INR) Value_INR
+from (select *,row_number() over (partition by baseitem order by baseitem) as Rnk from item_hierarchy
+--where ltrim(rtrim(level1))='X990962'
+--and ltrim(rtrim(baseitem))='000511160'
+)a
+--where Rnk=1
+group by level1,baseitem,Rnk
+) b
+on ltrim(rtrim(a.item))=ltrim(rtrim(b.level1))
+where ltrim(rtrim(baseitem)) not in (Select distinct ltrim(rtrim(item)) from tzzpur049ALL )
+--where ltrim(rtrim(level1))='X990962'
+--where item='         S02672'
+--order by prodorderno
+
+
+----------------------------------------------------------------------------------------
+
+
+
+--PTO Inventory
+
+
+Insert into Triggers_Inventory_Production(company,warehouse,item,
+itemdescr,Description,StockQty,StockValue,date1,CalYear,CalMonth,Remarks,Category,
+SuppCode,SuppName,BuyerCode,BuyerName)
+select company,cwar,item,itemdescr,VARI,
+sum(QSKT) Qty,sum(Amnt4) Value, 
+convert(date,getdate()-1) as date1,
+year(getdate()-1) as CalYear,
+month(getdate()-1) as CalMonth,
+'Inventory',
+Category,
+SuppCode,SuppName,BuyerCode,BuyerName
+from inventorydetails
+where company like '4%'
+and ltrim(rtrim(SuppCode)) not in ('SU1U99998')
+and cwar in ('209','210' , '212', '252', '253','353', '453', '553', 'CON', 'D53', 'U53')
+and ltrim(rtrim(ITEM)) not in 
+(select distinct ltrim(rtrim(ITEM)) from TZZSFC211ALL 
+where FGTM in (2,4,6)) -->2,4,6 belongs to DEM Category rest others are PTO
+and ltrim(rtrim(ITEM)) not in (Select distinct ltrim(rtrim(item)) from tzzpur049ALL)
+and coalesce(ltrim(rtrim(ITEM)),ltrim(rtrim(CITM))) in (Select distinct ltrim(rtrim(baseitem)) from PTO_Order_Itemslist)
+group by company,cwar,item,itemdescr,VARI,Category,
+SuppCode,SuppName,BuyerCode,BuyerName
+
+
+
+------------------------------------------------------------------------------------------
+
+--PTO Triggers
+--Alter table Triggers_Inventory_Production add DueSlabOrdr int
+--Alter table Triggers_Inventory_Production add DueSlab varchar(50)
+--Alter table Triggers_Inventory_Production add DueTypeOrdr int
+--Alter table Triggers_Inventory_Production add DueType varchar(50)
+
+
+Insert into Triggers_Inventory_Production(company,item,
+itemdescr,Description,Lot_No,date1,PendingQty,CalYear,CalMonth,Remarks,Category,
+SuppCode,SuppName,BuyerCode,BuyerName,DueSlabOrdr,DueSlab,DueTypeOrdr,DueType)
+select company,item,Description,VARI,Lot_No,duedate,
+--SUPERMARKET,DEPARTMENT,
+sum(PendingQty) PendingQty,
+year(duedate) as CalYear,
+month(duedate) as CalMonth,
+'Triggers',
+Category,
+SupplierNum,NAMA,BUYR,empname,
+DueSlabOrdr,DueSlab,DueTypeOrdr,DueType
+from elgi_overdue_triggers 
+where  company like '4%'
+and triggertype='NON LEAN'
+and ltrim(rtrim(SupplierNum)) not in ('SU1U99998')
+and ltrim(rtrim(ITEM)) not in 
+(select distinct ltrim(rtrim(ITEM)) from TZZSFC211ALL 
+where FGTM in (2,4,6)) -->2,4,6 belongs to DEM Category rest others are PTO
+and ltrim(rtrim(ITEM)) not in (Select distinct ltrim(rtrim(item)) from tzzpur049ALL)
+and ltrim(rtrim(ITEM)) in (Select distinct ltrim(rtrim(baseitem)) from PTO_Order_Itemslist)
+group by company,item,Description,VARI,Lot_No,duedate,Category,
+SupplierNum,NAMA,BUYR,empname,DueSlabOrdr,DueSlab,DueTypeOrdr,DueType
+--,SUPERMARKET,DEPARTMENT
+
+
+
+----Method 1.1: Trigger Item Price from Inventory
+update Triggers_Inventory_Production set PendingValue=AvgUnitPrice * PendingQty,PriceSource='From_Inventory'
+from (select distinct ltrim(rtrim(item)) item ,sum(qskt) qskt,sum(Amnt4) Amnt4 ,
+sum(Amnt4)/sum(qskt) as AvgUnitPrice
+from inventorydetails
+where company like '4%'
+group by ltrim(rtrim(item))
+having sum(qskt)<>0
+)a
+where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+and Triggers_Inventory_Production.PendingQty<>0
+
+
+----Method 1.2: Trigger Item Price from Inventory(WIP)
+update Triggers_Inventory_Production set PendingValue=Amnt4,PriceSource='From_Inventory'
+from (select distinct ltrim(rtrim(item)) item ,sum(qskt) qskt,sum(Amnt4) Amnt4
+from inventorydetails a
+where company like '4%'
+and ordt in (select max(ordt) from inventorydetails b
+where a.company=b.company
+and a.item=b.item
+)
+--and ltrim(rtrim(item))= 'S017705' --For Testing
+group by ltrim(rtrim(item))
+)a
+where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+and Triggers_Inventory_Production.PendingQty<>0
+
+
+
+--Method 1.3 Updating Trigger Item Price from LN Price Master by Supplier
+update Triggers_Inventory_Production set pendingvalue=pendingqty*unitprice_INR,PriceSource='From_LN_PriceMaster'
+from (
+select * from 
+(select distinct item from Triggers_Inventory_Production
+where pendingqty is not null and pendingvalue is null)a
+left outer join (
+select baseitem,sum(unitprice_INR) unitprice_INR 
+from (select *,row_number() over (partition by baseitem order by baseitem) as Rnk from item_hierarchy)a
+where Rnk=1
+--and ltrim(rtrim(baseitem))='000511160'
+group by baseitem
+) b
+on ltrim(rtrim(a.item))=ltrim(rtrim(b.baseitem))
+
+)a
+where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+
+
+
+
+----Method 2.1: Updating Trigger Item Price from LN Price Master by Supplier
+--update Triggers_Inventory_Production set PendingValue=a.PendingValue,PriceSource='From_LN_PriceMaster'
+--from (
+--select *,pendingqty*unitprice_INR as PendingValue from (
+--select a.item,a.date1,a.pendingqty,b.unitprice_INR,
+--row_number() over(partition by a.Item,a.date1 order by a.Item,a.date1,b.efdt desc) as Rnk1 from
+--(select * from Triggers_Inventory_Production
+--where pendingqty is not null and pendingvalue is null
+----and item='         00021613A'
+----'         018400742'
+----'         A019348'
+--) a
+--left outer join LN_ItemPriceMaster b
+--on ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+--and a.date1>=b.efdt
+--)a
+--where Rnk1=1
+--)a
+--where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+--and Triggers_Inventory_Production.PendingQty<>0
+
+----Method 2.2: Updating Trigger Item Price from LN Price Master by Supplier
+--update Triggers_Inventory_Production set PendingValue=a.PendingValue,PriceSource='From_LN_PriceMaster'
+--from (
+--select *,pendingqty*unitprice_INR as PendingValue from (
+--select a.item,a.date1,a.pendingqty,b.unitprice_INR,
+--row_number() over(partition by a.Item,a.date1 order by a.Item,a.date1,b.efdt) as Rnk1 from
+--(select * from Triggers_Inventory_Production
+--where pendingqty is not null and pendingvalue is null
+----and item='         00021613A'
+----'         018400742'
+----'         A019348'
+--) a
+--left outer join LN_ItemPriceMaster b
+--on ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+--and a.date1<=b.efdt
+--)a
+--where Rnk1=1
+--)a
+--where ltrim(rtrim(Triggers_Inventory_Production.item))=ltrim(rtrim(a.item))
+--and Triggers_Inventory_Production.PendingQty<>0
+
+
+-------------------------------------------------------------------------------------
+
+update Triggers_Inventory_Production set Description =null where description=''
+
+--Method 1:
+update Triggers_Inventory_Production set MonthType='Backlog' where date1 < dateadd(dd,1,eomonth(getdate()-1,-1))
+update Triggers_Inventory_Production set MonthType='CurrentMonth' where date1 between dateadd(dd,1,eomonth(getdate()-1,-1)) and eomonth(getdate()-1)
+
+--Method 2: For Production Orders
+update Triggers_Inventory_Production set MonthType='Backlog' where date1 <=convert(date,(getdate()-1)) and prodorderno is not null
+update Triggers_Inventory_Production set MonthType='CurrentMonth' where date1 between convert(date,(getdate())) and eomonth(getdate()-1) and prodorderno is not null
+
+
+update Triggers_Inventory_Production set MonthType='NextMonth'
+where date1 between dateadd(dd,1,eomonth(getdate()-1,0)) and eomonth(getdate()-1,1)
+
+
+update Triggers_Inventory_Production set MonthType='NextofNextMonth'
+where date1 between dateadd(dd,1,eomonth(getdate()-1,1)) and eomonth(getdate()-1,2)
+
+
+update Triggers_Inventory_Production set Month_Name=
+upper(substring(datename(mm,dateadd(mm,CalMonth,-1)),1,3))+'-'+substring(convert(varchar,CalYear),3,2)
+
+update Triggers_Inventory_Production set Month_Name='Backlog' where MonthType='Backlog'
+
+
+update Triggers_Inventory_Production set CalPeriod=convert(varchar,CalYear)+RIGHT('00'+CAST(CalMonth AS VARCHAR(2)),2)
+
+
+
+
+
+--Alter table Triggers_Inventory_Production add Description_ordr int
+--Alter table Triggers_Inventory_Production add Remarks varchar(25)
+
+update Triggers_Inventory_Production set Description_ordr=1 where Description='SEPSAC'
+update Triggers_Inventory_Production set Description_ordr=2 where Description='LEPSAC'
+update Triggers_Inventory_Production set Description_ordr=3 where Description='DPSAC'
+update Triggers_Inventory_Production set Description_ordr=4 where Description='OFSAC'
+update Triggers_Inventory_Production set Description_ordr=5 where Description='RCD'
+update Triggers_Inventory_Production set Description_ordr=6 where Description='RLY'
+update Triggers_Inventory_Production set Description_ordr=7 where Description='WIPER'
+update Triggers_Inventory_Production set Description_ordr=8 where Description='AIREND'
+update Triggers_Inventory_Production set Description_ordr=9 where Description='TOP BLOCK'
+
+update Triggers_Inventory_Production set Description_ordr=100 where Description_ordr is null
+
+delete from Triggers_Inventory_Production where Description_ordr=100
+delete from Triggers_Inventory_Production where company not in (401,450)
+
+
+
+end
+
+
+
+--Select * from Triggers_Inventory_Production
+-----where pendingvalue is null and pendingqty is not null
+--where ltrim(rtrim(item))='S017705'
+--'         00021613A'
+--'         415305805'
+--'         415307731'
+--'         S013611'
+
+
+
+
+
+
+
+Completion time: 2025-11-19T12:40:26.7147800+05:30

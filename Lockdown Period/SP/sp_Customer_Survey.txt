@@ -1,0 +1,192 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Customer_Survey
+CREATE proc sp_Customer_Survey as
+begin
+
+Truncate table Customer_Survey
+
+--Alter table Customer_Survey add AreaName varchar(50)
+--Alter table Customer_Survey add SERL varchar(50)
+--Alter table Customer_Survey add ItemCode varchar(50)
+--Alter table Customer_Survey add ItemDescr varchar(50)
+--Alter table Customer_Survey add Company int
+--Alter table Customer_Survey add ordertype nvarchar(6)
+--Alter table Customer_Survey add OrderNum varchar(18)
+
+insert into Customer_Survey(organ,vertical1,user_names,productgrp,Custcode,CustName,AreaName,elgi_lineofbusinessname,
+Company,ordertype,OrderNum)
+select * from (
+select distinct organ,vertical1,user_names,productgrp,Custcode,CustName,AreaName,lineofbusiness,
+Company,SaleOrderType,OrderNo
+from [elgi_ln].dbo.elgi_sales_details
+where invoice_date>='2023-01-01'
+and sales_category not in (1)
+and organ not in ('Subsidiary')
+--and organ in ('India','SAAME','COSEA')
+--and areaname not in ('AUSTRALIA','CHINA')
+--and custcode='CU1U00001'
+--and vertical1 like '%SPARES%'
+)a
+
+
+
+update Customer_Survey set SERL=a.SERL,ItemCode=ltrim(rtrim(a.ItemCode))
+from Salesorder_with_Fabno a
+where Customer_Survey.Company=a.Company
+and Customer_Survey.OrderNum=a.OrderNum
+
+update Customer_Survey set ItemDescr=a.Item_desc
+from elgi_sales_details a
+where Customer_Survey.Company=a.Company
+and Customer_Survey.Ordertype=a.SaleOrdertype
+and Customer_Survey.OrderNum=a.Orderno
+
+--select serl,count(distinct itemcode) counts from Salesorder_with_Fabno
+--group by serl
+--having count(distinct itemcode)>1
+--order by serl,itemcode
+
+--select * from Salesorder_with_Fabno
+--where serl='B24V1044'
+
+--select * from Customer_Survey where serl is not null='B24V1044'
+
+
+
+update Customer_Survey set organ='SEA' where organ='COSEA'
+
+delete from Customer_Survey where vertical1 like '%SPARES%'
+delete from Customer_Survey where vertical1 like '%AfterMarket%'
+delete from Customer_Survey where vertical1 like '%ACCESSORIES%'
+delete from Customer_Survey where vertical1 like '%SERVICE REVENUE%'
+delete from Customer_Survey where vertical1 in ('SYNTHETIC OIL (GULF TO CUST)','AFTERSALES')
+
+
+delete from Customer_Survey  where user_names in ('GULF TO CUST - SPARES','ME-Spares','SA-Spares','Africa-Spares')
+delete from Customer_Survey  where productgrp in ('PARTS','ATS','SERVICE REVENUE','CAG')
+
+
+--Alter table Customer_Survey add elgi_accounttypename varchar(50)
+
+
+update Customer_Survey set elgi_lineofbusinessname=a.elgi_lineofbusiness_desc,accountid=a.accountid,
+elgi_accounttypename=a.elgi_accounttypename,
+elgi_cityname=a.elgi_cityname,elgi_statename=a.elgi_statename
+from 
+(select distinct accountid,accountnumber,elgi_erpcustomercode,name,elgi_accounttypename,
+createdon,elgi_cityname,elgi_statename,
+address1_composite,elgi_industrysizename,
+elgi_customergroupname,elgi_customerclassificationname,
+elgi_customerclustersalesname,elgi_lineofbusinessname,
+elgi_lineofbusiness_desc,Owningbusinessunitname,
+elgi_iipdescription,customertypecodedesc
+from [ELGi_CRM].dbo.Account_CRM
+where --elgi_accounttypename='Customer' and 
+elgi_erpcustomercode in (select custcode from Customer_Survey )
+--and elgi_erpcustomercode='CU1U00001'
+--and name like '%Shree Cement%'
+)a
+where Customer_Survey.custcode=a.elgi_erpcustomercode
+
+
+update Customer_Survey set elgi_lineofbusinessname=a.elgi_lineofbusiness_desc,accountid=a.accountid,
+elgi_accounttypename=a.elgi_accounttypename,
+elgi_cityname=a.elgi_cityname,elgi_statename=a.elgi_statename
+from 
+(select distinct accountid,accountnumber,elgi_erpcustomercode,name,elgi_accounttypename,
+createdon,elgi_cityname,elgi_statename,
+address1_composite,elgi_industrysizename,
+elgi_customergroupname,elgi_customerclassificationname,
+elgi_customerclustersalesname,elgi_lineofbusinessname,
+elgi_lineofbusiness_desc,Owningbusinessunitname,
+elgi_iipdescription,customertypecodedesc
+from [ELGi_CRM].dbo.Account_CRM
+--where --elgi_accounttypename='Customer' and 
+--elgi_erpcustomercode in (select custcode from Customer_Survey )
+--and elgi_erpcustomercode='CU1U00001'
+--and name like '%Shree Cement%'
+)a
+where ltrim(rtrim(Customer_Survey.custname))=ltrim(rtrim(a.name))
+and Customer_Survey.accountid is null
+--and ltrim(rtrim(Customer_Survey.custname))='ARCHANA GRANITES'
+
+
+
+
+update Customer_Survey set AreaName='India' where organ='India' 
+
+
+--Alter Table Customer_Survey alter column emailaddress1 varchar(100)
+--Alter Table Customer_Survey add jobtitle varchar(50)
+--Alter Table Customer_Survey add mobilephone varchar(50)
+--Alter Table Customer_Survey add emailaddress1 varchar(50)
+--Alter Table Customer_Survey add elgi_cityname varchar(50)
+--Alter Table Customer_Survey add elgi_statename varchar(50)
+
+
+update Customer_Survey set fullname=a.fullname,jobtitle=a.jobtitle,
+mobilephone=a.mobilephone,emailaddress1=a.emailaddress1
+from (select distinct parentcustomerid,parentcustomeridname,fullname,jobtitle,
+mobilephone,emailaddress1,contactid 
+from [ELGi_CRM].dbo.Contact_CRM 
+where parentcustomeridname is not null
+--and parentcustomerid='514E0ED7-6D6F-EB11-A812-000D3AC9E2F2'
+)a
+where Customer_Survey.accountid=a.parentcustomerid
+
+update Customer_Survey set mobilephone=a.contact,emailaddress1=a.email
+from vw_business_partner a
+where Customer_Survey.custcode=a.custcode
+and Customer_Survey.mobilephone is null
+
+
+update Customer_Survey set emailaddress1=a.email
+from vw_business_partner a
+where Customer_Survey.custcode=a.custcode
+and Customer_Survey.emailaddress1 is null
+
+
+--select * from [ELGi_CRM].dbo.Existing_ELGi_Customers
+--where  elgi_erpcustomercode='CRB000363'
+
+end
+
+select 
+Row_number() over(order by organ,custcode ) as SlNo,
+organ as BusinessVertical,	
+CustCode,
+CustName,
+elgi_accounttypename as [Type],
+elgi_lineofbusinessname as Industrytype	,
+--#of ELGi Installations	
+productgrp as Producttype,
+fullname as ContactPerson,
+Jobtitle as [Role],
+emailaddress1 as ContactEmail,
+mobilephone as ContactPhone,
+elgi_cityname as City_from_CRMSystem,
+elgi_statename as State_from_CRMSystem,
+AreaName as Country_from_LNSystem,
+SERL,ITemCode,ItemDescr
+--null as DealerRef
+from Customer_Survey
+where serl is not null 
+--and elgi_accounttypename='Customer'
+--and itemcode is null
+--and len(ltrim(rtrim(itemcode)))<2
+--where organ='SAAME'
+
+--select * from vw_business_partner
+
+--where elgi_lineofbusinessname is not null and fullname is null
+--select distinct productgrp from Customer_Survey
+--select distinct organ,vertical1,user_names from Customer_Survey
+--select * from elgi_sales_details where productgrp in ('CAG')
+
+
+
+
+
+
+Completion time: 2025-11-19T09:28:38.7894928+05:30

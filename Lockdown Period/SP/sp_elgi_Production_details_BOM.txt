@@ -1,0 +1,262 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_elgi_Production_details_BOM
+
+CREATE proc [dbo].[sp_elgi_Production_details_BOM] as 
+begin
+
+Truncate table elgi_Production_details_BOM_temp1
+Truncate table elgi_Production_details_BOM
+
+--ALter table elgi_Production_details_BOM add PredictionType varchar(50)
+--ALter table elgi_Production_details_BOM add InvRnk int
+
+Insert into elgi_Production_details_BOM_temp1(company,warehouse,item,itemdescr,Description,
+Prodorderno,date1,osta,Planned_qty,Released_qty)
+select * from (
+select company,warehouse,item,itemdescr,Description,Prodorderno,date1,osta,
+sum(case when osta in (1,2,3) then Planned_qty else 0 end) Planned_qty,
+sum(case when osta=4 then Released_qty else 0 end ) Released_qty 
+from elgi_production_details
+where Company like '4%'
+and ltrim(rtrim(item)) not in 
+(select  ltrim(rtrim(T$ITEM))
+from TZZSFC211401 where T$FGTM in (2,4,6)) -->'Prediction' as PredictionType 
+group by company,warehouse,item,itemdescr,Description,Prodorderno,date1,osta
+--having sum(Planned_qty) + sum(Released_qty) <>0
+)a
+where (Planned_qty + Released_qty)<>0
+
+--Alter table elgi_Production_details_BOM add pdnoRnk int
+
+insert into elgi_Production_details_BOM(company,warehouse,item,
+itemdescr,Description,Prodorderno,date1,osta,Planned_qty,Released_qty,SITM,pdnoRnk,InvRnk)
+select a.*,b.BaseItem,Row_number() over(partition by a.company,a.warehouse,a.item,a.Prodorderno order by b.baseitem) as pdnoRnk,
+ROW_NUMBER() over(partition by a.company,--a.warehouse,
+b.BaseItem order by a.company,a.warehouse,b.BaseItem) as InvRnk
+from elgi_Production_details_BOM_temp1 a
+left outer join (Select distinct Company,Level1,BaseItem from Item_hierarchy)b
+on ltrim(rtrim(a.item))=ltrim(rtrim(b.Level1))
+--where ltrim(rtrim(a.item))='S011655'
+
+
+update elgi_Production_details_BOM set EFDT=a.EFDT,BAPR=a.BAPR
+from (
+select * from (
+select a.company,a.item,a.SITM,a.Date1,b.EFDT,b.BAPR,
+ROW_NUMBER() over(partition by a.company,a.Item,a.SITM order by datediff(dd,b.efdt,a.date1)) as PriceRnk
+--datediff(dd,b.efdt,a.date1) as DaysDiff 
+from 
+(Select company,warehouse,item,itemdescr,Description,Prodorderno,
+date1,osta,Planned_qty,Released_qty,SITM from elgi_Production_details_BOM) a
+left outer join 
+(select distinct Company,Item,CURN,EFDT,EXDT,BAPR from TTDPCG031ALL a
+where EXDT>convert(date,getdate()-1)
+and CURN in ('IND','INR')
+and PRBK='PUR000001'
+and EFDT=(select max(EFDT) from TTDPCG031ALL b 
+where a.COMPANY=b.COMPANY
+and a.ITEM=b.ITEM
+and b.PRBK='PUR000001'
+)
+--and ltrim(rtrim(Item))='445400598'--'A070075'--'X013868'----'X020543'--'000210020'
+)b
+on ltrim(rtrim(a.SITM))=ltrim(rtrim(b.ITEM))
+)a
+where PriceRnk=1
+)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.SITM))
+
+
+update elgi_Production_details_BOM set PredictionType='NonPrdeiction'
+from (select  ltrim(rtrim(T$ITEM)) Item
+from TZZSFC211401 where T$FGTM  not in (2,4,6))a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.Item))
+
+update elgi_Production_details_BOM set PredictionType='Prediction' where PredictionType is null
+
+update elgi_Production_details_BOM set Planned_qty=0 ,Released_qty=0 where pdnoRnk>1
+
+
+--Alter table elgi_Production_details_BOM add Prod_Allocation float
+--Alter table elgi_Production_details_BOM drop column Sales_Allocation float
+--Alter table elgi_Production_details_BOM add InvQty float
+--Alter table elgi_Production_details_BOM add InvValue float
+--Alter table elgi_Production_details_BOM add KITM int
+
+--Alter table elgi_Production_details_BOM add Sales_Allocation float
+--Alter table elgi_Production_details_BOM add SITM_Qty float
+
+--Alter table elgi_Production_details_BOM add Opening_InvQty float
+--Alter table elgi_Production_details_BOM add Opening_InvValue float
+--Alter table elgi_Production_details_BOM add Pend_Trigger_Qty float
+
+update elgi_Production_details_BOM set KITM=a.t_kitm
+from (select t_item,t_kitm from TTCIBD001400)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.t_item))
+and elgi_Production_details_BOM.company in 
+(select  company from ELGI_Companies_Master where Company not in (450,465,470,490,551,552) and CompanyGroup ='ELGi')
+
+update elgi_Production_details_BOM set KITM=a.KITM
+from (select Item,KITM from ttcibd001470)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.Item))
+and elgi_Production_details_BOM.company =470
+
+
+update elgi_Production_details_BOM set KITM=a.KITM
+from (select Item,KITM from TTCIBD001490)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.Item))
+and elgi_Production_details_BOM.company =490
+
+
+update elgi_Production_details_BOM set Prod_Allocation=a.AllocatedQty
+from (select COMPANY,T$ITEM as ITEM,T$KOOR,T$KOTR,T$ORNO,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (401,450,470,490) and T$KOOR=1 and T$KOTR=2
+group by COMPANY,T$ITEM,T$KOOR,T$KOTR,T$ORNO)a
+where elgi_Production_details_BOM.company=a.COMPANY
+and ltrim(rtrim(elgi_Production_details_BOM.Prodorderno))=ltrim(rtrim(a.T$ORNO))
+and ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.ITEM))
+
+update elgi_Production_details_BOM set Sales_Allocation=a.AllocatedQty
+from (select COMPANY,T$ITEM as ITEM,T$KOOR,T$KOTR,T$ORNO,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (401,450,470,490) and T$KOOR=3 and T$KOTR=2
+group by COMPANY,T$ITEM,T$KOOR,T$KOTR,T$ORNO)a
+where elgi_Production_details_BOM.company=a.COMPANY
+and ltrim(rtrim(elgi_Production_details_BOM.Prodorderno))=ltrim(rtrim(a.T$ORNO))
+and ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.ITEM))
+
+
+if datepart(dd,getdate()-1)=1
+begin
+update elgi_Production_details_BOM set Opening_InvQty=a.QSKT,Opening_InvValue=a.Amnt4
+from (select COMPANY,--CWAR,
+ITEM,sum(QSKT) QSKT,sum(Amnt4) Amnt4 from InventoryDetails
+--where ltrim(rtrim(ITEM))= '000903165'
+group by COMPANY,--CWAR,
+ITEM
+)a
+where elgi_Production_details_BOM.company=a.COMPANY
+--and elgi_Production_details_BOM.warehouse=a.CWAR
+and ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.ITEM))
+end
+
+
+
+
+
+--update elgi_Production_details_BOM set InvQty=null,InvValue=null
+update elgi_Production_details_BOM set InvQty=a.QSKT,InvValue=a.Amnt4
+from (select COMPANY,--CWAR,
+ITEM,sum(QSKT) QSKT,sum(Amnt4) Amnt4 from InventoryDetails
+--where ltrim(rtrim(ITEM))= '000903165'
+group by COMPANY,--CWAR,
+ITEM
+)a
+where elgi_Production_details_BOM.company=a.COMPANY
+--and elgi_Production_details_BOM.warehouse=a.CWAR
+and ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.ITEM))
+
+
+Update elgi_Production_details_BOM set InvQty=null,InvValue=null where InvRnk>1
+
+
+update elgi_Production_details_BOM set SITM_Qty=a.BaseQty
+from (select level1,BaseItem,sum(BaseQty) BaseQty from Item_hierarchy
+--where Level1='         S011655'
+--and baseitem='         000906144'
+group by level1,BaseItem
+)a
+where ltrim(rtrim(elgi_Production_details_BOM.Item))=ltrim(rtrim(a.Level1))
+and ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.BaseItem))
+
+
+--Lean Trigger
+Update elgi_Production_details_BOM set Pend_Trigger_Qty=a.RQTY
+from (
+SELECT Company,
+ITEM,-- DIVI,DEPT,
+sum(Convert(float,RQTY)) RQTY FROM TZZPUR014ALL
+WHERE STAT = 'M'
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+--and ltrim(rtrim(ITEM))='B005303410002'
+GROUP BY Company,
+ITEM --,DIVI, DEPT
+--HAVING (COUNT(ITEM) > 1)
+)a
+where elgi_Production_details_BOM.company=a.Company
+and ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.item))
+
+--Non Lean Trigger
+Update elgi_Production_details_BOM set Pend_Trigger_Qty=a.TQUA
+from (select company,item,sum(TQUA) TQUA from TZZPUR302ALL
+where STAT='S'
+group by company,item
+)a
+where elgi_Production_details_BOM.company=a.COMPANY
+and ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.ITEM))
+and elgi_Production_details_BOM.Pend_Trigger_Qty is null
+
+Update elgi_Production_details_BOM set Pend_Trigger_Qty=null where InvRnk>1
+
+--Alter Table elgi_Production_details_BOM add SITM_Value float
+--Alter Table elgi_Production_details_BOM add SITM_Desc varchar(50)
+
+Update elgi_Production_details_BOM set SITM_Value =isnull(BAPR,0) * isnull(SITM_Qty,0)
+
+
+---SITM Description -----------------------------------------------------------------------------------
+update elgi_Production_details_BOM set SITM_Desc=a.t_dsca
+from (select t_item,t_dsca from TTCIBD001400)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.t_item))
+and elgi_Production_details_BOM.company in 
+(select  company from ELGI_Companies_Master where Company not in (450,465,470,490,551,552) and CompanyGroup ='ELGi')
+
+
+update elgi_Production_details_BOM set SITM_Desc=a.dsca
+from (select item,dsca from TTCIBD001465)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.item))
+and elgi_Production_details_BOM.company =465
+
+
+update elgi_Production_details_BOM set SITM_Desc=a.dsca
+from (select Item,DSCA from ttcibd001470)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.Item))
+and elgi_Production_details_BOM.company =470
+
+
+update elgi_Production_details_BOM set SITM_Desc=a.dsca
+from (select Item,DSCA from TTCIBD001490)a
+where ltrim(rtrim(elgi_Production_details_BOM.SITM))=ltrim(rtrim(a.Item))
+and elgi_Production_details_BOM.company =490
+
+
+
+---End: SITM Description ---------------------------------------------------------------------------------
+
+
+end
+
+select * from elgi_Production_details_BOM
+where --item='         S013350'
+--and 
+sitm='         B010506780007'
+ --and Prodorderno='220007559'
+--where item='         S011655' and Prodorderno='220007559'
+
+--select *,row_number() over(Partition by Level1,baseitem order by baseitem) from Item_hierarchy
+--where Level1='         S011655'
+--and baseitem='         000906144'
+--and Level2='         X990399'
+--and level3='         A019257'
+--and Level5='         990311570'
+----where Level1='         S011655'
+
+
+
+
+
+Completion time: 2025-11-19T09:50:35.0911914+05:30

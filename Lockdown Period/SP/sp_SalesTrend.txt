@@ -1,0 +1,299 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_SalesTrend
+CREATE proc [dbo].[sp_SalesTrend] as
+
+begin
+
+Truncate table SalesTrend
+
+Insert into SalesTrend(Organ,Vertical,Invoice_Date,VerticalOrdr,
+--Budget
+this_month_sales,last_year_this_month_sales)
+
+select * from (
+select 'India' as Organ, c.Description as Vertical,Invoice_Date,
+null as VerticalOrdr,
+
+SUM(CASE WHEN month(a.invoice_date) =month(getdate()-1)
+and year(a.invoice_date) =year(getdate()-1)
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sales,  
+
+sum(case when a.invoice_date between
+convert(date,dateadd(yy,-1,DATEADD(month, DATEDIFF(month, 0, getdate()-1), 0)))
+and
+CONVERT(date,dateadd(yy,-1,DATEADD(dd,-(DAY(DATEADD(mm,1,getdate()-1))),DATEADD(mm,1,getdate()-1))))
+then (a.Sales_amount)/1000000 else 0 end)as last_year_this_month_sales
+
+
+--SUM(CASE WHEN month(a.invoice_date) =10
+--and year(a.invoice_date) =2020
+--THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sales,  
+
+--sum(case when a.invoice_date between
+--'2019-10-01' and '2019-10-31'
+--then (a.Sales_amount)/1000000 else 0 end)as last_year_this_month_sales
+
+FROM 	
+ELGi_Sales_Details a 
+left JOIN vw_AREA_MASTER b
+ON b.AreaCode = a.areacode
+left JOIN vw_DPST_MASTER c 
+ON c.DpstCode = a.Dpst  
+
+WHERE	ltrim(rtrim(c.Description))
+IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')
+AND (a.Invoice_Date BETWEEN '04/01/2017' AND GETDATE()-1) 
+AND a.SaleOrderType in 
+(
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+
+GROUP BY c.Description,Invoice_Date
+)a
+--where this_month_sales<>0
+
+Insert into SalesTrend(Vertical,Invoice_Date,budget)
+select b.Description,
+dateadd(yy,-1,dateadd(dd,-1,dateadd(mm,1,date))) as Date1,  
+--dateadd(dd,-1,dateadd(mm,1,date)) as Date2,
+sum(Target)/1000000 as Budget
+FROM DPSTwise_Budget a
+--(select dpst,date,sum(target)*1000000 target from sales_budget
+--group by dpst,date) a
+INNER JOIN vw_DPST_MASTER b 
+ON b.DpstCode = a.Dpst
+WHERE ltrim(rtrim(b.Description)) 
+IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')
+and dateadd(yy,-1,dateadd(dd,-1,dateadd(mm,1,date)))=
+--'2019-10-31'
+(select CONVERT(date,dateadd(yy,-1,DATEADD(dd,-(DAY(DATEADD(mm,1,getdate()-1))),DATEADD(mm,1,getdate()-1)))))
+group by date,Description
+
+
+
+update SalesTrend set organ=a.Organ
+from 
+(select distinct organ,Vertical from SalesTrend where organ is not null)a
+where SalesTrend.Vertical=a.Vertical
+and SalesTrend.organ is null
+
+
+update SalesTrend set VerticalOrdr=1 where Vertical='Compressor-Channel'
+update SalesTrend set VerticalOrdr=2 where Vertical='Compressor-Direct'
+update SalesTrend set VerticalOrdr=3 where Vertical='Compressor-RLY'
+update SalesTrend set VerticalOrdr=4 where Vertical='Compressor-WW'
+update SalesTrend set VerticalOrdr=5 where Vertical='Compressor-C&M'
+update SalesTrend set VerticalOrdr=6 where Vertical='After Sales'
+
+
+
+------------------------------------------------------------------------------
+--SalesTrend For India and Subsidiaries
+
+
+Truncate table SalesTrend_Tmp
+Truncate table SalesTrend2
+
+--select * into SalesTrend_Tmp from SalesTrend2
+
+Insert into SalesTrend_Tmp(Organ,Vertical,Invoice_Date,VerticalOrdr,
+--Budget
+this_month_sales)
+select * from (
+select 'India' as Organ, c.Description as Vertical,Invoice_Date,
+null as VerticalOrdr,
+sum(isnull(a.Sales_amount,0))/1000000  AS this_month_sales  
+FROM 	
+ELGi_Sales_Details a 
+left JOIN vw_AREA_MASTER b
+ON b.AreaCode = a.areacode
+left JOIN vw_DPST_MASTER c 
+ON c.DpstCode = a.Dpst  
+
+WHERE	ltrim(rtrim(c.Description))
+IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')
+AND (a.Invoice_Date BETWEEN '04/01/2017' AND GETDATE()-1) 
+--AND a.SaleOrderType in 
+--(
+--select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select '' as SaleOrderType from SaleType_Master
+--)
+and a.sales_category not in (1)
+
+GROUP BY c.Description,Invoice_Date
+)a
+--where this_month_sales<>0
+order by invoice_date
+
+
+Insert into SalesTrend_Tmp(Organ,Vertical,Invoice_Date,VerticalOrdr,
+--Budget
+this_month_sales)
+select * from (
+select 'Subsidiary' as Organ, c.Description as Vertical,Invoice_Date,
+null as VerticalOrdr,
+sum(isnull(a.Sales_amount,0))/1000000  AS this_month_sales  
+FROM 	
+ELGi_Sales_Details a 
+left JOIN vw_AREA_MASTER b
+ON b.AreaCode = a.areacode
+left JOIN vw_DPST_MASTER c 
+ON c.DpstCode = a.Dpst  
+
+WHERE	Organ ='Subsidiary'
+AND (a.Invoice_Date BETWEEN '04/01/2017' AND GETDATE()-1) 
+and a.sales_category not in (1)
+GROUP BY c.Description,Invoice_Date
+)a
+order by invoice_date
+
+
+
+Insert into SalesTrend2(Organ,Vertical,Invoice_Date,
+this_month_sales,
+last_year_this_month_sales)
+
+select isnull(a.Organ,b.Organ) Organ,
+isnull(a.Vertical,b.Vertical) Vertical,
+isnull(a.Invoice_Date,b.Invoice_Date) Invoice_Date,
+--a.Invoice_Date,b.Invoice_Date,
+a.this_month_sales,b.this_month_sales as last_year_this_month_sales
+from
+(select Organ,Vertical,Invoice_Date,this_month_sales from SalesTrend_Tmp
+--where Vertical='Compressor-WW'
+) a
+full outer join
+(select Organ,Vertical,dateadd(yy,1,Invoice_Date) Invoice_Date,this_month_sales 
+from SalesTrend_Tmp
+where invoice_date<=dateadd(yy,-1,getdate()-1)
+)b
+on a.Organ=b.Organ
+and a.Vertical=b.Vertical
+and a.Invoice_Date=b.Invoice_Date
+order by isnull(a.Invoice_Date,b.Invoice_Date)
+
+
+Insert into SalesTrend2(Vertical,Invoice_Date,budget)
+select b.Description,
+dateadd(dd,-1,dateadd(mm,1,date)) as date,
+--dateadd(yy,-1,dateadd(dd,-1,dateadd(mm,1,date))) as Date1,  
+--dateadd(dd,-1,dateadd(mm,1,date)) as Date2,
+sum(Target) as Budget
+FROM Sales_Budget a
+--(select dpst,date,sum(target)*1000000 target from sales_budget
+--group by dpst,date) a
+INNER JOIN vw_DPST_MASTER b 
+ON a.Dpst=b.DpstCode
+WHERE ltrim(rtrim(b.Description)) 
+IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')
+--and dateadd(yy,-1,dateadd(dd,-1,dateadd(mm,1,date)))=
+--'2021-04-30'
+--(select CONVERT(date,dateadd(yy,-1,DATEADD(dd,-(DAY(DATEADD(mm,1,getdate()-1))),DATEADD(mm,1,getdate()-1)))))
+group by date,Description
+order by date,Description
+
+
+Insert into SalesTrend2(Vertical,Invoice_Date,budget)
+select b.Description,
+dateadd(dd,-1,dateadd(mm,1,date)) as date,
+--dateadd(yy,-1,dateadd(dd,-1,dateadd(mm,1,date))) as Date1,  
+--dateadd(dd,-1,dateadd(mm,1,date)) as Date2,
+sum(Target) as Budget
+FROM Sales_Budget a
+--(select dpst,date,sum(target)*1000000 target from sales_budget
+--group by dpst,date) a
+INNER JOIN vw_DPST_MASTER b 
+ON a.Dpst=b.DpstCode
+WHERE organ='Subsidiary'
+--and dateadd(yy,-1,dateadd(dd,-1,dateadd(mm,1,date)))=
+--'2021-04-30'
+--(select CONVERT(date,dateadd(yy,-1,DATEADD(dd,-(DAY(DATEADD(mm,1,getdate()-1))),DATEADD(mm,1,getdate()-1)))))
+group by date,Description
+order by date,Description
+
+
+
+update SalesTrend2 set organ=a.Organ
+from 
+(select distinct organ,Vertical from SalesTrend where organ is not null)a
+where SalesTrend2.Vertical=a.Vertical
+and SalesTrend2.organ is null
+
+
+update SalesTrend2 set VerticalOrdr=1 where Vertical='Compressor-Channel'
+update SalesTrend2 set VerticalOrdr=2 where Vertical='Compressor-Direct'
+update SalesTrend2 set VerticalOrdr=3 where Vertical='Compressor-RLY'
+update SalesTrend2 set VerticalOrdr=4 where Vertical='Compressor-WW'
+update SalesTrend2 set VerticalOrdr=5 where Vertical='Compressor-C&M'
+update SalesTrend2 set VerticalOrdr=6 where Vertical='After Sales'
+
+
+--Alter table SalesTrend2 add CalYear int
+--Alter table SalesTrend2 add CalMonth int
+--Alter table SalesTrend2 add FinYear int
+--Alter table SalesTrend2 add FinMonth int
+--Alter table SalesTrend2 add CalMonthName varchar(50)
+
+update SalesTrend2 set CalYear =year(invoice_date)
+update SalesTrend2 set CalMonth =month(invoice_date)
+
+update SalesTrend2 set CalMonthName=substring(datename(mm,dateadd(mm,calMonth,-1)),1,3)
+
+
+
+update SalesTrend2 set Finyear=CalYear-1 where CalMonth<4
+update SalesTrend2 set Finyear=CalYear where CalMonth>=4
+
+update SalesTrend2 set FinMonth=CalMonth+9 where CalMonth<4
+update SalesTrend2 set FinMonth=CalMonth-3 where CalMonth>=4
+
+
+-----------------------------------------------------------------------------------------------------
+--SalesTrend for Subsidiaries
+
+
+
+
+
+end
+
+
+select Organ,Vertical,Invoice_Date,
+CalYear,CalMonth,CalMonthName,FinYear,FinMonth,
+sum(Budget) as Budget,
+sum(this_month_sales) this_month_sales,
+sum(last_year_this_month_sales) last_year_this_month_sales
+from SalesTrend2
+where 
+--organ='India'
+--vertical='Compressor-WW'
+--and 
+invoice_date>='2021-08-01'
+--and budget is not null
+group by Organ,Vertical,Invoice_Date,
+CalYear,CalMonth,CalMonthName,FinYear,FinMonth
+order by Invoice_Date
+
+
+--select * from SalesTrend2 order by invoice_date
+
+
+--select * from Sales_Budget
+--INNER JOIN vw_DPST_MASTER b 
+--ON b.DpstCode = b.DPSTcode
+--WHERE ltrim(rtrim(b.Descaription)) 
+--IN ('Compressor-RLY','After Sales', 'Compressor-WW','Compressor-C&M', 'Compressor-Channel', 'Compressor-Direct')
+--and date>='2021-04-01'
+--and organ='India'
+
+
+
+
+
+
+Completion time: 2025-11-19T12:16:23.3353710+05:30

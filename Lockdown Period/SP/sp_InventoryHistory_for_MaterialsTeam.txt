@@ -1,0 +1,252 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_InventoryHistory_for_MaterialsTeam
+CREATE proc sp_InventoryHistory_for_MaterialsTeam as
+begin
+
+
+--delete from InventoryHistory_for_MaterialsTeam where entrydate in ('2020-12-25','2020-12-26') --for testing purpose
+Truncate table InventoryHistory_for_MaterialsTeam_Tmp
+
+if exists (select * from InventoryHistory_for_MaterialsTeam where entrydate=(convert(date,getdate()-1)))
+begin
+delete from InventoryHistory_for_MaterialsTeam where entrydate=(convert(date,getdate()-1))
+end
+
+
+
+
+insert into InventoryHistory_for_MaterialsTeam_Tmp(
+COMPANY,CWAR,
+ITEM,ItemDescr,--TRDT,SEQN,INWP,
+QSKT,Amnt,--Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,
+--QSTK,IssueDate,
+Amnt2,Amnt3,--CITG,CITG_desc,
+INVType,--ItemType,RecptType,LedgerCode,LedgerDesc,
+SuppCode,SuppName,BuyerCode,BuyerName,--LeanType,
+CATEGORY,
+--Vertical,InvTypeOrder,
+Amnt4,CompName,--VerticalOrder,FrtRate,TargetRnk,TargetDays,CITM,CDSCA,ORDT,
+--PDNO,PONO,QRDR,WQTY,WAMT,UPDT,
+CalYear,CalMonth,--MultiplyFactor,
+entrydate)
+select COMPANY,CWAR,
+ITEM,ItemDescr,--TRDT,SEQN,INWP,
+sum(QSKT) QSKT,sum(Amnt) Amnt,--Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,
+--QSTK,IssueDate,
+sum(Amnt2) Amnt2,sum(Amnt3) Amnt3,--CITG,CITG_desc,
+INVType,--ItemType,RecptType,LedgerCode,LedgerDesc,
+SuppCode,SuppName,BuyerCode,BuyerName,LeanType,
+--Vertical,InvTypeOrder,
+sum(Amnt4) Amnt4,CompName,--VerticalOrder,FrtRate,TargetRnk,TargetDays,CITM,CDSCA,ORDT,
+--PDNO,PONO,QRDR,WQTY,WAMT,UPDT,
+CalYear,CalMonth,--MultiplyFactor,
+case when CalYear=year(getdate()-1) and calmonth =month(getdate()-1) then convert(date,getdate()-1) 
+else eomonth(convert(date,concat(convert(varchar,CalMonth),'/1/',convert(varchar,CalYear)))) end
+as entrydate 
+from InventoryDetails_History
+where company in (401,450)
+and CalYear=year(getdate()-1)
+and CalMonth=month(getdate()-1)
+group by COMPANY,CWAR,ITEM,ItemDescr,INVType,SuppCode,SuppName,
+BuyerCode,BuyerName,LeanType,CompName,CalYear,CalMonth
+
+
+update InventoryHistory_for_MaterialsTeam_Tmp set CATEGORY='SUBCONTRACT'  where cwar like '41S%'
+update InventoryHistory_for_MaterialsTeam_Tmp set CATEGORY='SUBCONTRACT'  where cwar like '45S%'
+update InventoryHistory_for_MaterialsTeam_Tmp set CATEGORY='SUBCONTRACT'  where cwar like '75S%'
+
+--exclude the warehouse and aggregate it by company and itemwise before going to the next step
+--since excess inventory is calculated only based on company and item
+
+insert into  InventoryHistory_for_MaterialsTeam(COMPANY,CompName,ITEM,ItemDescr,InvTypeOrder,INVType,
+CATEGORY,--LeanType,
+QSKT,Amnt,Amnt2,Amnt3,Amnt4,SuppCode,SuppName,BuyerCode,BuyerName,entrydate,CalYear,CalMonth)
+--select * into  InventoryHistory_for_MaterialsTeam_tmp 
+select COMPANY,CompName,ITEM,ItemDescr,InvTypeOrder,INVType,CATEGORY,--LeanType,
+sum(QSKT) QSKT,sum(Amnt) Amnt,sum(Amnt2) Amnt2,
+sum(Amnt3) Amnt3,sum(Amnt4) Amnt4,
+SuppCode,SuppName,BuyerCode,BuyerName,
+entrydate,CalYear,CalMonth 
+from InventoryHistory_for_MaterialsTeam_Tmp
+group by COMPANY,CompName,ITEM,ItemDescr,InvTypeOrder,INVType,CATEGORY,--LeanType,
+SuppCode,SuppName,BuyerCode,BuyerName,entrydate,CalYear,CalMonth
+
+
+update InventoryHistory_for_MaterialsTeam set LeanType=a.LeanType,CATEGORY=a.CATEGORY,AllocationType=a.AllocationType,
+sloq=a.sloq,BINQTY=a.BINQTY,ProdAllocation=a.ProdAllocation,SalesAllocation=a.SalesAllocation,
+BinAllocation=a.BinAllocation,RegAllocation=a.RegAllocation,
+StockAllocation=a.StockAllocation
+from (select * from Lean_Allocation_Tmp)a
+where InventoryHistory_for_MaterialsTeam.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryHistory_for_MaterialsTeam.ITEM))=ltrim(rtrim(a.ITEM))
+
+update InventoryHistory_for_MaterialsTeam set CATEGORY=LeanType 
+where LeanType not in ('LEAN','NON LEAN','SUBCONTRACT')
+and leantype is not null
+
+update InventoryHistory_for_MaterialsTeam set LeanType=CATEGORY where category='SUBCONTRACT'
+
+update InventoryHistory_for_MaterialsTeam set LeanType='LEAN' where LeanType like '%BIN%'
+update InventoryHistory_for_MaterialsTeam set LeanType='LEAN' where LeanType like 'MR%'
+update InventoryHistory_for_MaterialsTeam set LeanType='LEAN' where LeanType like 'MILK%'
+update InventoryHistory_for_MaterialsTeam set LeanType='NON LEAN' where LeanType='NVC'
+update InventoryHistory_for_MaterialsTeam set LeanType='NON LEAN' where LeanType is null
+
+update InventoryHistory_for_MaterialsTeam set CATEGORY=null where CATEGORY in ('NVC','SUBCONTRACT')
+
+
+update InventoryHistory_for_MaterialsTeam set ProdAllocation=a.AllocatedQty,LeanType='NON LEAN'
+from (select COMPANY,T$ITEM as ITEM,null as Category,'Production Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (401,450) and T$KOOR=1 and T$KOTR=2
+group by COMPANY,T$ITEM)a
+where InventoryHistory_for_MaterialsTeam.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryHistory_for_MaterialsTeam.ITEM))=ltrim(rtrim(a.ITEM))
+and InventoryHistory_for_MaterialsTeam.LeanType <>'LEAN'
+
+update InventoryHistory_for_MaterialsTeam set SalesAllocation=a.AllocatedQty,LeanType='NON LEAN'
+from (select COMPANY,T$ITEM as ITEM,null as Category,'Sales Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (401,450) and T$KOOR=3 and T$KOTR=1
+group by COMPANY,T$ITEM)a
+where InventoryHistory_for_MaterialsTeam.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryHistory_for_MaterialsTeam.ITEM))=ltrim(rtrim(a.ITEM))
+and InventoryHistory_for_MaterialsTeam.LeanType<>'LEAN'
+
+
+
+update InventoryHistory_for_MaterialsTeam set TotalAllocation=isnull(Binallocation,0)+isnull(Regallocation,0)+isnull(Stockallocation,0) 
+where LeanType= 'LEAN'
+update InventoryHistory_for_MaterialsTeam set TotalAllocation=isnull(prodallocation,0)+isnull(salesallocation,0) 
+where LeanType= 'NON LEAN'
+
+update InventoryHistory_for_MaterialsTeam set LatestRecptDate=a.LatestRecptDate,
+ExcessType=a.ExcessType,ExcessQty=a.ExcessQty,ExcessValue=a.ExcessValue
+from (select distinct COMPANY,ITEM,CATEGORY,AllocationType,ExcessType,sloq,BINQTY,
+ProdAllocation,SalesAllocation,BinAllocation,RegAllocation,StockAllocation,TotalAllocation,
+LatestRecptDate,ExcessQty,ExcessValue
+from Excess_Inventory2
+)a
+where InventoryHistory_for_MaterialsTeam.COMPANY=a.COMPANY
+and ltrim(rtrim(InventoryHistory_for_MaterialsTeam.ITEM))=ltrim(rtrim(a.ITEM))
+and month(InventoryHistory_for_MaterialsTeam.entrydate)=month(getdate()-1)
+and year(InventoryHistory_for_MaterialsTeam.entrydate)=year(getdate()-1)
+
+update InventoryHistory_for_MaterialsTeam set Finyear=CalYear-1 where CalMonth<4
+update InventoryHistory_for_MaterialsTeam set Finyear=CalYear where CalMonth>=4
+update InventoryHistory_for_MaterialsTeam set FinMonth=CalMonth+9 where CalMonth<4
+update InventoryHistory_for_MaterialsTeam set FinMonth=CalMonth-3 where CalMonth>=4
+
+update InventoryHistory_for_MaterialsTeam set FinPeriod=concat(convert(varchar,FinYear),RIGHT('00'+CAST(FinMonth AS VARCHAR(2)),2))
+
+
+delete from InventoryHistory_for_MaterialsTeam where HorAxis is not null
+
+insert into InventoryHistory_for_MaterialsTeam(COMPANY,FinYear,INVType,VerAxis,HorAxis,HorAxisOrdr)
+select COMPANY,FinYear,INVType,sum(Amnt4)/count(distinct FinMonth) PrevYrAvg,
+concat(FinYear,'-',substring(convert(varchar,FinYear+1),3,2)),1 
+from InventoryHistory_for_MaterialsTeam
+where INVType='RM'
+and finyear=(select max(FinYear)-1 from InventoryHistory_for_MaterialsTeam)
+group by COMPANY,FinYear,INVType
+
+
+insert into InventoryHistory_for_MaterialsTeam(COMPANY,FinYear,FinMonth,INVType,VerAxis,HorAxis,HorAxisOrdr)
+select COMPANY,FinYear,FinMonth,INVType,sum(Amnt4) Amnt4,
+concat(substring(datename(mm,entrydate),1,3),'-',substring(convert(varchar,year(entrydate)),3,2)),2 
+from InventoryHistory_for_MaterialsTeam
+where INVType='RM'
+and finyear=(select max(FinYear) from InventoryHistory_for_MaterialsTeam)
+and finmonth<(select max(FinMonth) from InventoryHistory_for_MaterialsTeam
+where finyear=(select max(FinYear) from InventoryHistory_for_MaterialsTeam))
+group by COMPANY,FinYear,FinMonth,entrydate,INVType
+
+insert into InventoryHistory_for_MaterialsTeam(COMPANY,FinYear,INVType,VerAxis,HorAxis,HorAxisOrdr)
+select COMPANY,FinYear,INVType,
+sum(Amnt4)/count(distinct FinMonth) YTDAvg,
+'YTD Avg',3 
+from (
+select COMPANY,FinYear,FinMonth,INVType,sum(Amnt4) Amnt4 from InventoryHistory_for_MaterialsTeam
+where INVType='RM'
+and finyear=(select max(FinYear) from InventoryHistory_for_MaterialsTeam)
+and finmonth<(select max(FinMonth) from InventoryHistory_for_MaterialsTeam
+where finyear=(select max(FinYear) from InventoryHistory_for_MaterialsTeam))
+group by COMPANY,FinYear,FinMonth,INVType
+union
+select COMPANY,FinYear,FinMonth,INVType,sum(Amnt4) Amnt4 from InventoryHistory_for_MaterialsTeam
+where INVType='RM'
+and entrydate=(select max(entrydate) from InventoryHistory_for_MaterialsTeam)
+group by COMPANY,FinYear,FinMonth,INVType
+)a
+group by COMPANY,FinYear,INVType
+
+
+insert into InventoryHistory_for_MaterialsTeam(COMPANY,FinYear,FinMonth,INVType,VerAxis2,
+HorAxis,HorAxisOrdr)
+select COMPANY,FinYear,FinMonth,INVType,sum(Amnt4) Amnt4,
+concat(substring(datename(mm,entrydate),1,3),'-',datepart(dd,entrydate)),4 from InventoryHistory_for_MaterialsTeam
+where INVType='RM'
+and finyear=(select max(FinYear) from InventoryHistory_for_MaterialsTeam)
+and finmonth=(select max(FinMonth) from InventoryHistory_for_MaterialsTeam
+where finyear=(select max(FinYear) from InventoryHistory_for_MaterialsTeam))
+group by COMPANY,FinYear,FinMonth,INVType,entrydate
+
+
+	
+--Alter table InventoryHistory_for_MaterialsTeam add No_of_Bins float
+
+update InventoryHistory_for_MaterialsTeam set ageing =datediff(dd,LatestRecptDate,getdate()-1)
+where horaxis is null
+
+update InventoryHistory_for_MaterialsTeam set VARI=a.VARI,CATG=a.CATG,SCAT=a.SCAT
+from (select distinct item,VARI,CATG,SCAT from TZZINV310400)a
+where ltrim(rtrim(InventoryHistory_for_MaterialsTeam.ITEM))=ltrim(rtrim(a.ITEM))
+
+--update InventoryHistory_for_MaterialsTeam set No_of_Bins= where LeanType='LEAN' and category='MULTI BIN'
+--update InventoryHistory_for_MaterialsTeam set No_of_Bins= where LeanType='LEAN' and 
+--category in ('TWO BIN','MILK RUN','MILKRUN MOTORS','MR-MOTORS')
+
+
+--Alter table InventoryHistory_for_MaterialsTeam drop column PrevYearAvg
+--Alter table InventoryHistory_for_MaterialsTeam drop column YTDAvg
+--Alter table InventoryHistory_for_MaterialsTeam alter column FinYear varchar(10)
+--Alter table InventoryHistory_for_MaterialsTeam add FinMonth int
+--Alter table InventoryHistory_for_MaterialsTeam add FinPeriod int
+--Alter table InventoryHistory_for_MaterialsTeam add HorAxis varchar(20)
+--Alter table InventoryHistory_for_MaterialsTeam add HorAxisOrdr int
+--Alter table InventoryHistory_for_MaterialsTeam add VerAxis2 float
+
+if exists (select * from InventoryHistory_for_MaterialsTeam where entrydate=dateadd(dd,1,eomonth(convert(date,getdate()-1))))
+begin
+delete from InventoryHistory_for_MaterialsTeam where entrydate<>eomonth(convert(date,getdate()-1))
+and year(entrydate)=year(getdate()-1) and month(entrydate)=month(getdate()-1)
+end
+
+
+
+
+end
+
+--select distinct CATEGORY from InventoryHistory_for_MaterialsTeam
+--where horaxis is null
+
+--select * from tzzinv310400
+
+--Alter table InventoryHistory_for_MaterialsTeam add VARI varchar(50)
+--Alter table InventoryHistory_for_MaterialsTeam add CATG varchar(50)
+--Alter table InventoryHistory_for_MaterialsTeam add SCAT varchar(50)
+
+
+
+
+--select LatestRecptDate,Ageing from InventoryHistory_for_MaterialsTeam
+--where horaxis is null and LatestRecptDate is not null
+
+
+
+
+
+Completion time: 2025-11-19T11:26:53.0624618+05:30

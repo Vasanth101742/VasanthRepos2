@@ -1,0 +1,502 @@
+--Exec sp_ATS_Inventory_vs_Lean
+
+CREATE proc sp_ATS_Inventory_vs_Lean as 
+begin
+
+
+Truncate table ATS_Inventory_vs_Lean_Temp
+Truncate table ATS_Inventory_vs_Lean
+
+
+--Alter table ATS_Inventory_vs_Lean_Temp add ItemPrice float
+--Alter table ATS_Inventory_vs_Lean add ItemPrice float
+
+--Step1: Inventory----------------------------------------------------------------------------------
+Insert into ATS_Inventory_vs_Lean_Temp(COMPANY,ITEM,ItemDescr,InvTypeOrdr,INVType,QSKT,Amnt4,ItemPrice)
+--select * into ATS_Inventory_vs_Lean_Temp from(
+select COMPANY,--CWAR,
+ITEM,ItemDescr,InvTypeOrdr,INVType,sum(QSKT) as QSKT,
+sum(Amnt4) Amnt4,
+sum(Amnt4)/sum(isnull(qskt,0.0001)) as ItemPrice
+
+from InventoryDetails_ATS
+where INVType='RM'
+and CWAR in ('651','652','653','654','655','667','674','675','676')
+--and CWAR in ('651' , '653' , '654' , '655' , '667' , '674') --METHOD2
+
+group by COMPANY,--CWAR,
+ITEM,ItemDescr,InvTypeOrdr,INVType
+--)a
+
+--Step2: MonthPlan---------------------------------------------------------------------------------
+----Old Method
+--update ATS_Inventory_vs_Lean_Temp set MonthPlanQty=a.QTY3
+--from (select item ,sum(QTY3) QTY3 from TZZPUR219600 
+--where year(date)=year(getdate()-1) and month(date)=month(getdate()-1) 
+--group by item
+--)a
+--where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+
+--Insert into ATS_Inventory_vs_Lean_Temp(ITEM,MonthPlanQty)
+--select item ,sum(QTY3) QTY3 from TZZPUR219600 
+--where year(date)=year(getdate()-1) and month(date)=month(getdate()-1) 
+--and ltrim(rtrim(ITEM)) not in (select distinct ltrim(rtrim(ITEM)) from ATS_Inventory_vs_Lean_Temp)
+--group by ITEM
+
+
+--New Method1 --Commented on 4-Oct-2022
+--update ATS_Inventory_vs_Lean_Temp set MonthPlanQty=a.RQTY
+--from (
+--select * from TZZPUR409600 a
+--where orig=1
+--and DIVI=5
+--and updt=(select max(updt) from TZZPUR409600 b where a.item=b.item
+--and a.DIVI=b.DIVI)
+--)a
+--where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+--and ATS_Inventory_vs_Lean_Temp.DIVISION_CODE=a.DIVI
+
+
+--New Method2
+update ATS_Inventory_vs_Lean_Temp set MonthPlanQty=a.RQTY
+from (
+select * from TZZPUR409600 a
+where updt=(select max(updt) from TZZPUR409600 b 
+where a.DIVI=b.DIVI and a.item=b.item)
+)a
+where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+
+update ATS_Inventory_vs_Lean_Temp set MonthPlanValue=isnull(MonthPlanQty,0)*ItemPrice
+--(Amnt4/isnull(qskt,0.0001))
+
+--exec sp_ATS_MonthPlan_Price
+
+Insert into ATS_Inventory_vs_Lean_Temp(COMPANY,
+ITEM,MonthPlanQty)
+select distinct '600' as Company,
+ltrim(rtrim(ITEM)) ITEM,RQTY from TZZPUR409600 a
+where updt=(select max(updt) from TZZPUR409600 b 
+where a.DIVI=b.DIVI and a.item=b.item)
+and ltrim(rtrim(ITEM)) not in (select distinct ltrim(rtrim(ITEM)) from ATS_Inventory_vs_Lean_Temp)
+
+
+--update ATS_Inventory_vs_Lean_Temp set MonthPlanValue=a.PlanValue * MonthPlanQty
+--from (select * from ATS_MonthPlan_Price)a
+--where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+--and ATS_Inventory_vs_Lean_Temp.MonthPlanValue is null
+
+--select * from ATS_Inventory_vs_Lean_Temp where MonthPlanValue is null
+
+
+--Step3: Inward-------------------------------------------------------------------------------------
+update ATS_Inventory_vs_Lean_Temp set 
+Cumul_Inward_Qty=a.QREC
+--,Cumul_Inward_Value=a.T$DAMT
+from (
+select COMPANY,ITEM,sum(QAPR) QAPR,
+sum(QREC) QREC,
+sum(T$DAMT) T$DAMT from 
+(select COMPANY,ITEM,RCNO,RCLN,ORNO,PONO,SEQN,
+sum(QAPR) QAPR,
+sum(QREC) QREC
+ from TWHINH312ALL
+where company like '6%'
+and CWAR in ('651','652','653','654','655','667','674','675','676')
+and year(ARDT)=year(getdate()-1)
+and month(ARDT)=month(getdate()-1)
+and LSTA=30
+group by COMPANY,ITEM,RCNO,RCLN,ORNO,PONO,SEQN)a
+inner join
+(select T$RCNO,T$RSEQ,T$ORNO,T$PONO,T$SQNB,sum(T$DAMT) T$DAMT from TTDPUR406ALL
+where company like '6%'
+group by T$RCNO,T$RSEQ,T$ORNO,T$PONO,T$SQNB
+)b
+on a.RCNO=b.T$RCNO
+and a.RCLN=b.T$RSEQ
+and a.ORNO=b.T$ORNO
+and a.PONO=b.T$PONO
+and a.SEQN=b.T$SQNB
+group by COMPANY,ITEM
+)a
+where ATS_Inventory_vs_Lean_Temp.company=a.company
+and ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.item))=ltrim(rtrim(a.ITEM))
+
+
+update ATS_Inventory_vs_Lean_Temp set Cumul_Inward_Value=Cumul_Inward_Qty*ItemPrice
+--(Amnt4/QSKT)
+
+
+Insert into ATS_Inventory_vs_Lean_Temp(COMPANY,ITEM,Cumul_Inward_Qty--,Cumul_Inward_Value
+)
+select COMPANY,ITEM,
+sum(QREC) QREC 
+--,sum(T$DAMT) T$DAMT --Comment this
+from 
+(select COMPANY,ITEM,RCNO,RCLN,ORNO,PONO,SEQN,
+sum(QAPR) QAPR ,sum(QREC) QREC
+from TWHINH312ALL
+where company like '6%'
+and CWAR in ('651','652','653','654','655','667','674','675','676')
+and year(ARDT)=year(getdate()-1)
+and month(ARDT)=month(getdate()-1)
+and LSTA=30
+group by COMPANY,ITEM,RCNO,RCLN,ORNO,PONO,SEQN)a
+inner join
+(select T$RCNO,T$RSEQ,T$ORNO,T$PONO,T$SQNB,sum(T$DAMT) T$DAMT from TTDPUR406ALL
+where company like '6%'
+group by T$RCNO,T$RSEQ,T$ORNO,T$PONO,T$SQNB
+)b
+on a.RCNO=b.T$RCNO
+and a.RCLN=b.T$RSEQ
+and a.ORNO=b.T$ORNO
+and a.PONO=b.T$PONO
+and a.SEQN=b.T$SQNB
+where ltrim(rtrim(ITEM)) not in (select distinct ltrim(rtrim(ITEM)) from ATS_Inventory_vs_Lean_Temp)
+group by COMPANY,ITEM
+
+
+
+--Step4: Issued--------------------------------------------------------------------------------------
+
+update ATS_Inventory_vs_Lean_Temp set Cumul_Issue_Qty=a.QSTK
+from (select COMPANY,ITEM,sum(QSTK) QSTK from TWHINR110ALL 
+where company=600
+and kost=5
+and koor in (
+1,--SFC Production Order
+32,--SFC Production Order (Manual)
+3, --Sales Order
+34 --Sales Order (Manual) 
+,22 --WH Transfer
+)
+and year(trdt)=year(getdate()-1)
+and month(trdt)=month(getdate()-1)
+and CWAR in ('651','652','653','654','655','667','674','675','676')
+group by COMPANY,ITEM
+)a
+where ATS_Inventory_vs_Lean_Temp.company=a.company
+and ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.item))=ltrim(rtrim(a.ITEM))
+
+
+update ATS_Inventory_vs_Lean_Temp set Cumul_Issue_Value=Cumul_Issue_Qty*ItemPrice
+--(Amnt4/QSKT)
+
+
+Insert into ATS_Inventory_vs_Lean_Temp(COMPANY,ITEM,Cumul_Issue_Qty)
+select COMPANY,ITEM,sum(QSTK) from TWHINR110ALL 
+where company=600
+and year(trdt)=year(getdate()-1)
+and month(trdt)=month(getdate()-1)
+and kost=5
+and koor in (
+1,--SFC Production Order
+32,--SFC Production Order (Manual)
+3, --Sales Order
+34 --Sales Order (Manual) 
+,22--WH Transfer  
+)
+and CWAR in ('651','652','653','654','655','667','674','675','676')
+and ltrim(rtrim(ITEM)) not in (select distinct ltrim(rtrim(ITEM)) from ATS_Inventory_vs_Lean_Temp)
+group by COMPANY,ITEM
+
+
+
+
+
+--Step5 :Lean /Non Lean Classification---------------------------------------------------------------
+
+update ATS_Inventory_vs_Lean_Temp set 
+DIVISION_CODE=DIVI,Dept_code=DEPT,BinQty=SQTY,
+TYPE=SOPS
+from (select * from  TZZPUR049ALL 
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and DIVI=5
+) LEAN_MASTER  
+where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.item)) = ltrim(rtrim(LEAN_MASTER.item))
+
+
+update ATS_Inventory_vs_Lean_Temp set TYPE=100 where TYPE=5 or TYPE is null
+
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Two Bin' where TYPE='1'
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Multi Bin' where TYPE='2'
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Milk run' where TYPE='3'
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='MR-Motors' where TYPE='4'
+--update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Forward Cover' where TYPE='5'
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Single Bin' where TYPE='6'
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Fixed Stock' where TYPE='7'
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Reorder Point' where TYPE='8'
+
+update ATS_Inventory_vs_Lean_Temp set TYPE_DESC='Non Lean' where TYPE in ('100')
+
+
+Update ATS_Inventory_vs_Lean_Temp set DIVISION_NAME=a.DIVISION_NAME
+from Materials_Division_MASTER		a
+where ATS_Inventory_vs_Lean_Temp.DIVISION_CODE=a.DIVISION_CODE
+
+Update ATS_Inventory_vs_Lean_Temp set Dept_Name=a.Dept_Name 
+from MATERIALS_DEPT_MASTER a
+where ATS_Inventory_vs_Lean_Temp.Dept_code=a.Dept_code
+
+
+--Items with Multiple Divisions and Departments
+--select ITEM,count(distinct DIVI) DIVI_Counts,count(distinct DEPT) DEPT_Counts
+--from TZZPUR014ALL where STAT <> 'C' 
+--and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+----and item='         110423910'
+--group by ITEM
+--having count(distinct DIVI)>1
+--order by ITEM
+
+
+--select * from TTCCOM112ALL where company=600
+
+
+
+--BuyerCode and SuppCode Update-------------------------------------------
+--For Lean Items--------------
+update ATS_Inventory_vs_Lean_Temp set BuyerCode=a.BUYR,SuppCode=a.SUNO1,
+SlotQty=a.SLOQ
+from (
+select * from TZZPUR049ALL a
+where a.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and DIVI=5
+and BUYR is not null
+and BITM<>1
+--and ltrim(rtrim(ITEM))='110460710'
+) a
+where ATS_Inventory_vs_Lean_Temp.DIVISION_CODE = a.DIVI 
+and ATS_Inventory_vs_Lean_Temp.Dept_code = a.DEPT
+and ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.item)) = ltrim(rtrim(a.item))
+
+--For Non Lean Items------
+update ATS_Inventory_vs_Lean_Temp set BuyerCode=a.BUYR,SuppCode=a.OTBP
+from (
+select * from TTDIPU001ALL a
+where a.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+--and ltrim(rtrim(ITEM))='000906054'
+) a
+where ATS_Inventory_vs_Lean_Temp.COMPANY=a.COMPANY
+and ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.item)) = ltrim(rtrim(a.ITEM))
+and ATS_Inventory_vs_Lean_Temp.BuyerCode is null
+
+
+update ATS_Inventory_vs_Lean_Temp set BuyerName=a.emp_name
+from
+(select emp_code,new_emp_code,emp_name from [elgi_intranet].dbo.employee_detail) a 
+where ATS_Inventory_vs_Lean_Temp.BuyerCode= a.new_emp_code
+
+update ATS_Inventory_vs_Lean_Temp set SuppName=a.custname1
+from vw_Business_Partner a
+where ATS_Inventory_vs_Lean_Temp.SuppCode=a.custcode
+
+---------------------------------------------------------------------------------------------
+
+exec sp_ATS_MonthPlan_Price
+
+update ATS_Inventory_vs_Lean_Temp set ItemPrice=a.PlanValue
+from (select * from ATS_MonthPlan_Price)a
+where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+and ATS_Inventory_vs_Lean_Temp.ItemPrice is null
+
+
+--Method1:
+--update ATS_Inventory_vs_Lean_Temp set MonthPlanValue=a.PlanValue * MonthPlanQty
+--from (select * from ATS_MonthPlan_Price)a
+--where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+--and ATS_Inventory_vs_Lean_Temp.MonthPlanValue is null
+
+--update ATS_Inventory_vs_Lean_Temp set Cumul_Inward_Value=a.PlanValue * Cumul_Inward_Qty
+--from (select * from ATS_MonthPlan_Price)a
+--where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+--and ATS_Inventory_vs_Lean_Temp.Cumul_Inward_Value is null
+
+--update ATS_Inventory_vs_Lean_Temp set Cumul_Issue_Value=a.PlanValue * Cumul_Issue_Qty
+--from (select * from ATS_MonthPlan_Price)a
+--where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+--and ATS_Inventory_vs_Lean_Temp.Cumul_Issue_Value is null
+----and ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM)) like '%004401030%'
+
+
+--Method2:
+update ATS_Inventory_vs_Lean_Temp set MonthPlanValue=ItemPrice * MonthPlanQty
+where ATS_Inventory_vs_Lean_Temp.MonthPlanValue is null and MonthPlanQty is not null
+
+update ATS_Inventory_vs_Lean_Temp set Cumul_Inward_Value=ItemPrice * Cumul_Inward_Qty
+where ATS_Inventory_vs_Lean_Temp.Cumul_Inward_Value is null and Cumul_Inward_Qty is not null 
+
+
+update ATS_Inventory_vs_Lean_Temp set Cumul_Issue_Value=ItemPrice * Cumul_Issue_Qty
+where ATS_Inventory_vs_Lean_Temp.Cumul_Issue_Value is null and Cumul_Issue_Qty is not null
+--and ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM)) like '%004401030%'
+
+
+
+
+
+update ATS_Inventory_vs_Lean_Temp set Import='Import'
+from (select * from TTCCOM100ALL  where company=400 and CCUR not in ('IND','INR'))a
+where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.SuppCode))=ltrim(rtrim(a.bpid))
+
+update ATS_Inventory_vs_Lean_Temp set Import='Domestic' where Import is null
+
+update ATS_Inventory_vs_Lean_Temp set ItemDescr=a.t_dsca
+from (select * from TTCIBD001600)a
+where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.t_item))
+and ItemDescr is null
+
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Qty=isnull(BinQty,0) * 1.2 where TYPE_DESC='Two Bin'
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Qty=isnull(BinQty,0) * 0.6 where TYPE_DESC='Milk run'
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Qty=isnull(BinQty,0) * 0.6 where TYPE_DESC='Reorder Point'
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Qty=isnull(BinQty,0) * 1 where TYPE_DESC='Single Bin'
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Qty=isnull(SlotQty,0)*0.6*isnull(BinQty,0) where TYPE_DESC='Multi Bin'
+
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Qty=round(isnull(MonthPlanQty,0) *(8.0/18.0),0) where TYPE_DESC='Non Lean' 
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Qty=round(isnull(MonthPlanQty,0) *(5.0/18.0),0) where TYPE_DESC='Fixed Stock'
+
+update ATS_Inventory_vs_Lean_Temp set Plan_Inv_Value = Plan_Inv_Qty * ItemPrice
+
+update ATS_Inventory_vs_Lean_Temp set ProductGroupCode=a.IPGP,ProdSubGroupCode=a.SUBC
+from (select distinct * from TZZPUR718600)a
+where ltrim(rtrim(ATS_Inventory_vs_Lean_Temp.ITEM))=ltrim(rtrim(a.ITEM))
+
+update ATS_Inventory_vs_Lean_Temp set ProductGroup=a.Productgroup
+from vw_ATS_Productgroup a
+where ATS_Inventory_vs_Lean_Temp.ProductGroupCode=a.Productgroupcode
+
+
+update ATS_Inventory_vs_Lean_Temp set ProductSubGroup=a.ProdSubGroup
+from vw_ATS_ProductSubgroup a
+where ATS_Inventory_vs_Lean_Temp.ProdSubGroupCode=a.ProdSubGroupCode
+
+----Old Method
+--update ATS_Inventory_vs_Lean_Temp set Tobe_Inward_Qty=isnull(MonthPlanQty,0)-isnull(Cumul_Inward_Qty,0)
+--where isnull(MonthPlanQty,0)-isnull(Cumul_Inward_Qty,0)>0
+
+update ATS_Inventory_vs_Lean_Temp set Tobe_Inward_Qty=isnull(MonthPlanQty,0)-isnull(Cumul_Inward_Qty,0)
+
+
+update ATS_Inventory_vs_Lean_Temp set Tobe_Inward_Value=Tobe_Inward_Qty*ItemPrice
+
+----Old Method
+--update ATS_Inventory_vs_Lean_Temp set Excess_Inward_Qty=isnull(MonthPlanQty,0)- isnull(Cumul_Inward_Qty,0)
+--where isnull(MonthPlanQty,0)- isnull(Cumul_Inward_Qty,0)>0 
+
+update ATS_Inventory_vs_Lean_Temp set Excess_Inward_Qty=isnull(Cumul_Inward_Qty,0) -isnull(MonthPlanQty,0)
+
+update ATS_Inventory_vs_Lean_Temp set Excess_Inward_value=Excess_Inward_Qty *ItemPrice
+
+
+Insert into ATS_Inventory_vs_Lean(COMPANY,ITEM,ItemDescr,InvTypeOrdr,
+INVType,QSKT,Amnt4,DIVISION_CODE,Dept_code,DIVISION_NAME,Dept_Name,
+BinQty,BuyerCode,SuppCode,BuyerName,SuppName,TYPE,TYPE_DESC,
+Import,Plan_Inv_Qty,Plan_Inv_Value,SlotQty,MonthPlanQty,
+MonthPlanValue,ProductGroup,ProductSubGroup,ProductGroupCode,
+ProdSubGroupCode,Cumul_Inward_Qty,Cumul_Inward_Value,
+Cumul_Issue_Qty,Cumul_Issue_Value,Tobe_Inward_Qty,
+Tobe_Inward_Value,Excess_Inward_Qty,Excess_Inward_Value,ItemPrice)
+--select * into ATS_Inventory_vs_Lean from(
+select COMPANY,ITEM,ItemDescr,InvTypeOrdr,INVType,
+sum(isnull(QSKT,0)) QSKT,
+sum(isnull(Amnt4,0)) Amnt4,
+DIVISION_CODE,Dept_code,DIVISION_NAME,Dept_Name,
+sum(isnull(BinQty,0)) BinQty,
+BuyerCode,SuppCode,BuyerName,SuppName,
+TYPE,TYPE_DESC,Import,
+sum(isnull(Plan_Inv_Qty,0)) Plan_Inv_Qty,
+sum(isnull(Plan_Inv_Value,0)) Plan_Inv_Value,
+sum(isnull(SlotQty,0)) SlotQty,
+sum(isnull(MonthPlanQty,0)) MonthPlanQty,
+sum(isnull(MonthPlanValue,0)) MonthPlanValue,
+ProductGroup,ProductSubGroup,ProductGroupCode,ProdSubGroupCode,
+sum(isnull(Cumul_Inward_Qty,0)) Cumul_Inward_Qty,
+sum(isnull(Cumul_Inward_Value,0)) Cumul_Inward_Value,
+sum(isnull(Cumul_Issue_Qty,0)) Cumul_Issue_Qty,
+sum(isnull(Cumul_Issue_Value,0)) Cumul_Issue_Value,
+sum(isnull(Tobe_Inward_Qty,0)) Tobe_Inward_Qty,
+sum(isnull(Tobe_Inward_Value,0)) Tobe_Inward_Value,
+sum(isnull(Excess_Inward_Qty,0)) Excess_Inward_Qty,
+sum(isnull(Excess_Inward_Value,0)) Excess_Inward_Value,
+sum(isnull(ItemPrice,0)) ItemPrice
+from ATS_Inventory_vs_Lean_Temp 
+--where ltrim(rtrim(ITEM)) in ('000903909','000906054')
+group by COMPANY,ITEM,ItemDescr,InvTypeOrdr,INVType,
+DIVISION_CODE,Dept_code,DIVISION_NAME,Dept_Name,
+BuyerCode,SuppCode,BuyerName,SuppName,
+TYPE,TYPE_DESC,Import,
+ProductGroup,ProductSubGroup,ProductGroupCode,ProdSubGroupCode
+--)a
+order by ITEM
+
+----Logic 1:
+--update ATS_Inventory_vs_Lean set IsNonMoving='Yes'
+--from (select distinct Company,ItemCode
+--from NonMovingInventory
+--where company like '6%'
+--and DATEDIFF(dd,issueDate_C,getdate()-1)>180
+--group by Company,ItemCode)a
+--where ATS_Inventory_vs_Lean.COMPANY=a.Company
+--and ltrim(rtrim(ATS_Inventory_vs_Lean.ITEM))=ltrim(rtrim(a.ItemCode))
+
+
+--Logic 2:
+--Alter table ATS_Inventory_vs_Lean add LatestRecptDt date
+--Alter table ATS_Inventory_vs_Lean add LatestIssueDt date
+--Alter table ATS_Inventory_vs_Lean add DaysDiff int
+
+update ATS_Inventory_vs_Lean set LatestRecptDt=a.TRDT
+from (select distinct ITEM,max(TRDT) TRDT from TWHINR110ALL
+where company like '6%'
+and KOST=3
+and CWAR in ('651' , '653' , '654' , '655' , '667' , '674','676')
+group by ITEM)a
+where ltrim(rtrim(ATS_Inventory_vs_Lean.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update ATS_Inventory_vs_Lean set LatestIssueDt=a.TRDT
+from (select distinct ITEM,max(TRDT) TRDT from TWHINR110ALL
+where company like '6%'
+and KOST=5
+and koor in (
+1,--SFC Production Order
+32,--SFC Production Order (Manual)
+3, --Sales Order
+34 --Sales Order (Manual) 
+,22--WH Transfer  
+)
+and CWAR in ('651' , '653' , '654' , '655' , '667' , '674','676')
+group by ITEM)a
+where ltrim(rtrim(ATS_Inventory_vs_Lean.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update ATS_Inventory_vs_Lean set DaysDiff=datediff(dd,LatestRecptDt,LatestIssueDt)
+
+--Method1:
+--update ATS_Inventory_vs_Lean set IsNonMoving='Yes' where DaysDiff>=180
+
+--Method2:
+--update ATS_Inventory_vs_Lean set IsNonMoving='Yes' 
+--from(select distinct ltrim(rtrim(ITEM)) ITEM from TZZINV305600
+--where PRDT=(select max(PRDT) from TZZINV305600)
+--)a
+--where ltrim(rtrim(ATS_Inventory_vs_Lean.ITEM))=ltrim(rtrim(a.ITEM))
+
+--Method3:
+update ATS_Inventory_vs_Lean set IsNonMoving='Yes' 
+from(select distinct ltrim(rtrim(t_item)) ITEM, t_csig from TTCIBD001600
+where ltrim(rtrim(t_csig))<>''
+)a
+where ltrim(rtrim(ATS_Inventory_vs_Lean.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+
+end
+
+--select * from ATS_Inventory_vs_Lean
+
+--select item, count(*) from ATS_Inventory_vs_Lean_Temp 
+--group by ITEM
+--having count(*)>1
+
+
+--select * from ATS_Inventory_vs_Lean_Temp
+--where ltrim(rtrim(item))= '008402710'--'008400250'

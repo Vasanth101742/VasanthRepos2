@@ -1,0 +1,355 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--    EXEC SP_ROTAIR_OTD 
+--  select * From ROTAIR_OTD_GRAPH
+CREATE PROC [dbo].[SP_ROTAIR_OTD]
+AS 
+BEGIN
+
+TRUNCATE TABLE ROTAIR_OTD
+TRUNCATE TABLE ROTAIR_OTD_GRAPH
+
+insert into ROTAIR_OTD
+
+select areacode,'' Custordr,SaleOrderType,OrderNo,OrderDate,PositionNo,CustCode,Custname,Item,Item_desc,currency,WareHouse,trantype,invoice,
+areaname,Invoice_Date,DeliveryQty,round(Sales_amount,2)Value,0 as Taxamt,round(Sales_amount,2)totValue ,dpst,'' as lrno,' ' as lr_date,0 as tot_wgt,
+'       ' as abc,0 as leadtime,0 as timetaken,'               ' stat ,'                       ' as Month 
+from ELGi_Sales_Details  where Company =490 and convert(date,Invoice_Date)>='2018-04-01'and custcode='CU1R01967'
+--and CustCode ='CU1E00847'and OrderNo ='292000554' and PositionNo =30
+
+
+UPDATE ROTAIR_OTD SET ABC=A.Category  FROM (SELECT DISTINCT LTRIM(RTRIM(ITEM))AS ITEM,Category  FROM ITEM_ABC_CLASIFICATION_MASTER)A
+WHERE A.ITEM =LTRIM(RTRIM(ROTAIR_OTD.Item))
+
+UPDATE ROTAIR_OTD SET ABC='C' where ABC NOT IN ('A','B','C')
+UPDATE ROTAIR_OTD SET ABC='C' where ABC is null
+
+UPDATE ROTAIR_OTD SET LEADTIME= 7 WHERE ABC='A'
+UPDATE ROTAIR_OTD SET LEADTIME= 15 WHERE ABC='B'
+UPDATE ROTAIR_OTD SET LEADTIME= 30 WHERE ABC='C'
+
+UPDATE ROTAIR_OTD SET TIMETAKEN= DATEDIFF(DD,CONVERT(DATE,OrdER_Date),CONVERT(DATE,Inv_Date))   
+UPDATE ROTAIR_OTD SET stat= case when leadtime>=timetaken then 'On Time' else 'Delay' end
+UPDATE ROTAIR_OTD SET month= concat(left(datename(m,Inv_Date),3),'-',convert(varchar,year(Inv_Date)))
+
+INSERT INTO ROTAIR_OTD_GRAPH
+SELECT 'Y15-16','Y15-16 OTD%',66 UNION ALL
+SELECT 'Y16-17','Y16-17 OTD%',90 UNION ALL
+SELECT 'Y17-18','Y17-18 OTD%',85 UNION ALL
+select DISTINCT MONTH,'Total line items',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'On time supplied',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Delayed supply',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Class A total',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Class b total',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Class c total',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Target%',90  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Class A%',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Class B%',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'Class C%',0  from ROTAIR_OTD UNION ALL
+select DISTINCT MONTH,'2018-19 OTD%',0  from ROTAIR_otd 
+
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT   FROM ROTAIR_OTD GROUP BY MONTH)A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='TOTAL LINE ITEMS'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE STAT='On Time' GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='On time supplied'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE STAT='DELAY' GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='Delayed supply'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE ABC='A'GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='Class A total'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE ABC='B' GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='Class B total'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE ABC='C' GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='Class C total'
+
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE ABC='A' and STAT='On Time' GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='Class A%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE ABC='B'and STAT='On Time' GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='Class B%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT=A.CONT FROM (SELECT MONTH,COUNT(*)AS CONT FROM ROTAIR_OTD WHERE ABC='C' and STAT='On Time' GROUP BY MONTH )A 
+WHERE ROTAIR_OTD_GRAPH.MONTH=A.MONTH AND ROTAIR_OTD_GRAPH.TARGET='Class C%'
+
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Apr-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Apr-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Apr-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Apr-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Apr-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Apr-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Apr-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Apr-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Apr-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='May-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='May-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='May-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='May-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='May-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='May-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='May-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='May-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='May-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jun-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jun-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jun-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jun-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jun-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jun-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jun-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jun-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jun-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jul-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jul-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jul-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jul-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jul-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jul-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jul-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jul-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jul-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Aug-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Aug-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Aug-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Aug-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Aug-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Aug-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Aug-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Aug-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Aug-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Sep-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Sep-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Sep-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Sep-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Sep-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Sep-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Sep-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Sep-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Sep-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Oct-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Oct-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Oct-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Oct-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Oct-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Oct-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Oct-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Oct-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Oct-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Nov-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Nov-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Nov-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Nov-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Nov-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Nov-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Nov-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Nov-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Nov-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Dec-2018'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Dec-2018' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Dec-2018'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Dec-2018'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Dec-2018' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Dec-2018'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Dec-2018'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Dec-2018' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Dec-2018'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jan-2019'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jan-2019' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jan-2019'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jan-2019'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jan-2019' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jan-2019'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Jan-2019'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Jan-2019' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Jan-2019'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Feb-2019'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Feb-2019' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Feb-2019'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Feb-2019'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Feb-2019' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Feb-2019'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Feb-2019'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Feb-2019' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Feb-2019'and TARGET ='Class C%
+
+
+
+'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Mar-2019'and TARGET ='Class A%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Mar-2019' and TARGET ='Class A total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Mar-2019'and TARGET ='Class A%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Mar-2019'and TARGET ='Class B%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Mar-2019' and TARGET ='Class B total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Mar-2019'and TARGET ='Class B%
+
+
+
+'
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(
+((select CNT  from ROTAIR_OTD_GRAPH where ROTAIR_OTD_GRAPH.MONTH ='Mar-2019'and TARGET ='Class C%')/(select cnt From ROTAIR_OTD_graph where MONTH ='Mar-2019' and TARGET ='Class C total')*100),0)where ROTAIR_OTD_GRAPH.MONTH ='Mar-2019'and TARGET ='Class C%
+
+
+
+'
+
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Apr-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items' and MONTH ='Apr-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Apr-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='May-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='May-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='May-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Jun-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Jun-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Jun-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Jul-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Jul-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Jul-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Aug-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Aug-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Aug-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Sep-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Sep-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Sep-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE OTD_GRAPH SET CNT =round(((select CNT  from OTD_GRAPH where TARGET='On time supplied' and MONTH ='Oct-2018')/(select CNT  from OTD_GRAPH where TARGET='Total line items'and MONTH ='Oct-2018')*100),0)
+where OTD_GRAPH.MONTH ='Oct-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Nov-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Nov-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Nov-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Dec-2018')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Dec-2018')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Dec-2018' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Jan-2019')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Jan-2019')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Jan-2019' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Feb-2019')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Feb-2019')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Feb-2019' and TARGET ='2018-19 OTD%'
+
+UPDATE ROTAIR_OTD_GRAPH SET CNT =round(((select CNT  from ROTAIR_OTD_GRAPH where TARGET='On time supplied' and MONTH ='Mar-2019')/(select CNT  from ROTAIR_OTD_GRAPH where TARGET='Total line items'and MONTH ='Mar-2019')*100),0)
+where ROTAIR_OTD_GRAPH.MONTH ='Mar-2019' and TARGET ='2018-19 OTD%'
+
+
+END
+
+--select * From OTD_GRAPH
+
+
+
+
+
+Completion time: 2025-11-19T12:10:42.2474197+05:30

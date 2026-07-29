@@ -1,0 +1,52 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--execute [Sp_releasepotoindia]    
+create  procedure [dbo].[Sp_releasepotoindia] as      
+begin      
+    
+DECLARE @PO_NO VARCHAR(20);    
+DECLARE @DPST VARCHAR(5);    
+    
+SET @PO_NO = '';    
+    
+set nocount on      
+
+SELECT  top 1 @PO_NO = h.t_orno  FROM dbo.ttdpur400200 h  WHERE  h.t_egen = 2 and ltrim(rtrim(t_otbp)) = 'PN0000202' and t_hdst =15 order by h.t_odat desc
+
+
+if (@PO_NO <> '')     
+begin    
+	update dbo.ttdpur400200 set t_egen = 1 where  t_orno=@PO_NO and t_egen = 2 and ltrim(rtrim(t_otbp)) = 'PN0000202'  and t_hdst =15  
+end    
+   
+ 
+    
+if (@PO_NO <> '')     
+begin    
+select BrazilPurchaseOrder.OrderNumber,    
+BrazilPurchaseOrder.Position,    
+BrazilPurchaseOrder.Customer,    
+BrazilPurchaseOrder.ItemCode,   
+BrazilPurchaseOrder.Warehouse,  
+BrazilPurchaseOrder.Price,    
+BrazilPurchaseOrder.OrderDate,    
+BrazilPurchaseOrder.DeliveryDate,    
+BrazilPurchaseOrder.OrderedQuantity,    
+BrazilPurchaseOrder.UserName,    
+BrazilPurchaseOrder.Updatedate,    
+BrazilPurchaseOrder.DPST,    
+BrazilPurchaseOrder.NCM,    
+BrazilPurchaseOrder.Currency    
+from(    
+select z.t_dpst as DPST,FORMAT (getdate(), 'dd-MMM-yy') as Updatedate,'BRAZIL'as UserName,'CRE000013' as Customer,h.t_orno as OrderNumber,FORMAT (h.t_odat , 'dd-MMM-yy') as OrderDate,FORMAT (h.t_odat , 'dd-MMM-yy') as DeliveryDate,h.t_ccur as Currency,
+d.t_pono as Position,ltrim(rtrim(d.t_item)) as ItemCode,ltrim(rtrim(d.t_cwar)) as Warehouse,cast(round(d.t_qoor,2) as varchar(20)) as OrderedQuantity,cast(round(d.t_pric,2) as varchar(20)) as Price ,i.t_ifgc_l as NCM from  dbo.ttcibd001200 i, dbo.tzepur00
+2200 z,dbo.ttdpur400200 h,dbo.ttdpur401200 d     
+where  ltrim(rtrim(h.t_orno)) = ltrim(rtrim(@PO_NO)) and ltrim(rtrim(z.t_citg)) = ltrim(rtrim(i.t_citg)) and ltrim(rtrim(d.t_item)) = ltrim(rtrim(i.t_item)) and  ltrim(rtrim(h.t_orno)) = ltrim(rtrim(d.t_orno)) )    
+--substring(ltrim(rtrim(d.t_orno)),1,3) in ('ELG','GSC'))     
+BrazilPurchaseOrder order by OrderDate desc, OrderNumber,Position for XML AUTO,Elements,root('DataArea')       
+end    
+end 
+
+
+Completion time: 2025-11-19T11:52:21.6319490+05:30

@@ -1,0 +1,95 @@
+--exec sp_ATS_Pending_Orders
+CREATE proc [dbo].[sp_ATS_Pending_Orders] as
+begin
+
+Truncate table ATS_Pending_Orders
+
+
+Insert into ATS_Pending_Orders (company,WareHouse,CustCode,CustName,ItemCode,
+Item_desc,Buyer,OrderDate,ordertype,OrderNum,PositionNum,Indent,Dpst,Dpstname,Areacode,
+Areaname,ord_qty,PendQty,value,ItemRnk)
+select company,WareHouse,CustCode,CustName,ItemCode,Item_desc,Buyer,OrderDate,ordertype,OrderNum,PositionNum,Indent,
+Dpst,Dpstname,Areacode,Areaname,
+ord_qty,PendQty,value ,
+row_number() over(partition by ItemCode order by company,ordertype,OrderNum,PositionNum) as ItemRnk
+from pending_orders
+where company like '6%'
+and dpst in ('90041','90051')
+--and ltrim(rtrim(itemcode))='11463102PP'
+
+update ATS_Pending_Orders set value=0 where ordertype in ('6F1','696')
+--Alter table ATS_Pending_Orders add Buyer varchar(50)
+--Alter table ATS_Pending_Orders add Ageing varchar(50)
+--Alter table ATS_Pending_Orders add AgeingOrder int
+--Alter table ATS_Pending_Orders add StockQty float
+--Alter table ATS_Pending_Orders add StockStatus varchar(25)
+--Alter table ATS_Pending_Orders add ItemType varchar(25)
+--Alter table ATS_Pending_Orders add StockStatus1 varchar(25)     --Raviprasath on 17-06-2025
+
+update ATS_Pending_Orders set Ageing='0-7' where datediff(dd,orderdate,getdate()-1)<=7
+update ATS_Pending_Orders set Ageing='8-15' where datediff(dd,orderdate,getdate()-1) between 8 and 15
+update ATS_Pending_Orders set Ageing='16-30' where datediff(dd,orderdate,getdate()-1) between 16 and 30
+update ATS_Pending_Orders set Ageing='>30' where datediff(dd,orderdate,getdate()-1)>30
+
+update ATS_Pending_Orders set AgeingOrder=1 where Ageing='0-7'
+update ATS_Pending_Orders set AgeingOrder=2 where Ageing='8-15'
+update ATS_Pending_Orders set AgeingOrder=3 where Ageing='16-30'
+update ATS_Pending_Orders set AgeingOrder=4 where Ageing='>30'
+
+
+update ATS_Pending_Orders set StockQty=a.qskt
+from (select item,sum(qskt) qskt from inventorydetails_ats
+where cwar in ('649','661','659')
+group by item)a
+where ltrim(rtrim(ATS_Pending_Orders.itemcode))=ltrim(rtrim(a.item))
+and ATS_Pending_Orders.ItemRnk=1
+
+update ATS_Pending_Orders set StockStatus=b.StockStatus
+from(select *,case when isnull(PendQty,0)-isnull(StockQty,0)<=0 then 'StockIn' else 'StockOut' end as StockStatus
+from(select ItemCode,sum(pendqty) pendqty,sum(StockQty) StockQty
+from ATS_Pending_Orders
+group by ItemCode)a
+)b
+where ltrim(rtrim(ATS_Pending_Orders.itemcode))=ltrim(rtrim(b.ItemCode))
+
+
+update ATS_Pending_Orders set StockStatus1=b.StockStatus1
+from(select *,CASE 
+    WHEN ISNULL(PendQty, 0) >= 1 AND ISNULL(StockQty, 0) <= 0 THEN 'StockOut'
+    WHEN ISNULL(StockQty, 0) >= ISNULL(PendQty, 0) THEN 'StockIn'
+    WHEN ISNULL(PendQty, 0) > ISNULL(StockQty, 0) THEN 'Partially available'
+    ELSE NULL -- fallback if equal or both are zero
+END AS StockStatus1																				        --Raviprsasath on 17-06-2025
+from(select ItemCode,sum(pendqty) pendqty,sum(StockQty) StockQty
+from ATS_Pending_Orders
+group by ItemCode)a
+)b
+where ltrim(rtrim(ATS_Pending_Orders.itemcode))=ltrim(rtrim(b.ItemCode))
+
+
+
+--update ATS_Pending_Orders set StockStatus='StockIn' where isnull(PendQty,0)-isnull(StockQty,0)<0
+--update ATS_Pending_Orders set StockStatus='StockOut' where isnull(PendQty,0)-isnull(StockQty,0)>=0
+
+--select *,case when isnull(PendQty,0)-isnull(StockQty2,0)<=0 then 'StockIn' else 'StockOut' end as StockStatus
+--from(select ItemCode,sum(pendqty) pendqty,sum(StockQty2) StockQty2 from(
+--select *,case when ItemRnk=1 then StockQty else null end as StockQty2 from 
+--(Select company,ItemCode,ordertype,OrderNum,PositionNum,pendqty,StockQty,
+--row_number() over(partition by ItemCode order by company,ItemCode,ordertype,OrderNum,PositionNum) as ItemRnk
+--from ATS_Pending_Orders)a
+--)b
+--group by ItemCode
+--)c
+
+
+update ATS_Pending_Orders set ItemType=a.ItemType
+from (select distinct t_item,case when t_kitm=1 then 'Purchased' else 'Manufactured' end as ItemType from TTCIBD001600)a
+where ltrim(rtrim(ATS_Pending_Orders.itemcode))=ltrim(rtrim(a.t_item))
+
+end
+
+Select * from ATS_Pending_Orders
+--where --stockqty is not null and 
+--itemcode='X110043'
+--'1299UN001'
+--where ordertype in ('6F1','696')

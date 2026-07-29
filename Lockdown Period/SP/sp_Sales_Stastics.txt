@@ -1,0 +1,135 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Sales_Stastics
+
+CREATE proc sp_Sales_Stastics as
+begin
+
+Truncate table Sales_Stastics
+Truncate table Sales_Stastics_Periodwise
+
+
+Insert into Sales_Stastics(organ,item,item_desc,FirstSaleDate,LastSaleDate,
+mean_demand,std_demand,cv,demand_count,total_periods,adi,Category,seasonality_score,
+final_category,ABC_classification)
+--select * into Sales_Stastics from (
+select organ,item,item_desc,
+min(Invoice_Date) as FirstSaleDate,
+max(Invoice_Date) as LastSaleDate,
+null as mean_demand,
+null as std_demand,
+null as cv,
+null as demand_count,
+null as total_periods,
+null as adi,	
+null as Category,
+null as seasonality_score,
+null as final_category,
+null as ABC_classification
+from ELGi_Sales_Details
+--where Fin_year>=(select max(Fin_year)-1 from ELGi_Sales_Details)
+where invoice_date>=(select dateadd(dd,1,eomonth(getdate()-1,-24)))
+group by organ,item,item_desc
+--)a
+
+
+
+
+
+Insert into Sales_Stastics_Periodwise(organ,fin_year,fin_month,item,item_desc,
+Total_DeliveryQty,Total_Sales_amount,MeanQty)
+select organ,fin_year,fin_month,item,item_desc,
+sum(DeliveryQty) Total_DeliveryQty,sum(Sales_amount) Total_Sales_amount,
+avg(DeliveryQty) MonthlyAvg_DeliveryQty
+from ELGi_Sales_Details
+--where Fin_year>=(select max(Fin_year)-1 from ELGi_Sales_Details)
+where invoice_date>=(select dateadd(dd,1,eomonth(getdate()-1,-24)))
+--and item='         010444540'
+group by organ,fin_year,fin_month,item,item_desc
+
+
+update Sales_Stastics_Periodwise set SDQty=a.SD
+from (
+select Organ,Fin_Year,Fin_Month,Item,Item_Desc,
+--sqrt
+(num/den) as SD
+from (
+select Organ,Fin_Year,Fin_Month,Item,Item_Desc,
+sum([(x-xbar)square]) as num,
+sum(DeliveryQty)-1 as den
+--sum(case when DeliveryQty=0 then'NA' else sqrt(sum([(x-xbar)square])/(sum(DeliveryQty)-1)) end) as SD
+from (
+select a.*,b.Total_DeliveryQty,b.MeanQty,
+(a.DeliveryQty-b.MeanQty)*(a.DeliveryQty-b.MeanQty) as [(x-xbar)square]
+--,sqrt(((a.DeliveryQty-b.MonthlyAvg_DeliveryQty)*(a.DeliveryQty-b.MonthlyAvg_DeliveryQty))/(b.Total_DeliveryQty-1)) as SD
+--[sqrt((x-xbar)square/(n-1))] 
+from (select organ,fin_year,fin_month,item,item_desc,DeliveryQty from elgi_sales_details
+--where Fin_year>=(select max(Fin_year)-1 from ELGi_Sales_Details)
+where invoice_date>=(select dateadd(dd,1,eomonth(getdate()-1,-24)))
+--and item='         020360390'
+--'         010444540'
+--and fin_year=2024 and fin_month=9
+)a
+left outer join Sales_Stastics_Periodwise b
+on isnull(a.organ,'NA')=isnull(b.organ,'NA')
+and a.fin_year=b.fin_year
+and a.fin_month=b.fin_month
+and a.item=b.item
+)a
+group by Organ,Fin_Year,Fin_Month,Item,Item_Desc
+)b
+where den<>0
+)a
+where Sales_Stastics_Periodwise.organ=a.organ
+and Sales_Stastics_Periodwise.fin_year=a.fin_year
+and Sales_Stastics_Periodwise.fin_month=a.fin_month
+and Sales_Stastics_Periodwise.item=a.item
+
+update Sales_Stastics_Periodwise set SDQty=SQRT(SDQty) where SDQty>0
+update Sales_Stastics_Periodwise set SDQty=0 where SDQty is null
+
+--Alter table Sales_Stastics_Periodwise add CV float
+--Alter table Sales_Stastics_Periodwise add ActiveMonths float
+--Alter table Sales_Stastics_Periodwise add ConsideredMonths float
+--Alter table Sales_Stastics_Periodwise add ADI float
+
+update Sales_Stastics_Periodwise set CV=SDQty/MeanQty where MeanQty<>0
+
+update Sales_Stastics_Periodwise set ActiveMonths=a.ActiveMonths
+from (select organ,item,item_desc,count(distinct concat(Fin_year,fin_month)) as ActiveMonths from elgi_sales_details
+--where Fin_year>=(select max(Fin_year)-1 from ELGi_Sales_Details)
+where invoice_date>=(select dateadd(dd,1,eomonth(getdate()-1,-24)))
+group by organ,item,item_desc)a
+where Sales_Stastics_Periodwise.organ=a.organ
+and Sales_Stastics_Periodwise.item=a.item
+
+update Sales_Stastics_Periodwise set ActiveMonths=0 where ActiveMonths is null
+
+update Sales_Stastics_Periodwise set ConsideredMonths=a.ConsideredMonths
+from (select count(distinct concat(Fin_year,fin_month)) as ConsideredMonths from elgi_sales_details
+--where Fin_year>=(select max(Fin_year)-1 from ELGi_Sales_Details)
+where invoice_date>=(select dateadd(dd,1,eomonth(getdate()-1,-24)))
+)a
+
+update Sales_Stastics_Periodwise set ADI=ActiveMonths/ConsideredMonths
+
+
+end
+
+--select * from Sales_Stastics
+select * from Sales_Stastics_Periodwise
+where ltrim(rtrim(item))='00031009A'
+--'00021010A'
+--'         020360390'
+--and fin_year='2024' and fin_month=1
+--Alter Table Sales_Stastics add Mean float
+--Alter Table Sales_Stastics add SD float
+
+
+--select organ,fin_year,fin_month,item,item_desc,DeliveryQty from elgi_sales_details
+--where Fin_year>=(select max(Fin_year)-1 from ELGi_Sales_Details)
+--and ltrim(rtrim(item))='00031009A' and fin_year=2024 and fin_month=10
+
+
+
+Completion time: 2025-11-19T12:13:41.5707432+05:30

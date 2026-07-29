@@ -1,0 +1,67 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Exec sp_Credit_Block_Details
+
+CREATE proc [dbo].[sp_Credit_Block_Details] as 
+Begin
+
+Truncate table Credit_Block_Details
+
+--select * into Credit_Block_Details from TTDSLS421ALL_ver2
+
+Insert into Credit_Block_Details(Company,ORNO,PONO,SQNB,CSQN,HREA,DTBL,
+OPON,LOBL,DTRL,LORL,BPID,BPRT,RLTY,RLAM,ERDT,PSTC,PHSN,REFCNTD,REFCNTU) 
+select * from TTDSLS421ALL_ver2
+
+
+update Credit_Block_Details set Area=a.Area,dpst=a.Dpst
+from (select distinct Company,OrderNum,DPST,Area from Sales_Header where company in (401,490,600))a
+where Credit_Block_Details.company=a.company
+and Credit_Block_Details.ORNO=a.OrderNum
+
+update Credit_Block_Details set AreaName=a.AreaName
+from (select * from vw_AREA_MASTER)a
+where Credit_Block_Details.area=a.Areacode
+
+update Credit_Block_Details set DPSTName=a.DPSTName
+from (select * from vw_DPST_MASTER)a
+where Credit_Block_Details.dpst=a.DPSTcode
+
+update Credit_Block_Details set CustName=a.custname1
+from (select * from vw_Business_Partner)a
+where Credit_Block_Details.BPID=a.custcode
+
+update Credit_Block_Details set creditLimit=a.CRLR
+from (select company,ITBP,CRLR from TTCCOM112ALL)a
+where ltrim(rtrim(Credit_Block_Details.BPID))=ltrim(rtrim(a.ITBP))
+
+
+end
+
+select * from Credit_Block_Details
+--select * into Credit_Block_Details_Tmp from (
+--select Company,ORNO,PONO,SQNB,CSQN,HREA,DTBL,OPON,LOBL,DTRL,
+--LORL,Area,AreaName,Dpst,DPSTName,BPID,CustName,
+--BPRT,RLTY,RLAM,ERDT,PSTC,PHSN,REFCNTD,REFCNTU
+--from Credit_Block_Details
+--)a
+
+
+
+--select * into Credit_Block_Details from Credit_Block_Details_Tmp
+--Drop table Credit_Block_Details_Tmp
+--Alter table Credit_Block_Details add Area nvarchar(6)
+--Alter table Credit_Block_Details add Dpst	nvarchar(12)
+--Alter table Credit_Block_Details add AreaName	varchar(50)
+--Alter table Credit_Block_Details add DPSTName varchar(100)
+--Alter table Credit_Block_Details add CustName varchar(100)
+--Alter table Credit_Block_Details add CreditLimit float
+
+--select Company,ORNO,PONO,SQNB,CSQN,HREA,DTBL,OPON,LOBL,DTRL,
+--LORL,Area,AreaName,Dpst,DPSTName,BPID,CustName,
+--BPRT,RLTY,RLAM,ERDT,PSTC,PHSN,REFCNTD,REFCNTU
+--from Credit_Block_Details
+
+
+
+Completion time: 2025-11-19T09:18:21.8721912+05:30

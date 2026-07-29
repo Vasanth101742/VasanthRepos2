@@ -1,0 +1,533 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--exec sp_Collection
+--select * from acc_collection where dpstcode is not null
+
+CREATE proc [dbo].[sp_Collection]
+as
+Begin
+
+truncate table Collection_Stage1
+truncate table Collection_Stage2
+truncate table Collection_Stage3
+truncate table Acc_Collection
+truncate table Acc_Collection_Others
+truncate table Acc_Collection_GL_receipts
+truncate table collection_DPST_Tmp
+truncate table collection_orno_Tmp
+
+
+
+
+Insert into collection_DPST_Tmp
+--select * into collection_DPST_Tmp from(
+select distinct company,trantype,InvoiceNum,CustCode,dpst  from TmpSlsDespData_baan 
+union
+select distinct Company,Trantype,invnum,CustCode,t_cofc from ci_lines
+where t_cofc not like '%[a-z]%'
+--)a
+
+Insert into collection_orno_Tmp
+--select * into collection_orno_Tmp from(
+select company,max(ordernum) orno,trantype,InvoiceNum,dpst  from TmpSlsDespData_baan group by company,trantype,InvoiceNum,Dpst 
+union
+select distinct Company,OrderNum,Trantype,invnum,t_cofc from ci_lines
+where t_cofc not like '%[a-z]%'
+--)a
+
+
+--Collection_Stage1
+
+--Old Method
+--Insert into Collection_Stage1 
+--select a.*,b.FinCustGrp,c.Area from ACR_Stage1 a,
+--(select distinct itbp as CustCode,cfcg as FinCustGrp from TTCCOM112ALL where company=400) b,
+--(select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) c
+--where a.CustNo = b.CustCode 
+--and a.CustNo = c.CustCode
+
+
+
+--New Method
+Insert into Collection_Stage1 (Company,Trantyp,InvNo,[LineNo],CTranTyp,CDocNo,CLineNo,CustNo,DocDt,DocTyp,Cur,CurRate,
+t_rate_2,t_rate_3,t_ratf_1,t_ratf_2,t_ratf_3,t_rade,Amnt,AmntInv,AmntHome,t_amth_2,t_amth_3,t_ratd,t_rtyp,t_vatc,t_cvat,
+t_vata,t_vati,t_vath_1,t_vath_2,t_vath_3,t_svam,t_svah_1,t_svah_2,t_svah_3,t_lpdt,t_lapa,t_lapi,t_laph_1,t_laph_2,t_laph_3,
+FDisDt,FDisAmnt,FDisAmntInv,FDisAmntHome,t_dc1h_2,t_dc1h_3,SDisDt,SDisAmnt,SDisAmntInv,SDisAmntHome,t_dc2h_2,t_dc2h_3,TDisDt,
+TDisAmnt,TDisAmntInv,TDisAmntHome,t_dc3h_2,t_dc3h_3,PayDiff,PayDiffInv,PayDiffHome,t_padh_2,t_padh_3,BankCost,BankCostHome,
+t_baca_2,t_baca_3,CurDiffBas,CurDiffAmnt,t_cdam_2,t_cdam_3,RealCurDiff,t_tore_2,t_tore_3,DueDt,Refrence,t_ccrs,PayTerm,
+OrgTranTyp,OrgInvNo,PayRecMeth,Proj,PurNo,ProbCode,PropDate,ProbRef,CustBank,LettNo,FinRunNo,FinDt,BalAmnt,BalHome,
+t_balh_2,t_balh_3,BalAnti,BalAntiHome,t_bahc_2,t_bahc_3,StatUpd,Fyear,Fprod,BtNo,Tyear,Tprod,SalRep,ExpCashDt,t_adrs,
+LinkAmt,RecStep,StLinkUnall,Doub,CalInt,LevTaxCal,AnpTranTyp,AnpDocNo,t_pfbp,t_ofbp,t_leac,t_dim1,t_dim2,t_dim3,
+t_dim4,t_dim5,t_dim6,t_dim7,t_dim8,t_dim9,t_dm10,t_dm11,t_dm12,t_arrq,t_bppn,t_rcod,t_dbnt,t_bkrn,t_lcdt,t_styp,
+t_opbp,t_fcmi,t_fcmt,t_fcmh_1,t_fcmh_2,t_fcmh_3,t_fact,t_tnrn,t_cfrs,t_lmbi,t_mbno,t_osch,t_pysh,t_schn,t_sbid,
+t_csbi,t_rcom,t_rect,t_recd,t_recl,t_nuid,t_sgtp,t_rnso_l,t_rnsb_l,t_fcno_l,t_fcdt_l,t_fcde_l,t_ftyp_l,t_fire_l,
+t_text,t_Refcntd,t_Refcntu)
+select * from ACR_Stage1 a
+
+
+update Collection_Stage1 set FinCustGrp=b.FinCustGrp
+from (select distinct itbp as CustCode,cfcg as FinCustGrp from TTCCOM112ALL where company=400) b
+where Collection_Stage1.CustNo = b.CustCode 
+
+
+update Collection_Stage1 set Area=c.Area
+from (select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) c
+where Collection_Stage1.CustNo = c.CustCode
+
+update Collection_Stage1 set Area=c.Area
+from (select distinct t_otbp as CustCode,t_creg as Area from TTCCOM120400) c
+where Collection_Stage1.CustNo = c.CustCode
+and Collection_Stage1.Area is null
+
+update Collection_Stage1 set Area=c.Area
+from (select distinct t_otbp as CustCode,t_creg as Area from TTCCOM120400) c
+where Collection_Stage1.CustNo = c.CustCode
+and ltrim(rtrim(Collection_Stage1.Area)) =''
+
+
+delete from Collection_Stage1 where isdate(docdt) = 0
+
+
+
+--Collection_Stage2
+
+insert into Collection_Stage2  
+select * from Collection_Stage1 
+--where company not in (500) --commented on 23-May-2017
+--(712)
+
+update Collection_Stage2 set area  = b.CustAreaCode
+from (select  distinct CustCode,CustAreaCode from vw_business_partner )b
+where b.custcode = Collection_Stage2.custno
+--and Collection_Stage2.company <> 600--101           --Commented on 11 May 2017
+and Collection_Stage2.area is null 
+and doctyp = 1 and cdocno = 0
+
+
+update Collection_Stage2 set area  = b.CustAreaCode
+from (select  distinct CustCode,CustAreaCode from vw_business_partner)b
+where b.custcode = Collection_Stage2.custno
+--and Collection_Stage2.company <> 600 --101           --Commented on 11 May 2017
+and ltrim(rtrim(Collection_Stage2.area)) = ''  
+and doctyp = 1 and cdocno = 0
+
+
+update Collection_Stage2 set proj = dpst
+from collection_DPST_Tmp b
+--(
+--select distinct company,trantype,InvoiceNum,CustCode,dpst  from TmpSlsDespData_baan 
+--union
+--select distinct Company,Trantype,invnum,CustCode,t_cofc from ci_lines
+--where t_cofc not like '%[a-z]%'
+----union
+----select company,trantype,Invoice,CustCode,dpst  from LN_Sales_Details_ver2 
+----where dpst not like '%[a-z]%'
+--)b
+where Collection_Stage2.company = b.company
+and Collection_Stage2.trantyp = b.trantype
+and Collection_Stage2.invno = b.InvoiceNum
+and Collection_Stage2.custno = b.CustCode
+and cdocno = 0 and ltrim(rtrim(proj)) = '' 
+
+
+
+--Manual Invoices
+
+--update Collection_Stage2 set proj = dpst
+--from
+--manual_invoices teacr013 
+--where acc_rec.company = teacr013.company
+--and acc_rec.trantyp = teacr013.saletype
+--and acc_rec.invno = teacr013.invoicenumber
+--and acc_rec.custno = teacr013.custcode
+--and  cdocno = 0 and ltrim(rtrim(proj)) = '' 
+--and dpst > 0
+
+
+update Collection_Stage2 set purno=orno 
+from collection_orno_Tmp s
+--(
+--select company,max(ordernum) orno,trantype,InvoiceNum,dpst  from TmpSlsDespData_baan group by company,trantype,InvoiceNum,Dpst 
+--union
+--select distinct Company,OrderNum,Trantype,invnum,t_cofc from ci_lines
+--where t_cofc not like '%[a-z]%'
+----union
+----select company,max(OrderNo) orno,trantype,Invoice,dpst  from LN_Sales_Details_ver2 
+----where dpst not like '%[a-z]%'
+----group by company,trantype,Invoice,Dpst 
+--) s
+where  Collection_Stage2.company=s.company 
+and Collection_Stage2.Trantyp=s.TranType 
+and Collection_Stage2.InvNo=s.InvoiceNum
+and purno in ('0','') 
+and cdocno in ('0','')
+
+
+
+
+--Collection_Stage3
+
+insert into Collection_Stage3
+select * from vw_collection_report_daily_new
+
+update Collection_Stage3 set dpstcode=b.Dpst
+from collection_DPST_Tmp b
+--TmpSlsDespData_baan b
+where Collection_Stage3.company=b.Company
+and Collection_Stage3.trantyp=b.TranType
+and Collection_Stage3.invno=b.InvoiceNum
+
+update Collection_Stage3 set dpstcode=b.t_cofc
+from CI_Lines b
+where Collection_Stage3.company=b.Company
+and Collection_Stage3.trantyp=b.Trantype
+and Collection_Stage3.invno=b.invnum
+and dpstcode is null
+
+
+update Collection_Stage3 set dpstname=v.dpstname,description=v.Description
+from vw_DPST_MASTER v
+where Collection_Stage3.dpstcode=v.DPSTcode
+and Collection_Stage3.company not like '6%'
+
+update Collection_Stage3 set dpstname=v.dpstname,description=v.Description
+from DPST_MASTER_ATS v
+where Collection_Stage3.dpstcode=v.DPSTcode
+and Collection_Stage3.company like '6%'
+
+
+--Acc_Collection
+
+
+Insert into Acc_Collection select *  from collection_stage3
+
+delete from  Acc_Collection where docdt = '9999-01-01 00:00:00.000'
+
+update Acc_Collection set description='Compressor-RLY' where dpstcode in ('90092','90073','90091')
+
+
+
+--Delete FOC Data
+
+delete from Acc_Collection where custno like '%emp%' and trantyp = 'cdj'
+delete from Acc_Collection where 
+trantyp in ('251','252','351','352','451','452','551','552','751','752','851','852','951','952')
+or trantyp between '2A1' and  '2A6' 
+or trantyp between '2B1' and  '2B6'
+or trantyp between '3A1' and  '3B6'
+or trantyp between '4A1' and  '4B6'
+or trantyp between '5A1' and  '5B6' 
+or trantyp between '7A1' and  '7B6'
+or trantyp between '8A1' and  '8B6'
+or trantyp between '9A1' and  '9B6'
+or trantyp between '2C1' and  '2C6'
+or trantyp between '3C1' and  '3C6'
+or trantyp between '4C1' and  '4C6'
+or trantyp between '5C1' and  '5C6'
+or trantyp between '7C1' and  '7C6'
+or trantyp between '8C1' and  '8C6'
+or trantyp between '9C1' and  '9C6'
+
+
+
+--International Updates
+
+
+update Acc_Collection
+set areacode = b.CustAreaCode 
+from (select  distinct CustCode,CustAreaCode from vw_business_partner )b 
+where Acc_Collection.custno=b.custcode
+and Acc_Collection.description = 'exports'
+and Acc_Collection.global <> 'international'
+
+
+update Acc_Collection 
+set areaname = v.areaname, zone = v.zone, region = v.region, global = v.global 
+from vw_AREA_MASTER v
+where Acc_Collection.areacode=v.areacode 
+and Acc_Collection.description = 'exports'
+and Acc_Collection.global <> 'international'
+
+
+delete from Acc_Collection where dpstcode in ('90240','90241','90244','90250',
+'70001','70002','70003','70004','70005','70006')
+
+delete from Acc_Collection where dpstcode in 
+(select dpstcode from vw_DPST_MASTER 
+where description in ('To Elgi China','To Elgi Gulf','To ELGI Australia','To Elgi Belair','To Elgi Rotair','To Elgi Brazil'))
+
+
+delete from Acc_Collection where dpstcode in (
+select dpstcode from vw_DPST_MASTER where description in ('AED','Elgi Sauer'))
+
+
+delete  from Acc_Collection where company = 320
+
+
+update Acc_Collection set areacode = b.CustAreaCode 
+from (
+select distinct CustCode,CustAreaCode from vw_business_partner) b 
+where Acc_Collection.custno=b.custcode 
+and Acc_Collection.region = 'indirect'
+and Acc_Collection.areacode <> b.CustAreaCode 
+
+
+update Acc_Collection 
+set areaname = v.areaname, zone = v.zone, region = v.region, global = v.global 
+from vw_AREA_MASTER v
+where Acc_Collection.areacode=v.areacode 
+and Acc_Collection.region = 'indirect'
+and Acc_Collection.region <> v.region
+
+
+update Acc_Collection set areacode = b.CustAreaCode
+from (select distinct CustCode,CustAreaCode from vw_business_partner)b
+where Acc_Collection.custno = b.custcode
+and Acc_Collection .description = 'exports'
+and Acc_Collection.areacode  <> b.CustAreaCode
+
+update Acc_Collection
+set areaname = v.areaname, zone = v.zone, region = v.region, global = v.global 
+from vw_AREA_MASTER v
+where Acc_Collection.areacode = v.areacode
+and Acc_Collection .description = 'exports'
+and Acc_Collection.areaname <> v.areaname
+
+
+update Acc_Collection set description = 'Compressor-RLY' where dpstcode in ('90091','90002')
+
+update  Acc_Collection set
+Acc_Collection.areacode = v.areacode,
+Acc_Collection.areaname  = v.areaname,
+Acc_Collection.zone      = v.zone,
+Acc_Collection.region    = v.region,
+Acc_Collection.global    = v.global
+from (select distinct CustCode,CustAreaCode from vw_business_partner) b ,vw_AREA_MASTER v 
+where Acc_Collection.custno = b.custcode
+and b.custareacode = v.areacode
+and Acc_Collection.global   = 'international' 
+and Acc_Collection.description <> 'exports'
+
+
+
+
+
+--Area Updations
+
+update Acc_Collection set areaname = 'COIMBATORE' where areaname = 'MADURAI'  
+update Acc_Collection set areaname = 'COIMBATORE' where areaname = 'CUSTOMER SERVICE DIVISION'
+update Acc_Collection set areaname = 'COIMBATORE' where areaname = 'SALEM'  
+update Acc_Collection set areaname = 'CALCUTTA'  where areaname = 'RANCHI'  
+update Acc_Collection set areaname = 'NEW DELHI' where areaname = 'LUCKNOW'  
+update Acc_Collection set areaname = 'NEW DELHI' where areaname = 'LUDHIANA'  
+update Acc_Collection set areaname = 'CALCUTTA' where areaname = 'JAMSHEDPUR'  
+update Acc_Collection set areaname = 'CALCUTTA' where areaname = 'BHUBANESHWAR'  
+update Acc_Collection set zone = 'West' where areaname = 'bhopal'
+update Acc_Collection set zone = 'South' where areaname = 'COIMBATORE'
+
+update Acc_Collection set areacode = '051',  areaname = 'COIMBATORE', zone = 'South', region = 'India', global = 'Domestic'
+where custno = 'J00759' and invno = 28000144 and docdt  = '2009-01-15 00:00:00.000'
+and company = 400--100 
+and trantyp = 'SS1'
+
+delete from Acc_Collection where dpstcode in (
+select dpstcode from vw_DPST_MASTER where description in ('AED','Elgi Sauer'))
+
+
+
+--update Acc_Collection set refr  =  1 
+--from
+--(select company,trantyp,invno,custno,collection,dpstcode, 8 as doctyp
+--from
+--(
+--select company,trantyp,invno,custno,collection,dpstcode,doctyp from Acc_Collection 
+--where year(docdt) >= 2009 and doctyp = 2
+--group by
+--company,trantyp,invno,custno,collection,dpstcode,doctyp
+
+--union
+
+--select company,trantyp,invno,custno,collection,dpstcode,doctyp from Acc_Collection 
+--where year(docdt) >= 2009 and  doctyp = 8
+--group by
+--company,trantyp,invno,custno,collection,dpstcode,doctyp)test
+--group by company,trantyp,invno,custno,collection,dpstcode
+--having count(*) > 1
+--) refr
+--where
+--refr.company = Acc_Collection.company
+--and refr.trantyp = Acc_Collection.trantyp
+--and refr.invno = Acc_Collection.invno
+--and refr.custno = Acc_Collection.custno
+--and refr.collection = Acc_Collection.collection
+--and refr.dpstcode = Acc_Collection.dpstcode
+--and refr.doctyp = Acc_Collection.doctyp
+
+
+
+--truncate table collection_report_bkp 
+
+--insert into collection_report_bkp 
+--select * from collection_report
+
+delete from Acc_Collection where refr = 1 and docdt >= '02/01/2009'  and docdt < '03/01/2009' 
+
+
+update  Acc_Collection 
+set areacode = a.custAreacode,areaname = a.areaname,zone =a.zone,region =a.region,global =a.global
+from
+(select custcode,custAreacode,areaname,zone,region,global 
+from (select distinct a.CustCode,a.custAreacode from vw_business_partner a) a
+inner join vw_AREA_MASTER b on a.custAreacode = b.areacode
+)a
+where 
+Acc_Collection.custno = a.custcode and
+Acc_Collection.areacode in (select areacode from vw_AREA_MASTER where areaname like '%sales%' or areaname like '%prod%') 
+
+
+update  Acc_Collection 
+set areacode = a.CustAreaCode,areaname = a.areaname,zone =a.zone,region =a.region,global =a.global
+from
+(select custcode,custareacode,areaname,zone,region,global 
+from (select distinct CustCode,custAreacode from vw_business_partner )a inner join vw_AREA_MASTER b 
+on a.custAreacode = b.areacode)a
+where 
+Acc_Collection.custno = a.custcode 
+and Acc_Collection.global <> 'International'
+--and dpstcode >= 90100 
+--and  dpstcode < 90300 
+--and dpstcode  <> '90110' 
+--and dpstcode not between 90101 and 90199
+
+
+update Acc_Collection
+set areacode = '051', areaname = 'COIMBATORE',zone = 'South',region = 'India',global = 'Domestic'
+where custno = 'S05990' and invno in (21000161,21000162,21000163,21000164,21000165) and docdt  = '2010-11-09 00:00:00.000'
+and company = 400 --100 
+and trantyp = 'SS1'
+
+update Acc_Collection
+set areacode = '051', areaname = 'COIMBATORE',zone = 'South',region = 'India',global = 'Domestic'
+where global = 'International' and description <> 'Exports'
+
+
+--delete from collection_report where trantyp in (select distinct trantype from tmpslsdespdata where saletype in (2))
+
+
+----Bank Cost Updates
+
+
+update Acc_Collection set collection = collection + bankcosthome
+from (select * from Collection_Stage2 where docdt >= '10/01/2009' and amnthome <= 0 and bankcosthome <> 0)b
+where  Acc_Collection.company = b.company 
+and Acc_Collection.trantyp = b.trantyp 
+and Acc_Collection.custno = b.custno 
+and Acc_Collection.docdt = b.docdt 
+and Acc_Collection.invno  = b.invno 
+and Acc_Collection.collection = abs(b.amnthome)
+
+
+update Acc_Collection set doctyp =100
+from (
+Select * from Collection_Stage2 
+where  recstep = 8 and docdt >= dateadd(mm,-2,convert(varchar,datepart(mm,getdate())) + '/01/' + datename(yy,getdate()))
+) a
+where a.custno = Acc_Collection.custno 
+and a.trantyp = Acc_Collection.trantyp 
+and  a.invno = Acc_Collection.invno 
+and a.amnt = Acc_Collection.collection
+and a.company = Acc_Collection.company 
+
+delete from Acc_Collection where doctyp = 100
+delete from Acc_Collection where custno in ('ZA0001', 'A03177') 
+delete from Acc_Collection where company = 490--102 
+and trantyp in ('276','376','476','576')  
+delete from Acc_Collection where company = 401--150 
+and trantyp in ('271','272','371','372','471','472','571','572')
+delete from Acc_Collection where trantyp in ('CCR','ICR','ICN','CCN')
+delete from Acc_Collection where docdt >= getdate()
+--delete  from Acc_Collection where collection < 0  --Commented on 28-02-2019
+
+
+
+update Acc_Collection set areaname = 'COIMBATORE' where areaname = 'MADURAI'  
+update Acc_Collection set areaname = 'COIMBATORE' where areaname = 'CUSTOMER SERVICE DIVISION'
+update Acc_Collection set areaname = 'COIMBATORE' where areaname = 'SALEM'  
+update Acc_Collection set areaname = 'CALCUTTA'  where areaname = 'RANCHI'  
+update Acc_Collection set areaname = 'NEW DELHI' where areaname = 'LUCKNOW'  
+update Acc_Collection set areaname = 'NEW DELHI' where areaname = 'LUDHIANA'  
+update Acc_Collection set areaname = 'CALCUTTA' where areaname = 'JAMSHEDPUR'  
+update Acc_Collection set areaname = 'CALCUTTA' where areaname = 'BHUBANESHWAR'  
+
+--update Acc_Collection set areacode = '612' , areaname  = 'BANGLADESH', zone  = 'S.Asia',
+--region = 'Neighbouring',global = 'International'
+--where custno in ('L00702','V01240','V01286','P02479') and dpstcode between 90200 and 90299
+
+
+truncate table ACC_Collection_inv_dt
+
+insert into ACC_Collection_inv_dt
+select *,'',0,'' from Acc_Collection
+
+update ACC_Collection_inv_dt 
+set invdate =a.docdt
+from (select * from Collection_Stage2 (nolock) where doctyp = 1 ) a
+where a.invno = ACC_Collection_inv_dt.invno 
+and a.custno = ACC_Collection_inv_dt.custno 
+and a.company = ACC_Collection_inv_dt.company 
+and a.trantyp = ACC_Collection_inv_dt.trantyp
+
+
+update ACC_Collection_inv_dt set flag  = datediff(mm,invdate,docdt)
+
+
+update ACC_Collection_inv_dt 
+set duedate =a.duedt
+from (select * from Collection_Stage2 (nolock) where doctyp = 1 ) a
+where a.invno = ACC_Collection_inv_dt.invno 
+and a.custno = ACC_Collection_inv_dt.custno 
+and a.company = ACC_Collection_inv_dt.company 
+and a.trantyp = ACC_Collection_inv_dt.trantyp
+
+
+
+
+--Other Updates
+
+
+insert into Acc_Collection_Others   select * from Collection_Stage3 where custno = 'A03177'
+
+update Acc_Collection_Others set description = 'ATS'
+
+insert into Acc_Collection_Others
+select * from Collection_Stage3 where dpstcode in (select distinct dpstcode from vw_DPST_MASTER  
+where description in ('To Elgi Gulf                       ','Elgi Sauer                         ',
+'To Elgi China','To ELGI Australia','To Elgi Belair','To Elgi Brazil','To Elgi Rotair'))
+
+
+insert into Acc_Collection_Others
+select company,trantyp,invno,custno,custname1,docdt,collection,dpstcode,dpstname,'ELGI Srilanka',areacode,areaname,zone,region,global,anptrantyp,anpdocno,cdocno,ctrantyp,doctyp,refr 
+from Collection_Stage3 where  company = 320
+
+update Acc_Collection_Others set collection = collection + bankcosthome
+from (select * from Collection_Stage2 where docdt >= '10/01/2009' and amnthome <= 0 and bankcosthome <> 0
+)b
+where  Acc_Collection_Others.company = b.company 
+and Acc_Collection_Others.trantyp = b.trantyp 
+and Acc_Collection_Others.custno = b.custno 
+and Acc_Collection_Others.docdt = b.docdt 
+and Acc_Collection_Others.invno  = b.invno 
+and Acc_Collection_Others.collection = abs(b.amnthome)
+
+
+--To be Edited
+
+insert into Acc_Collection_GL_receipts 
+select * from vw_collection_GL_receipts
+
+
+end
+
+
+Completion time: 2025-11-19T09:11:38.1244671+05:30

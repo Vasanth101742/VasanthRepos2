@@ -1,0 +1,1282 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Inventory
+
+CREATE proc sp_Inventory as
+
+Begin
+
+
+Truncate table Inventory 
+Truncate table Inventory2
+Truncate table Inventory3
+Truncate table Inventory_cons
+Truncate table TWHINA112ALL_Tmp
+Truncate table inv_490_Tmp1
+Truncate table inv_490_Tmp2
+Truncate table inv_490_Tmp3
+Truncate table inv_490_Tmp4
+Truncate table Inventory_Amnt2_Tmp
+Truncate table Inventory_209_210WH_Issue_Manipulation
+Truncate table Inventory_WithinCompany_Issue_Manipulation
+Truncate table Inventory_AcrossCompany_Issue_Manipulation
+
+--Alter table Inventory add UnitPrice float
+--Alter table Inventory2 add UnitPrice float
+--Alter table Inventory3 add UnitPrice float
+--Alter table Inventory_209_210WH_Issue_Manipulation add UnitPrice float
+--Alter table Inventory_WithinCompany_Issue_Manipulation add UnitPrice float
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add UnitPrice float
+
+
+--Alter table Inventory add TRDT2 datetime
+--Alter table Inventory2 add TRDT2 datetime
+--Alter table Inventory3 add TRDT2 datetime
+--Alter table Inventory_209_210WH_Issue_Manipulation add TRDT2 datetime
+--Alter table Inventory_WithinCompany_Issue_Manipulation add TRDT2 datetime
+--Alter table Inventory_401_450_Combined_Issue_Manipulation add TRDT2 datetime
+--Alter table InventoryFact_History add TRDT2 datetime
+
+--sp_rename 'Inventory3.IssurOrderType','IssueOrderType'
+
+
+--Matching the Time Difference between BI and LN..
+--update TWHINA112ALL set T$TRDT=dateadd(HOUR,5,T$TRDT),T$LGDT=dateadd(HOUR,5,T$LGDT)
+--update TWHINA114ALL set T$TRDT=dateadd(HOUR,5,T$TRDT),T$LGDT=dateadd(HOUR,5,T$LGDT),T$CTDT=dateadd(HOUR,5,T$CTDT)
+--update TWHINA113ALL set T$TRDT=dateadd(HOUR,5,T$TRDT)--,T$LGDT=dateadd(HH,5.5,T$LGDT)
+--update TWHINA115ALL set T$TRDT=dateadd(HOUR,5,T$TRDT)
+--update TWHINA127ALL set TRDT=dateadd(HOUR,5,TRDT),VPDT=dateadd(HOUR,5,VPDT)
+
+--update TWHINA112ALL set T$TRDT=dateadd(MINUTE,30,T$TRDT),T$LGDT=dateadd(MINUTE,30,T$LGDT)
+--update TWHINA114ALL set T$TRDT=dateadd(MINUTE,30,T$TRDT),T$LGDT=dateadd(MINUTE,30,T$LGDT),T$CTDT=dateadd(MINUTE,30,T$CTDT)
+--update TWHINA113ALL set T$TRDT=dateadd(MINUTE,30,T$TRDT)--,T$LGDT=dateadd(HH,5.5,T$LGDT)
+--update TWHINA115ALL set T$TRDT=dateadd(MINUTE,30,T$TRDT)
+--update TWHINA127ALL set TRDT=dateadd(MINUTE,30,TRDT),VPDT=dateadd(MINUTE,30,VPDT)
+
+
+
+---------Step 1: Delete the Inventory Adjustments made for 490 company due to WMS activity---------
+
+Insert into TWHINA112ALL_Tmp
+
+select * from TWHINA112ALL
+
+delete from TWHINA112ALL_Tmp where company=490 and T$CWAR='102' and T$KOOR=52 and T$TRDT between '2018-04-01' and '2018-04-20'
+
+
+-------------------End of Step 1---------------------------------------------------------------------
+---------Step 2: Load the Inventory Table -----------------------------------------------------------
+
+
+Insert into Inventory (COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,OrderType,QSTK)
+--select * into Inventory from (
+select a.COMPANY,a.CWAR,a.ITEM,null as ItemDescr,b.T$TRDT,b.T$SEQN,b.T$INWP,b.QSKT,
+(c.Amnt/b.QSTK)*b.QSKT,b.T$KOOR,b.QSTK
+
+from 
+(select COMPANY,CWAR,ITEM
+--,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$KOOR,
+sum(T$QSTK) QSTK,sum(T$QSKT) QSKT from TWHINA112ALL_Tmp 
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$KOOR
+having sum(T$QSKT)>0)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.T$CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.T$ITEM))
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$AMNT$1) amnt from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP)c
+on b.COMPANY=c.COMPANY
+and b.T$CWAR=c.T$CWAR
+and b.T$ITEM=c.T$ITEM
+and b.T$TRDT=c.T$TRDT
+and b.T$SEQN=c.T$SEQN
+and b.T$INWP=c.T$INWP
+
+--)a
+--where concat(a.COMPANY,CWAR,ltrim(rtrim(ITEM)))='490102000010310'
+order by a.COMPANY,a.CWAR,a.ITEM,b.T$TRDT,b.T$SEQN,b.T$INWP
+
+
+
+insert into Inventory_Amnt2_Tmp (COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,T$QSKT,T$QSTK)
+select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$QSKT) T$QSKT,sum(T$QSTK) T$QSTK from TWHINA112ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP
+
+update Inventory_Amnt2_Tmp set AMNT$1=
+isnull((isnull(c.AMNT$1,0)/(case when T$QSTK is null or T$QSTK=0 then 0.000001 else T$QSTK end))*isnull(T$QSKT,0),0)
+from (
+select b.COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,--CPCP,
+sum(AMNT$1) AMNT$1 from TWHINA127ALL b
+group by b.COMPANY,CWAR,ITEM,TRDT,SEQN,INWP
+)c
+where Inventory_Amnt2_Tmp.COMPANY=c.COMPANY
+and ltrim(rtrim(Inventory_Amnt2_Tmp.CWAR))=ltrim(rtrim(c.CWAR))
+and ltrim(rtrim(Inventory_Amnt2_Tmp.ITEM))=ltrim(rtrim(c.ITEM))
+and Inventory_Amnt2_Tmp.TRDT=c.TRDT
+and Inventory_Amnt2_Tmp.SEQN=c.SEQN
+and Inventory_Amnt2_Tmp.INWP=c.INWP
+
+
+
+update Inventory set Amnt2=isnull(a.AMNT$1,0)
+from 
+(select COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,--CPCP,
+T$QSKT,T$QSTK,sum(AMNT$1) AMNT$1 from 
+Inventory_Amnt2_Tmp
+group by COMPANY,CWAR,ITEM,TRDT,SEQN,INWP--,CPCP
+,T$QSKT,T$QSTK
+) a
+where Inventory.COMPANY=a.COMPANY
+and Inventory.CWAR=a.CWAR
+and Inventory.ITEM=a.ITEM
+and Inventory.TRDT=a.TRDT
+and Inventory.SEQN=a.SEQN
+and Inventory.INWP=a.INWP
+
+
+update Inventory set Amnt3=isnull(Amnt,0)+isnull(Amnt2,0)
+
+update Inventory set FrtRate=a.FrtRate
+from (select ITEM,isnull(DUTY,0)+isnull(FRTP,0)+isnull(SEAF,0) as FrtRate 
+from TZZYIN301400
+-- where ltrim(rtrim(ITEM)) ='B004705760006'
+)a
+where ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+and Inventory.COMPANY like '4%'
+
+
+Update Inventory set Amnt4=Amnt3+(Amnt3*isnull(FrtRate,0))/100
+
+-----------------End of Step 2------------------------------------------------------------------------
+----------Step 3: ATS Inventory Corrections-----------------------------------------------------------
+
+
+--update Inventory set IssueDate=a.issuedate
+--from ATS_Initial_Inv_Adjustments a
+--where Inventory.COMPANY=a.COMPANY
+--and ltrim(rtrim(Inventory.CWAR))=ltrim(rtrim(a.WAR))
+--and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEMCode))
+
+
+delete from Inventory where COMPANY=600 and CWAR in (
+'025','180','183','184','185','186','187','188','189','190','191',   
+'306','648','669','683','697','699','751','AED','COR','181','AED')
+
+
+
+-----Unit Price logic-------------------------------------------------------------
+
+update Inventory set UnitPrice=a.PRIC
+from (
+select a.Company,a.ITEM,a.PRIC,a.ENTR from 
+(select Company,item,PRIC,ENTR from TZZINV901600
+--where item='         Z12115'
+)a
+inner join
+(select Company,ITEM,max(ENTR) LatestEntrDate from TZZINV901600
+group by Company,ITEM)b
+on a.Company=b.Company
+and a.ITEM=b.ITEM
+and a.ENTR=b.LatestEntrDate
+)a
+where ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+and Inventory.COMPANY<>'640'
+
+update Inventory set Amnt4=QSKT*UnitPrice
+where company like '6%'
+and company<>'640'
+and UnitPrice is not null
+
+
+
+---End: Unit Price logic-----------------------------------------------------------
+-----------------End of Step 3------------------------------------------------------------------------
+--------Step 4: Inventory Table correction due to WMS Activity----------------------------------------
+
+
+--Fetch the Stock qty excluding the receipts qty made after 01-04-2018
+
+
+Insert into inv_490_Tmp1 
+--select * into inv_490_Tmp1 from (
+select * from (
+select a.COMPANY,a.CWAR,a.ITEM,a.QHND,b.QSKT,isnull(a.QHND,0)-isnull(b.QSKT,0) as Diff from
+(select COMPANY,CWAR,item,sum(QHND) QHND from TWHWMD215ALL  
+where company=490 and CWAR='102' --and item='         000112660'
+group by COMPANY,CWAR,item
+having sum(QHND)<>0
+)a
+left outer join
+(
+select company,T$CWAR,T$ITEM,sum(QSKT) QSKT from (
+select company,T$CWAR,T$ITEM,sum(T$QSKT) QSKT from TWHINA112ALL_Tmp 
+where COMPANY=490 and T$CWAR='102' and T$KOOR<>52 and T$TRDT between '2018-04-01' and '2018-04-20'
+group by company,T$CWAR,T$ITEM
+having sum(T$QSKT)<>0
+union all
+select company,T$CWAR,T$ITEM,sum(T$QSKT) QSKT from TWHINA112ALL_Tmp 
+where COMPANY=490 and T$CWAR='102' and T$TRDT >'2018-04-20'
+group by company,T$CWAR,T$ITEM
+having sum(T$QSKT)<>0
+)temp
+group by company,T$CWAR,T$ITEM
+)b
+on a.COMPANY=b.COMPANY
+and a.CWAR=b.T$CWAR
+and a.ITEM=b.T$ITEM
+)a
+--)b
+
+where Diff<>0
+
+--Fetching the Transactions made before '2018-04-01'  for the items in inv_490_Tmp1
+--drop table inv_490_Tmp2
+
+
+insert into inv_490_Tmp2
+--select * into inv_490_Tmp2 from (
+select 
+b.COMPANY,b.T$CWAR,b.T$ITEM,null as ItemDescr,b.T$TRDT,b.T$SEQN,b.T$INWP,b.T$QSTK,b.T$QSKT,b.T$KOOR,
+DerivedStk,--c.Amnt Amnt,d.AMNT$1 as Amnt2,
+null as Amnt,null as Amnt2,
+null as Amnt3,TransRnk
+from (
+select COMPANY,T$CWAR,T$ITEM,T$KOOR,T$TRDT,T$QSTK,T$QSKT,T$SEQN,T$INWP,
+ROW_NUMBER() over (partition by company,T$cwar,T$item order by T$trdt desc) as TransRnk,
+0 as DerivedStk from TWHINA112ALL_Tmp 
+where company=490 and T$CWAR='102' and T$TRDT<'2018-04-01' 
+and ltrim(rtrim(T$ITEM)) in (select distinct ltrim(rtrim(item)) from inv_490_Tmp1)
+)b
+left outer join 
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$AMNT$1) amnt from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP)c
+on b.COMPANY=c.COMPANY
+and b.T$CWAR=c.T$CWAR
+and b.T$ITEM=c.T$ITEM
+and b.T$TRDT=c.T$TRDT
+and b.T$SEQN=c.T$SEQN
+and b.T$INWP=c.T$INWP
+left outer join 
+(select COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,--CPCP,
+T$QSKT,T$QSTK,sum(AMNT$1) AMNT$1
+from Inventory_Amnt2_Tmp
+group by COMPANY,CWAR,ITEM,TRDT,SEQN,INWP--,CPCP
+,T$QSKT,T$QSTK
+
+) d
+on b.COMPANY=d.COMPANY
+and b.T$CWAR=d.CWAR
+and ltrim(rtrim(b.T$ITEM))=ltrim(rtrim(d.ITEM))
+and b.T$TRDT=d.TRDT
+and b.T$SEQN=d.SEQN
+and b.T$INWP=d.INWP
+--where concat(b.COMPANY,b.T$CWAR,ltrim(rtrim(b.T$ITEM)))='490102A019053'
+
+--)a
+
+
+Insert  into inv_490_Tmp4
+--select * into inv_490_Tmp4 from (
+select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$TRDT,a.T$SEQN,a.T$INWP,sum(a.amnt) amnt,sum(b.AMNT$1) AMNT$1 from 
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$AMNT$1) amnt from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP)a
+left outer join 
+(select COMPANY,CWAR,ITEM,TRDT,SEQN,INWP,--CPCP,
+T$QSKT,T$QSTK,sum(AMNT$1) AMNT$1
+from Inventory_Amnt2_Tmp
+group by COMPANY,CWAR,ITEM,TRDT,SEQN,INWP--,CPCP
+,T$QSKT,T$QSTK
+) b
+on a.COMPANY=b.COMPANY
+and a.T$CWAR=b.CWAR
+and ltrim(rtrim(a.T$ITEM))=ltrim(rtrim(b.ITEM))
+and a.T$TRDT=b.TRDT
+and a.T$SEQN=b.SEQN
+and a.T$INWP=b.INWP
+group by a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$TRDT,a.T$SEQN,a.T$INWP
+--)a
+
+
+
+update inv_490_Tmp2 set DerivedStk=a.diff
+from inv_490_Tmp1 a
+where ltrim(rtrim(inv_490_Tmp2.T$ITEM))=ltrim(rtrim(a.item))
+--and inv_490_Tmp2.TransRnk=1
+
+
+Insert into inv_490_Tmp3(COMPANY,T$CWAR,T$ITEM,T$KOOR,T$TRDT,T$QSTK,T$QSKT,TransRnk,DerivedStk,
+Cum_Stock,stk2,SEQN,INWP,Amnt,Amnt2,Amnt3)
+--select * into inv_490_Tmp3 from (
+select * from (
+select COMPANY,T$CWAR,T$ITEM,T$KOOR,T$TRDT,T$QSTK,T$QSKT,TransRnk,DerivedStk,
+sum(T$QSTK) over (partition by COMPANY,T$CWAR,T$ITEM  order by T$TRDT desc
+rows between UNBOUNDED PRECEDING and CURRENT ROW) as Cum_Stock,0 as stk2,
+T$SEQN,T$INWP,Amnt,Amnt2,Amnt3
+from inv_490_Tmp2 
+)a
+--)b
+
+
+--Special Case: inserting the adj qty which is adjusted from some other warehouse to '102' warehouse 
+--between Apr 1, 2018 and Apr 20, 2018
+
+Insert into inv_490_Tmp3(COMPANY,T$CWAR,T$ITEM,T$KOOR,T$TRDT,T$QSTK,T$QSKT,TransRnk,DerivedStk,
+Cum_Stock,stk2,SEQN,INWP,Amnt)
+select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$KOOR,a.T$TRDT,sum(a.T$QSTK) QSTK,
+sum(a.T$QSKT) QSKT, 1 as TransRnk,
+0, --sum(a.T$QSKT) as DerivedStk,
+0,--sum(a.T$QSKT) as Cum_Stock,
+0,--sum(a.T$QSKT) as Stk2
+null as SEQN,null as INWP,null as Amnt
+from 
+(select COMPANY,T$CWAR,T$ITEM,T$KOOR,T$TRDT,T$QSTK,T$QSKT from TWHINA112ALL 
+where company=490 and T$cwar='102' and T$KOOR=52
+and T$TRDT between '2018-04-01' and '2018-04-20')a
+left outer join 
+(select COMPANY,T$CWAR,T$ITEM,T$KOOR,T$TRDT,T$QSTK,T$QSKT from TWHINA112ALL_Tmp 
+where company=490 and T$cwar='102' and T$TRDT < '2018-04-01')b
+on a.COMPANY=b.COMPANY
+and a.T$CWAR=b.T$CWAR
+and a.T$ITEM=b.T$ITEM
+where b.COMPANY is null
+and a.T$QSKT<>0
+group by a.company,a.T$CWAR,a.T$ITEM,a.T$KOOR,a.T$TRDT
+
+
+update inv_490_Tmp3 set stk2= T$qstk 
+update inv_490_Tmp3 set stk2= T$qstk -(Cum_Stock - derivedstk) where Cum_Stock > derivedstk
+
+delete from inv_490_Tmp3 where stk2<=0
+
+update inv_490_Tmp3 set Amnt=
+isnull((isnull(a.amnt,0)/(case when T$QSTK is null or T$QSTK=0 then 0.000001 else T$QSTK end))*isnull(stk2,0),0),
+Amnt2=AMNT$1
+from (select * from inv_490_Tmp4 
+--where  concat(COMPANY,T$CWAR,ltrim(rtrim(T$ITEM)))='490102000010310'
+)a
+where inv_490_Tmp3.COMPANY=a.COMPANY
+and inv_490_Tmp3.T$CWAR=a.T$CWAR
+and inv_490_Tmp3.T$ITEM=a.T$ITEM
+and inv_490_Tmp3.SEQN=a.T$SEQN
+and inv_490_Tmp3.INWP=a.T$INWP
+and inv_490_Tmp3.T$TRDT=a.T$TRDT
+
+update inv_490_Tmp3 set Amnt3=isnull(Amnt,0)+isnull(Amnt2,0)
+
+--Alter table inv_490_Tmp3 add Amnt4 float
+
+update inv_490_Tmp3 set FrtRate=a.FrtRate--Amnt3+Amnt3*FrtRate
+from (select ITEM,isnull(DUTY,0)+isnull(FRTP,0)+isnull(SEAF,0) as FrtRate 
+from TZZYIN301400
+-- where ltrim(rtrim(ITEM)) ='B004705760006'
+)a
+where ltrim(rtrim(inv_490_Tmp3.T$ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update inv_490_Tmp3 set Amnt4=Amnt3+(Amnt3*isnull(FrtRate,0))/100
+
+--Commented on  03-Dec-2018
+insert into Inventory(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,Ageing,AgeingOrdr,stock_955,
+Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,FrtRate,Amnt4)
+select COMPANY,T$CWAR,T$ITEM,null,T$TRDT,seqn,inwp,stk2,Amnt,null,null,null,null,null,T$KOOR,T$QSTK,null as IssueDate,
+Amnt2,Amnt3,FrtRate,Amnt4 from inv_490_Tmp3
+
+
+
+
+----------------------------------------------End of Step 4------------------------------------------------------------------------
+
+
+-------------------------------------Step 5: Stock Update from BAAN ---------------------------------------------------------------
+
+
+insert into Inventory_cons (COMPANY,CWAR,ITEM,QSKT,OrderType)
+select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$QSKT,a.T$KOOR
+from 
+(select distinct COMPANY,T$CWAR,T$ITEM,sum(T$QSKT) T$QSKT,T$KOOR from TWHINA112ALL_Tmp
+where T$KOOR in (1,2,32,36,52)
+group by COMPANY,T$CWAR,T$ITEM,T$KOOR
+)a
+--where company<>490 and T$CWAR<>'102'
+
+
+update Inventory_cons set stock_955=a.STOC
+from 
+(select comp,WAR,ITEM,sum(STOC) STOC from Inven_eval_955_to_LN  where COMP not in ('440','465','581')
+group by comp,WAR,ITEM
+union
+select '465' as comp,WAR,Item,sum(Stock) Stock from Foundry_Inv_from_BAAN
+group by WAR,Item
+union
+select '440' as comp,war,item,sum(stock) from rd440_inv_from_BAAN
+group by war,item
+union
+select '581' as comp,war,item,sum(stock) from sauer_inv_from_baan
+group by war,item
+)a
+where Inventory_cons.COMPANY=a.COMP
+and ltrim(rtrim(Inventory_cons.CWAR))=ltrim(rtrim(a.WAR))
+and ltrim(rtrim(Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+--and Inventory_cons.company<>490 
+--and Inventory_cons.CWAR<>'102'
+
+update Inventory_cons set stock_215=a.QHND
+from 
+(select COMPANY,CWAR,ITEM,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+where Inventory_cons.COMPANY=a.COMPANY
+and Inventory_cons.CWAR=a.CWAR
+and ltrim(rtrim(Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+--and Inventory_cons.company<>490 
+--and Inventory_cons.CWAR<>'102'
+
+
+
+update Inventory_cons  set Remarks='LN'
+where (qskt > stock_955 and stock_215 < stock_955)
+and Ordertype<>52
+and Remarks is null
+
+update Inventory_cons  set Remarks='LN'
+where qskt > stock_215
+and Remarks is null
+
+update Inventory_cons  set Remarks='LN'
+where isnull(stock_955,0)=0
+and Remarks is null
+
+update Inventory_cons  set Remarks='BAAN'
+where Remarks is null
+
+
+update Inventory set stock_955=a.stock_955,Cumulative_stk=a.Cum_Stock,Remarks=a.Remarks
+from(
+select a.COMPANY,a.CWAR,a.ITEM,trdt,b.stock_955,b.Remarks,
+sum(a.QSKT) over (partition by a.COMPANY,a.CWAR,a.ITEM  order by TRDT --desc
+rows between UNBOUNDED PRECEDING and CURRENT ROW) as Cum_Stock
+from Inventory a
+inner join  (select * from Inventory_cons where remarks ='BAAN') b
+on a.COMPANY=b.Company
+and a.CWAR=b.CWAR
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+)a
+where Inventory.COMPANY=a.Company
+and Inventory.CWAR=a.CWAR
+and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+and Inventory.TRDT=a.TRDT
+--and Inventory.company<>490 
+--and Inventory.CWAR<>'102'
+
+
+update Inventory set TRDT = a.LRDT
+--a.LatestDate
+from(
+select comp,war,item,max(LRDT) LRDT
+--,max(LIDT) LIDT,case when max(LRDT) >max(LIDT) then max(LRDT) else max(LIDT) end as LatestDate
+from (select comp,war,item,LRDT from Inven_eval_955_to_LN where LRDT<>'9999-01-01 00:00:00.000' 
+and  COMP not in ('440','465','581')
+----and LIDT<>'9999-01-01 00:00:00.000'
+union
+select '465' as comp,WAR,Item,ReceiptDate from Foundry_Inv_from_BAAN where ReceiptDate is not null
+union
+select '440' as comp,war,item,ReceiptDate from rd440_inv_from_BAAN where ReceiptDate is not null
+union
+select '581' as comp,war,item,ReceiptDate from sauer_inv_from_baan where ReceiptDate is not null
+) inv
+group by  comp,war,item
+)a
+where Inventory.COMPANY=a.COMP
+and ltrim(rtrim(Inventory.CWAR))=ltrim(rtrim(a.WAR))
+and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+and stock_955 >= Cumulative_stk
+and Inventory.Remarks='BAAN'
+and TRDT<='2017-05-31 00:00:00.000'
+and ordertype=52
+--and Inventory.company<>490 
+--and Inventory.CWAR<>'102'
+
+
+----------------------------------------------End of Step 5------------------------------------------------------------------------
+
+
+-----------------------------Step 6 : 465 Company ,MNT Warehouse TRDT Modification ------------------------------------------------
+
+update Inventory set TRDT=b.PurchaseDt
+from (
+select * from (
+select a.Company,a.Warehouse,a.item,a.[Received Quantity],
+b.QSKT,a.[Total Amount  (IND)] GivenAmt,
+b.Amnt3,a.[Date of Purchase] as PurchaseDt,b.TRDT,
+case when a.[Received Quantity]-b.QSKT<>0 then b.Amnt3 + (a.[Received Quantity]-b.QSKT)*b.Amnt3
+when a.[Received Quantity]-b.QSKT=0  and a.[Total Amount  (IND)]-b.Amnt3 between -0.1 and 0.1 then b.Amnt3 
+end as DerivedAmt
+
+from 
+(select * from inv_465_manualdata) a
+left outer join 
+(select * from Inventory where company=465 and CWAR='MNT') b
+on a.Company=b.COMPANY
+and a.Warehouse=b.CWAR
+and ltrim(rtrim(a.Item))=ltrim(rtrim(b.ITEM))
+--where ltrim(rtrim(a.ITEM))='MNT-ELE-FOU-0006' --for testing purpose
+)a
+where GivenAmt -DerivedAmt between -0.1 and 0.1
+)b
+where Inventory.COMPANY=b.COMPANY
+and Inventory.CWAR=b.Warehouse
+and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(b.item))
+and Inventory.Amnt3=b.Amnt3
+
+
+-------------------------------------------End of Step 6  -------------------------------------------------------------------------
+
+
+-------------------Step 7: Latest Issue Date and Receipt Date Updations------------------------------------------------------------
+
+update Inventory set IssueDate=isnull(T$CTDT,IssueDate),issueOrderType=a.T$KOOR
+from(
+select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$CTDT,a.DaysDiff,b.T$KOOR from
+(select COMPANY,T$CWAR,T$ITEM,max(convert(date,T$CTDT)) T$CTDT,datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  from TWHINA114ALL
+group by COMPANY,T$CWAR,T$ITEM)a
+left outer join
+(select distinct COMPANY,T$CWAR,T$ITEM,convert(date,T$CTDT) T$CTDT,T$KOOR  from TWHINA114ALL)b
+on a.COMPANY=b.COMPANY
+and a.T$CWAR=b.T$CWAR
+and a.T$ITEM=b.T$ITEM
+and a.T$CTDT=b.T$CTDT
+)a
+where Inventory.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory.CWAR))=ltrim(rtrim(a.T$CWAR))
+and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.T$ITEM))
+--and concat(Inventory.company,Inventory.CWAR,ltrim(rtrim(Inventory.ITEM))) in ('6006393899BR001') --for testing
+
+
+update Inventory set LatestReceiptDate=a.TRDT
+from (select company,CWAR,ITEM,max(TRDT) TRDT from Inventory
+group by company,CWAR,ITEM
+)a
+where Inventory.COMPANY=a.COMPANY
+and Inventory.CWAR=a.CWAR
+and Inventory.ITEM=a.ITEM
+
+
+----------------------------------------------End of Step 7------------------------------------------------------------------------
+------------------------------------------Step 8:Item Updations--------------------------------------------------------------------
+
+update Inventory set ItemDescr=ltrim(rtrim(a.t_dsca)),citg=a.t_citg
+from TTCIBD001400 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,500,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.t_item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.DSCA)),citg=a.CITG
+from TTCIBD001465 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.ITEM))
+
+update Inventory set ItemDescr=ltrim(rtrim(a.DSCA)),citg=a.CITG
+from ttcibd001470 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.ITEM))
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca)),citg=a.CITG
+from TTCIBD001490 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca)),citg=a.CITG
+from TTCIBD001500 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =500 )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca)),citg=a.CITG
+from TTCIBD001551 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company in (551) )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca)),citg=a.CITG
+from TTCIBD001552 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company in (552) )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca)),citg=a.CITG
+from ttcibd001581 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company in (581) )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.t_dsca)),citg=a.t_citg
+from TTCIBD001600 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.t_item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca)),citg=a.CITG
+from TTCIBD001951 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+update Inventory set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=490)a
+where Inventory.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory.CITG))=ltrim(rtrim(a.CITG))
+
+update Inventory set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=600)a
+where Inventory.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory.CITG))=ltrim(rtrim(a.CITG))
+
+update Inventory set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=551)a
+where Inventory.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory.CITG))=ltrim(rtrim(a.CITG))
+
+update Inventory set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=552)a
+where Inventory.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory.CITG))=ltrim(rtrim(a.CITG))
+
+update Inventory set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=581)a
+where Inventory.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory.CITG))=ltrim(rtrim(a.CITG))
+
+update Inventory set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=951)a
+where Inventory.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory.CITG))=ltrim(rtrim(a.CITG))
+
+
+update Inventory set citg_desc=a.DSCA
+from (select * from TTCMCS023ALL where company=400)a
+where ltrim(rtrim(Inventory.CITG))=ltrim(rtrim(a.CITG))
+and Inventory.CITG_desc is null
+
+----------------------------------------------End of Step 8------------------------------------------------------------------------
+
+
+update Inventory set Ageing='LessThan30' where datediff(dd,TRDT,getdate()-1) <30
+update Inventory set Ageing='30-60' where datediff(dd,TRDT,getdate()-1) between 30 and 60
+update Inventory set Ageing='61-90' where datediff(dd,TRDT,getdate()-1) between 61 and 90
+update Inventory set Ageing='91-120' where datediff(dd,TRDT,getdate()-1) between 91 and 120
+update Inventory set Ageing='121-150' where datediff(dd,TRDT,getdate()-1) between 121 and 150
+update Inventory set Ageing='151-180' where datediff(dd,TRDT,getdate()-1) between 151 and 180
+update Inventory set Ageing='181-365' where datediff(dd,TRDT,getdate()-1) between 181 and 365
+update Inventory set Ageing='GreaterThan_1Year' where datediff(dd,TRDT,getdate()-1) between 366 and 730
+update Inventory set Ageing='GreaterThan_2Years' where datediff(dd,TRDT,getdate()-1) between 731 and 1095
+update Inventory set Ageing='GreaterThan_3Years' where datediff(dd,TRDT,getdate()-1) between 1096 and 1460
+update Inventory set Ageing='GreaterThan_4Years' where datediff(dd,TRDT,getdate()-1) between 1460 and 1826
+update Inventory set Ageing='GreaterThan_5Years' where datediff(dd,TRDT,getdate()-1) between 1827 and 2192
+update Inventory set Ageing='GreaterThan_6Years' where datediff(dd,TRDT,getdate()-1) > 2192
+
+
+update Inventory set AgeingOrdr=1 where Ageing='LessThan30'
+update Inventory set AgeingOrdr=2 where Ageing='30-60'
+update Inventory set AgeingOrdr=3 where Ageing='61-90'
+update Inventory set AgeingOrdr=4 where Ageing='91-120'
+update Inventory set AgeingOrdr=5 where Ageing='121-150'
+update Inventory set AgeingOrdr=6 where Ageing='151-180'
+update Inventory set AgeingOrdr=7 where Ageing='181-365'
+update Inventory set AgeingOrdr=8 where Ageing='GreaterThan_1Year'
+update Inventory set AgeingOrdr=12 where Ageing='GreaterThan_2Years'
+update Inventory set AgeingOrdr=13 where Ageing='GreaterThan_3Years'
+update Inventory set AgeingOrdr=14 where Ageing='GreaterThan_4Years'
+update Inventory set AgeingOrdr=15 where Ageing='GreaterThan_5Years'
+update Inventory set AgeingOrdr=16 where Ageing='GreaterThan_6Years'
+update Inventory set AgeingOrdr=100 where Ageing ='NA'
+
+--Alter Table Inventory add Ageing2 varchar(50)
+--Alter Table Inventory add AgeingOrdr2 varchar(50)
+
+update Inventory set Ageing2='0-30' where datediff(dd,TRDT,getdate()-1) <=30
+update Inventory set Ageing2='31-60' where datediff(dd,TRDT,getdate()-1) between 31 and 60
+update Inventory set Ageing2='61-90' where datediff(dd,TRDT,getdate()-1) between 61 and 90
+update Inventory set Ageing2='91-120' where datediff(dd,TRDT,getdate()-1) between 91 and 120
+update Inventory set Ageing2='121-150' where datediff(dd,TRDT,getdate()-1) between 121 and 150
+update Inventory set Ageing2='151-180' where datediff(dd,TRDT,getdate()-1) between 151 and 180
+update Inventory set Ageing2='181-210' where datediff(dd,TRDT,getdate()-1) between 181 and 210
+
+update Inventory set Ageing2='211-240' where datediff(dd,TRDT,getdate()-1) between 211 and 240
+update Inventory set Ageing2='241-270' where datediff(dd,TRDT,getdate()-1) between 241 and 270
+update Inventory set Ageing2='271-300' where datediff(dd,TRDT,getdate()-1) between 271 and 300
+update Inventory set Ageing2='301-330' where datediff(dd,TRDT,getdate()-1) between 301 and 330
+update Inventory set Ageing2='331-360' where datediff(dd,TRDT,getdate()-1) between 331 and 360
+update Inventory set Ageing2='361-390' where datediff(dd,TRDT,getdate()-1) between 361 and 390
+update Inventory set Ageing2='391-420' where datediff(dd,TRDT,getdate()-1) between 391 and 420
+update Inventory set Ageing2='421-450' where datediff(dd,TRDT,getdate()-1) between 421 and 450
+update Inventory set Ageing2='451-480' where datediff(dd,TRDT,getdate()-1) between 451 and 480
+update Inventory set Ageing2='481-510' where datediff(dd,TRDT,getdate()-1) between 481 and 510
+
+update Inventory set Ageing2='511-540' where datediff(dd,TRDT,getdate()-1) between 511 and 540
+update Inventory set Ageing2='541-570' where datediff(dd,TRDT,getdate()-1) between 541 and 570
+update Inventory set Ageing2='571-600' where datediff(dd,TRDT,getdate()-1) between 571 and 600
+update Inventory set Ageing2='601-630' where datediff(dd,TRDT,getdate()-1) between 601 and 630
+update Inventory set Ageing2='631-660' where datediff(dd,TRDT,getdate()-1) between 631 and 660
+update Inventory set Ageing2='661-690' where datediff(dd,TRDT,getdate()-1) between 661 and 690
+update Inventory set Ageing2='691-720' where datediff(dd,TRDT,getdate()-1) between 691 and 720
+update Inventory set Ageing2='721-750' where datediff(dd,TRDT,getdate()-1) between 721 and 750
+update Inventory set Ageing2='751-780' where datediff(dd,TRDT,getdate()-1) between 751 and 780
+update Inventory set Ageing2='781-810' where datediff(dd,TRDT,getdate()-1) between 781 and 810
+update Inventory set Ageing2='811-840' where datediff(dd,TRDT,getdate()-1) between 811 and 840
+update Inventory set Ageing2='841-870' where datediff(dd,TRDT,getdate()-1) between 841 and 870
+
+update Inventory set Ageing2='871-900' where datediff(dd,TRDT,getdate()-1) between 871 and 900
+update Inventory set Ageing2='901-930' where datediff(dd,TRDT,getdate()-1) between 901 and 930
+update Inventory set Ageing2='931-960' where datediff(dd,TRDT,getdate()-1) between 931 and 960
+update Inventory set Ageing2='961-990' where datediff(dd,TRDT,getdate()-1) between 961 and 990
+update Inventory set Ageing2='991-1020' where datediff(dd,TRDT,getdate()-1) between 991 and 1020
+update Inventory set Ageing2='1021-1050' where datediff(dd,TRDT,getdate()-1) between 1021 and 1050
+update Inventory set Ageing2='1051-1080' where datediff(dd,TRDT,getdate()-1) between 1051 and 1080
+
+update Inventory set Ageing2='1051-1080' where datediff(dd,TRDT,getdate()-1) between 1051 and 1080
+update Inventory set Ageing2='1081-1110' where datediff(dd,TRDT,getdate()-1) between 1081 and 1110
+update Inventory set Ageing2='1111-1140' where datediff(dd,TRDT,getdate()-1) between 1111 and 1140
+update Inventory set Ageing2='1141-1170' where datediff(dd,TRDT,getdate()-1) between 1141 and 1170
+update Inventory set Ageing2='1171-1200' where datediff(dd,TRDT,getdate()-1) between 1171 and 1200
+update Inventory set Ageing2='1201-1230' where datediff(dd,TRDT,getdate()-1) between 1201 and 1230
+update Inventory set Ageing2='1231-1260' where datediff(dd,TRDT,getdate()-1) between 1231 and 1260
+update Inventory set Ageing2='1261-1290' where datediff(dd,TRDT,getdate()-1) between 1261 and 1290
+update Inventory set Ageing2='1291-1320' where datediff(dd,TRDT,getdate()-1) between 1291 and 1320
+
+
+update Inventory set Ageing2='1321-1350' where datediff(dd,TRDT,getdate()-1) between 1321 and 1350
+update Inventory set Ageing2='1351-1380' where datediff(dd,TRDT,getdate()-1) between 1351 and 1380
+update Inventory set Ageing2='1381-1410' where datediff(dd,TRDT,getdate()-1) between 1381 and 1410
+update Inventory set Ageing2='1410-1440' where datediff(dd,TRDT,getdate()-1) between 1410 and 1440
+update Inventory set Ageing2='1441-1470' where datediff(dd,TRDT,getdate()-1) between 1441 and 1470
+update Inventory set Ageing2='1471-1500' where datediff(dd,TRDT,getdate()-1) between 1471 and 1500
+update Inventory set Ageing2='1501-1530' where datediff(dd,TRDT,getdate()-1) between 1501 and 1530
+update Inventory set Ageing2='1531-1560' where datediff(dd,TRDT,getdate()-1) between 1531 and 1560
+update Inventory set Ageing2='1561-1590' where datediff(dd,TRDT,getdate()-1) between 1561 and 1590
+
+update Inventory set Ageing2='1591-1620' where datediff(dd,TRDT,getdate()-1) between 1591 and 1620
+update Inventory set Ageing2='1621-1650' where datediff(dd,TRDT,getdate()-1) between 1621 and 1650
+update Inventory set Ageing2='1651-1680' where datediff(dd,TRDT,getdate()-1) between 1651 and 1680
+update Inventory set Ageing2='1681-1710' where datediff(dd,TRDT,getdate()-1) between 1681 and 1710
+update Inventory set Ageing2='1711-1740' where datediff(dd,TRDT,getdate()-1) between 1711 and 1740
+update Inventory set Ageing2='1741-1770' where datediff(dd,TRDT,getdate()-1) between 1741 and 1770
+update Inventory set Ageing2='1771-1800' where datediff(dd,TRDT,getdate()-1) between 1771 and 1800
+update Inventory set Ageing2='1801-1830' where datediff(dd,TRDT,getdate()-1) between 1801 and 1830
+update Inventory set Ageing2='1831-1860' where datediff(dd,TRDT,getdate()-1) between 1831 and 1860
+update Inventory set Ageing2='1861-1890' where datediff(dd,TRDT,getdate()-1) between 1861 and 1890
+update Inventory set Ageing2='1891-1920' where datediff(dd,TRDT,getdate()-1) between 1891 and 1920
+update Inventory set Ageing2='1921-1950' where datediff(dd,TRDT,getdate()-1) between 1921 and 1950
+update Inventory set Ageing2='1951-1980' where datediff(dd,TRDT,getdate()-1) between 1951 and 1980
+update Inventory set Ageing2='1981-2010' where datediff(dd,TRDT,getdate()-1) between 1981 and 2010
+update Inventory set Ageing2='2011-2040' where datediff(dd,TRDT,getdate()-1) between 2011 and 2040
+update Inventory set Ageing2='2041-2070' where datediff(dd,TRDT,getdate()-1) between 2041 and 2070
+update Inventory set Ageing2='2071-2100' where datediff(dd,TRDT,getdate()-1) between 2071 and 2100
+update Inventory set Ageing2='2101-2130' where datediff(dd,TRDT,getdate()-1) between 2101 and 2130
+update Inventory set Ageing2='2131-2160' where datediff(dd,TRDT,getdate()-1) between 2131 and 2160
+update Inventory set Ageing2='2161-2190' where datediff(dd,TRDT,getdate()-1) between 2161 and 2190
+update Inventory set Ageing2='2191-More' where datediff(dd,TRDT,getdate()-1) >= 2191
+
+
+update Inventory set AgeingOrdr2=1 where Ageing2='0-30'
+update Inventory set AgeingOrdr2=2 where Ageing2='31-60'
+update Inventory set AgeingOrdr2=3 where Ageing2='61-90'
+update Inventory set AgeingOrdr2=4 where Ageing2='91-120'
+update Inventory set AgeingOrdr2=5 where Ageing2='121-150'
+update Inventory set AgeingOrdr2=6 where Ageing2='151-180'
+update Inventory set AgeingOrdr2=7 where Ageing2='181-210'
+update Inventory set AgeingOrdr2=8 where Ageing2='211-240'
+update Inventory set AgeingOrdr2=9 where Ageing2='241-270'
+update Inventory set AgeingOrdr2=10 where Ageing2='271-300'
+update Inventory set AgeingOrdr2=11 where Ageing2='301-330'
+update Inventory set AgeingOrdr2=12 where Ageing2='331-360'
+update Inventory set AgeingOrdr2=13 where Ageing2='361-390'
+update Inventory set AgeingOrdr2=14 where Ageing2='391-420'
+update Inventory set AgeingOrdr2=15 where Ageing2='421-450'
+update Inventory set AgeingOrdr2=16 where Ageing2='451-480'
+update Inventory set AgeingOrdr2=17 where Ageing2='481-510'
+update Inventory set AgeingOrdr2=18 where Ageing2='511-540'
+update Inventory set AgeingOrdr2=19 where Ageing2='541-570'
+update Inventory set AgeingOrdr2=20 where Ageing2='571-600'
+update Inventory set AgeingOrdr2=21 where Ageing2='601-630'
+update Inventory set AgeingOrdr2=22 where Ageing2='631-660'
+update Inventory set AgeingOrdr2=23 where Ageing2='661-690'
+update Inventory set AgeingOrdr2=24 where Ageing2='691-720'
+update Inventory set AgeingOrdr2=25 where Ageing2='721-750'
+update Inventory set AgeingOrdr2=26 where Ageing2='751-780'
+update Inventory set AgeingOrdr2=27 where Ageing2='781-810'
+update Inventory set AgeingOrdr2=28 where Ageing2='811-840'
+update Inventory set AgeingOrdr2=29 where Ageing2='841-870'
+update Inventory set AgeingOrdr2=30 where Ageing2='871-900'
+update Inventory set AgeingOrdr2=31 where Ageing2='901-930'
+update Inventory set AgeingOrdr2=32 where Ageing2='931-960'
+update Inventory set AgeingOrdr2=32 where Ageing2='961-990'
+update Inventory set AgeingOrdr2=34 where Ageing2='991-1020'
+update Inventory set AgeingOrdr2=35 where Ageing2='1021-1050'
+update Inventory set AgeingOrdr2=36 where Ageing2='1051-1080'
+update Inventory set AgeingOrdr2=37 where Ageing2='1051-1080'
+update Inventory set AgeingOrdr2=38 where Ageing2='1081-1110'
+update Inventory set AgeingOrdr2=39 where Ageing2='1111-1140'
+update Inventory set AgeingOrdr2=40 where Ageing2='1141-1170'
+update Inventory set AgeingOrdr2=41 where Ageing2='1171-1200'
+update Inventory set AgeingOrdr2=42 where Ageing2='1201-1230'
+update Inventory set AgeingOrdr2=43 where Ageing2='1231-1260'
+update Inventory set AgeingOrdr2=44 where Ageing2='1261-1290'
+update Inventory set AgeingOrdr2=45 where Ageing2='1291-1320'
+update Inventory set AgeingOrdr2=46 where Ageing2='1321-1350'
+update Inventory set AgeingOrdr2=47 where Ageing2='1351-1380'
+update Inventory set AgeingOrdr2=48 where Ageing2='1381-1410'
+update Inventory set AgeingOrdr2=49 where Ageing2='1410-1440'
+update Inventory set AgeingOrdr2=50 where Ageing2='1441-1470'
+update Inventory set AgeingOrdr2=51 where Ageing2='1471-1500'
+update Inventory set AgeingOrdr2=52 where Ageing2='1501-1530'
+update Inventory set AgeingOrdr2=53 where Ageing2='1531-1560'
+update Inventory set AgeingOrdr2=54 where Ageing2='1561-1590'
+update Inventory set AgeingOrdr2=55 where Ageing2='1591-1620'
+update Inventory set AgeingOrdr2=56 where Ageing2='1621-1650'
+update Inventory set AgeingOrdr2=57 where Ageing2='1651-1680'
+update Inventory set AgeingOrdr2=58 where Ageing2='1681-1710'
+update Inventory set AgeingOrdr2=59 where Ageing2='1711-1740'
+update Inventory set AgeingOrdr2=60 where Ageing2='1741-1770'
+update Inventory set AgeingOrdr2=61 where Ageing2='1771-1800'
+update Inventory set AgeingOrdr2=62 where Ageing2='1801-1830'
+update Inventory set AgeingOrdr2=63 where Ageing2='1831-1860'
+update Inventory set AgeingOrdr2=64 where Ageing2='1861-1890'
+update Inventory set AgeingOrdr2=65 where Ageing2='1891-1920'
+update Inventory set AgeingOrdr2=66 where Ageing2='1921-1950'
+update Inventory set AgeingOrdr2=67 where Ageing2='1951-1980'
+update Inventory set AgeingOrdr2=68 where Ageing2='1981-2010'
+update Inventory set AgeingOrdr2=69 where Ageing2='2011-2040'
+update Inventory set AgeingOrdr2=70 where Ageing2='2041-2070'
+update Inventory set AgeingOrdr2=71 where Ageing2='2071-2100'
+update Inventory set AgeingOrdr2=72 where Ageing2='2101-2130'
+update Inventory set AgeingOrdr2=73 where Ageing2='2131-2160'
+update Inventory set AgeingOrdr2=74 where Ageing2='2161-2190'
+update Inventory set AgeingOrdr2=75 where Ageing2='2191-More'
+
+
+
+delete from Inventory where QSKT is null
+
+--Removing ATS Warehouses
+delete from Inventory where COMPANY=600 and CWAR in (
+'006','025','180','183','184','185','186','187','188','189','190','191',   
+'305','306','621','623','626','627',
+'648','669','670','683','699','751','AED','COR','181')
+
+delete from Inventory where COMPANY=640 and CWAR in ('AED','669','699')
+
+--Removing "Not Considered" Warehouses
+delete from Inventory where concat(COMPANY,CWAR) in 
+(select concat(Comp,WH) from Inventory_Master where INVType='Not considered')
+
+delete from Inventory where concat(COMPANY,CWAR) in ('450604')--'400625'--Commented on 17Mar2023
+
+
+update Inventory set LedgerCode=a.LedgerCode,LedgerDesc=a.LedgerDesc
+from InventoryMappingMaster a
+where Inventory.COMPANY =a.Company
+and substring(ltrim(rtrim(Inventory.CWAR)),1,3) between a.WarFrom and a.WarTo
+and substring(ltrim(rtrim(Inventory.ITEM)),1,3) between a.ItemGroupFrom and a.ItemGroupTo
+
+
+update Inventory set TRDT2=dateadd(HH,5.5,TRDT)
+
+--Truncate table Inventory2
+--Truncate table Inventory3
+--Truncate table Inventory_209_210WH_Issue_Manipulation
+--Truncate table Inventory_WithinCompany_Issue_Manipulation
+--Truncate table Inventory_401_450_Combined_Issue_Manipulation
+
+
+
+if exists (select * from InventoryFact_History where month(entrydate)=month(getdate()-1) and year(entrydate)=year(getdate()-1))
+begin
+
+delete from InventoryFact_History where month(entrydate)=month(getdate()-1) and year(entrydate)=year(getdate()-1)
+
+end
+
+Insert into InventoryFact_History(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,EntryDate,TRDT2)
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,getdate()-1 as EntryDate,TRDT2 from inventory
+
+
+
+Insert into Inventory2(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice) 
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice from inventory
+
+Insert into Inventory3(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice) 
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice from inventory
+
+
+
+insert into Inventory_209_210WH_Issue_Manipulation(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice) 
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice from Inventory2
+
+insert into Inventory_WithinCompany_Issue_Manipulation(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice) 
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice from Inventory2
+
+
+insert into Inventory_AcrossCompany_Issue_Manipulation(COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice) 
+select COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt,
+Ageing,AgeingOrdr,stock_955,Cumulative_stk,Remarks,OrderType,QSTK,IssueDate,Amnt2,Amnt3,
+CITG,CITG_desc,LedgerCode,LedgerDesc,IssueOrderType,FrtRate,Amnt4,LatestReceiptDate,TRDT2,UnitPrice from Inventory2
+
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add ProdAllocation float
+--Alter table Inventory_AcrossCompany_Issue_Manipulation add SalesAllocation float
+
+delete  from Inventory2 where concat(COMPANY,ltrim(rtrim(cwar)),ltrim(rtrim(item))) in 
+(select distinct concat(COMPANY,ltrim(rtrim(T$CWAR)),ltrim(rtrim(T$ITEM))) from 
+(select COMPANY,T$CWAR,T$ITEM,max(T$CTDT) T$CTDT,datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  from TWHINA114ALL
+where company in (select company from ELGI_Companies_Master where CompanyGroup in ('ELGI','ATS'))
+and T$KOOR not in (2,22,33,36,52,60,51)
+group by COMPANY,T$CWAR,T$ITEM)a
+where DaysDiff<=180 
+)
+
+--New Method 
+--delete  from Inventory2 where concat(company,ltrim(rtrim(item))) in (
+--select ColA from
+--(select concat(COMPANY,ltrim(rtrim(ITEM))) ColA,datediff(dd,max(issuedate),(getdate()-1)) as DaysDiff  
+--from inventory where issueOrderType in (1,3,32,42,46)
+--group by concat(COMPANY,ltrim(rtrim(ITEM))))a
+--where DaysDiff<=180
+--)
+
+
+
+--Case 1: Issue Date Updations for items in 209 and 210 warehouse in 401 Company with latest issuedate from other warehouse of 401 company
+update Inventory_209_210WH_Issue_Manipulation set IssueDate=b.DateB
+from (
+select COMPANY,WarA,ITEM,max(DateB) DateB from (
+select a.COMPANY,a.CWAR as WarA,a.ITEM,DateA,b.CWAR as WarB,DateB,datediff(dd,dateb,getdate()-1) Diff from 
+(select distinct COMPANY,CWAR,item,IssueDate as DateA from Inventory
+where ltrim(rtrim(ITEM))in (select distinct ltrim(rtrim(ITEM)) from Inventory2 where CWAR in ('209','210'))
+and company =401 
+and CWAR in ('209','210')
+--AND LTRIM(RTRIM(ITEM))='B005106400028'
+)a
+left outer join
+(
+select * from
+(select distinct COMPANY,CWAR,item,IssueDate as DateB,
+row_number() over (partition by COMPANY,ITEM order by IssueDate desc) as Issuedateorder
+from (select distinct COMPANY, T$CWAR CWAR,T$ITEM  item, convert(date,T$CTDT) IssueDate from TWHINA114ALL 
+where company in (select distinct company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and T$KOOR in (1,2,3,32,42,46)
+and company =401 
+--AND LTRIM(RTRIM(T$ITEM))='B005106400028'
+)a1
+)a2
+where Issuedateorder=1
+)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+where datediff(dd,dateb,getdate()-1)<=180
+)a
+group by COMPANY,WarA,ITEM
+)b
+where Inventory_209_210WH_Issue_Manipulation.COMPANY=b.COMPANY
+and Inventory_209_210WH_Issue_Manipulation.CWAR=b.WarA
+and Inventory_209_210WH_Issue_Manipulation.ITEM=b.ITEM
+
+
+--Case 1.2: Update the Latest Issue date for Items in Subcontract WH from any other WH within the company having the latest issue date
+
+update Inventory_209_210WH_Issue_Manipulation set IssueDate=b.LatestIssueDate
+from (
+select COMPANY,WarA,ITEM,max(DateA) DateA,max(DateB) DateB, isnull(max(DateB),max(DateA)) LatestIssueDate from (
+select a.COMPANY,a.CWAR as WarA,a.ITEM,DateA,b.CWAR as WarB,DateB,datediff(dd,dateb,getdate()-1) Diff from 
+(select distinct COMPANY,CWAR,item,IssueDate as DateA from Inventory
+where ltrim(rtrim(ITEM))in (select distinct ltrim(rtrim(ITEM)) from Inventory2 where len(CWAR)>3)
+--and company =401 
+and len(CWAR)>3
+--AND LTRIM(RTRIM(ITEM))='B005106400028'
+)a
+left outer join
+(
+select * from
+(select distinct COMPANY,CWAR,item,IssueDate as DateB,
+row_number() over (partition by COMPANY,ITEM order by IssueDate desc) as Issuedateorder
+from (select distinct COMPANY, T$CWAR CWAR,T$ITEM  item, convert(date,T$CTDT) IssueDate from TWHINA114ALL 
+where company in (select distinct company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and T$KOOR in (1,2,3,32,42,46)
+--and company =401 
+--AND LTRIM(RTRIM(T$ITEM))='995402510'
+--440	40SA31	         995402510
+)a1
+)a2
+where Issuedateorder=1
+)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+where datediff(dd,dateb,getdate()-1)<=180
+)a
+group by COMPANY,WarA,ITEM
+)b
+where Inventory_209_210WH_Issue_Manipulation.COMPANY=b.COMPANY
+and Inventory_209_210WH_Issue_Manipulation.CWAR=b.WarA
+and Inventory_209_210WH_Issue_Manipulation.ITEM=b.ITEM
+
+
+
+
+--Case 2: Issue Date Updations for items within the company irrespective of Warehouse
+--update Inventory_WithinCompany_Issue_Manipulation set IssueDate=a.DateA
+--from (
+--select a.COMPANY,a.ITEM,max(DateA) DateA from 
+--(select distinct COMPANY,CWAR,item,IssueDate as DateA from Inventory
+--where company in (select distinct company from ELGI_Companies_Master where CompanyGroup='ELGI')
+--)a
+--group by a.COMPANY,a.ITEM
+--)a
+--where Inventory_WithinCompany_Issue_Manipulation.COMPANY=a.COMPANY
+--and Inventory_WithinCompany_Issue_Manipulation.ITEM=a.ITEM
+
+--New Method
+update Inventory_WithinCompany_Issue_Manipulation set IssueDate=a.IssueDate
+from (
+select * from
+(select distinct COMPANY,CWAR,item,IssueDate,
+row_number() over (partition by COMPANY,ITEM order by IssueDate desc) as Issuedateorder
+from (select distinct COMPANY, T$CWAR CWAR,T$ITEM  item, convert(date,T$CTDT) IssueDate from TWHINA114ALL 
+where T$KOOR in (1,2,3,32,42,46))a
+where company in (select distinct company from ELGI_Companies_Master where CompanyGroup='ELGI')
+--AND LTRIM(RTRIM(ITEM))='00046424A'
+)b
+where Issuedateorder=1
+--and company=401	and ltrim(rtrim(item))='000468490'--'000010440'
+--order by COMPANY,ITEM
+)a
+where Inventory_WithinCompany_Issue_Manipulation.COMPANY=a.COMPANY
+and ltrim(rtrim(Inventory_WithinCompany_Issue_Manipulation.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+
+
+
+--Case 3: Issue Date Updations for items across the companies irrespective of company or Warehouse
+--For Items issued within any of the ELGi Companies
+update Inventory_AcrossCompany_Issue_Manipulation set IssueDate=a.DateA
+from (
+select a.ITEM,max(DateA) DateA from 
+(select distinct COMPANY,T$CWAR CWAR,T$ITEM item,convert(date,T$CTDT) as DateA from TWHINA114ALL
+where T$KOOR in (1,2,3,32,42,46)
+and company like '4%'
+)a
+group by a.ITEM
+)a
+where Inventory_AcrossCompany_Issue_Manipulation.ITEM=a.ITEM
+and Inventory_AcrossCompany_Issue_Manipulation.company like '4%'
+
+--For Items issued within any of the ATS Companies
+update Inventory_AcrossCompany_Issue_Manipulation set IssueDate=a.DateA
+from (
+select a.ITEM,max(DateA) DateA from 
+(select distinct COMPANY,T$CWAR CWAR,T$ITEM item,convert(date,T$CTDT) as DateA from TWHINA114ALL
+where T$KOOR in (1,2,3,32,42,46)
+and company like '6%'
+)a
+group by a.ITEM
+)a
+where Inventory_AcrossCompany_Issue_Manipulation.ITEM=a.ITEM
+and Inventory_AcrossCompany_Issue_Manipulation.company like '6%'
+
+
+
+
+--when an item with OrderType in (1,3,32,42,46) and latest issue date <=180 days, delete the item
+--for "other ordertypes" as well with in the company
+
+--Old Method
+--delete  from Inventory_209_210WH_Issue_Manipulation where 
+----concat(company,CWAR,ltrim(rtrim(item))) --Old Method
+--concat(company,ltrim(rtrim(item))) 
+--in (
+--select ColA from
+--(select --concat(COMPANY,T$CWAR,ltrim(rtrim(T$ITEM))) ColA, --Old Method
+--concat(COMPANY,ltrim(rtrim(T$ITEM))) ColA,
+--datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  
+--from TWHINA114ALL where T$KOOR in (1,2,3,32,42,46)
+----and LTRIM(RTRIM(T$ITEM))='00046424A'
+----group by concat(COMPANY,T$CWAR,ltrim(rtrim(T$ITEM)))
+--group by concat(COMPANY,ltrim(rtrim(T$ITEM)))
+--)a
+--where DaysDiff<=180
+--)
+
+
+
+delete  from Inventory_209_210WH_Issue_Manipulation where 
+concat(company,ltrim(rtrim(item))) in (select concat(company,ltrim(rtrim(item))) from Inventory_209_210WH_Issue_Manipulation 
+where datediff(dd,IssueDate,convert(date,getdate()-1))<=180)
+
+
+delete  from Inventory_WithinCompany_Issue_Manipulation where concat(company,ltrim(rtrim(item))) in (
+select ColA from
+(select concat(COMPANY,ltrim(rtrim(T$ITEM))) ColA,datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  
+from TWHINA114ALL where T$KOOR in (1,2,3,32,42,46)
+--and LTRIM(RTRIM(T$ITEM))='00046424A'
+group by concat(COMPANY,ltrim(rtrim(T$ITEM)))
+)a
+where DaysDiff<=180
+)
+
+
+--Deleting the items if it was issued within 180 days among the ELGi or ATS group companies
+
+delete  from Inventory_AcrossCompany_Issue_Manipulation where ltrim(rtrim(item)) in (
+select ITEM from
+(select ltrim(rtrim(T$ITEM)) ITEM,datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  
+from TWHINA114ALL where T$KOOR in (1,2,3,32,42,46)
+and company like '4%'
+--and LTRIM(RTRIM(T$ITEM))='00046424A'
+group by ltrim(rtrim(T$ITEM))
+)a
+where DaysDiff<=180
+)
+and COMPANY like '4%'
+
+
+delete  from Inventory_AcrossCompany_Issue_Manipulation where ltrim(rtrim(item)) in (
+select ITEM from
+(select ltrim(rtrim(T$ITEM)) ITEM,datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  
+from TWHINA114ALL where T$KOOR in (1,2,3,32,42,46)
+and company like '6%'
+--and LTRIM(RTRIM(T$ITEM))='00046424A'
+group by ltrim(rtrim(T$ITEM))
+)a
+where DaysDiff<=180
+)
+and COMPANY like '6%'
+
+
+delete  from Inventory_AcrossCompany_Issue_Manipulation
+where cwar in ('164','264','464','564','U64')
+
+
+--Deleting Receipts made within 180 days for the items that were not yet issued atleast once
+----Commented on 5-Oct-2023 as Qty Difference ocuurs between daily inv report and Non Moving report due to this deletion
+--delete from Inventory_AcrossCompany_Issue_Manipulation 
+--where convert(date,TRDT) >= convert(date,dateadd(dd,-180,getdate()-1))
+--and issueDate is null
+
+
+
+update Inventory_AcrossCompany_Issue_Manipulation set ProdAllocation=a.AllocatedQty
+from(
+select COMPANY,T$CWAR,T$ITEM as ITEM,null as Category,'Production Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where --company in (401,450,470,490) and 
+T$KOOR=1 and T$KOTR=2
+group by COMPANY,T$CWAR,T$ITEM
+)a
+where Inventory_AcrossCompany_Issue_Manipulation.COMPANY=a.COMPANY
+and Inventory_AcrossCompany_Issue_Manipulation.CWAR=a.T$cwar
+and ltrim(rtrim(Inventory_AcrossCompany_Issue_Manipulation.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+
+update Inventory_AcrossCompany_Issue_Manipulation set SalesAllocation=a.AllocatedQty
+from(select COMPANY,T$CWAR,T$ITEM as ITEM,null as Category,'Sales Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where --company in (401,450,470,490) and 
+T$KOOR=3 and T$KOTR=1
+group by COMPANY,T$CWAR,T$ITEM)a
+where Inventory_AcrossCompany_Issue_Manipulation.COMPANY=a.COMPANY
+and Inventory_AcrossCompany_Issue_Manipulation.CWAR=a.T$CWAR
+and ltrim(rtrim(Inventory_AcrossCompany_Issue_Manipulation.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+
+delete from Inventory_AcrossCompany_Issue_Manipulation
+where concat(COMPANY,CWAR) in (select distinct concat(comp,WH) from Inventory_Master
+where invtype in ('Not considered','Others'))
+
+delete from Inventory_AcrossCompany_Issue_Manipulation
+where concat(COMPANY,CWAR,ltrim(rtrim(item))) in (select distinct concat(company,cwar,ltrim(rtrim(item))) from Inventory_Master2
+where invtype in ('Not considered','Others'))
+
+---------------------------------------------------------------------------------------------------------------------
+
+--delete from Inventory2 where COMPANY=490 and CWAR='102' and OrderType not in (2,22,33,36,52,60)
+--and datediff(dd,IssueDate,getdate()-1)<=180
+
+delete  from Inventory3 where concat(COMPANY,ltrim(rtrim(cwar)),ltrim(rtrim(item))) in 
+(select distinct concat(COMPANY,ltrim(rtrim(T$CWAR)),ltrim(rtrim(T$ITEM))) from 
+(select COMPANY,T$CWAR,T$ITEM,max(T$CTDT) T$CTDT,datediff(dd,max(T$CTDT),(getdate()-1)) as DaysDiff  from TWHINA114ALL
+where company in (select company from ELGI_Companies_Master where CompanyGroup in ('ELGI','ATS'))
+and T$KOOR not in (2,33,52,51)
+group by COMPANY,T$CWAR,T$ITEM)a
+where DaysDiff<=180 
+)
+
+
+
+end
+
+
+
+--select * from inventory where concat(company,ltrim(rtrim(cwar)),ltrim(rtrim(item)))='401253B005000530014'
+
+
+
+--select * from Inventory_AcrossCompany_Issue_Manipulation
+--where company like '4%'
+----and ltrim(rtrim(item))='000112000'
+--and isnull(ProdAllocation,0)+isnull(SalesAllocation,0)>0
+
+select * from inventory
+where company like '6%'
+and unitprice is not null
+
+--select company,item,count(distinct cwar) from Inventory_AcrossCompany_Issue_Manipulation
+--where company like '4%'
+--group by company,item
+--having count(distinct cwar)>1
+
+
+Completion time: 2025-11-19T11:24:27.0417802+05:30

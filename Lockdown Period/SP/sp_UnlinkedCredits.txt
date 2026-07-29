@@ -1,0 +1,184 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_UnlinkedCredits
+CREATE proc [sp_UnlinkedCredits] as
+
+begin
+
+Truncate table ACP_Creditors_complete_Advances
+
+Insert into ACP_Creditors_complete_Advances(Company,Trantype,InvNo,SuppCode,
+DocDt,InvAmnt,paidamnt,balanceAmt,DateRnk)
+select Company,Trantype,InvNo,SuppCode,DocDt,InvAmnt,PaidAmnt,BalanceAmt,
+row_number() over(partition by suppcode order by docdt) as DateRnk
+from ACP_Creditors_Complete
+where Credit_Debit='Credits'
+and company like '4%'
+--and SuppCode in ('CU1B01338')
+--('CRA000754','CRA000760')
+and BalanceAmt<>0
+order by SuppCode
+
+
+
+update ACP_Creditors_complete_Advances set PendingBalance=a.BalanceAmt
+from (
+select SuppCode,sum(BalanceAmt) BalanceAmt
+from ACP_Creditors_Complete
+where Credit_Debit='Credits'
+and company like '4%'
+and BalanceAmt<>0
+--and SuppCode in ('CU1B01338')
+--('CRA000754','CRA000760')
+--'CRE000036'
+group by SuppCode
+)a
+where ACP_Creditors_complete_Advances.SuppCode=a.SuppCode
+and ACP_Creditors_complete_Advances.DateRnk=1
+--and ACP_Creditors_complete_Advances.balanceamt<0
+
+
+update ACP_Creditors_complete_Advances set NetAdvance=a.BalanceAmt
+from (
+select SuppCode,sum(BalanceAmt) BalanceAmt
+from ACP_Creditors_Complete
+where Credit_Debit='Credits'
+and company like '4%'
+and BalanceAmt<0
+--and SuppCode in ('CU1B01338')
+--('CRA000754','CRA000760')
+--'CRE000036'
+group by SuppCode
+)a
+where ACP_Creditors_complete_Advances.SuppCode=a.SuppCode
+and ACP_Creditors_complete_Advances.DateRnk=1
+--and ACP_Creditors_complete_Advances.balanceamt<0
+
+
+update ACP_Creditors_complete_Advances set TempBalance=NetAdvance+(case when balanceamt<0 then 0 else balanceamt end)
+where Netadvance is not null
+update ACP_Creditors_complete_Advances set TempBalance=(case when balanceamt<0 then 0 else balanceamt end) 
+where Netadvance is null
+
+
+update ACP_Creditors_complete_Advances set Cumulative_Balance=a.Cumulative_Balance
+from (select SuppCode,DocDt,company,Trantype,invno,InvAmnt,paidamnt,balanceamt,Tempbalance,
+sum(Tempbalance) over(partition by SuppCode order by DocDt
+rows UNBOUNDED PRECEDING) as Cumulative_Balance
+from ACP_Creditors_complete_Advances 
+group by SuppCode,DocDt,
+company,Trantype,invno,InvAmnt,paidamnt,balanceamt,Tempbalance
+)a
+where ACP_Creditors_complete_Advances.company=a.company
+and ACP_Creditors_complete_Advances.Trantype=a.Trantype
+and ACP_Creditors_complete_Advances.invno=a.invno
+
+
+
+
+Truncate table ACP_Supplierlist_Tmp
+
+insert into ACP_Supplierlist_Tmp
+--select * into ACP_Supplierlist_Tmp from (
+select SuppCode, row_number() over(order by suppcode) SuppRnk from (
+select distinct SuppCode from ACP_Creditors_complete_Advances where
+SuppCode in
+(select  distinct SuppCode  from ACP_Creditors_complete_Advances)
+--(select a.SuppCode from 
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt>0)a
+--inner join
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt<0)b
+--on a.SuppCode=b.SuppCode)
+
+group by SuppCode
+)a
+--where suppcode=
+--'CU1S00014'
+--'SU1EL0003' --*
+--'CU1S05882'
+--'SU1N00339'
+--)b
+
+
+----------Begin--------------------------------------------------------------
+
+Declare @SuppCounts int
+Declare @SuppCode varchar(20)
+Declare @DateCounts int
+Declare @Count1 int
+Declare @Count2 int
+Declare @TmpBalance float
+
+set @SuppCounts=(select count(distinct SuppCode)
+from ACP_Supplierlist_Tmp)
+
+
+Set @Count1=1
+
+while (@Count1<=@SuppCounts)
+begin
+
+set @SuppCode=(select suppcode from ACP_Supplierlist_Tmp where SuppRnk =@Count1)
+set @Count2=1
+set @DateCounts=(select count(distinct DateRnk) from ACP_Creditors_complete_Advances
+where Suppcode=@SuppCode)
+
+set @TmpBalance=0.0000001
+set @Count2=1
+while (@Count2<=@DateCounts)
+begin
+
+if(@TmpBalance<>0)
+begin
+update ACP_Creditors_complete_Advances set TempBalance=TempBalance + @TmpBalance
+where Suppcode=@SuppCode and DateRnk=@Count2
+
+set @TmpBalance= (select TempBalance from ACP_Creditors_complete_Advances where Suppcode=@SuppCode and DateRnk=@Count2)
+
+if(@TmpBalance>0)
+break
+
+end
+
+
+set @Count2=@Count2+1
+end
+
+set @Count1=@Count1+1
+end
+
+
+----------End--------------------------------------------------------------
+
+update ACP_Creditors_complete_Advances set TempBalance=0 where TempBalance<0 
+
+end
+
+--select SuppCode,count(*) from ACP_Creditors_complete_Advances where
+--SuppCode in
+--(select a.SuppCode from 
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt>0)a
+--inner join
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt<0)b
+--on a.SuppCode=b.SuppCode)
+--group by SuppCode
+
+
+select * from ACP_Creditors_complete_Advances 
+where SuppCode= 'SU1S01931'
+--'CU1S05882' --*
+--'SU1N00339'
+--'SU1EL0003' --*
+--'CU1S00014'
+--'SUPS00020'
+order by DocDt
+
+
+
+select sum(TempBalance)/1000000 from ACP_Creditors_complete_Advances 
+
+
+
+
+
+Completion time: 2025-11-19T12:40:59.2452001+05:30

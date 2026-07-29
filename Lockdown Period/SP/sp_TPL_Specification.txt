@@ -1,0 +1,25 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--EXEC sp_TPL_Specification
+
+CREATE proc sp_TPL_Specification as
+begin
+
+insert into TPL_Specification
+select * from (
+SELECT B.REVI,B.SLNO,LTRIM(RTRIM(B.MITM)) AS MITM,WPRE,MRAT, RSMM,CFAD,
+MODL,PNWD,AOPZ,TSMM,ODWP,TTYP,DCYC,EMAK,BACQ,ARCP,MWPK
+FROM 
+(SELECT MITM,MAX(REVI) REVI,MAX(SLNO) SLNO FROM TZZSFC001ALL 
+GROUP BY MITM)A
+INNER JOIN TZZSFC001ALL B
+ON A.MITM=B.MITM
+AND A.SLNO=B.SLNO
+AND A.REVI=B.REVI
+)a
+
+end
+
+
+
+Completion time: 2025-11-19T12:39:45.2513273+05:30

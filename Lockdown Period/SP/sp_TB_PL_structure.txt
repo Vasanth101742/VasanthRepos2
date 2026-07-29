@@ -1,0 +1,1817 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_TB_PL_structure
+
+CREATE proc [dbo].[sp_TB_PL_structure] as
+begin
+
+--Step 1: --Import the latest P & l Structure
+
+Truncate table TB_PL_structure
+Truncate table TB_PL_structure_Temp
+Truncate table TB_PL_Temp
+Truncate table TB_PL_Temp2
+
+
+
+
+insert into TB_PL_structure(BSPL,MR1,MR1_ID,DataType,Calculation)
+select GROP,MR1C,UNQO,[TYPE],replace(CALC,'''','') CALC --UPBY,UPDT
+from TZZGLD811400
+
+
+update TB_PL_structure set Calculation=replace(calculation,'//','/')
+
+update TB_PL_structure set MR1_ID='a01' where MR1_ID='901'
+update TB_PL_structure set MR1_ID='a02' where MR1_ID='902'
+update TB_PL_structure set MR1_ID='a03' where MR1_ID='903'
+update TB_PL_structure set MR1_ID='a04' where MR1_ID='904'
+update TB_PL_structure set MR1_ID='a05' where MR1_ID='905'
+update TB_PL_structure set MR1_ID='a06' where MR1_ID='906'
+update TB_PL_structure set MR1_ID='a07' where MR1_ID='907'
+update TB_PL_structure set MR1_ID='a08' where MR1_ID='908'
+update TB_PL_structure set MR1_ID='a09' where MR1_ID='909'
+update TB_PL_structure set MR1_ID='a10' where MR1_ID='910'
+update TB_PL_structure set MR1_ID='a11' where MR1_ID='911'
+update TB_PL_structure set MR1_ID='a12' where MR1_ID='912'
+update TB_PL_structure set MR1_ID='a13' where MR1_ID='913'
+update TB_PL_structure set MR1_ID='a14' where MR1_ID='914'
+update TB_PL_structure set MR1_ID='a15' where MR1_ID='915'
+update TB_PL_structure set MR1_ID='a16' where MR1_ID='916'
+update TB_PL_structure set MR1_ID='a17' where MR1_ID='917'
+update TB_PL_structure set MR1_ID='a18' where MR1_ID='918'
+update TB_PL_structure set MR1_ID='a19' where MR1_ID='919'
+update TB_PL_structure set MR1_ID='a20' where MR1_ID='920'
+update TB_PL_structure set MR1_ID='a21' where MR1_ID='921'
+update TB_PL_structure set MR1_ID='a22' where MR1_ID='922'
+update TB_PL_structure set MR1_ID='a23' where MR1_ID='923'
+update TB_PL_structure set MR1_ID='a24' where MR1_ID='924'
+update TB_PL_structure set MR1_ID='a25' where MR1_ID='925'
+update TB_PL_structure set MR1_ID='a26' where MR1_ID='926'
+update TB_PL_structure set MR1_ID='a26' where MR1_ID='926'
+update TB_PL_structure set MR1_ID='a27' where MR1_ID='927'
+update TB_PL_structure set MR1_ID='a28' where MR1_ID='928'
+update TB_PL_structure set MR1_ID='a29' where MR1_ID='929'
+update TB_PL_structure set MR1_ID='a30' where MR1_ID='930'
+update TB_PL_structure set MR1_ID='a31' where MR1_ID='931'
+update TB_PL_structure set MR1_ID='a32' where MR1_ID='932'
+update TB_PL_structure set MR1_ID='a33' where MR1_ID='933'
+update TB_PL_structure set MR1_ID='a34' where MR1_ID='934'
+update TB_PL_structure set MR1_ID='a35' where MR1_ID='935'
+update TB_PL_structure set MR1_ID='a36' where MR1_ID='936'
+update TB_PL_structure set MR1_ID='a37' where MR1_ID='937'
+update TB_PL_structure set MR1_ID='a38' where MR1_ID='938'
+update TB_PL_structure set MR1_ID='a39' where MR1_ID='939'
+update TB_PL_structure set MR1_ID='a40' where MR1_ID='940'
+
+update TB_PL_structure set Calculation=replace(Calculation,'901','a01')
+update TB_PL_structure set Calculation=replace(Calculation,'902','a02')
+update TB_PL_structure set Calculation=replace(Calculation,'903','a03')
+update TB_PL_structure set Calculation=replace(Calculation,'904','a04')
+update TB_PL_structure set Calculation=replace(Calculation,'905','a05')
+update TB_PL_structure set Calculation=replace(Calculation,'906','a06')
+update TB_PL_structure set Calculation=replace(Calculation,'907','a07')
+update TB_PL_structure set Calculation=replace(Calculation,'908','a08')
+update TB_PL_structure set Calculation=replace(Calculation,'909','a09')
+update TB_PL_structure set Calculation=replace(Calculation,'910','a10')
+update TB_PL_structure set Calculation=replace(Calculation,'911','a11')
+update TB_PL_structure set Calculation=replace(Calculation,'912','a12')
+update TB_PL_structure set Calculation=replace(Calculation,'913','a13')
+update TB_PL_structure set Calculation=replace(Calculation,'914','a14')
+update TB_PL_structure set Calculation=replace(Calculation,'915','a15')
+update TB_PL_structure set Calculation=replace(Calculation,'916','a16')
+update TB_PL_structure set Calculation=replace(Calculation,'917','a17')
+update TB_PL_structure set Calculation=replace(Calculation,'918','a18')
+update TB_PL_structure set Calculation=replace(Calculation,'919','a19')
+update TB_PL_structure set Calculation=replace(Calculation,'920','a20')
+update TB_PL_structure set Calculation=replace(Calculation,'921','a21')
+update TB_PL_structure set Calculation=replace(Calculation,'922','a22')
+update TB_PL_structure set Calculation=replace(Calculation,'923','a23')
+update TB_PL_structure set Calculation=replace(Calculation,'924','a24')
+update TB_PL_structure set Calculation=replace(Calculation,'925','a25')
+update TB_PL_structure set Calculation=replace(Calculation,'926','a26')
+update TB_PL_structure set Calculation=replace(Calculation,'927','a27')
+update TB_PL_structure set Calculation=replace(Calculation,'928','a28')
+update TB_PL_structure set Calculation=replace(Calculation,'929','a29')
+update TB_PL_structure set Calculation=replace(Calculation,'930','a30')
+update TB_PL_structure set Calculation=replace(Calculation,'931','a31')
+update TB_PL_structure set Calculation=replace(Calculation,'932','a32')
+update TB_PL_structure set Calculation=replace(Calculation,'933','a33')
+update TB_PL_structure set Calculation=replace(Calculation,'934','a34')
+update TB_PL_structure set Calculation=replace(Calculation,'935','a35')
+update TB_PL_structure set Calculation=replace(Calculation,'936','a36')
+update TB_PL_structure set Calculation=replace(Calculation,'937','a37')
+update TB_PL_structure set Calculation=replace(Calculation,'938','a38')
+update TB_PL_structure set Calculation=replace(Calculation,'939','a39')
+update TB_PL_structure set Calculation=replace(Calculation,'940','a40')
+
+
+
+--Step 2: Repeat the structure across all the entities and finperiod --till moving the code to LIVE
+declare @FinPeriod varchar(20)
+declare @Entity  varchar(100)
+declare @Count1 int
+declare @Count2 int
+declare @TotalPeriodCounts int
+declare @TotalEntityCounts int
+
+set @TotalPeriodCounts=(select count(distinct finperiod) from TB_details)
+
+set @Count1=1
+while (@Count1<=@TotalPeriodCounts)
+begin
+
+set @FinPeriod= (select FinPeriod from (
+select finperiod,row_number() over (order by finperiod) as rownum from 
+(select distinct finperiod from TB_details)a)b
+where rownum=@Count1)
+
+set @TotalEntityCounts=(select count(distinct Entity) from TB_details where finperiod=@FinPeriod)
+
+set @Count2=1
+while(@Count2<=@TotalEntityCounts)
+begin
+
+
+
+set @Entity= (select Entity from (
+select Entity,FinPeriod,row_number() over (order by Entity) as rownum from 
+(select distinct Entity,FinPeriod from TB_details where finperiod=@FinPeriod)a)b
+where rownum=@Count2)
+
+insert into TB_PL_structure(Entity,BSPL,MR1,MR1_ID,DataType,Calculation,Finperiod)
+select @Entity,BSPL,MR1,MR1_ID,DataType,Calculation,@FinPeriod from TB_PL_structure where finperiod is null
+
+--select * from TB_PL_temp
+--drop table TB_PL_temp
+--create table TB_PL_temp(
+--TotalPeriodCounts int,
+--FinPeriod  varchar(20),
+--Count1 int,
+--TotalEntityCounts int,
+--Entity varchar(25),
+--Count2 int
+--)
+insert into TB_PL_temp(TotalPeriodCounts,FinPeriod,Count1,TotalEntityCounts,Entity,Count2)
+select @TotalPeriodCounts,@FinPeriod,@Count1,@TotalEntityCounts,@Entity,@Count2
+
+
+set @Count2=@Count2 + 1
+end
+
+
+set @Count1=@Count1 + 1
+end
+
+
+
+--Step 3: update the consolidated value across the Entities and Finperiod
+
+delete from TB_PL_structure where finperiod is null
+
+
+--Step 3.1: Budget Data Addition-------------------------------------------------------------------------------
+
+--Method 1 :value is duplicated while going for formula evaluation
+--insert into TB_PL_structure(Entity,MR1,FinPeriod,Budget,Budget_BudRate,BudPlan,BudPlan_PlanRate,
+--YTD_Budget,YTD_Budget_BudRate,YTD_BudPlan,YTD_BudPlan_PlanRate)
+--select Entity,PRD1,--PRD2,PRD3,
+--FinPeriod,
+--sum(cast(FTM_Budget as numeric(15,2))) FTM_Budget,
+--sum(cast(FTM_Budget_BudRate as numeric(15,2))) FTM_Budget_BudRate,
+--sum(cast(FTM_BudPlan as numeric(15,2))) FTM_BudPlan,
+--sum(cast(FTM_BudPlan_PlanRate as numeric(15,2))) FTM_BudPlan_PlanRate,
+--sum(cast(YTD_Budget as numeric(15,2))) YTD_Budget,
+--sum(cast(YTD_Budget_BudRate as numeric(15,2))) YTD_Budget_BudRate,
+--sum(cast(YTD_BudPlan as numeric(15,2))) YTD_BudPlan,
+--sum(cast(YTD_BudPlan_PlanRate as numeric(15,2))) YTD_BudPlan_PlanRate
+--from TB_details
+--where YTD_Budget is not null
+--and YTD_Budget <>0
+--and PRD1 is not null
+----and PRD2 is not null
+----and PRD3 is not null
+--group by Entity,PRD1,--PRD2,PRD3,
+--FinPeriod
+
+
+--Method 2
+update TB_PL_structure set 
+Budget=isnull(a.FTM_Budget,0),
+Budget_BudRate=isnull(a.FTM_Budget_BudRate,0),
+BudPlan=isnull(a.FTM_BudPlan,0),
+BudPlan_PlanRate=isnull(a.FTM_BudPlan_PlanRate,0),
+YTD_Budget=isnull(a.YTD_Budget,0),
+YTD_Budget_BudRate=isnull(a.YTD_Budget_BudRate,0),
+YTD_BudPlan=isnull(a.YTD_BudPlan,0),
+YTD_BudPlan_PlanRate=isnull(a.YTD_BudPlan_PlanRate,0)
+from (select Entity,PRD1,--PRD2,PRD3,
+FinPeriod,
+sum(cast(FTM_Budget as numeric(15,2))) FTM_Budget,
+sum(cast(FTM_Budget_BudRate as numeric(15,2))) FTM_Budget_BudRate,
+sum(cast(FTM_BudPlan as numeric(15,2))) FTM_BudPlan,
+sum(cast(FTM_BudPlan_PlanRate as numeric(15,2))) FTM_BudPlan_PlanRate,
+sum(cast(YTD_Budget as numeric(15,2))) YTD_Budget,
+sum(cast(YTD_Budget_BudRate as numeric(15,2))) YTD_Budget_BudRate,
+sum(cast(YTD_BudPlan as numeric(15,2))) YTD_BudPlan,
+sum(cast(YTD_BudPlan_PlanRate as numeric(15,2))) YTD_BudPlan_PlanRate
+from TB_details
+where YTD_Budget is not null
+and YTD_Budget <>0
+and PRD1 is not null
+--and PRD2 is not null
+--and PRD3 is not null
+group by Entity,PRD1,--PRD2,PRD3,
+FinPeriod
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.PRD1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set MR1_ID=a.MR1_ID
+from(select distinct MR1_ID,MR1 from TB_PL_structure where MR1_ID is not null)a
+where TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.MR1_ID is null
+
+
+update TB_PL_structure set FinYear=a.FinYear,
+FinMonth=a.FinMonth,
+CalPeriod=a.CalPeriod,
+CalYear=a.CalYear,
+CalMonth=a.CalMonth,
+Month_Name=a.Month_Name
+from (select distinct FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name
+from TB_details)a
+where TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+
+--update TB_PL_structure set YTD_Budget=a.YTD_Budget
+--from
+--(select * from
+--(select Entity,MR1,--MR2,MR3,
+--FinPeriod,
+--sum(cast(Budget as numeric(15,2))) over (partition by Entity,MR1,--MR2,MR3,
+--FinYear order by Entity,MR1,--MR2,MR3,
+--FinPeriod) as YTD_Budget
+--from TB_PL_structure
+--where Budget is not null
+--group by Entity,MR1,--MR2,MR3,
+--FinYear,FinPeriod,Budget
+--)a1
+--where YTD_Budget is not null
+--)a
+--where TB_PL_structure.Entity=a.Entity
+--and TB_PL_structure.MR1=a.MR1
+--and TB_PL_structure.FinPeriod=a.FinPeriod
+----and TB_PL_structure.MR1_ID is null
+--and TB_PL_structure.Budget is not null
+
+
+--update TB_PL_structure set YTD_BudPlan=a.YTD_BudPlan
+--from
+--(select * from
+--(select Entity,MR1,--MR2,MR3,
+--FinPeriod,
+--sum(cast(BudPlan as numeric(15,2))) over (partition by Entity,MR1,--MR2,MR3,
+--FinYear order by Entity,MR1,--MR2,MR3,
+--FinPeriod) as YTD_BudPlan
+--from TB_PL_structure
+--where BudPlan is not null
+--group by Entity,MR1,--MR2,MR3,
+--FinYear,FinPeriod,BudPlan
+--)a1
+--where YTD_BudPlan is not null
+--)a
+--where TB_PL_structure.Entity=a.Entity
+--and TB_PL_structure.MR1=a.MR1
+--and TB_PL_structure.FinPeriod=a.FinPeriod
+----and TB_PL_structure.MR1_ID is null
+--and TB_PL_structure.BudPlan is not null
+
+
+
+--update TB_PL_structure set YTD_Budget_BudRate=a.YTD_Budget_BudRate
+--from
+--(select * from
+--(select Entity,MR1,--MR2,MR3,
+--FinPeriod,
+--sum(cast(Budget_BudRate as numeric(15,2))) over (partition by Entity,MR1,--MR2,MR3,
+--FinYear order by Entity,MR1,--MR2,MR3,
+--FinPeriod) as YTD_Budget_BudRate
+--from TB_PL_structure
+--where Budget_BudRate is not null
+--group by Entity,MR1,--MR2,MR3,
+--FinYear,FinPeriod,Budget_BudRate
+--)a1
+--where YTD_Budget_BudRate is not null
+--)a
+--where TB_PL_structure.Entity=a.Entity
+--and TB_PL_structure.MR1=a.MR1
+--and TB_PL_structure.FinPeriod=a.FinPeriod
+----and TB_PL_structure.MR1_ID is null
+--and TB_PL_structure.Budget_BudRate is not null
+
+--update TB_PL_structure set YTD_BudPlan_PlanRate=a.YTD_BudPlan_PlanRate
+--from
+--(
+--select * from (select Entity,MR1,--MR2,MR3,
+--FinPeriod,
+--sum(cast(BudPlan_PlanRate as numeric(15,2))) over (partition by Entity,MR1,--MR2,MR3,
+--FinYear order by Entity,MR1,--MR2,MR3,
+--Finperiod) as YTD_BudPlan_PlanRate
+--from TB_PL_structure
+--where Budget_BudRate is not null
+--group by Entity,MR1,--MR2,MR3,
+--FinYear,FinPeriod,BudPlan_PlanRate
+--)a1
+--where YTD_BudPlan_PlanRate is not null
+--)a
+--where TB_PL_structure.Entity=a.Entity
+--and TB_PL_structure.MR1=a.MR1
+--and TB_PL_structure.FinPeriod=a.FinPeriod
+----and TB_PL_structure.MR1_ID is null
+--and TB_PL_structure.BudPlan_PlanRate is not null
+
+
+
+-----------End: Step 3.1 Budget Data Addition-------------------------------------------------------
+
+------------Step 3.2 Actuals Data Addition----------------------------------------------------------
+
+update TB_PL_structure set FTM_Value=a.FTM_Value,
+FTM_Value_LYCM=a.FTM_Value_LYCM,
+FTM_Value_INR=a.FTM_Value_INR,
+FTM_Value_LYCM_INR=a.FTM_Value_LYCM_INR,
+FTM_Value_PrevYrRate=a.FTM_Value_PrevYrRate,
+FTM_Value_BudRate=a.FTM_Value_BudRate,
+FTM_Value_LYCM_BudRate=a.FTM_Value_LYCM_BudRate
+from
+(select Entity,PRD1,FinPeriod,
+sum(cast(FTM_Value as numeric(15,2))) FTM_Value,
+sum(cast(FTM_Value_LYCM as numeric(15,2))) FTM_Value_LYCM,
+sum(cast(FTM_Value_INR as numeric(15,2))) FTM_Value_INR,
+sum(cast(FTM_Value_LYCM_INR as numeric(15,2))) FTM_Value_LYCM_INR,
+sum(cast(FTM_Value_PrevYrRate as numeric(15,2))) FTM_Value_PrevYrRate,
+sum(cast(FTM_Value_BudRate as numeric(15,2))) FTM_Value_BudRate,
+sum(cast(FTM_Value_LYCM_BudRate as numeric(15,2))) FTM_Value_LYCM_BudRate
+from TB_details
+where CONO<>'Adj'
+--where PRD1='Sales'
+--where leac='DA0103029' and LEAC_DESC=''
+--and entity='Elgi Standalone'
+group by Entity,PRD1,FinPeriod)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.PRD1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+
+--Deriving YTD Values from the FTM Value in order to avoid value duplication 
+--during cumulative addition across FinPeriod
+
+update TB_PL_structure set YTD_Value=null
+update TB_PL_structure set YTD_Value_LYCM=null
+
+update TB_PL_structure set YTD_Value_INR=null
+update TB_PL_structure set YTD_Value_LYCM_INR=null
+update TB_PL_structure set YTD_Value_PrevYrRate=null
+update TB_PL_structure set YTD_Value_BudRate=null
+update TB_PL_structure set YTD_Value_LYCM_BudRate=null
+
+
+
+update TB_PL_structure set 
+YTD_Value=a.YTD_Value
+from
+(select Entity,MR1,FinPeriod,
+sum(cast(FTM_Value as numeric(15,2))) FTM_Value,
+sum(cast(FTM_Value as numeric(15,2))) over (partition by Entity,MR1,FinYear order by Entity,MR1,FinPeriod) as YTD_Value
+--,sum(YTD_Value) YTD_Value --for testing
+from TB_PL_structure
+--where entity like 'Elgi Standalone'
+--and MR1='Sales'
+--and FinYear=2020
+group by Entity,MR1,FinYear,FinPeriod,FTM_Value
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set YTD_Value_LYCM=a.YTD_Value_LYCM
+from
+(select Entity,MR1,FinPeriod,
+sum(cast(FTM_Value_LYCM as numeric(15,2))) FTM_Value,
+sum(cast(FTM_Value_LYCM as numeric(15,2))) over (partition by Entity,MR1,FinYear order by Entity,MR1,FinPeriod) as YTD_Value_LYCM
+from TB_PL_structure
+--where MR1='Sales'
+--and FinYear=2020
+--and entity like 'Elgi Standalone'
+group by Entity,MR1,FinYear,FinPeriod,FTM_Value_LYCM
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set YTD_Value_INR=a.YTD_Value_INR
+from
+(select Entity,MR1,FinPeriod,
+sum(cast(FTM_Value_INR as numeric(15,2))) FTM_Value_INR,
+sum(cast(FTM_Value_INR as numeric(15,2))) over (partition by Entity,MR1,FinYear order by Entity,MR1,FinPeriod) as YTD_Value_INR
+from TB_PL_structure
+group by Entity,MR1,FinYear,FinPeriod,FTM_Value_INR
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set YTD_Value_LYCM_INR=a.YTD_Value_LYCM_INR
+from
+(select Entity,MR1,FinPeriod,
+sum(cast(FTM_Value_LYCM_INR as numeric(15,2))) FTM_Value_LYCM_INR,
+sum(cast(FTM_Value_LYCM_INR as numeric(15,2))) over (partition by Entity,MR1,FinYear order by Entity,MR1,FinPeriod) as YTD_Value_LYCM_INR
+from TB_PL_structure
+group by Entity,MR1,FinYear,FinPeriod,FTM_Value_LYCM_INR
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set YTD_Value_PrevYrRate=a.YTD_Value_PrevYrRate
+from
+(select Entity,MR1,FinPeriod,
+sum(cast(FTM_Value_PrevYrRate as numeric(15,2))) FTM_Value_PrevYrRate,
+sum(cast(FTM_Value_PrevYrRate as numeric(15,2))) over (partition by Entity,MR1,FinYear order by Entity,MR1,FinPeriod) as YTD_Value_PrevYrRate
+from TB_PL_structure
+group by Entity,MR1,FinYear,FinPeriod,FTM_Value_PrevYrRate
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set YTD_Value_BudRate=a.YTD_Value_BudRate
+from
+(select Entity,MR1,FinPeriod,
+sum(cast(FTM_Value_BudRate as numeric(15,2))) FTM_Value_BudRate,
+sum(cast(FTM_Value_BudRate as numeric(15,2))) over (partition by Entity,MR1,FinYear order by Entity,MR1,FinPeriod) as YTD_Value_BudRate
+from TB_PL_structure
+group by Entity,MR1,FinYear,FinPeriod,FTM_Value_BudRate
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set YTD_Value_LYCM_BudRate=a.YTD_Value_LYCM_BudRate
+from
+(select Entity,MR1,FinPeriod,
+sum(cast(FTM_Value_LYCM_BudRate as numeric(15,2))) FTM_Value_LYCM_BudRate,
+sum(cast(FTM_Value_LYCM_BudRate as numeric(15,2))) over (partition by Entity,MR1,FinYear order by Entity,MR1,FinPeriod) as YTD_Value_LYCM_BudRate
+from TB_PL_structure
+group by Entity,MR1,FinYear,FinPeriod,FTM_Value_LYCM_BudRate
+)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.MR1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+-------End: Step 3.2 Actuals Data Addition----------------------------------------------------
+
+---------Step 3.3 Adj Entries Data Addition-----------------------------------------------------
+
+update TB_PL_structure set FTM_Value=isnull(TB_PL_structure.FTM_Value,0) + isnull(a.FTM_Value,0),
+FTM_Value_LYCM=isnull(TB_PL_structure.FTM_Value_LYCM,0) + isnull(a.FTM_Value_LYCM,0),
+FTM_Value_INR= isnull(TB_PL_structure.FTM_Value_INR,0) + isnull(a.FTM_Value_INR,0),
+FTM_Value_LYCM_INR=isnull(TB_PL_structure.FTM_Value_LYCM_INR,0) + isnull(a.FTM_Value_LYCM_INR,0),
+FTM_Value_PrevYrRate=isnull(TB_PL_structure.FTM_Value_PrevYrRate,0) + isnull(a.FTM_Value_PrevYrRate,0),
+FTM_Value_BudRate=isnull(TB_PL_structure.FTM_Value_BudRate,0) + isnull(a.FTM_Value_BudRate,0),
+FTM_Value_LYCM_BudRate=isnull(TB_PL_structure.FTM_Value_LYCM_BudRate,0) + isnull(a.FTM_Value_LYCM_BudRate,0)
+from
+(select Entity,PRD1,FinPeriod,
+sum(cast(FTM_Value as numeric(15,2))) FTM_Value,
+sum(cast(FTM_Value_LYCM as numeric(15,2))) FTM_Value_LYCM,
+sum(cast(FTM_Value_INR as numeric(15,2))) FTM_Value_INR,
+sum(cast(FTM_Value_LYCM_INR as numeric(15,2))) FTM_Value_LYCM_INR,
+sum(cast(FTM_Value_PrevYrRate as numeric(15,2))) FTM_Value_PrevYrRate,
+sum(cast(FTM_Value_BudRate as numeric(15,2))) FTM_Value_BudRate,
+sum(cast(FTM_Value_LYCM_BudRate as numeric(15,2))) FTM_Value_LYCM_BudRate
+from TB_details
+where CONO='Adj'
+--and entity='Elgi Standalone'
+--and PRD1='Sales'
+--and leac='DA0103029' --and LEAC_DESC=''
+--and finperiod='202004'
+group by Entity,PRD1,FinPeriod)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.PRD1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+
+
+update TB_PL_structure set YTD_Value=isnull(TB_PL_structure.YTD_Value,0) + isnull(a.YTD_Value,0),
+YTD_Value_LYCM=isnull(TB_PL_structure.YTD_Value_LYCM,0) + isnull(a.YTD_Value_LYCM,0),
+YTD_Value_INR= isnull(TB_PL_structure.YTD_Value_INR,0) + isnull(a.YTD_Value_INR,0),
+YTD_Value_LYCM_INR=isnull(TB_PL_structure.YTD_Value_LYCM_INR,0) + isnull(a.YTD_Value_LYCM_INR,0),
+YTD_Value_PrevYrRate=isnull(TB_PL_structure.YTD_Value_PrevYrRate,0) + isnull(a.YTD_Value_PrevYrRate,0),
+YTD_Value_BudRate=isnull(TB_PL_structure.YTD_Value_BudRate,0) + isnull(a.YTD_Value_BudRate,0),
+YTD_Value_LYCM_BudRate=isnull(TB_PL_structure.YTD_Value_LYCM_BudRate,0) + isnull(a.YTD_Value_LYCM_BudRate,0)
+from
+(select Entity,PRD1,FinPeriod,
+sum(cast(YTD_Value as numeric(15,2))) YTD_Value,
+sum(cast(YTD_Value_LYCM as numeric(15,2))) YTD_Value_LYCM,
+sum(cast(YTD_Value_INR as numeric(15,2))) YTD_Value_INR,
+sum(cast(YTD_Value_LYCM_INR as numeric(15,2))) YTD_Value_LYCM_INR,
+sum(cast(YTD_Value_PrevYrRate as numeric(15,2))) YTD_Value_PrevYrRate,
+sum(cast(YTD_Value_BudRate as numeric(15,2))) YTD_Value_BudRate,
+sum(cast(YTD_Value_LYCM_BudRate as numeric(15,2))) YTD_Value_LYCM_BudRate
+from TB_details
+where CONO='Adj'
+--and PRD1='Sales'
+--and leac='DA0103029' and LEAC_DESC=''
+--and entity='Elgi Standalone'
+group by Entity,PRD1,FinPeriod)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.PRD1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+----select * from TB_PL_structure where entity='Elgi Standalone' and MR1='Sales' and FinPeriod='202003'
+
+---------End : Step 3.3 Adj Entries Data Addition-----------------------------------------------
+
+
+----End: Step 3: update the consolidated value across the Entities and Finperiod--------------
+
+
+update TB_PL_structure set FTM_Value=123456789 where FTM_Value is null
+update TB_PL_structure set FTM_Value_LYCM=123456789 where FTM_Value_LYCM is null
+update TB_PL_structure set YTD_Value=123456789 where YTD_Value is null
+update TB_PL_structure set YTD_Value_LYCM=123456789 where YTD_Value_LYCM is null
+update TB_PL_structure set FTM_Value_INR=123456789 where FTM_Value_INR is null
+update TB_PL_structure set FTM_Value_LYCM_INR=123456789 where FTM_Value_LYCM_INR is null
+update TB_PL_structure set FTM_Value_PrevYrRate=123456789 where FTM_Value_PrevYrRate is null
+update TB_PL_structure set FTM_Value_BudRate=123456789 where FTM_Value_BudRate is null
+update TB_PL_structure set FTM_Value_LYCM_BudRate=123456789 where FTM_Value_LYCM_BudRate is null
+
+update TB_PL_structure set YTD_Value_INR=123456789 where YTD_Value_INR is null
+update TB_PL_structure set YTD_Value_LYCM_INR=123456789 where YTD_Value_LYCM_INR is null
+update TB_PL_structure set YTD_Value_PrevYrRate=123456789 where YTD_Value_PrevYrRate is null
+update TB_PL_structure set YTD_Value_BudRate=123456789 where YTD_Value_BudRate is null
+update TB_PL_structure set YTD_Value_LYCM_BudRate=123456789 where YTD_Value_LYCM_BudRate is null
+
+update TB_PL_structure set YTD_Budget=123456789 where YTD_Budget is null
+update TB_PL_structure set YTD_Budget_BudRate=123456789 where YTD_Budget_BudRate is null
+update TB_PL_structure set YTD_BudPlan=123456789 where YTD_BudPlan is null
+update TB_PL_structure set YTD_BudPlan_PlanRate=123456789 where YTD_BudPlan_PlanRate is null
+update TB_PL_structure set Budget=123456789 where Budget is null
+update TB_PL_structure set Budget_BudRate=123456789 where Budget_BudRate is null
+update TB_PL_structure set BudPlan=123456789 where BudPlan is null
+update TB_PL_structure set BudPlan_PlanRate=123456789 where BudPlan_PlanRate is null
+
+
+------Step 4: Expression Formation from the General formula
+
+Declare @TotalMR1Counts int
+Declare @MR1_ID varchar(140)
+Declare @Count3 int
+Declare @FTM_Value numeric(15,2)
+Declare @FTM_Value_LYCM numeric(15,2)
+Declare @YTD_Value numeric(15,2)
+Declare @YTD_Value_LYCM numeric(15,2)
+Declare @FTM_Value_INR numeric(15,2)
+Declare @FTM_Value_LYCM_INR numeric(15,2)
+Declare @FTM_Value_PrevYrRate numeric(15,2)
+Declare @FTM_Value_BudRate numeric(15,2)
+Declare @FTM_Value_LYCM_BudRate numeric(15,2)
+
+Declare @YTD_Value_INR numeric(15,2)
+Declare @YTD_Value_LYCM_INR numeric(15,2)
+Declare @YTD_Value_PrevYrRate numeric(15,2)
+Declare @YTD_Value_BudRate numeric(15,2)
+Declare @YTD_Value_LYCM_BudRate numeric(15,2)
+
+Declare @YTD_Budget numeric(15,2)
+Declare @YTD_Budget_BudRate numeric(15,2)
+Declare @YTD_BudPlan numeric(15,2)
+Declare @YTD_BudPlan_PlanRate numeric(15,2)
+Declare @Budget numeric(15,2)
+Declare @Budget_BudRate numeric(15,2)
+Declare @BudPlan numeric(15,2)
+Declare @BudPlan_PlanRate numeric(15,2)
+
+
+
+--Declare @TotalPeriodCounts int
+--Declare @Count1 int
+--Declare @Count2 int
+--declare @FinPeriod varchar(20)
+--declare @TotalEntityCounts int
+--declare @Entity varchar(50)
+
+set @TotalPeriodCounts=(select count(distinct finperiod) from TB_PL_structure)
+
+set @Count1=1
+while (@Count1<=@TotalPeriodCounts)
+begin
+
+set @FinPeriod= (select FinPeriod from (
+select finperiod,row_number() over (order by finperiod) as rownum from 
+(select distinct finperiod from TB_PL_structure)a)b
+where rownum=@Count1)
+
+set @TotalEntityCounts=(select count(distinct Entity) from TB_PL_structure where finperiod=@FinPeriod)
+
+set @Count2=1
+while(@Count2<=@TotalEntityCounts)
+begin
+
+set @Entity= (select Entity from (
+select Entity,row_number() over (order by Entity) as rownum from 
+(select distinct Entity from TB_PL_structure where finperiod=@FinPeriod)a)b
+where rownum=@Count2)
+
+set @TotalMR1Counts=(select count(distinct MR1_ID) from TB_PL_structure where finperiod=@FinPeriod and Entity=@Entity and DataType='Data')
+
+set @Count3=1
+while(@Count3<=@TotalMR1Counts)
+begin
+
+set @MR1_ID=(select MR1_ID from (
+select MR1_ID,ROW_NUMBER() over(order by MR1_ID desc) as rownum from (
+select distinct MR1_ID from TB_PL_structure where finperiod=@FinPeriod and Entity=@Entity and DataType='Data')a)b
+where rownum=@Count3)
+
+
+
+set @FTM_Value=(select FTM_Value
+from (
+select MR1_ID,FTM_Value from (
+select MR1_ID,sum(FTM_Value) FTM_Value from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+set @FTM_Value_LYCM=(select FTM_Value_LYCM
+from (
+select MR1_ID,FTM_Value_LYCM from (
+select MR1_ID,sum(FTM_Value_LYCM) FTM_Value_LYCM from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_Value=(select YTD_Value
+from (
+select MR1_ID,YTD_Value from (
+select MR1_ID,sum(YTD_Value) YTD_Value from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_Value_LYCM=(select YTD_Value_LYCM
+from (
+select MR1_ID,YTD_Value_LYCM from (
+select MR1_ID,sum(YTD_Value_LYCM) YTD_Value_LYCM from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @FTM_Value_INR=(select FTM_Value_INR
+from (
+select MR1_ID,FTM_Value_INR from (
+select MR1_ID,sum(FTM_Value_INR) FTM_Value_INR from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+set @FTM_Value_LYCM_INR=(select FTM_Value_LYCM_INR
+from (
+select MR1_ID,FTM_Value_LYCM_INR from (
+select MR1_ID,sum(FTM_Value_LYCM_INR) FTM_Value_LYCM_INR from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @FTM_Value_PrevYrRate=(select FTM_Value_PrevYrRate
+from (
+select MR1_ID,FTM_Value_PrevYrRate from (
+select MR1_ID,sum(FTM_Value_PrevYrRate) FTM_Value_PrevYrRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+
+set @FTM_Value_BudRate=(select FTM_Value_BudRate
+from (
+select MR1_ID,FTM_Value_BudRate from (
+select MR1_ID,sum(FTM_Value_BudRate) FTM_Value_BudRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @FTM_Value_LYCM_BudRate=(select FTM_Value_LYCM_BudRate
+from (
+select MR1_ID,FTM_Value_LYCM_BudRate from (
+select MR1_ID,sum(FTM_Value_LYCM_BudRate) FTM_Value_LYCM_BudRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_Value_INR=(select YTD_Value_INR
+from (
+select MR1_ID,YTD_Value_INR from (
+select MR1_ID,sum(YTD_Value_INR) YTD_Value_INR from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+set @YTD_Value_LYCM_INR=(select YTD_Value_LYCM_INR
+from (
+select MR1_ID,YTD_Value_LYCM_INR from (
+select MR1_ID,sum(YTD_Value_LYCM_INR) YTD_Value_LYCM_INR from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_Value_PrevYrRate=(select YTD_Value_PrevYrRate
+from (
+select MR1_ID,YTD_Value_PrevYrRate from (
+select MR1_ID,sum(YTD_Value_PrevYrRate) YTD_Value_PrevYrRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+
+set @YTD_Value_BudRate=(select YTD_Value_BudRate
+from (
+select MR1_ID,YTD_Value_BudRate from (
+select MR1_ID,sum(YTD_Value_BudRate) YTD_Value_BudRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_Value_LYCM_BudRate=(select YTD_Value_LYCM_BudRate
+from (
+select MR1_ID,YTD_Value_LYCM_BudRate from (
+select MR1_ID,sum(YTD_Value_LYCM_BudRate) YTD_Value_LYCM_BudRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+
+--Budget data
+
+set @YTD_Budget=(select YTD_Budget
+from (
+select MR1_ID,YTD_Budget from (
+select MR1_ID,sum(YTD_Budget) YTD_Budget from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_Budget_BudRate=(select YTD_Budget_BudRate
+from (
+select MR1_ID,YTD_Budget_BudRate from (
+select MR1_ID,sum(YTD_Budget_BudRate) YTD_Budget_BudRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_BudPlan=(select YTD_BudPlan
+from (
+select MR1_ID,YTD_BudPlan from (
+select MR1_ID,sum(YTD_BudPlan) YTD_BudPlan from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @YTD_BudPlan_PlanRate=(select YTD_BudPlan_PlanRate
+from (
+select MR1_ID,YTD_BudPlan_PlanRate from (
+select MR1_ID,sum(YTD_BudPlan_PlanRate) YTD_BudPlan_PlanRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+set @Budget=(select Budget
+from (
+select MR1_ID,Budget from (
+select MR1_ID,sum(Budget) Budget from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @Budget_BudRate=(select Budget_BudRate
+from (
+select MR1_ID,Budget_BudRate from (
+select MR1_ID,sum(Budget_BudRate) Budget_BudRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @BudPlan=(select BudPlan
+from (
+select MR1_ID,BudPlan from (
+select MR1_ID,sum(BudPlan) BudPlan from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+set @BudPlan_PlanRate=(select BudPlan_PlanRate
+from (
+select MR1_ID,BudPlan_PlanRate from (
+select MR1_ID,sum(BudPlan_PlanRate) BudPlan_PlanRate from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+
+insert into TB_PL_Temp2
+--select * into TB_PL_Temp2 from (
+select @TotalPeriodCounts as TotalPeriodCounts,@Count1 as Count1,@FinPeriod as FinPeriod,
+@TotalEntityCounts as TotalEntityCounts,@Count2 as Count2,@Entity as Entity,
+@TotalMR1Counts as TotalMR1Counts,@Count3 as Count3,@MR1_ID as MR1_ID,@FTM_Value as FTM_Value,
+@FTM_Value_LYCM as FTM_Value_LYCM,
+@YTD_Value as YTD_Value,
+@YTD_Value_LYCM as YTD_Value_LYCM,
+@FTM_Value_INR as FTM_Value_INR,
+@FTM_Value_LYCM_INR as FTM_Value_LYCM_INR,
+@FTM_Value_PrevYrRate as FTM_Value_PrevYrRate,
+@FTM_Value_BudRate as FTM_Value_BudRate,
+@FTM_Value_LYCM_BudRate as FTM_Value_LYCM_BudRate,
+@YTD_Value_INR as YTD_Value_INR,
+@YTD_Value_LYCM_INR as YTD_Value_LYCM_INR,
+@YTD_Value_PrevYrRate as YTD_Value_PrevYrRate,
+@YTD_Value_BudRate as YTD_Value_BudRate,
+@YTD_Value_LYCM_BudRate as YTD_Value_LYCM_BudRate,
+@YTD_Budget as YTD_Budget,
+@YTD_Budget_BudRate as YTD_Budget_BudRate,
+@YTD_BudPlan as YTD_BudPlan,
+@YTD_BudPlan_PlanRate as YTD_BudPlan_PlanRate,
+@Budget as Budget,
+@Budget_BudRate as Budget_BudRate,
+@BudPlan as BudPlan,
+@BudPlan_PlanRate as BudPlan_PlanRate
+--)a
+
+--Alter table TB_PL_Temp2 add Budget float
+--Alter table TB_PL_Temp2 add Budget_BudRate float
+--Alter table TB_PL_Temp2 add BudPlan float
+--Alter table TB_PL_Temp2 add BudPlan_PlanRate float
+
+
+if(@Count3=1)
+begin
+update TB_PL_structure set FTM_Value_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@FTM_Value as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set FTM_Value_LYCM_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@FTM_Value_LYCM as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Value_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Value as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Value_LYCM_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Value_LYCM as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set FTM_Value_INR_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@FTM_Value_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set FTM_Value_LYCM_INR_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@FTM_Value_LYCM_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set FTM_Value_PrevYrRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@FTM_Value_PrevYrRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set FTM_Value_BudRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@FTM_Value_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set FTM_Value_LYCM_BudRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@FTM_Value_LYCM_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Value_INR_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Value_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Value_LYCM_INR_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Value_LYCM_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Value_PrevYrRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Value_PrevYrRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Value_BudRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Value_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Value_LYCM_BudRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Value_LYCM_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+
+update TB_PL_structure set YTD_Budget_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Budget as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Budget_BudRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_Budget_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_BudPlan_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_BudPlan as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_BudPlan_PlanRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@YTD_BudPlan_PlanRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set Budget_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@Budget as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set Budget_BudRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@Budget_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set BudPlan_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@BudPlan as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set BudPlan_PlanRate_expr=replace([calculation],@MR1_ID,
+concat('(',cast(@BudPlan_PlanRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+end
+
+update TB_PL_structure set FTM_Value_expr=replace(FTM_Value_expr,@MR1_ID,
+concat('(',cast(@FTM_Value as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set FTM_Value_LYCM_expr=replace(FTM_Value_LYCM_expr,@MR1_ID,
+concat('(',cast(@FTM_Value_LYCM as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Value_expr=replace(YTD_Value_expr,@MR1_ID,
+concat('(',cast(@YTD_Value as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Value_LYCM_expr=replace(YTD_Value_LYCM_expr,@MR1_ID,
+concat('(',cast(@YTD_Value_LYCM as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set FTM_Value_INR_expr=replace(FTM_Value_INR_expr,@MR1_ID,
+concat('(',cast(@FTM_Value_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set FTM_Value_LYCM_INR_expr=replace(FTM_Value_LYCM_INR_expr,@MR1_ID,
+concat('(',cast(@FTM_Value_LYCM_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set FTM_Value_PrevYrRate_expr=replace(FTM_Value_PrevYrRate_expr,@MR1_ID,
+concat('(',cast(@FTM_Value_PrevYrRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set FTM_Value_BudRate_expr=replace(FTM_Value_BudRate_expr,@MR1_ID,
+concat('(',cast(@FTM_Value_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set FTM_Value_LYCM_BudRate_expr=replace(FTM_Value_LYCM_BudRate_expr,@MR1_ID,
+concat('(',cast(@FTM_Value_LYCM_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+
+update TB_PL_structure set YTD_Value_INR_expr=replace(YTD_Value_INR_expr,@MR1_ID,
+concat('(',cast(@YTD_Value_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Value_LYCM_INR_expr=replace(YTD_Value_LYCM_INR_expr,@MR1_ID,
+concat('(',cast(@YTD_Value_LYCM_INR as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Value_PrevYrRate_expr=replace(YTD_Value_PrevYrRate_expr,@MR1_ID,
+concat('(',cast(@YTD_Value_PrevYrRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Value_BudRate_expr=replace(YTD_Value_BudRate_expr,@MR1_ID,
+concat('(',cast(@YTD_Value_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Value_LYCM_BudRate_expr=replace(YTD_Value_LYCM_BudRate_expr,@MR1_ID,
+concat('(',cast(@YTD_Value_LYCM_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+update TB_PL_structure set YTD_Budget_expr=replace(YTD_Budget_expr,@MR1_ID,
+concat('(',cast(@YTD_Budget as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_Budget_BudRate_expr=replace(YTD_Budget_BudRate_expr,@MR1_ID,
+concat('(',cast(@YTD_Budget_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_BudPlan_expr=replace(YTD_BudPlan_expr,@MR1_ID,
+concat('(',cast(@YTD_BudPlan as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set YTD_BudPlan_PlanRate_expr=replace(YTD_BudPlan_PlanRate_expr,@MR1_ID,
+concat('(',cast(@YTD_BudPlan_PlanRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+
+update TB_PL_structure set Budget_expr=replace(Budget_expr,@MR1_ID,
+concat('(',cast(@Budget as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set Budget_BudRate_expr=replace(Budget_BudRate_expr,@MR1_ID,
+concat('(',cast(@Budget_BudRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set BudPlan_expr=replace(BudPlan_expr,@MR1_ID,
+concat('(',cast(@BudPlan as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+update TB_PL_structure set BudPlan_PlanRate_expr=replace(BudPlan_PlanRate_expr,@MR1_ID,
+concat('(',cast(@BudPlan_PlanRate as varchar(17)),')'))
+where Entity=@Entity and FinPeriod=@FinPeriod
+
+
+set @Count3=@Count3 + 1
+end
+
+set @Count2=@Count2 + 1
+end
+
+set @Count1=@Count1 + 1
+end
+
+
+--Alter table TB_PL_structure add Budget_expr varchar(max)
+--Alter table TB_PL_structure add Budget_BudRate_expr varchar(max)
+--Alter table TB_PL_structure add BudPlan_expr varchar(max)
+--Alter table TB_PL_structure add BudPlan_PlanRate_expr varchar(max)
+--Alter table TB_PL_structure add Budget_Final float
+--Alter table TB_PL_structure add Budget_BudRate_Final float
+--Alter table TB_PL_structure add BudPlan_Final float
+--Alter table TB_PL_structure add BudPlan_PlanRate_Final float
+
+
+
+update TB_PL_structure set FTM_Value=0 where FTM_Value=123456789
+update TB_PL_structure set FTM_Value_LYCM=0 where FTM_Value_LYCM=123456789
+update TB_PL_structure set YTD_Value=0 where YTD_Value=123456789
+update TB_PL_structure set YTD_Value_LYCM=0 where YTD_Value_LYCM=123456789
+update TB_PL_structure set FTM_Value_INR=0 where FTM_Value_INR=123456789
+update TB_PL_structure set FTM_Value_LYCM_INR=0 where FTM_Value_LYCM_INR=123456789
+update TB_PL_structure set FTM_Value_PrevYrRate=0 where FTM_Value_PrevYrRate=123456789
+update TB_PL_structure set FTM_Value_BudRate=0 where FTM_Value_BudRate=123456789
+update TB_PL_structure set FTM_Value_LYCM_BudRate=0 where FTM_Value_LYCM_BudRate=123456789
+
+update TB_PL_structure set YTD_Value_INR=0 where YTD_Value_INR=123456789
+update TB_PL_structure set YTD_Value_LYCM_INR=0 where YTD_Value_LYCM_INR=123456789
+update TB_PL_structure set YTD_Value_PrevYrRate=0 where YTD_Value_PrevYrRate=123456789
+update TB_PL_structure set YTD_Value_BudRate=0 where YTD_Value_BudRate=123456789
+update TB_PL_structure set YTD_Value_LYCM_BudRate=0 where YTD_Value_LYCM_BudRate=123456789
+
+
+update TB_PL_structure set YTD_Budget=0 where YTD_Budget=123456789
+update TB_PL_structure set YTD_Budget_BudRate=0 where YTD_Budget_BudRate=123456789
+update TB_PL_structure set YTD_BudPlan=0 where YTD_BudPlan=123456789
+update TB_PL_structure set YTD_BudPlan_PlanRate=0 where YTD_BudPlan_PlanRate=123456789
+update TB_PL_structure set Budget=0 where Budget=123456789
+update TB_PL_structure set Budget_BudRate=0 where Budget_BudRate=123456789
+update TB_PL_structure set BudPlan=0 where BudPlan=123456789
+update TB_PL_structure set BudPlan_PlanRate=0 where BudPlan_PlanRate=123456789
+
+update TB_PL_structure set FTM_Value_expr=replace(FTM_Value_expr,'123456789','0')
+update TB_PL_structure set FTM_Value_LYCM_expr=replace(FTM_Value_LYCM_expr,'123456789','0')
+update TB_PL_structure set YTD_Value_expr=replace(YTD_Value_expr,'123456789','0')
+update TB_PL_structure set YTD_Value_LYCM_expr=replace(YTD_Value_LYCM_expr,'123456789','0')
+update TB_PL_structure set FTM_Value_INR_expr=replace(FTM_Value_INR_expr,'123456789','0')
+update TB_PL_structure set FTM_Value_LYCM_INR_expr=replace(FTM_Value_LYCM_INR_expr,'123456789','0')
+update TB_PL_structure set FTM_Value_PrevYrRate_expr=replace(FTM_Value_PrevYrRate_expr,'123456789','0')
+update TB_PL_structure set FTM_Value_BudRate_expr=replace(FTM_Value_BudRate_expr,'123456789','0')
+update TB_PL_structure set FTM_Value_LYCM_BudRate_expr=replace(FTM_Value_LYCM_BudRate_expr,'123456789','0')
+
+update TB_PL_structure set YTD_Value_INR_expr=replace(YTD_Value_INR_expr,'123456789','0')
+update TB_PL_structure set YTD_Value_LYCM_INR_expr=replace(YTD_Value_LYCM_INR_expr,'123456789','0')
+update TB_PL_structure set YTD_Value_PrevYrRate_expr=replace(YTD_Value_PrevYrRate_expr,'123456789','0')
+update TB_PL_structure set YTD_Value_BudRate_expr=replace(YTD_Value_BudRate_expr,'123456789','0')
+update TB_PL_structure set YTD_Value_LYCM_BudRate_expr=replace(YTD_Value_LYCM_BudRate_expr,'123456789','0')
+
+update TB_PL_structure set YTD_Budget_expr=replace(YTD_Budget_expr,'123456789','0')
+update TB_PL_structure set YTD_Budget_BudRate_expr=replace(YTD_Budget_BudRate_expr,'123456789','0')
+update TB_PL_structure set YTD_BudPlan_expr=replace(YTD_BudPlan_expr,'123456789','0')
+update TB_PL_structure set YTD_BudPlan_PlanRate_expr=replace(YTD_BudPlan_PlanRate_expr,'123456789','0')
+update TB_PL_structure set Budget_expr=replace(Budget_expr,'123456789','0')
+update TB_PL_structure set Budget_BudRate_expr=replace(Budget_BudRate_expr,'123456789','0')
+update TB_PL_structure set BudPlan_expr=replace(BudPlan_expr,'123456789','0')
+update TB_PL_structure set BudPlan_PlanRate_expr=replace(BudPlan_PlanRate_expr,'123456789','0')
+
+
+update TB_PL_structure set FTM_Value_expr=replace(FTM_Value_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set FTM_Value_LYCM_expr=replace(FTM_Value_LYCM_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_Value_expr=replace(YTD_Value_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_Value_LYCM_expr=replace(YTD_Value_LYCM_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set FTM_Value_INR_expr=replace(FTM_Value_INR_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set FTM_Value_LYCM_INR_expr=replace(FTM_Value_LYCM_INR_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set FTM_Value_PrevYrRate_expr=replace(FTM_Value_PrevYrRate_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set FTM_Value_BudRate_expr=replace(FTM_Value_BudRate_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set FTM_Value_LYCM_BudRate_expr=replace(FTM_Value_LYCM_BudRate_expr,'/((-1)*(0.00))','/0.01')
+
+update TB_PL_structure set YTD_Value_INR_expr=replace(YTD_Value_INR_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_Value_LYCM_INR_expr=replace(YTD_Value_LYCM_INR_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_Value_PrevYrRate_expr=replace(YTD_Value_PrevYrRate_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_Value_BudRate_expr=replace(YTD_Value_BudRate_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_Value_LYCM_BudRate_expr=replace(YTD_Value_LYCM_BudRate_expr,'/((-1)*(0.00))','/0.01')
+
+
+update TB_PL_structure set YTD_Budget_expr=replace(YTD_Budget_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_Budget_BudRate_expr=replace(YTD_Budget_BudRate_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_BudPlan_expr=replace(YTD_BudPlan_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set YTD_BudPlan_PlanRate_expr=replace(YTD_BudPlan_PlanRate_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set Budget_expr=replace(Budget_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set Budget_BudRate_expr=replace(Budget_BudRate_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set BudPlan_expr=replace(BudPlan_expr,'/((-1)*(0.00))','/0.01')
+update TB_PL_structure set BudPlan_PlanRate_expr=replace(BudPlan_PlanRate_expr,'/((-1)*(0.00))','/0.01')
+
+
+--Alter table TB_PL_structure_Temp add Budget_expr varchar(max)
+--Alter table TB_PL_structure_Temp add Budget_BudRate_expr varchar(max)
+--Alter table TB_PL_structure_Temp add BudPlan_expr varchar(max)
+--Alter table TB_PL_structure_Temp add BudPlan_PlanRate_expr varchar(max)
+
+--Alter table TB_PL_structure_Temp add Budget_Final float
+--Alter table TB_PL_structure_Temp add Budget_BudRate_Final float
+--Alter table TB_PL_structure_Temp add BudPlan_Final float
+--Alter table TB_PL_structure_Temp add BudPlan_PlanRate_Final float
+
+--sp_rename 'TB_PL_structure_Temp.Budget_INR','Budget_BudRate'
+
+--Alter table TB_PL_structure_Temp add BudPlan float
+--Alter table TB_PL_structure_Temp add BudPlan_PlanRate float
+
+insert into TB_PL_structure_Temp(Entity,BSPL,MR1,MR1_ID,DataType,Calculation,
+FTM_Value,FTM_Value_expr,FTM_Value_Final,
+FTM_Value_LYCM,FTM_Value_LYCM_expr,FTM_Value_LYCM_Final,
+YTD_Value,YTD_Value_expr,YTD_Value_Final,
+YTD_Value_LYCM,YTD_Value_LYCM_expr,YTD_Value_LYCM_Final,
+FTM_Value_INR,FTM_Value_INR_expr,FTM_Value_INR_Final,
+FTM_Value_LYCM_INR,FTM_Value_LYCM_INR_expr,FTM_Value_LYCM_INR_Final,
+FTM_Value_PrevYrRate,FTM_Value_PrevYrRate_expr,FTM_Value_PrevYrRate_Final,
+FTM_Value_BudRate,FTM_Value_BudRate_expr,FTM_Value_BudRate_Final,
+FTM_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate_expr,FTM_Value_LYCM_BudRate_Final,
+
+YTD_Value_INR,YTD_Value_INR_expr,YTD_Value_INR_Final,
+YTD_Value_LYCM_INR,YTD_Value_LYCM_INR_expr,YTD_Value_LYCM_INR_Final,
+YTD_Value_PrevYrRate,YTD_Value_PrevYrRate_expr,YTD_Value_PrevYrRate_Final,
+YTD_Value_BudRate,YTD_Value_BudRate_expr,YTD_Value_BudRate_Final,
+YTD_Value_LYCM_BudRate,YTD_Value_LYCM_BudRate_expr,YTD_Value_LYCM_BudRate_Final,
+FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name,rownum,
+YTD_Budget,YTD_Budget_expr,YTD_Budget_Final,
+YTD_Budget_BudRate,YTD_Budget_BudRate_expr,YTD_Budget_BudRate_Final,
+YTD_BudPlan,YTD_BudPlan_expr,YTD_BudPlan_Final,
+YTD_BudPlan_PlanRate,YTD_BudPlan_PlanRate_expr,YTD_BudPlan_PlanRate_Final,
+Budget,Budget_expr,Budget_Final,
+Budget_BudRate,Budget_BudRate_expr,Budget_BudRate_Final,
+BudPlan,BudPlan_expr,BudPlan_Final,
+BudPlan_PlanRate,BudPlan_PlanRate_expr,BudPlan_PlanRate_Final
+)
+
+select Entity,BSPL,MR1,MR1_ID,DataType,Calculation,
+FTM_Value,FTM_Value_expr,FTM_Value_Final,
+FTM_Value_LYCM,FTM_Value_LYCM_expr,FTM_Value_LYCM_Final,
+YTD_Value,YTD_Value_expr,YTD_Value_Final,
+YTD_Value_LYCM,YTD_Value_LYCM_expr,YTD_Value_LYCM_Final,
+FTM_Value_INR,FTM_Value_INR_expr,FTM_Value_INR_Final,
+FTM_Value_LYCM_INR,FTM_Value_LYCM_INR_expr,FTM_Value_LYCM_INR_Final,
+FTM_Value_PrevYrRate,FTM_Value_PrevYrRate_expr,FTM_Value_PrevYrRate_Final,
+FTM_Value_BudRate,FTM_Value_BudRate_expr,FTM_Value_BudRate_Final,
+FTM_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate_expr,FTM_Value_LYCM_BudRate_Final,
+
+YTD_Value_INR,YTD_Value_INR_expr,YTD_Value_INR_Final,
+YTD_Value_LYCM_INR,YTD_Value_LYCM_INR_expr,YTD_Value_LYCM_INR_Final,
+YTD_Value_PrevYrRate,YTD_Value_PrevYrRate_expr,YTD_Value_PrevYrRate_Final,
+YTD_Value_BudRate,YTD_Value_BudRate_expr,YTD_Value_BudRate_Final,
+YTD_Value_LYCM_BudRate,YTD_Value_LYCM_BudRate_expr,YTD_Value_LYCM_BudRate_Final,
+
+FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name,
+ROW_NUMBER() over(order by finperiod,entity,MR1_ID,MR1) as rownum,
+YTD_Budget,YTD_Budget_expr,YTD_Budget_Final,
+YTD_Budget_BudRate,YTD_Budget_BudRate_expr,YTD_Budget_BudRate_Final,
+YTD_BudPlan,YTD_BudPlan_expr,YTD_BudPlan_Final,
+YTD_BudPlan_PlanRate,YTD_BudPlan_PlanRate_expr,YTD_BudPlan_PlanRate_Final,
+Budget,Budget_expr,Budget_Final,
+Budget_BudRate,Budget_BudRate_expr,Budget_BudRate_Final,
+BudPlan,BudPlan_expr,BudPlan_Final,
+BudPlan_PlanRate,BudPlan_PlanRate_expr,BudPlan_PlanRate_Final
+from TB_PL_structure
+
+
+
+Truncate table TB_PL_structure
+
+insert into TB_PL_structure(Entity,BSPL,MR1,MR1_ID,DataType,Calculation,
+FTM_Value,FTM_Value_expr,FTM_Value_Final,
+FTM_Value_LYCM,FTM_Value_LYCM_expr,FTM_Value_LYCM_Final,
+YTD_Value,YTD_Value_expr,YTD_Value_Final,
+YTD_Value_LYCM,YTD_Value_LYCM_expr,YTD_Value_LYCM_Final,
+FTM_Value_INR,FTM_Value_INR_expr,FTM_Value_INR_Final,
+FTM_Value_LYCM_INR,FTM_Value_LYCM_INR_expr,FTM_Value_LYCM_INR_Final,
+FTM_Value_PrevYrRate,FTM_Value_PrevYrRate_expr,FTM_Value_PrevYrRate_Final,
+FTM_Value_BudRate,FTM_Value_BudRate_expr,FTM_Value_BudRate_Final,
+FTM_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate_expr,FTM_Value_LYCM_BudRate_Final,
+
+YTD_Value_INR,YTD_Value_INR_expr,YTD_Value_INR_Final,
+YTD_Value_LYCM_INR,YTD_Value_LYCM_INR_expr,YTD_Value_LYCM_INR_Final,
+YTD_Value_PrevYrRate,YTD_Value_PrevYrRate_expr,YTD_Value_PrevYrRate_Final,
+YTD_Value_BudRate,YTD_Value_BudRate_expr,YTD_Value_BudRate_Final,
+YTD_Value_LYCM_BudRate,YTD_Value_LYCM_BudRate_expr,YTD_Value_LYCM_BudRate_Final,
+
+FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name,rownum,
+YTD_Budget,YTD_Budget_expr,YTD_Budget_Final,
+YTD_Budget_BudRate,YTD_Budget_BudRate_expr,YTD_Budget_BudRate_Final,
+YTD_BudPlan,YTD_BudPlan_expr,YTD_BudPlan_Final,
+YTD_BudPlan_PlanRate,YTD_BudPlan_PlanRate_expr,YTD_BudPlan_PlanRate_Final,
+Budget,Budget_expr,Budget_Final,
+Budget_BudRate,Budget_BudRate_expr,Budget_BudRate_Final,
+BudPlan,BudPlan_expr,BudPlan_Final,
+BudPlan_PlanRate,BudPlan_PlanRate_expr,BudPlan_PlanRate_Final
+)
+
+select Entity,BSPL,MR1,MR1_ID,DataType,Calculation,
+FTM_Value,FTM_Value_expr,FTM_Value_Final,
+FTM_Value_LYCM,FTM_Value_LYCM_expr,FTM_Value_LYCM_Final,
+YTD_Value,YTD_Value_expr,YTD_Value_Final,
+YTD_Value_LYCM,YTD_Value_LYCM_expr,YTD_Value_LYCM_Final,
+FTM_Value_INR,FTM_Value_INR_expr,FTM_Value_INR_Final,
+FTM_Value_LYCM_INR,FTM_Value_LYCM_INR_expr,FTM_Value_LYCM_INR_Final,
+FTM_Value_PrevYrRate,FTM_Value_PrevYrRate_expr,FTM_Value_PrevYrRate_Final,
+FTM_Value_BudRate,FTM_Value_BudRate_expr,FTM_Value_BudRate_Final,
+FTM_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate_expr,FTM_Value_LYCM_BudRate_Final,
+
+YTD_Value_INR,YTD_Value_INR_expr,YTD_Value_INR_Final,
+YTD_Value_LYCM_INR,YTD_Value_LYCM_INR_expr,YTD_Value_LYCM_INR_Final,
+YTD_Value_PrevYrRate,YTD_Value_PrevYrRate_expr,YTD_Value_PrevYrRate_Final,
+YTD_Value_BudRate,YTD_Value_BudRate_expr,YTD_Value_BudRate_Final,
+YTD_Value_LYCM_BudRate,YTD_Value_LYCM_BudRate_expr,YTD_Value_LYCM_BudRate_Final,
+
+FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name,rownum,
+YTD_Budget,YTD_Budget_expr,YTD_Budget_Final,
+YTD_Budget_BudRate,YTD_Budget_BudRate_expr,YTD_Budget_BudRate_Final,
+YTD_BudPlan,YTD_BudPlan_expr,YTD_BudPlan_Final,
+YTD_BudPlan_PlanRate,YTD_BudPlan_PlanRate_expr,YTD_BudPlan_PlanRate_Final,
+Budget,Budget_expr,Budget_Final,
+Budget_BudRate,Budget_BudRate_expr,Budget_BudRate_Final,
+BudPlan,BudPlan_expr,BudPlan_Final,
+BudPlan_PlanRate,BudPlan_PlanRate_expr,BudPlan_PlanRate_Final
+
+from TB_PL_structure_Temp
+
+Truncate table TB_PL_structure_Temp
+
+-------Step 4: Expression Evaluation
+
+declare @expression1 nvarchar(max)
+declare @expression2 nvarchar(max)
+declare @expression3 nvarchar(max)
+declare @expression4 nvarchar(max)
+declare @expression5 nvarchar(max)
+declare @expression6 nvarchar(max)
+declare @expression7 nvarchar(max)
+declare @expression8 nvarchar(max)
+declare @expression9 nvarchar(max)
+declare @expression10 nvarchar(max)
+declare @expression11 nvarchar(max)
+declare @expression12 nvarchar(max)
+declare @expression13 nvarchar(max)
+declare @expression14 nvarchar(max)
+declare @expression15 nvarchar(max)
+declare @expression16 nvarchar(max)
+declare @expression17 nvarchar(max)
+declare @expression18 nvarchar(max)
+declare @expression19 nvarchar(max)
+declare @expression20 nvarchar(max)
+declare @expression21 nvarchar(max)
+declare @expression22 nvarchar(max)
+
+
+declare @sql1 nvarchar(max)
+declare @sql2 nvarchar(max)
+declare @sql3 nvarchar(max)
+declare @sql4 nvarchar(max)
+declare @sql5 nvarchar(max)
+declare @sql6 nvarchar(max)
+declare @sql7 nvarchar(max)
+declare @sql8 nvarchar(max)
+declare @sql9 nvarchar(max)
+declare @sql10 nvarchar(max)
+declare @sql11 nvarchar(max)
+declare @sql12 nvarchar(max)
+declare @sql13 nvarchar(max)
+declare @sql14 nvarchar(max)
+declare @sql15 nvarchar(max)
+declare @sql16 nvarchar(max)
+declare @sql17 nvarchar(max)
+declare @sql18 nvarchar(max)
+declare @sql19 nvarchar(max)
+declare @sql20 nvarchar(max)
+declare @sql21 nvarchar(max)
+declare @sql22 nvarchar(max)
+
+
+
+
+declare @result1 float
+declare @result2 float
+declare @result3 float
+declare @result4 float
+declare @result5 float
+declare @result6 float
+declare @result7 float
+declare @result8 float
+declare @result9 float
+declare @result10 float
+declare @result11 float
+declare @result12 float
+declare @result13 float
+declare @result14 float
+declare @result15 float
+declare @result16 float
+declare @result17 float
+declare @result18 float
+declare @result19 float
+declare @result20 float
+declare @result21 float
+declare @result22 float
+
+
+
+declare @TotalCounts int
+
+set @TotalCounts= (select count(*) from TB_PL_structure)
+
+set @Count1=1
+while (@Count1<=@TotalCounts)
+begin
+
+set @expression1 = (select FTM_Value_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+set @expression2 = (select FTM_Value_LYCM_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_LYCM_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+set @expression3 = (select YTD_Value_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Value_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression4 = (select YTD_Value_LYCM_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Value_LYCM_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression5 = (select FTM_Value_INR_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_INR_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression6 = (select FTM_Value_LYCM_INR_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_LYCM_INR_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression7 = (select FTM_Value_PrevYrRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_PrevYrRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression8 = (select FTM_Value_BudRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_BudRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression9 = (select FTM_Value_LYCM_BudRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_LYCM_BudRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+
+set @expression10 = (select YTD_Value_INR_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Value_INR_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression11 = (select YTD_Value_LYCM_INR_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Value_LYCM_INR_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression12 = (select YTD_Value_PrevYrRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Value_PrevYrRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression13 = (select YTD_Value_BudRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Value_BudRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression14 = (select YTD_Value_LYCM_BudRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Value_LYCM_BudRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression15 = (select YTD_Budget_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Budget_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+set @expression16 = (select YTD_Budget_BudRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_Budget_BudRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+set @expression17 = (select YTD_BudPlan_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_BudPlan_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression18 = (select YTD_BudPlan_PlanRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,YTD_BudPlan_PlanRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+set @expression19 = (select Budget_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,Budget_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+set @expression20 = (select Budget_BudRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,Budget_BudRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+set @expression21 = (select BudPlan_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,BudPlan_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+set @expression22 = (select BudPlan_PlanRate_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,BudPlan_PlanRate_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+
+--select @expression
+set @sql1 = 'select @result1 ' + @expression1
+set @sql2 = 'select @result2 ' + @expression2
+set @sql3 = 'select @result3 ' + @expression3
+set @sql4 = 'select @result4 ' + @expression4
+set @sql5 = 'select @result5 ' + @expression5
+set @sql6 = 'select @result6 ' + @expression6
+set @sql7 = 'select @result7 ' + @expression7
+set @sql8 = 'select @result8 ' + @expression8
+set @sql9 = 'select @result9 ' + @expression9
+set @sql10 = 'select @result10 ' + @expression10
+set @sql11 = 'select @result11 ' + @expression11
+set @sql12 = 'select @result12 ' + @expression12
+set @sql13 = 'select @result13 ' + @expression13
+set @sql14 = 'select @result14 ' + @expression14
+set @sql15 = 'select @result15 ' + @expression15
+set @sql16 = 'select @result16 ' + @expression16
+set @sql17 = 'select @result17 ' + @expression17
+set @sql18 = 'select @result18 ' + @expression18
+set @sql19 = 'select @result19 ' + @expression19
+set @sql20 = 'select @result20 ' + @expression20
+set @sql21 = 'select @result21 ' + @expression21
+set @sql22 = 'select @result22 ' + @expression22
+
+
+
+exec sp_executesql @sql1, N'@result1 float output', @result1 = @result1 out
+exec sp_executesql @sql2, N'@result2 float output', @result2 = @result2 out
+exec sp_executesql @sql3, N'@result3 float output', @result3 = @result3 out
+exec sp_executesql @sql4, N'@result4 float output', @result4 = @result4 out
+exec sp_executesql @sql5, N'@result5 float output', @result5 = @result5 out
+exec sp_executesql @sql6, N'@result6 float output', @result6 = @result6 out
+exec sp_executesql @sql7, N'@result7 float output', @result7 = @result7 out
+exec sp_executesql @sql8, N'@result8 float output', @result8 = @result8 out
+exec sp_executesql @sql9, N'@result9 float output', @result9 = @result9 out
+
+exec sp_executesql @sql10, N'@result10 float output', @result10 = @result10 out
+exec sp_executesql @sql11, N'@result11 float output', @result11 = @result11 out
+exec sp_executesql @sql12, N'@result12 float output', @result12 = @result12 out
+exec sp_executesql @sql13, N'@result13 float output', @result13 = @result13 out
+exec sp_executesql @sql14, N'@result14 float output', @result14 = @result14 out
+
+exec sp_executesql @sql15, N'@result15 float output', @result15 = @result15 out
+exec sp_executesql @sql16, N'@result16 float output', @result16 = @result16 out
+exec sp_executesql @sql17, N'@result17 float output', @result17 = @result17 out
+exec sp_executesql @sql18, N'@result18 float output', @result18 = @result18 out
+
+exec sp_executesql @sql19, N'@result19 float output', @result19 = @result19 out
+exec sp_executesql @sql20, N'@result20 float output', @result20 = @result20 out
+exec sp_executesql @sql21, N'@result21 float output', @result21 = @result21 out
+exec sp_executesql @sql22, N'@result22 float output', @result22 = @result22 out
+
+--select @result
+update TB_PL_structure set FTM_Value_Final=@result1 where rownum=@Count1
+update TB_PL_structure set FTM_Value_LYCM_Final=@result2 where rownum=@Count1
+update TB_PL_structure set YTD_Value_Final=@result3 where rownum=@Count1
+update TB_PL_structure set YTD_Value_LYCM_Final=@result4 where rownum=@Count1
+update TB_PL_structure set FTM_Value_INR_Final=@result5 where rownum=@Count1
+update TB_PL_structure set FTM_Value_LYCM_INR_Final=@result6 where rownum=@Count1
+update TB_PL_structure set FTM_Value_PrevYrRate_Final=@result7 where rownum=@Count1
+update TB_PL_structure set FTM_Value_BudRate_Final=@result8 where rownum=@Count1
+update TB_PL_structure set FTM_Value_LYCM_BudRate_Final=@result9 where rownum=@Count1
+
+update TB_PL_structure set YTD_Value_INR_Final=@result10 where rownum=@Count1
+update TB_PL_structure set YTD_Value_LYCM_INR_Final=@result11 where rownum=@Count1
+update TB_PL_structure set YTD_Value_PrevYrRate_Final=@result12 where rownum=@Count1
+update TB_PL_structure set YTD_Value_BudRate_Final=@result13 where rownum=@Count1
+update TB_PL_structure set YTD_Value_LYCM_BudRate_Final=@result14 where rownum=@Count1
+
+
+update TB_PL_structure set YTD_Budget_Final=@result15 where rownum=@Count1
+update TB_PL_structure set YTD_Budget_BudRate_Final=@result16 where rownum=@Count1
+update TB_PL_structure set YTD_BudPlan_Final=@result17 where rownum=@Count1
+update TB_PL_structure set YTD_BudPlan_PlanRate_Final=@result18 where rownum=@Count1
+update TB_PL_structure set Budget_Final=@result19 where rownum=@Count1
+update TB_PL_structure set Budget_BudRate_Final=@result20 where rownum=@Count1
+update TB_PL_structure set BudPlan_Final=@result21 where rownum=@Count1
+update TB_PL_structure set BudPlan_PlanRate_Final=@result22 where rownum=@Count1
+
+set @Count1=@Count1 + 1
+
+end
+
+
+
+
+
+-----Converting Values in terms of Millions
+
+--Budget Data
+update TB_PL_structure set YTD_Budget_Final=YTD_Budget_Final/1000000 where datatype not like '%Percentage%' and 
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_BudPlan_Final=YTD_BudPlan_Final/1000000 where datatype not like '%Percentage%' and
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Budget_BudRate_Final=YTD_Budget_BudRate_Final/1000000 where datatype not like '%Percentage%' and
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_BudPlan_PlanRate_Final=YTD_BudPlan_PlanRate_Final/1000000 where datatype not like '%Percentage%' and
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set Budget_Final=Budget_Final/1000000 where datatype not like '%Percentage%' and 
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set BudPlan_Final=BudPlan_Final/1000000 where datatype not like '%Percentage%' and
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set Budget_BudRate_Final=Budget_BudRate_Final/1000000 where datatype not like '%Percentage%' and
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set BudPlan_PlanRate_Final=BudPlan_PlanRate_Final/1000000 where datatype not like '%Percentage%' and
+entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+
+
+
+update TB_PL_structure set YTD_Budget_Final=YTD_Budget_Final/1000 where datatype not like '%Percentage%' and 
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_BudPlan_Final=YTD_BudPlan_Final/1000 where datatype not like '%Percentage%' and 
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Budget_BudRate_Final=YTD_Budget_BudRate_Final/1000 where datatype not like '%Percentage%' and
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_BudPlan_PlanRate_Final=YTD_BudPlan_PlanRate_Final/1000 where datatype not like '%Percentage%' and
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set Budget_Final=Budget_Final/1000 where datatype not like '%Percentage%' and 
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set BudPlan_Final=BudPlan_Final/1000 where datatype not like '%Percentage%' and 
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set Budget_BudRate_Final=Budget_BudRate_Final/1000 where datatype not like '%Percentage%' and
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set BudPlan_PlanRate_Final=BudPlan_PlanRate_Final/1000 where datatype not like '%Percentage%' and
+entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+
+
+--Actuals Data
+
+update TB_PL_structure set FTM_Value=FTM_Value/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_Final=FTM_Value_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM=FTM_Value_LYCM/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_Final=FTM_Value_LYCM_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value=YTD_Value/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_Final=YTD_Value_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM=YTD_Value_LYCM/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_Final=YTD_Value_LYCM_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+
+
+update TB_PL_structure set FTM_Value_INR=FTM_Value_INR/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_INR_Final=FTM_Value_INR_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_INR=FTM_Value_LYCM_INR/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_INR_Final=FTM_Value_LYCM_INR_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_PrevYrRate=FTM_Value_PrevYrRate/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_PrevYrRate_Final=FTM_Value_PrevYrRate_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_BudRate=FTM_Value_BudRate/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_BudRate_Final=FTM_Value_BudRate_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_BudRate=FTM_Value_LYCM_BudRate/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_BudRate_Final=FTM_Value_LYCM_BudRate_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_INR=YTD_Value_INR/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_INR_Final=YTD_Value_INR_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_INR=YTD_Value_LYCM_INR/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_INR_Final=YTD_Value_LYCM_INR_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_PrevYrRate=YTD_Value_PrevYrRate/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_PrevYrRate_Final=YTD_Value_PrevYrRate_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_BudRate=YTD_Value_BudRate/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_BudRate_Final=YTD_Value_BudRate_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_BudRate=YTD_Value_LYCM_BudRate/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_BudRate_Final=YTD_Value_LYCM_BudRate_Final/1000000 where datatype not like '%Percentage%'
+and entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+
+
+
+-----Converting Values in terms of thousands
+
+
+update TB_PL_structure set FTM_Value=FTM_Value/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_Final=FTM_Value_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM=FTM_Value_LYCM/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_Final=FTM_Value_LYCM_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value=YTD_Value/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_Final=YTD_Value_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM=YTD_Value_LYCM/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_Final=YTD_Value_LYCM_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+
+
+update TB_PL_structure set FTM_Value_INR=FTM_Value_INR/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_INR_Final=FTM_Value_INR_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_INR=FTM_Value_LYCM_INR/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_INR_Final=FTM_Value_LYCM_INR_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_PrevYrRate=FTM_Value_PrevYrRate/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_PrevYrRate_Final=FTM_Value_PrevYrRate_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_BudRate=FTM_Value_BudRate/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_BudRate_Final=FTM_Value_BudRate_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_BudRate=FTM_Value_LYCM_BudRate/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set FTM_Value_LYCM_BudRate_Final=FTM_Value_LYCM_BudRate_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_INR=YTD_Value_INR/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_INR_Final=YTD_Value_INR_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_INR=YTD_Value_LYCM_INR/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_INR_Final=YTD_Value_LYCM_INR_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_PrevYrRate=YTD_Value_PrevYrRate/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_PrevYrRate_Final=YTD_Value_PrevYrRate_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_BudRate=YTD_Value_BudRate/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_BudRate_Final=YTD_Value_BudRate_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_BudRate=YTD_Value_LYCM_BudRate/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+update TB_PL_structure set YTD_Value_LYCM_BudRate_Final=YTD_Value_LYCM_BudRate_Final/1000 where datatype not like '%Percentage%'
+and entity not in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+
+
+
+
+
+end
+
+
+--select distinct entity from TB_PL_structure
+--where entity in ('Elgi Standalone','ATS','Gulf','Brazil','Indonesia','Elgi China','Ergo','Elgi Consol')
+
+
+select DataType,FinPeriod,Entity,MR1_ID,MR1,rownum,Calculation,
+FTM_Value,FTM_Value_expr,FTM_Value_Final,
+FTM_Value_LYCM,FTM_Value_LYCM_expr,FTM_Value_LYCM_Final,
+YTD_Value,YTD_Value_expr,YTD_Value_Final,
+YTD_Value_LYCM,YTD_Value_LYCM_expr,YTD_Value_LYCM_Final,
+FTM_Value_INR,FTM_Value_INR_expr,FTM_Value_INR_Final,
+FTM_Value_LYCM_INR,FTM_Value_LYCM_INR_expr,FTM_Value_LYCM_INR_Final,
+FTM_Value_PrevYrRate,FTM_Value_PrevYrRate_expr,FTM_Value_PrevYrRate_Final,
+FTM_Value_BudRate,FTM_Value_BudRate_expr,FTM_Value_BudRate_Final,
+FTM_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate_expr,FTM_Value_LYCM_BudRate_Final,
+YTD_Value_INR,YTD_Value_INR_expr,YTD_Value_INR_Final,
+YTD_Value_LYCM_INR,YTD_Value_LYCM_INR_expr,YTD_Value_LYCM_INR_Final,
+YTD_Value_PrevYrRate,YTD_Value_PrevYrRate_expr,YTD_Value_PrevYrRate_Final,
+YTD_Value_BudRate,YTD_Value_BudRate_expr,YTD_Value_BudRate_Final,
+YTD_Value_LYCM_BudRate,YTD_Value_LYCM_BudRate_expr,YTD_Value_LYCM_BudRate_Final
+from TB_PL_structure
+--where --FTM_Value is not null and 
+--entity like '%GULF%' --and FinPeriod='202001'
+order by FinPeriod,rownum
+
+
+
+
+
+
+
+Completion time: 2025-11-19T12:38:07.0864215+05:30

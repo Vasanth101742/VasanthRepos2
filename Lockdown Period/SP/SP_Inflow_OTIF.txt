@@ -1,0 +1,69 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- =============================================
+-- Author:		<Author,,Raviprasath>
+-- Create date: <02-06-2025>
+-- Description:	<Description,,>
+-- =============================================
+CREATE PROCEDURE [dbo].[SP_Inflow_OTIF]
+
+AS
+BEGIN
+
+Truncate Table Inflow_OTIF
+
+Insert into Inflow_OTIF (indent,Company,Year,Month,AreaCode,AreaName,Zone,CustCode,custname1,Dpst,OrderDate,OrderNum,ordertype,ItemCode,Item_desc,
+qty,sales,UTN,Clearence_Date_orijinal,
+PONO,POQty,Production_ord_no,cust_date,Release_Date,Completed_Date,delivery_date,[PO Status],Remarks,Fabno,PO_Aging,TARGET_OTA,OTA_GAPDAYS
+)
+select indent,a.Company,year(orderdate)as Year,DATENAME(mm,orderdate)as Month,
+a.AreaCode,a.AreaName,a.Zone,a.CustCode,a.CustName as custname1,a.Dpst,OrderDate,a.OrderNum,ordertype,
+ltrim(rtrim(a.ItemCode))as ItemCode,a.Item_desc ,sum(qty)as qty,sum(sales)as sales,
+c.UTN,convert(date,c.Clearence_Date_orijinal)Clearence_Date_orijinal,
+c.PONO,c.POQty,c.Production_ord_no,Convert(date,c.cust_date)cust_date,Convert(date,c.Release_Date)Release_Date,
+Convert(date,c.Completed_Date)Completed_Date,convert(date,c.[delivery_date])delivery_date,c.S'PO Status',c.Remarks,c.Fabno
+,Case When c.S IN ('Documents Printed','Planned','Active') Then Datediff(Day,c.Clearence_Date_orijinal,Getdate()) Else NULL End AS PO_Aging
+,convert(date,c.TARGET_OTA)TARGET_OTA,c.OTA_GAPDAYS
+From sales_Inflow a
+
+left join [utn_ver1] c on Concat(LTRIM(RTRIM(Item)),'-',SaleOrderno) = Concat(LTRIM(RTRIM(a.ItemCode)),'-',a.OrderNum)
+--left JOIn [sales_report_LN] d on Concat(LTRIM(RTRIM(d.ItemCode)),'-',d.Ordernum) = Concat(LTRIM(RTRIM(a.ItemCode)),'-',a.OrderNum)
+
+where a.Company in (select distinct Company  From ELGI_Companies_Master where CompanyGroup ='ELGI')
+and concat(a.Company,ordertype) in (select concat(company,SaleOrderType) from SaleType_Master where Sales_Category not in (1))
+and Convert(date,a.orderDate)  Between  '2024-04-01' and Convert(date,Getdate())
+and a.Company = '401' 
+--and a.Dpst IN ('90016','90020')     
+--and ltrim(rtrim(ZONE)) IN ('West','South','North','East')
+--and (OrderDate  between @fromdate and @todate)
+--and a.Company in (@Company)
+--and dpst in (@DPST)
+--and Areacode in (@area)
+
+
+group by indent,a.Company,year(orderdate),DATENAME(mm,orderdate),
+a.AreaCode,a.AreaName,a.Zone,a.CustCode,a.CustName,a.dpst,a.DpstName,OrderDate,
+a.OrderNum,ordertype,ltrim(rtrim(a.ItemCode)),a.Item_desc,c.UTN,convert(date,c.Clearence_Date_orijinal),
+c.PONO,c.POQty,c.Production_ord_no,Convert(date,c.cust_date),Convert(date,c.Release_Date),
+Convert(date,c.Completed_Date),convert(date,c.[delivery_date]),c.S,c.Remarks,c.Fabno,
+convert(date,c.TARGET_OTA),c.OTA_GAPDAYS
+
+
+
+Insert into Inflow_OTIF (ItemCode,Ordernum,Invoice,DeliveredQty,AssesValue,Invoice_date)
+Select LTRIM(RTRIM(d.ItemCode))'ItemCode',LTRIM(RTRIM(d.Ordernum))'Ordernum',d.Invoice,sum(d.DeliveredQty)'DeliveredQty',
+Sum(d.AssesValue)'AssesValue',Convert(date,d.Date)'Invoice_date'
+from [sales_report_LN] d
+Where Concat(LTRIM(RTRIM(d.ItemCode)),'-',d.Ordernum) IN (Select Concat(LTRIM(RTRIM(a.ItemCode)),'-',a.OrderNum) from sales_Inflow a
+where a.Company in (select distinct Company  From ELGI_Companies_Master where CompanyGroup ='ELGI')
+and concat(a.Company,ordertype) in (select concat(company,SaleOrderType) from SaleType_Master where Sales_Category not in (1))
+and Convert(date,a.orderDate)  Between  '2024-04-01' and Convert(date,Getdate())
+and a.Company = '401')
+group by LTRIM(RTRIM(d.ItemCode)),LTRIM(RTRIM(d.Ordernum)),d.Invoice,Convert(date,d.Date)
+
+
+End
+
+
+
+Completion time: 2025-11-19T11:21:05.4632179+05:30

@@ -1,0 +1,178 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_FG_Inventory_Details
+
+CREATE proc sp_FG_Inventory_Details as
+begin
+
+Truncate table FG_Inventory_Details
+
+--Alter table FG_Inventory_Details add Description varchar(50)
+--Alter table FG_Inventory_Details add Rnk1 int
+--Alter table FG_Inventory_Details add SEQN	nvarchar(38)
+--Alter table FG_Inventory_Details add INWP		nvarchar(38)
+
+
+--Method1
+--Insert into FG_Inventory_Details (COMPANY,CWAR,Vertical,ITEM,ItemDescr,TRDT,
+--QSKT,Amnt,Amnt_Mn,INVType,CompName,Ageing,OrderDate,OrderNum,PositionNum,
+--CustCode,CustName,PDNO,MSER,FG_BLK,QA_BLK,Rnk1,SEQN,INWP)
+----select * into FG_Inventory_Details from (
+--select distinct a.COMPANY,a.CWAR,a.Vertical,a.ITEM,a.ItemDescr,a.TRDT,a.QSKT,a.Amnt,a.Amnt_Mn,a.INVType,a.CompName,
+--datediff(dd,a.TRDT,getdate()-1) as Ageing,
+--b.OrderDate,b.OrderNum,b.PositionNum,b.CustCode,b.CustName,
+--c.PDNO,
+--d.MSER,
+----e.WORN,e.WPON,--e.WSEQ,
+----e.SHPM
+--f.FG_BLK,
+--null as QA_BLK,
+----case when g.SERL is not null then 'Yes'
+----when g.SERL is null then 'No' end as QA_BLK,
+--ROW_NUMBER() over (partition by a.COMPANY,a.CWAR,a.ITEM,a.TRDT,a.SEQN,a.INWP
+--order by a.COMPANY,a.CWAR,a.ITEM,b.OrderNum,b.PositionNum,c.PDNO,d.MSER 
+--) as Rnk1,
+--a.SEQN,a.INWP
+
+
+--from
+--(select COMPANY,CWAR,Vertical,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt4 as Amnt,Amnt4/1000000.0 as Amnt_Mn,
+--INVType,CompName,Ageing
+--from InventoryDetails
+--where INVType='FG'
+--and company like '4%'
+----and ltrim(rtrim(ITEM))='M000037703'--'015314094'
+----and ltrim(rtrim(ITEM))='S012813'  --for testing purpose
+--)a
+--left outer join (select distinct Company,WareHouse,ItemCode,
+--OrderDate,OrderNum,PositionNum,CustCode,CustName from Sales_Inflow where invnum=0)b
+--on a.COMPANY=b.Company
+--and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.WareHouse))
+--and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ItemCode))
+--left outer join (select distinct COMPANY,ORNO,PONO,PDNO from TZZSFC289ALL
+--where concat(company,PDNO) in (select distinct concat(COMPANY,PDNO) from TTISFC001ALL)
+--)c
+--on b.company=c.company
+--and b.OrderNum=c.ORNO
+--and b.PositionNum=c.PONO
+--left outer join (select distinct COMPANY,PDNO,MSER from TTIMFC010ALL)d
+--on c.COMPANY=d.COMPANY
+--and c.PDNO=d.PDNO
+----left outer join (select distinct COMPANY,WORN,WPON,--WSEQ ,
+----SHPM from TWHINH431ALL where WORG=1 )e
+----on b.COMPANY=e.COMPANY
+----and b.OrderNum=e.WORN
+----and b.PositionNum=e.WPON
+--left outer join (select distinct COMPANY,CWAR,item,SERL,
+--case when BOUT=1 then 'Yes'
+--when BOUT=2 then 'No' end as FG_BLK from TWHLTC500ALL )f
+--on a.COMPANY=f.company
+--and a.cwar=f.cwar
+--and ltrim(rtrim(a.ITEM))=ltrim(rtrim(a.ITEM))
+--and d.MSER=f.SERL
+----left outer join (select distinct COMPANY,CWAR,ITEM,SERL from TWHINH211ALL where QTBU>0)g
+----on a.COMPANY=f.company
+----and a.cwar=f.cwar
+----and ltrim(rtrim(a.ITEM))=ltrim(rtrim(a.ITEM))
+----and d.MSER=f.SERL
+
+----where b.OrderNum='290010071' --for testing purpose
+----)a
+
+
+
+----Method2
+
+Insert into FG_Inventory_Details (COMPANY,CWAR,Vertical,ITEM,ItemDescr,TRDT,
+QSKT,Amnt,Amnt_Mn,INVType,CompName,Ageing,OrderDate,OrderNum,PositionNum,
+CustCode,CustName,PDNO,MSER,FG_BLK,QA_BLK,Rnk1,SEQN,INWP)
+--select * into FG_Inventory_Details from (
+select distinct a.COMPANY,a.CWAR,a.Vertical,a.ITEM,a.ItemDescr,a.TRDT,a.QSKT,a.Amnt,a.Amnt_Mn,a.INVType,a.CompName,
+datediff(dd,a.TRDT,getdate()-1) as Ageing,
+d.OrderDate,d.OrderNum,d.PositionNum,d.CustCode,d.CustName,
+b.ORNO,
+b.SERL,
+--e.WORN,e.WPON,--e.WSEQ,
+--e.SHPM
+b.FG_BLK,
+null as QA_BLK,
+--case when g.SERL is not null then 'Yes'
+--when g.SERL is null then 'No' end as QA_BLK,
+ROW_NUMBER() over (partition by a.COMPANY,a.CWAR,a.ITEM,a.TRDT,a.SEQN,a.INWP
+order by a.COMPANY,a.CWAR,a.ITEM,d.OrderNum,d.PositionNum,b.ORNO,b.SERL 
+) as Rnk1,
+a.SEQN,a.INWP
+
+
+from
+(select COMPANY,CWAR,Vertical,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt4 as Amnt,Amnt4/1000000.0 as Amnt_Mn,
+INVType,CompName,Ageing
+from InventoryDetails
+where INVType='FG'
+--and company like '4%'
+--and ltrim(rtrim(ITEM))='M000037703'--'015314094'
+--and ltrim(rtrim(ITEM))='S012813'  --for testing purpose
+)a
+left outer join (select distinct COMPANY,CWAR,ITEM,IDAT,SERL,ORNO,
+case when BOUT=1 then 'Yes'
+when BOUT=2 then 'No' end as FG_BLK 
+from TWHLTC500ALL
+where OSER=2 and QHND<>0
+)b
+on a.COMPANY=b.company
+and a.cwar=b.cwar
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+and a.TRDT=b.IDAT
+left outer join (select distinct COMPANY,ORNO,PONO,PDNO from TZZSFC289ALL
+where concat(company,PDNO) in (select distinct concat(COMPANY,PDNO) from TTISFC001ALL)
+)c
+on b.company=c.company
+and b.ORNO=c.PDNO
+left outer join (select distinct Company,WareHouse,ItemCode,
+OrderDate,OrderNum,PositionNum,CustCode,CustName from Sales_Inflow where invnum=0)d
+on c.COMPANY=d.Company
+and ltrim(rtrim(c.ORNO))=ltrim(rtrim(d.OrderNum))
+and ltrim(rtrim(c.PONO))=ltrim(rtrim(d.PositionNum))
+
+
+
+update FG_Inventory_Details set Description=b.Description
+from (
+select distinct a.company,Description,prd_from,prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+)b
+where case when FG_Inventory_Details.PDNO like '%[a-z]%' then '0' else FG_Inventory_Details.PDNO end 
+between case when b.prd_from like '%[a-z]%' then '0' else b.prd_from end 
+and case when b.prd_to like '%[a-z]%' then '0' else b.prd_to end  
+and FG_Inventory_Details.company = b.company
+
+
+
+
+update FG_Inventory_Details set QA_BLK=g.QA_BLK
+from (select distinct COMPANY,CWAR,ITEM,SERL,
+case when SERL is not null then 'Yes'
+when SERL is null then 'No' end as QA_BLK
+from TWHINH211ALL where QTBU>0
+and ltrim(rtrim(SERL)) in (select distinct ltrim(rtrim(MSER)) from FG_Inventory_Details)
+)g
+where FG_Inventory_Details.COMPANY=g.company
+and ltrim(rtrim(FG_Inventory_Details.cwar))=ltrim(rtrim(g.cwar))
+and ltrim(rtrim(FG_Inventory_Details.ITEM))=ltrim(rtrim(g.ITEM))
+and ltrim(rtrim(FG_Inventory_Details.MSER))=ltrim(rtrim(g.SERL))
+
+
+update FG_Inventory_Details set QSKT=null,Amnt=null,Amnt_Mn=null where Rnk1>1
+
+Update FG_Inventory_Details Set LastRunDate=getdate()-1
+
+end
+
+
+select * from FG_Inventory_Details
+--where concat(COMPANY,CWAR,ltrim(rtrim(item)))='401151000959385'
+--'401151000959387'
+
+
+Completion time: 2025-11-19T10:12:57.6992029+05:30

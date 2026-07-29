@@ -1,0 +1,336 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- exec sp_Fixedcost_mainreport_Ln '2018'
+CREATE proc [dbo].[sp_Fixedcost_mainreport_Ln] (@year int)
+as 
+begin
+---------------------------------- Fully Allocated   ------------------------
+--declare @year int =2016
+--declare @prd int=12
+truncate table fixedcost_mainreport_ln
+insert into fixedcost_mainreport_ln
+
+select * From (
+select *,case when particulars ='SUBSCRIPTION, PERIODICALS &  F'then 'SUBSCRIPTION & PERIODICALS'else particulars  end as paticulars From (
+select ltrim(rtrim(isnull(a.Paticulars ,b.[Head of Expenses] ))) as particulars,
+ltrim(rtrim(isnull(a.functions ,b.Dept )))as functions,
+isnull(a.mon_act1,0)as mon_act1 ,
+isnull(a.mon_act2,0)as mon_act2 ,
+isnull(a.mon_act3,0)as mon_act3 ,
+isnull(a.mon_act4,0)as mon_act4 ,
+isnull(a.mon_act5,0)as mon_act5 ,
+isnull(a.mon_act6,0)as mon_act6 ,
+isnull(a.mon_act7,0)as mon_act7 ,
+isnull(a.mon_act8,0)as mon_act8 ,
+isnull(a.mon_act9,0)as mon_act9 ,
+isnull(a.mon_act10,0)as mon_act10 ,
+isnull(a.mon_act11,0)as mon_act11 ,
+isnull(a.mon_act12,0)as mon_act12 ,
+isnull(a.ytd_act,0) as ytd_act,
+isnull(a.lytd_act,0) as lytd_act,
+isnull(a.prv_mon_act1,0) as prv_mon_act1,
+isnull(a.prv_mon_act2,0) as prv_mon_act2,
+isnull(a.prv_mon_act3,0) as prv_mon_act3,
+isnull(a.prv_mon_act4,0) as prv_mon_act4,
+isnull(a.prv_mon_act5,0) as prv_mon_act5,
+isnull(a.prv_mon_act6,0) as prv_mon_act6,
+isnull(a.prv_mon_act7,0) as prv_mon_act7,
+isnull(a.prv_mon_act8,0) as prv_mon_act8,
+isnull(a.prv_mon_act9,0) as prv_mon_act9,
+isnull(a.prv_mon_act10,0) as prv_mon_act10,
+isnull(a.prv_mon_act11,0) as prv_mon_act11,
+isnull(a.prv_mon_act12,0) as prv_mon_act12,
+isnull(a.prv_ytd_act,0)as prv_ytd_act,
+isnull(a.prv_lytd_act,0)as prv_lytd_act, 
+isnull(b.[Head of Expenses],'')as [Head of Expenses],
+isnull(b.dept,'')as dept,
+isnull(b.[Apr-16],0) as [Apr-16] ,
+isnull(b.[May-16],0)as [May-16] ,
+isnull(b.[Jun-16] ,0)as [Jun-16] ,
+isnull(b.[Jul-16],0)as [Jul-16] ,
+isnull(b.[Aug-16] ,0)as [Aug-16] ,
+isnull(b.[Sep-16] ,0)as [Sep-16] ,
+isnull(b.[Oct-16],0)as [Oct-16] ,
+isnull(b.[Nov-16],0)as [Nov-16] ,
+isnull(b.[Dec-16],0)as [Dec-16] ,
+isnull(b.[Jan-17] ,0)as [Jan-17] ,
+isnull(b.[Feb-17],0)as [Feb-17] ,
+isnull(b.[Mar-17] ,0)as [Mar-17] ,
+isnull(b.Total ,0)as total
+from (
+select * From (
+select Paticulars,functions,
+sum(mon_act1)/1000000 as mon_act1 ,
+sum(mon_act2)/1000000 as mon_act2 ,
+sum(mon_act3)/1000000 as mon_act3 ,
+sum(mon_act4)/1000000 as mon_act4 ,
+sum(mon_act5)/1000000 as mon_act5 ,
+sum(mon_act6)/1000000 as mon_act6 ,
+sum(mon_act7)/1000000 as mon_act7 ,
+sum(mon_act8)/1000000 as mon_act8 ,
+sum(mon_act9)/1000000 as mon_act9 ,
+sum(mon_act10)/1000000 as mon_act10, 
+sum(mon_act11)/1000000 as mon_act11 ,
+sum(mon_act12)/1000000 as mon_act12 ,
+sum(ytd_act )/1000000 as ytd_act,
+sum(lytd_act) as lytd_act,
+sum(prv_mon_act1)/1000000 as prv_mon_act1 ,
+sum(prv_mon_act2)/1000000 as prv_mon_act2 ,
+sum(prv_mon_act3)/1000000 as prv_mon_act3 ,
+sum(prv_mon_act4)/1000000 as prv_mon_act4 ,
+sum(prv_mon_act5)/1000000 as prv_mon_act5 ,
+sum(prv_mon_act6)/1000000 as prv_mon_act6 ,
+sum(prv_mon_act7)/1000000 as prv_mon_act7 ,
+sum(prv_mon_act8)/1000000 as prv_mon_act8 ,
+sum(prv_mon_act9)/1000000 as prv_mon_act9 ,
+sum(prv_mon_act10)/1000000 as prv_mon_act10, 
+sum(prv_mon_act11)/1000000 as prv_mon_act11 ,
+sum(prv_mon_act12)/1000000 as prv_mon_act12 ,
+sum(prv_ytd_act )/1000000 as prv_ytd_act,
+sum(prv_lytd_act) as prv_lytd_act
+from 
+(
+select functions,Paticulars , years,periods ,
+    sum(case when years = @year then val else 0 end ) as ytd_act,
+    sum(case when periods = 1 and years = @year then val else 0 end) as mon_act1,
+    sum(case when periods = 2 and years = @year then val else 0 end) as mon_act2,
+				sum(case when periods = 3 and years = @year then val else 0 end) as mon_act3,
+				sum(case when periods = 4 and years = @year then val else 0 end) as mon_act4,
+				sum(case when periods = 5 and years = @year then val else 0 end) as mon_act5,
+				sum(case when periods = 6 and years = @year then val else 0 end) as mon_act6,
+				sum(case when periods = 7 and years = @year then val else 0 end) as mon_act7,
+				sum(case when periods = 8 and years = @year then val else 0 end) as mon_act8,
+				sum(case when periods = 9 and years = @year then val else 0 end) as mon_act9,
+				sum(case when periods = 10 and years = @year then val else 0 end) as mon_act10,
+				sum(case when periods = 11 and years = @year then val else 0 end) as mon_act11,
+				sum(case when periods = 12 and years = @year then val else 0 end) as mon_act12,
+				sum(case when years = @year-1 then val else 0 end ) as lytd_act,
+    sum(case when years = @year-1 then val else 0 end ) as prv_ytd_act,
+ 			sum(case when periods = 1 and years = @year-1 then val else 0 end) as prv_mon_act1,
+				sum(case when periods = 2 and years = @year-1 then val else 0 end) as prv_mon_act2,
+				sum(case when periods = 3 and years = @year-1 then val else 0 end) as prv_mon_act3,
+				sum(case when periods = 4 and years = @year-1 then val else 0 end) as prv_mon_act4,
+				sum(case when periods = 5 and years = @year-1 then val else 0 end) as prv_mon_act5,
+				sum(case when periods = 6 and years = @year-1 then val else 0 end) as prv_mon_act6,
+				sum(case when periods = 7 and years = @year-1 then val else 0 end) as prv_mon_act7,
+				sum(case when periods = 8 and years = @year-1 then val else 0 end) as prv_mon_act8,
+				sum(case when periods = 9 and years = @year-1 then val else 0 end) as prv_mon_act9,
+				sum(case when periods = 10 and years = @year-1 then val else 0 end) as prv_mon_act10,
+				sum(case when periods = 11 and years = @year-1 then val else 0 end) as prv_mon_act11,
+				sum(case when periods = 12 and years = @year-1 then val else 0 end) as prv_mon_act12,
+				sum(case when years = @year-2 then val else 0 end ) as prv_lytd_act
+				from (
+				
+				select * from (
+				select 	t$dim2 as cc,t$cono,T$LEAC as leac,SUM(T$FDAH$1)-SUM(T$FCAH$1) as val,
+				case
+				when t$leac between 'EC2712001' and 'EC2712001' then 'Corporate - Accounts'
+				when t$leac between 'EC2713001' and 'EC2713001' then 'Corporate - Accounts'
+				when t$leac between 'EC0201001' and 'EC0201001' then 'Corporate - Maintenance'
+				when t$leac between 'EC2202001' and 'EC2202001' then 'Corporate - IT'
+				when t$leac between 'EC1201001' and 'EC1299999' then 'Corporate - Accounts'
+				when t$leac between 'EC1401001' and 'EC1499999' then 'Corporate - Accounts'
+				when t$leac between 'EC1601001' and 'EC1699999' then 'Corporate - Accounts'
+				when t$leac between 'EC1701001' and 'EC1799999' then 'Corporate - Accounts'
+				when t$leac between 'EC1901001' and 'EC1999999' then 'Corporate - Accounts'
+				when t$leac between 'EC2001001' and 'EC2099999' then 'Corporate - Accounts'
+				when t$leac between 'EC2101001' and 'EC2199999' then 'Corporate - Accounts'
+				when t$leac between 'EC2601001' and 'EC2699999' then 'Corporate - Accounts'
+				when t$leac between 'EC2901001' and 'EC2999999' then 'Corporate - Accounts'
+				when t$leac between 'EC3001001' and 'EC3099999' then 'Corporate - Accounts'
+				when t$leac between 'EC3101001' and 'EC3199999' then 'Corporate - Accounts'
+				when (t$leac between 'EC2801001' and 'EC2899999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+				when (t$leac between 'EC2715008' and 'EC2715008') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+				when (t$leac between 'EC2301001' and 'EC2399999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+				when (t$leac between 'EC2201001' and 'EC2299999')  AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424)then b.[function]
+				when (t$leac between 'EC2710001' and 'EC2710999')  AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424)then b.[function]
+				when (t$leac between 'EC2703001' and 'EC2703999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+				when (t$leac between 'EC0601001' and 'EC0699999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+				when (t$leac between 'EC2501001' and 'EC2599999')  AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424)then b.[function]
+				
+				when (t$leac between 'EC2703001' and 'EC2799999') 
+				and (t$leac not between 'EC2714001' and 'EC2714001')and (t$leac not between 'EC2704000' and 'EC2704001') 
+				and (t$leac not between 'EC2712001' and 'EC2712001')and (t$leac not between 'EC2713001' and 'EC2713001')
+				and (t$leac not between 'EC2709001' and 'EC2709999')and (t$leac not between 'EC2706001' and 'EC2706999') 
+				and (t$leac not between 'EC2711002' and 'EC2711002') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424)
+				then b.[function]
+				end as functions,a.paticulars,
+									t$year as years,T$prno as periods
+									from 	(
+									select T$CONO,T$LEAC,T$YEAR,T$PRNO,T$FDAH$1,T$FCAH$1,T$DIM2        From ttfgld205all  (nolock) where T$PTYP=1  --old where t$cono in(100,102,103,104,108,110,120,140,150,160,170,180,210,220,230,240,310,320,340,410,420,430,440,520,530,540)
+								--union all
+								--select  T$CONO,T$LEAC,T$YEAR,T$PRNO,T$FDAH,T$FCAH,t$dim2 from ttfgld205_2016_Baan
+								)ttfgld205
+									inner join (select * from elgi_exp_master_new)a 
+									on ttfgld205.t$leac between a.from_leac and a.to_leac
+									left join Branch_function_master b
+									on b.Company=ttfgld205.t$cono 
+									where t$year in ( @year,@year -1) 
+									GROUP BY t$cono,T$LEAC,
+									case
+									when t$leac between 'EC2712001' and 'EC2712001' then 'Corporate - Accounts'
+									when t$leac between 'EC2713001' and 'EC2713001' then 'Corporate - Accounts'
+									when t$leac between 'EC0201001' and 'EC0201001' then 'Corporate - Maintenance'
+				     when t$leac between 'EC2202001' and 'EC2202001' then 'Corporate - IT'
+									when t$leac between 'EC1201001' and 'EC1299999' then 'Corporate - Accounts'
+									when t$leac between 'EC1401001' and 'EC1499999' then 'Corporate - Accounts'
+									when t$leac between 'EC1601001' and 'EC1699999' then 'Corporate - Accounts'
+									when t$leac between 'EC1701001' and 'EC1799999' then 'Corporate - Accounts'
+									when t$leac between 'EC1901001' and 'EC1999999' then 'Corporate - Accounts'
+									when t$leac between 'EC2001001' and 'EC2099999' then 'Corporate - Accounts'
+									when t$leac between 'EC2101001' and 'EC2199999' then 'Corporate - Accounts'
+									when t$leac between 'EC2601001' and 'EC2699999' then 'Corporate - Accounts'
+									when t$leac between 'EC2901001' and 'EC2999999' then 'Corporate - Accounts'
+									when t$leac between 'EC3001001' and 'EC3099999' then 'Corporate - Accounts'       
+									when t$leac between 'EC3101001' and 'EC3199999' then 'Corporate - Accounts'
+									
+									when (t$leac between 'EC2801001' and 'EC2899999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									when (t$leac between 'EC2715008' and 'EC2715008') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									when (t$leac between 'EC2301001' and 'EC2399999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									when (t$leac between 'EC2201001' and 'EC2299999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									when (t$leac between 'EC2710001' and 'EC2710999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									when (t$leac between 'EC2703001' and 'EC2703999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									when (t$leac between 'EC0601001' and 'EC0699999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									when (t$leac between 'EC2501001' and 'EC2599999') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then b.[function]
+									
+									when (t$leac between 'EC2703001' and 'EC2799999') 
+									and (t$leac not between 'EC2714001' and 'EC2714001')and (t$leac not between 'EC2704000' and 'EC2704001') 
+									and (t$leac not between 'EC2712001' and 'EC2712001')and (t$leac not between 'EC2713001' and 'EC2713001')
+									and (t$leac not between 'EC2709001' and 'EC2709999')and (t$leac not between 'EC2706001' and 'EC2706999') 
+									and (t$leac not between 'EC2711002' and 'EC2711002') AND t$cono in(411,412,413,414,415,416,417,418,419,420,421,422,423,424)
+									then b.[function]
+									
+end ,t$dim2,t$year,T$prno,a.paticulars
+HAVING SUM(T$FDAH$1)-SUM(T$FCAH$1) <> 0)a
+where functions is not null
+--and periods in (@prd)
+--and functions ='Corporate - Accounts'
+
+
+					------------------------------------ Cost centerwise        --------------------------------
+
+	union all
+
+--declare @year int = 2015			
+select * from (
+select 	ccm.cc,t$cono,T$LEAC as leac,SUM(T$FDAH$1)-SUM(T$FCAH$1) as val,
+case
+when (t$leac between 'EC2801001' and 'EC2899999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2715008' and 'EC2715008')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2301001' and 'EC2399999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2201001' and 'EC2299999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2710001' and 'EC2710999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2703001' and 'EC2703999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC0601001' and 'EC0699999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2501001' and 'EC2599999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+
+WHEN (t$leac  between 'EC2711002' and 'EC2711002')then ccm.Functions
+when (t$leac between 'EC2706001' and 'EC2706999')then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2709001' and 'EC2709999')then ccm.Functions-- ADDED  (MOVED FROM FULLY ALLOCATED TO COSTCENTER)
+when (t$leac between 'EC2401001' and 'EC2499999') then ccm.Functions-- ADDED (MOVED FROM FULLY ALLOCATED TO COSTCENTER)
+when (t$leac between 'EC1801001' and 'EC1899999') then ccm.Functions-- ADDED (MOVED FROM FULLY ALLOCATED TO COSTCENTER)
+when (t$leac between 'EC0501001' and 'EC0599999') then ccm.Functions-- ADDED (MOVED FROM FULLY ALLOCATED TO COSTCENTER)
+when (t$leac between 'EC1303003' and 'EC1303003')then ccm.Functions
+when (t$leac between 'EC1303005' and 'EC1303005')then ccm.Functions
+when (t$leac between 'EC1301001' and 'EC1399999') and (t$leac not between 'EC1303003' and 'EC1303003') and (t$leac not between 'EC1303005' and 'EC1303005')then ccm.Functions
+when (t$leac between 'EC1101001' and 'EC1199999') then ccm.Functions
+when (t$leac between 'EC0701001' and 'EC0799999') then ccm.Functions
+when (t$leac between 'EC0401001' and 'EC0499999') then ccm.Functions 
+when (t$leac between 'EC0801001' and 'EC0899999') then ccm.Functions 
+when (t$leac between 'EC1001001' and 'EC1099999') then ccm.functions		
+when (t$leac between 'EC1502001' and 'EC1502999') then ccm.functions		
+when (t$leac between 'EC1501001' and 'EC1599999') and (t$leac not between 'EC1502001' and 'EC1502999')then ccm.functions		
+when (t$leac between 'EC2702002' and 'EC2702002') then ccm.functions		
+when (t$leac between 'EC2701001' and 'EC2702999') and (t$leac not between 'EC2702002' and 'EC2702002') then ccm.functions		
+when (t$leac between 'EC2704000' and 'EC2704001') then ccm.functions		
+when (t$leac between 'EC2714001' and 'EC2714001') then ccm.functions		
+
+when (t$leac between 'EC2703001' and 'EC2799999') 
+and (t$leac not between 'EC2714001' and 'EC2714001') and (t$leac not between 'EC2704000' and 'EC2704001')
+and (t$leac not between 'EC2712001' and 'EC2712001') and (t$leac not between 'EC2713001' and 'EC2713001')
+and (t$leac not between 'EC2709001' and 'EC2709999') and (t$leac not between 'EC2706001' and 'EC2706999')
+and (t$leac not between 'EC2711002' and 'EC2711002')
+AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions
+ when ccm.CC is null then ttfgld205.t$dim2 
+end as functions,a.paticulars,
+t$year as years,T$prno as periods
+from 	(
+select T$CONO,T$LEAC,T$YEAR,T$PRNO,T$FDAH$1,T$FCAH$1,T$DIM2        From ttfgld205all  (nolock) where T$PTYP=1 --old where t$cono in(100,102,103,104,108,110,120,140,150,160,170,180,210,220,230,240,310,320,340,410,420,430,440,520,530,540)
+								--union all
+								--select  T$CONO,T$LEAC,T$YEAR,T$PRNO,T$FDAH,T$FCAH,t$dim2 from ttfgld205_2016_Baan
+								)ttfgld205
+
+inner join (select * from elgi_exp_master_new)a 
+on ttfgld205.t$leac between a.from_leac and a.to_leac
+left join (select *FROM CC_FUNCTION_MASTER) ccm
+on ltrim(rtrim(ttfgld205.t$dim2 )) =ltrim(rtrim(ccm .CC ))
+and t$year in ( @year,@year-1) --and
+group by t$cono,T$LEAC,
+case
+when (t$leac between 'EC2801001' and 'EC2899999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2715008' and 'EC2715008')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2301001' and 'EC2399999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2201001' and 'EC2299999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2710001' and 'EC2710999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2703001' and 'EC2703999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC0601001' and 'EC0699999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+when (t$leac between 'EC2501001' and 'EC2599999')AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions --NEWLY ADDED
+
+WHEN (t$leac  between 'EC2711002' and 'EC2711002')then ccm.Functions
+when (t$leac between 'EC2706001' and 'EC2706999')then ccm.Functions
+when (t$leac between 'EC2709001' and 'EC2709999')then ccm.Functions
+when (t$leac between 'EC2401001' and 'EC2499999') then ccm.Functions
+when (t$leac between 'EC1801001' and 'EC1899999') then ccm.Functions
+when (t$leac between 'EC0501001' and 'EC0599999') then ccm.Functions
+when (t$leac between 'EC1303003' and 'EC1303003')then ccm.Functions
+when (t$leac between 'EC1303005' and 'EC1303005')then ccm.Functions
+when (t$leac between 'EC1301001' and 'EC1399999') and (t$leac not between 'EC1303003' and 'EC1303003') and (t$leac not between 'EC1303005' and 'EC1303005')then ccm.Functions
+when (t$leac between 'EC1101001' and 'EC1199999') then ccm.Functions
+when (t$leac between 'EC0701001' and 'EC0799999') then ccm.Functions
+when (t$leac between 'EC0401001' and 'EC0499999') then ccm.Functions 
+when (t$leac between 'EC0801001' and 'EC0899999') then ccm.Functions 
+when (t$leac between 'EC1001001' and 'EC1099999') then ccm.functions		
+when (t$leac between 'EC1502001' and 'EC1502999') then ccm.functions		
+when (t$leac between 'EC1501001' and 'EC1599999') and (t$leac not between 'EC1502001' and 'EC1502999')then ccm.functions		
+when (t$leac between 'EC2702002' and 'EC2702002') then ccm.functions		
+when (t$leac between 'EC2701001' and 'EC2702999') and (t$leac not between 'EC2702002' and 'EC2702002') then ccm.functions		
+when (t$leac between 'EC2704000' and 'EC2704001') then ccm.functions		
+when (t$leac between 'EC2714001' and 'EC2714001') then ccm.functions		
+
+when (t$leac between 'EC2703001' and 'EC2799999') 
+and (t$leac not between 'EC2714001' and 'EC2714001') and (t$leac not between 'EC2704000' and 'EC2704001')
+and (t$leac not between 'EC2712001' and 'EC2712001') and (t$leac not between 'EC2713001' and 'EC2713001')
+and (t$leac not between 'EC2709001' and 'EC2709999') and (t$leac not between 'EC2706001' and 'EC2706999')
+and (t$leac not between 'EC2711002' and 'EC2711002')
+AND t$cono not in(411,412,413,414,415,416,417,418,419,420,421,422,423,424) then ccm.Functions
+
+when ccm.CC is null then ttfgld205.t$dim2 
+--else ttfgld205.t$dim2 
+end, a.paticulars,t$year,T$prno,ccm.CC  )a
+where a.functions is not null 	
+--and periods in (@prd)
+)a
+group by functions ,Paticulars , years,periods
+)a 
+group by functions ,Paticulars 
+)a
+--	where functions in (@functions) and 
+--Paticulars in (@particulars)
+--order by functions 
+)a
+full outer join Fixedcost_budget  b
+on ltrim(rtrim(a.functions)) =ltrim(rtrim(b.dept))
+and ltrim(rtrim(a.Paticulars ))=ltrim(rtrim(b.[Head of Expenses] ))
+)a
+--where 		functions in (@functions) 
+--and 		Particulars in (@particulars)
+)a
+where ytd_act <>0 or prv_ytd_act <>0 or  total<>0
+order by paticulars,functions
+end
+
+
+
+
+
+Completion time: 2025-11-19T10:14:07.2688701+05:30

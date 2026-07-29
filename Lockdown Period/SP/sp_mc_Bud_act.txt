@@ -1,0 +1,247 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_mc_Bud_act 
+CREATE proc sp_mc_Bud_act
+as
+begin
+
+truncate table mc_sales 
+insert into mc_sales 
+select *,0 as sales_bud,0 as sales_bud_Qty,0 as mc_budget --into mc_sales 
+From(
+select dpst,areacode,year(Invoice_Date) as year,month(invoice_date) as month,ltrim(rtrim(Item)) as Item,sum(Sales_amount) as Sales,sum(DeliveryQty)DeliveryQty,0 as sales_Mc
+From elgi_sales_details 
+where company <500 and convert(date,Invoice_Date)>='2019-04-01' --and (ltrim(rtrim(Item)) is not null and ltrim(rtrim(Item))<>'') and dpst not like '%[a-z]%'
+and sales_category not in (1) and
+ORGAN IN ('INDIA','COSEA','SAAME','ID','Subsidiary')
+--and year(Invoice_Date)=@year and month(invoice_date) in (@month)
+group by year(Invoice_Date),month(invoice_date),ltrim(rtrim(Item)),dpst,areacode)a
+
+-- select areacode,Item,dpst,company from elgi_sales_details where item='          S02074' and dpst='90010' and company =401
+update mc_sales set sales_Mc=(mc_sales.DeliveryQty*a.sales_Mc)  
+from(select t$year,t$mnth,ltrim(rtrim(t$sele))t$sele,sum(convert(float,t$impo)) sales_Mc  From TZZCPR104ALL group by t$sele,t$year,t$mnth)a
+where mc_sales.item=ltrim(rtrim(t$sele))
+and mc_sales.year=a.T$YEAR 
+and mc_sales.month=a.T$MNTH 
+-----------------------------End Sales
+
+---------------------------------------------- Start Budget
+--alter table mc_sales_budget alter column item varchar(50)
+--alter table mc_budget alter column item varchar(50)
+
+truncate table mc_budget
+insert into mc_budget
+select dpst,areacode,year,month,item,0 as sales,0 as delqty,0 as sales_mc,sales_bud,sales_bud_Qty,0 as mat_bud From (
+select ltrim(rtrim(item_code))item,dpst,area as areacode,year(date)as year,month(date) as month,sum(target) as sales_bud,sum(qty)sales_bud_Qty 
+From Itemwise_Budget where date>='2019-04-01'
+and dpst<>'70080'
+and len(ltrim(rtrim(item_code)))>2 and target >0
+group by year(date),month(date),dpst,area,ltrim(rtrim(item_code))
+)a
+
+
+--Old Method
+--update mc_budget set mat_bud=round(isnull(a.bud_mc*a.Qty,0),0) from(
+--select * From (
+--select 2019 as Year,4 as month,sofc as dpst,ltrim(rtrim(mitm)) as Item,aprq as Qty,q1_matcost as bud_mc 
+--from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,5,sofc,ltrim(rtrim(mitm)),MAYQ,q1_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,6,sofc,ltrim(rtrim(mitm)),JUNQ ,q1_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,7,sofc,ltrim(rtrim(mitm)),JULQ,Q2_MatCost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,8,sofc,ltrim(rtrim(mitm)),AUGQ ,q2_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,9,sofc,ltrim(rtrim(mitm)),SEPQ ,q2_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,10,sofc,ltrim(rtrim(mitm)),OCTQ ,q3_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,11,sofc,ltrim(rtrim(mitm)),NOVQ,q3_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2019,12,sofc,ltrim(rtrim(mitm)),DECQ,q3_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2020,1,sofc,ltrim(rtrim(mitm)),JANQ,q4_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2020,2,sofc,ltrim(rtrim(mitm)),FEBQ,q4_matcost from MaterialBudget where year = '1920' and Company1 <500 union all
+--select 2020,3,sofc,ltrim(rtrim(mitm)),MARQ,q4_matcost from MaterialBudget where year = '1920' and Company1 <500)a
+----where dpst='90010' and year='2020' and month=2 and Item ='S04189'
+--)a
+--where ltrim(rtrim(mc_budget.item))=ltrim(rtrim(a.Item))
+--and mc_budget.dpst =ltrim(rtrim(a.Dpst))
+--and mc_budget.year=a.year
+--and mc_budget.month=a.month 
+
+
+--Newly added on 29-July-2020
+update mc_budget set mat_bud=round(isnull(a.bud_mc*a.Qty,0),0) from(
+select * From (
+select concat('20',substring(Year,1,2)) as Year,4 as month,sofc as dpst,ltrim(rtrim(mitm)) as Item,aprq as Qty,q1_matcost as bud_mc 
+from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),5,sofc,ltrim(rtrim(mitm)),MAYQ,q1_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),6,sofc,ltrim(rtrim(mitm)),JUNQ ,q1_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),7,sofc,ltrim(rtrim(mitm)),JULQ,Q2_MatCost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),8,sofc,ltrim(rtrim(mitm)),AUGQ ,q2_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),9,sofc,ltrim(rtrim(mitm)),SEPQ ,q2_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),10,sofc,ltrim(rtrim(mitm)),OCTQ ,q3_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),11,sofc,ltrim(rtrim(mitm)),NOVQ,q3_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,1,2)),12,sofc,ltrim(rtrim(mitm)),DECQ,q3_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,3,2)),1,sofc,ltrim(rtrim(mitm)),JANQ,q4_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,3,2)),2,sofc,ltrim(rtrim(mitm)),FEBQ,q4_matcost from MaterialBudget where Company1 <500 union all
+select concat('20',substring(Year,3,2)),3,sofc,ltrim(rtrim(mitm)),MARQ,q4_matcost from MaterialBudget where Company1 <500)a
+--where dpst='90010' and year='2020' and month=2 and Item ='S04189'
+)a
+where ltrim(rtrim(mc_budget.item))=ltrim(rtrim(a.Item))
+and mc_budget.dpst =ltrim(rtrim(a.Dpst))
+and mc_budget.year=a.year
+and mc_budget.month=a.month 
+
+
+-- update mc_budget set mat_bud=mat_bud*sales_bud_Qty
+--alter table mc_budget alter column mat_bud float
+--alter table mc_budget alter column sales_bud_Qty float
+
+--------------------------------------- End Budget
+
+truncate table mc_sales_budget
+insert into mc_sales_budget
+select *,'             ' as Organ,'                         ' as Vertical,'          ' as Vertical2,
+' ' as dpstname,'' as areaname,' ' as Item_Desc from(
+select year,month,dpst,areacode,item,sum(sales)sales,sum(deliveryqty)deliveryqty,
+sum(sales_mc)sales_mc,sum(sales_bud)sales_bud,sum(mc_budget)mc_budget,
+sum(sales_bud_Qty)sales_bud_Qty From (
+select * From mc_sales --where dpst='70012' and year='2019' and month=5 and Item ='S012361'
+union all 
+select * From mc_budget --where dpst='70012' and year='2019' and month=5 and Item ='S012361'
+)a group by year,month,dpst,areacode,item)a
+
+
+----------------------------------------------------------------------------------
+--------- old but valid
+--update mc_sales_budget set Organ='India',Vertical=a.Description  from(select distinct DPSTcode,Description  From DPST_Master_Domestic where DPSTcode not in('90001','90081','90120'))a
+--where mc_sales_budget .dpst =a.DPSTcode 
+
+--update mc_sales_budget set Vertical ='Aftersales industrial' where Vertical ='After Sales                        '
+--update mc_sales_budget set Vertical ='Aftersales portables' where Vertical ='Aftersales industrial' and dpst in (90076,90077,90078,90039,90302)
+
+--update mc_sales_budget set Vertical ='CONSTRUCTION (C)' where dpst in (90033)
+--update mc_sales_budget set Vertical ='MINING (M)' where dpst in (90037)
+--update mc_sales_budget set Vertical ='SEPSAC Stream-I' where dpst in (90008)
+--update mc_sales_budget set Vertical ='WW' where dpst in (90021)
+--update mc_sales_budget set Vertical ='WW – OE' where dpst in (90035)
+
+
+--update mc_sales_budget set organ=a.organ, vertical=a.vertical1   from(
+----select organ,Vertical1,dpst,areacode From ELGi_Sales_Details where sales_category not in (1) and convert(date,Invoice_Date)>='2019-04-01' and organ is not null)a
+--select distinct dpstcode,areacode,organ,vertical1 from SalesMapping_Global where organ is not null and DPSTCode not like '[a-z]')a
+--where mc_sales_budget.dpst=a.DPSTCode and
+--mc_sales_budget.areacode =a.areacode AND 
+--mc_sales_budget.organ <>'india' 
+
+
+--update mc_sales_budget set organ='Others', vertical='Others' WHeRE ORGAN=''
+
+--update mc_sales_budget set areacode='000' WHeRE ORGAN='India'
+
+----------- end 
+
+delete From mc_sales_budget where dpst<70000
+-- delete From mc_sales_budget where  Vertical like '%to cust%' 
+
+update mc_sales_budget set Organ='India',vertical=vertical1,level2_vertical=a.CATEGORY2  from (select * from mc_mapping where organ ='india')a
+where mc_sales_budget.dpst =a.dpst 
+
+
+update mc_sales_budget set Organ='Subsidiary',level2_vertical=a.vertical1  from 
+(select distinct DPSTCode,dpstname,Areacode,AreaName ,organ,case when organ in ('SAAME','ID') then User_names 
+when organ in ('COSEA','Subsidiary') then Division end as vertical1   From SalesMapping_Global  where Organ in ('Subsidiary'))a
+where mc_sales_budget.dpst =a.DPSTCode
+and  mc_sales_budget.areacode =a.Areacode 
+and mc_sales_budget.Organ <>'india'
+
+
+update mc_sales_budget set Organ='Direct Exports',level2_vertical=a.vertical1  from 
+(select distinct DPSTCode,dpstname,Areacode,AreaName ,organ,case when organ in ('SAAME') then User_names 
+when organ in ('ID') then 'ID' 
+when organ in ('COSEA') then 'COSEA' 
+when organ in ('Subsidiary') then Division end as vertical1   From SalesMapping_Global  where Organ in ('SAAME','ID','COSEA'))a
+where mc_sales_budget.dpst =a.DPSTCode
+and  mc_sales_budget.areacode =a.Areacode 
+and mc_sales_budget.Organ not in ('india','Subsidiary')
+
+--update mc_sales_budget set Organ='Subsidiary',vertical=vertical1,level2_vertical=a.CATEGORY2  from (select * from mc_mapping where organ ='Subsidiary')a
+--where mc_sales_budget.dpst =a.dpst 
+--and mc_sales_budget.areacode =a.area
+--and mc_sales_budget.Organ <>'india'
+
+--update mc_sales_budget set Organ='Direct Exports',vertical=vertical1,level2_vertical=a.CATEGORY2  from (select * from mc_mapping where organ NOT IN ('india','Subsidiary'))a
+--where mc_sales_budget.dpst =a.dpst 
+--and mc_sales_budget.areacode =a.area
+--and mc_sales_budget.Organ not in ('india','Subsidiary')
+
+update mc_sales_budget set Organ='Subsidiary',level2_vertical='Sauer' where DPST in ('90001','90002','90003')
+
+update mc_sales_budget set Organ='Others' where mc_sales_budget.Organ not in ('india','Subsidiary','Direct Exports')
+
+--update mc_sales_budget set organ='Others', vertical=a.vertical1,level2_vertical='MISSING'   from(
+--select distinct dpstcode,areacode,organ,vertical1 from SalesMapping_Global where organ is not null and DPSTCode not like '[a-z]')a
+--where mc_sales_budget.dpst=a.DPSTCode and
+--mc_sales_budget.areacode =a.areacode AND 
+--mc_sales_budget.organ not in ('india','Subsidiary','Direct Exports')
+
+
+update mc_sales_budget set dpstname=a.dpstname from (select distinct DPSTcode,DPSTName from vw_DPST_MASTER)a
+where mc_sales_budget.dpst =a.DPSTcode 
+
+
+update mc_sales_budget set areaname =a.AreaName  from (select distinct Areacode,areaname from vw_AREA_MASTER)a
+where mc_sales_budget.areacode =a.Areacode 
+
+update mc_sales_budget set Item_desc =a.Item_desc  from (select distinct ltrim(rtrim(item))item,max(Item_desc)Item_desc from vw_Item_Master group by ltrim(rtrim(item)))a
+where ltrim(rtrim(mc_sales_budget.item)) =ltrim(rtrim(a.Item)) 
+
+delete from mc_sales_budget where dpst like '702%'
+delete from mc_sales_budget where dpst='70302'
+DELETE FROM mc_sales_budget where areacode =0
+
+end
+
+--select * From mc_sales_budget where Organ=''
+--select * From mc_sales_budget where Organ='Others' ORDER BY SALES_BUD DESC
+--select * From mc_sales_budget where level2_vertical='missing'
+--select * From mc_sales_budget where Organ='India'
+--select * From mc_sales_budget where Organ='Subsidiary'
+--select * From mc_sales_budget where Organ='direct exports'
+
+
+--select *,'' as Organ,'' as Vertical From (select distinct dpst,areacode  From mc_sales_budget where level2_vertical='missing' and sales>0)a
+--left join (select distinct DPSTcode,DPSTName From vw_dpst_master where dpstcode not like '%[a-z]%' and len(dpstcode)>4)b
+--on convert(varchar(100),a.dpst) =b.DPSTcode
+--left join (select distinct Areacode,AreaName   from vw_AREA_MASTER where AreaName is not null and ltrim(rtrim(AreaName)) <>'')c
+--on a.areacode =c.Areacode
+
+
+-- select * From mc_sales_budget where level2_vertical='missing' and concat(dpst,areacode) in ( select distinct concat(dpst,area) from mc_mapping )
+
+-- select * From mc_sales_budget where  Vertical like '%to cust%'
+
+
+
+
+ -- select year,month,dpst,dpstname,areacode,areaname,item,   From mc_sales_budget where year=2019 and month=12
+
+--	select distinct * from (
+--select 'Domestic' as Type,a.*,b.DPSTCode as Dpst_BI,b.DPSTName as Dpstname_BI,'' Area_BI,'' AreaName_BI,b.Organ as Organ_BI,b.Vertical1 as Vertical_Bi From 
+--(select * From mc_mapping  where organ='india')a
+--full join(select distinct DPSTCode,DPSTName,organ,Vertical1   From SalesMapping_Domestic  where Organ is not null)b
+--on a.DPST =b.DPSTCode 
+
+--union all
+
+--select 'International' as Type,a.*,b.DPSTCode as Dpst_BI,b.DPSTName as Dpstname_BI,b.Areacode as Area_BI,b.AreaName as AreaName_BI,b.Organ as Organ_BI,b.Vertical1 as Vertical_Bi From 
+-- (select * From mc_mapping  where organ<>'india')a
+--full join(select distinct DPSTCode,dpstname,Areacode,AreaName ,organ,case when organ in ('SAAME','ID') then User_names 
+--when organ in ('COSEA','Subsidiary') then Division end as vertical1   From SalesMapping_Global  where Organ is not null)b
+--on a.DPST =b.DPSTCode 
+--and a.Area=b.Areacode 
+--)a
+--order by type
+
+
+
+
+
+
+
+Completion time: 2025-11-19T11:37:03.5934217+05:30

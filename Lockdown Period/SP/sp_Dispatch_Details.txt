@@ -1,0 +1,285 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Dispatch_Details
+CREATE proc sp_Dispatch_Details
+as 
+Begin
+
+--truncate table Dispatch_Details  
+--insert into Dispatch_Details 
+
+--select * from (
+--select 
+--A.COMPANY,
+--a.creg as area,
+--f.AreaName,
+--a.bpid as custcode,
+--e.t_nama as custname,
+--a.item,
+--d.t_dsca as Item_desc,
+--a.MSER as Airend_slno,
+--a.MESN as Motor_Engine_slno,
+--a.PLCN as PLC_No,
+--a.CPLN as ControlPannel_No,
+--c.cfrw as Transporter,
+--g.dsca as Tranporter_name,
+--a.orno,
+--a.pono,
+--a.cwar,
+--a.ttyp,
+--a.invn,
+--convert(date,a.invd) as Invoice_date,
+--qnvc as Invqty,
+--a.PRIC as unit_price,
+--A.namt as Inv_amount,
+----txai as sales_tax,eamt as Excise_amount,
+--sum(a.namt+txai+eamt) as Total_inv,
+--a.cofc as DPST,
+--B.LRNO,
+--B.LRDT,
+--a.CSER AS FABNO,
+
+--case when c.pmod=2 then 'Cash'
+--when c.pmod=3 then 'To Pay'
+--when c.pmod=4 then 'Paid' end as MODE_OF_SHIPMENT,
+
+--case when c.delv=1 then 'Door Del.'
+--when c.delv=2 then 'Goddown Del.'
+--when c.delv=3 then 'Door del against CC' END as Delivery_place,
+--D.t_cpcl AS PRODUCT_CLASS ,
+--h.dsca as ProductName,
+--i.DSCA as ProductType,
+
+--case 
+--when D.t_kitm=1 then 'Parts'
+--when D.t_kitm=2 then 'Units'
+--else 'Others'end as Item_type
+
+
+--From  DESP_DATA_ALL a
+--left join   TBO_LINES b
+--on a.ttyp=b.ttyp
+--and a.invn=b.invn
+--left join TBO_HEADER c
+--on b.tpre=c.tpre
+--and b.tnum=c.tnum
+--left join TTCIBD001400 d
+--on ltrim(rtrim(a.item))=ltrim(rtrim(d.t_item ))
+--left join TTCCOM100400 e 
+--on ltrim(rtrim(a.bpid))=ltrim(rtrim(e.t_bpid)) 
+--left join vw_AREA_MASTER  f
+--on ltrim(rtrim(a.creg))=ltrim(rtrim(f.Areacode)) 
+--left join ttcmcs080400 g
+--on c.cfrw=g.cfrw
+--left join ttcmcs062400 h
+--on h.cpcl=d.t_cpcl 
+--left join ttcmcs015400 i
+--on i.ctyp=d.t_ctyp 
+--group by 
+--A.COMPANY,a.creg ,f.AreaName,a.bpid,e.t_nama,a.item,d.t_dsca,
+--c.cfrw ,g.dsca ,
+--a.orno,a.pono,a.cwar,a.ttyp,a.invn,a.invd,qnvc,
+--a.PRIC,A.namt,
+----txai as sales_tax,eamt as Excise_amount,
+--a.cofc ,B.LRNO,B.LRDT,a.CSER,
+--case when c.pmod=2 then 'Cash'
+--when c.pmod=3 then 'To Pay'
+--when c.pmod=4 then 'Paid' end ,
+--case when c.delv=1 then 'Door Del.'
+--when c.delv=2 then 'Goddown Del.'
+--when c.delv=3 then 'Door del against CC' END,D.t_cpcl ,
+--h.dsca,i.DSCA,a.MSER,a.MESN,a.PLCN,a.CPLN,case 
+--when D.t_kitm=1 then 'Parts'
+--when D.t_kitm=2 then 'Units'
+--else 'Others'end
+--)a 
+
+
+Truncate table Dispatch_Details  
+
+
+insert into Dispatch_Details(COMPANY,area,AreaName,custcode,custname,item,Item_desc,
+Airend_slno,Motor_Engine_slno,PLC_No,ControlPannel_No,Transporter,Tranporter_name,
+orno,pono,cwar,ttyp,invn,Invoice_date,Invqty,unit_price,Inv_amount,Total_inv,DPST,
+LRNO,LRDT,FABNO,MODE_OF_SHIPMENT,Delivery_place,PRODUCT_CLASS,ProductName,ProductType,
+Item_type,pmod,delv,ctyp,kitm,sptyp,ProductGroup)
+select 
+A.COMPANY,a.T$CREG as area,null as AreaName,
+a.T$BPID as custcode,null as custname,
+a.T$ITEM,null as Item_desc,
+a.T$MSER as Airend_slno,
+a.T$MESN as Motor_Engine_slno,
+a.T$PLCN as PLC_No,
+a.T$CPLN as ControlPannel_No,
+null as Transporter,
+null as Tranporter_name,
+a.T$orno,a.T$pono,a.T$cwar,a.T$ttyp,a.T$invn,
+convert(date,a.T$invd) as Invoice_date,
+a.T$QNVC as Invqty,
+a.T$PRIC as unit_price,
+A.T$NAMT as Inv_amount,
+--txai as sales_tax,eamt as Excise_amount,
+a.T$NAMT+a.T$TXAI+a.T$EAMT as Total_inv,
+a.T$COFC as DPST,
+null as LRNO,
+null as LRDT,
+a.T$CSER AS FABNO,
+null as MODE_OF_SHIPMENT,
+null as Delivery_place,
+null AS PRODUCT_CLASS ,
+null as ProductName,
+null as ProductType,
+null as Item_type,
+null as pmod,
+null as delv,
+null as ctyp,
+null as kitm,
+null as sptyp,
+null as ProductGroup
+From [ELGi_LN].dbo.tzzsls310ALL a
+where T$UPDT=(select max(T$UPDT) from [ELGi_LN].dbo.tzzsls310ALL b
+where b.company=401
+and a.T$cser=b.T$cser
+and a.T$invn=b.T$invn
+)
+
+
+Insert into Dispatch_Details(
+COMPANY,area,AreaName,custcode,
+custname,item,Item_desc,
+Airend_slno,Motor_Engine_slno,PLC_No,ControlPannel_No,
+Transporter,Tranporter_name,
+orno,pono,cwar,ttyp,invn,
+Invoice_date,Invqty,unit_price,Inv_amount,Total_inv,
+DPST,LRNO,LRDT,FABNO,
+MODE_OF_SHIPMENT,Delivery_place,PRODUCT_CLASS,ProductName,ProductType,
+Item_type,pmod,delv,ctyp,kitm,sptyp,ProductGroup,
+Calyear,CalMonth,Finyear,FinMonth
+)
+select 
+convert(varchar,Company) Company,convert(varchar,AreaCode) AreaCode,
+convert(varchar,Areaname) Areaname,convert(varchar,C_Code) C_Code,
+convert(varchar,CustomerName) CustomerName,TPLNo,TPL_PART,
+convert(varchar,AirEnd) AirEnd,convert(varchar,Motor) Motor,
+convert(varchar,PLC) PLC,convert(varchar,[Control panel]) [Control panel],
+null,convert(varchar,Transporter) Transporter,
+OrderNo,PONO,null,substring(InvNo,1,3) as ttyp,substring(InvNo,5,10) as invn,
+InvDate,InvQty,Unitprice,Invoiceamount,Totalinv,
+DPST,Warehouse as LRNo,LRDate,convert(varchar,FABNO) FABNO,
+MODEOFSHIPMENT,Deliveryplace,Productclass,Productname,Producttype,
+null,null,null,null,null,null,Productgroup,
+null,null,null,null
+from Dispatch_Details_2009_2017
+
+
+
+
+--Deleting Records without fabno
+--delete from Dispatch_Details where len(FABNO)<0
+
+
+update Dispatch_Details set AreaName=f.AreaName
+from vw_AREA_MASTER  f
+where ltrim(rtrim(area))=ltrim(rtrim(f.Areacode)) 
+
+update Dispatch_Details set custname=e.nama
+from (Select * from TTCCOM100ALL where company=400) e 
+where ltrim(rtrim(custcode))=ltrim(rtrim(e.bpid)) 
+
+update Dispatch_Details set Item_desc= d.t_dsca,PRODUCT_CLASS=d.t_cpcl,ctyp=d.t_ctyp,kitm=d.t_kitm
+from TTCIBD001400 d
+where ltrim(rtrim(item))=ltrim(rtrim(d.t_item )) 
+
+
+
+update Dispatch_Details set Transporter= c.cfrw,LRNO=c.LRNO,LRDT=c.LRDT,pmod=c.PMOD,delv=c.DELV
+from 
+(select b.TTYP,b.INVN,c.CFRW,b.LRNO,b.LRDT,c.PMOD,c.DELV from TZZSLS305ALL b
+left outer join TZZSLS304ALL c
+on b.company=c.company
+and b.tpre=c.tpre
+and b.tnum=c.tnum
+)c
+where Dispatch_Details.ttyp=c.ttyp
+and Dispatch_Details.invn=c.invn
+
+
+update Dispatch_Details set Tranporter_name=g.dsca 
+from (select * from ttcmcs080all where company=400)g
+where Transporter=g.cfrw
+
+update Dispatch_Details set MODE_OF_SHIPMENT='Cash' where pmod=2
+update Dispatch_Details set MODE_OF_SHIPMENT='To Pay' where pmod=3
+update Dispatch_Details set MODE_OF_SHIPMENT='Paid' where pmod=4
+
+update Dispatch_Details set Delivery_place= 'Door Del.' where delv=1
+update Dispatch_Details set Delivery_place= 'Goddown Del.' where delv=2
+update Dispatch_Details set Delivery_place= 'Door del against CC' where delv=3
+
+
+update Dispatch_Details set ProductName=h.DSCA
+from (select * from ttcmcs062all where company=400) h
+where  PRODUCT_CLASS=h.cpcl 
+
+
+update Dispatch_Details set ProductType=i.DSCA 
+from (select * from ttcmcs015all where company=400) i
+where Dispatch_Details.ctyp =i.ctyp
+
+update Dispatch_Details set Item_type='Parts' where kitm=1
+update Dispatch_Details set Item_type='Units' where kitm=2
+update Dispatch_Details set Item_type='Others' where kitm=3
+
+
+
+
+
+--alter table Dispatch_Details add ProductGroup nvarchar(100) null
+--select * from Dispatch_Details
+--select * from ttcmcs015400
+
+
+update Dispatch_Details set sptyp=s.sptyp
+from item_prodgrp_map s
+where ltrim(rtrim(Dispatch_Details.item))=ltrim(rtrim(s.item))
+
+update Dispatch_Details set ProductGroup=p.ccs_pg
+from LN_prodgrp_map p
+where Dispatch_Details.sptyp=p.pgcode
+
+
+Update Dispatch_Details set Calyear=year(Invoice_date)
+Update Dispatch_Details set CalMonth=Month(Invoice_date)
+
+update Dispatch_Details set Finyear=CalYear-1 where CalMonth<4
+update Dispatch_Details set Finyear=CalYear where CalMonth>=4
+
+update Dispatch_Details set FinMonth=CalMonth+9 where CalMonth<4
+update Dispatch_Details set FinMonth=CalMonth-3 where CalMonth>=4
+
+
+--*********************Note: Dont Truncate the below Table ***************************
+insert into item_prodgrp_map
+select distinct Item,14,getdate() From (
+select ltrim(rtrim(a.item))as Item,a.sptyp,ltrim(rtrim(d.t_dsca))as Item_Desc,b.item as product_item
+from(select distinct ltrim(rtrim(item))as Item,'' as sptyp From Dispatch_Details where Invoice_date >='2017-04-01') a
+left join item_prodgrp_map b
+on ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+left join TTCIBD001400 d
+on ltrim(rtrim(a.item))=ltrim(rtrim(d.t_item )) 
+)a
+where product_item is null and a.Item not like'[s,z,x]%'
+--************************************************************************************
+
+
+
+
+
+end 
+
+--select * from Dispatch_Details
+
+
+
+
+Completion time: 2025-11-19T09:33:23.5695315+05:30

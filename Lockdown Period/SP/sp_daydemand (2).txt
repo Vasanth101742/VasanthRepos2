@@ -1,0 +1,341 @@
+--exec sp_daydemand
+
+
+CREATE PROC [dbo].[sp_daydemand] AS
+
+BEGIN 
+
+--alter table daydemand add  PDNO nvarchar(50)
+--alter table daydemand add TPL_Code nvarchar(150)
+--alter table daydemand add Company nvarchar(5)
+--alter table daydemand alter column  Req_Del_Date datetime
+--alter table daydemand alter column  Act_Prod_Start_date datetime
+--alter table daydemand add Completion_date date
+--alter table daydemand add Tri_date date
+--alter table daydemand add Lot_No int
+--alter table daydemand add Prod_st_date datetime
+--ALTER TABLE DAYDEMAND ADD TPL_Code_Desc nvarchar(50)
+--ALTER TABLE DAYDEMAND ADD Model nvarchar(50)
+--ALTER TABLE DAYDEMAND ADD Variant nvarchar(100)
+
+truncate table daydemand
+
+INSERT INTO [dbo].[DayDemand] (company,pdno,tpl_code,[Child_Item],Req_Del_date,
+Act_Prod_Start_date,Completion_date,
+[Child_Item_Desc],[Supplier_code],[Buyer_code],
+--[Due_Date],
+[Pend_Qty],[Bin_Qty],[BOM_Qty],
+--tri_date,
+lot_no,
+Planned_del_date,Prod_st_date,variant)
+
+select distinct a.company,ltrim(rtrim(b.pdno)) 'Produc_order_no',ltrim(rtrim(a.mitm)) 'TPL_Code',b.Child_Item,a.RDLD 'Req_Del_date'
+,a.apdt 'Act_Prod_Start_date',a.cmdt 'Completion_date',
+d.T_DSCA 'Child_Item_Desc',
+e.OTBP 'Supplier_CODE',
+e.BUYR 'Buyer_CODE',
+--f.Due_Date,
+f.Pending_qty,f.Bin_Qty,b.BOM_Qty 
+--,f.Trigger_date
+,f.lot_no,a.PLDT 'Planned del date',a.PRDT 'Production start date',f.VARI 'Variant'
+
+from TTISFC001ALL   a
+
+right join  (select distinct pdno,ltrim(rtrim(item)) 'Child_Item',sum(qoro) 'BOM_Qty' from  TTIMFC001ALL where ITTP=2 
+group by pdno,ltrim(rtrim(item))) b on a.pdno=b.pdno
+
+left join TTCIBD001400 d on b.Child_Item= LTRIM(RTRIM(d.t_item))
+
+left join TTDIPU001ALL e on b.Child_Item=ltrim(rtrim(e.ITEM)) and e.COMPANY=401
+
+left join (select company,item,nama,BUYR,min(duedate) 'Due_Date',sum(pendingqty) 'Pending_qty',sum(binqty) 'Bin_Qty',
+min(Tri_Dt) 'Trigger_date',min(lot_no) 'lot_no',VARI from ELGi_OverDue_Triggers
+group by company,item,nama,BUYR,VARI) f on Child_Item= LTRIM(RTRIM(f.ITEM)) and f.company=401
+
+where a.company=401 and  a.osta in (1,3) and convert(date,a.rdld)>='20250401'
+
+----------------------------------------------Updating starts-----------------
+update DayDemand set TPL_Code_Desc =a.t_dsca from (
+select distinct Ltrim(rtrim(t_item)) 'Item', t_dsca from TTCIBD001400 
+)a where DayDemand.TPL_Code=a.Item
+
+
+update DayDemand set Model =a.model from (
+select * from DayDemand_Model  
+)a where DayDemand.TPL_Code=a.tpl
+
+--Since the logic is changed as due date,tri date and due slab should be assigned to the same lotno that we take 
+--updating duedate,trigger date,dueslab
+
+--alter table daydemand add RPL int 
+
+update DayDemand set rpl=a.rpl from 
+(select company,ltrim(rtrim(item)) 'Item',min(rplt) 'RPL',SupplierNum from ELGi_OverDue_Triggers
+group by company,item,suppliernum)a
+where DayDemand.child_item=a.ITEM and DayDemand.supplier_code=a.SupplierNum and a.company=401
+
+
+
+update daydemand set due_date=a.duedate, tri_date=a.tri_dt,dueslab=a.dueslab  from 
+
+(
+select distinct company,ltrim(rtrim(item)) 'Item',nama,BUYR,lot_no,duedate,tri_dt,dueslab from ELGi_OverDue_Triggers
+where company='401'
+
+) a
+where daydemand.child_item=a.item and daydemand.lot_no=a.lot_no
+
+
+--alter table daydemand add Lean_Type nvarchar(50)
+
+update daydemand set Lean_Type=a.TYPE_DESC  from 
+
+(
+select distinct company,ltrim(rtrim(item)) 'Item',TYPE_DESC from ELGi_OverDue_Triggers
+where company='401'
+
+) a
+where daydemand.child_item=a.item 
+
+
+update daydemand set lean_type='NVC' where DayDemand.lean_type='NON LEAN'
+update daydemand set lean_type='MR' where DayDemand.lean_type='Milk run'
+update daydemand set lean_type='MRM' where DayDemand.lean_type='MR-Motors'
+update daydemand set lean_type='MB' where DayDemand.lean_type='Multi Bin'
+update daydemand set lean_type='TB' where DayDemand.lean_type='Two Bin'
+
+Update daydemand set Supplier_Name=v.custname1
+from vw_Business_Partner v
+where ltrim(rtrim(daydemand.supplier_code))=ltrim(rtrim(v.custcode))
+
+update daydemand set Buyer_name=a.NAMA
+from (select * from TTCCOM001ALL where company=400)a
+where daydemand.buyer_code=a.EMNO 
+
+update daydemand set stock= a.Act_Stock_Qty,Block_Stock_Qty=a.Block_Qty from (
+select distinct ltrim(rtrim(item)) 'Item_Code',sum(qhnd) 'Stock_Qty',sum(qblk) 'Block_Qty',sum(qhnd)-sum(qblk) 'Act_Stock_Qty' from [dbo].[TWHWMD215ALL]
+where cwar in ('U53','209','210','212','253','353','453','553','V53','O53','246','V57') and COMPANY=401
+group by ltrim(rtrim(item))
+)a
+where daydemand.child_item= ltrim(rtrim(a.Item_Code))
+
+
+update daydemand set [Curr_Month_Demand] = a.Curr_Month_Demand_child_item from 
+
+(select a.pdno,ltrim(rtrim(mitm)) 'TPL_Code',sum(qrdr) 'Curr_Month_Demand_TPL',ltrim(rtrim(b.Child_Item)) 'Child_Item',
+sum(bom_qty) 'Curr_Month_Demand_child_item' 
+from TTISFC001all a
+right join  (select distinct pdno,ltrim(rtrim(item)) 'Child_Item',sum(qoro) 'BOM_Qty' from  TTIMFC001ALL where ITTP=2 
+group by pdno,ltrim(rtrim(item))) b on a.pdno=b.pdno
+
+where convert(date,RDLD ) between DATEADD(MONTH, DATEDIFF(MONTH, 0, GETDATE()), 0) and eomonth(getdate()) and a.COMPANY=401
+group by a.pdno,ltrim(rtrim(mitm)),Child_Item
+
+) a where daydemand.child_item=a.Child_Item
+and daydemand.pdno=ltrim(rtrim(a.PDNO))
+
+update daydemand set day_Demand = a.Day_Demand_child_item from 
+
+(select a.pdno,ltrim(rtrim(mitm)) 'TPL_Code',sum(qrdr) 'Day_Demand_TPL',ltrim(rtrim(b.Child_Item)) 'Child_Item',
+sum(bom_qty) 'Day_Demand_child_item' 
+from TTISFC001all a
+right join  (select distinct pdno,ltrim(rtrim(item)) 'Child_Item',sum(qoro) 'BOM_Qty' from  TTIMFC001ALL where ITTP=2 
+group by pdno,ltrim(rtrim(item))) b on a.pdno=b.pdno
+
+where convert(date,RDLD ) =convert(date,getdate()) and a.COMPANY=401
+group by a.pdno,ltrim(rtrim(mitm)),Child_Item
+
+) a where daydemand.child_item=a.Child_Item
+and daydemand.pdno=ltrim(rtrim(a.PDNO))
+
+update DayDemand set DEM=a.DEM_Qty from (
+select tpl_code,sum(dem_qty) 'DEM_Qty' from DayDemand_DEM
+group by TPL_Code
+)a where daydemand.Child_Item =a.TPL_Code
+
+--update daydemand set [Day_Demand_Shortage]=stock-day_demand
+
+--update daydemand set [Sum_of_Coverage] =day_demand where [Day_Demand_Shortage]>0
+
+--update  daydemand set [Sum_of_Coverage] =stock where [Day_Demand_Shortage]<0
+
+--update DayDemand set DEM_Shortage = Stock-DEM
+
+--alter table daydemand add Description nvarchar(55)
+--alter table daydemand add Division nvarchar(55)
+
+update DayDemand set Description=b.Description,Division=b.Division
+from (
+select distinct a.company,Description,prd_from,prd_to,Division from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+)b
+where DayDemand.PDNO between b.prd_from  and b.prd_to
+and DayDemand.company = b.company and b.company=401
+
+
+--alter table DayDemand add Order_status nvarchar(55)
+
+update daydemand set Order_status= a.Order_status from (
+select pdno,case when osta=1 then 'Planned'
+ when osta=3 then 'Document Printed' end 'Order_status' from TTISFC001ALL where company=401 and  osta in (1,3)
+)a where DayDemand.PDNO=a.PDNO
+
+
+--alter table daydemand add Lean_Stock_Out nvarchar(50)
+
+update DayDemand set lean_stock_out = a.Lean_stock_out from (
+select distinct ITEM,LOT_NO,SUPP,buyr,Trig_Dt ,'Lean_Stock_Out' 'Lean_stock_out' from Lean_Stock_Out
+) a where a.LOT_NO=DayDemand.lot_no
+
+--alter table daydemand add dueslab nvarchar(50)
+--update DayDemand set dueslab = a.DueSlab from (
+--select distinct LTRIM(RTRIM(item)) 'Item',min(duedate) 'Due_Date',min(LOT_NO) 'Lot_No',DueSlab from ELGi_OverDue_Triggers
+--group by item,lot_no,DueSlab
+--) a where a.Due_Date=DayDemand.Due_Date AND DayDemand.Child_Item=a.Item
+
+--alter table daydemand add ASN_Number int
+
+update DayDemand set ASN_Number = a.ASNO from (
+select company,suno,item,lotn,max(asno) 'asno' from TZZPUR926ALL
+where company=401
+group by company,suno,item,lotn
+
+) a where a.LOTN=DayDemand.lot_no and DayDemand.Child_Item=ltrim(rtrim(a.item))
+
+--alter table DayDemand add [SNo] int
+
+update DayDemand set SNo=a.SINo from (
+select pdno,TPL_Code,child_item,Req_Del_Date,ROW_NUMBER() over (partition by child_item order by req_del_date,pdno asc) 'SINo' 
+from DayDemand 
+)a where a.PDNO=DayDemand.pdno and DayDemand.TPL_Code=a.TPL_Code and DayDemand.Child_Item=a.Child_Item
+
+
+---CBR Calculation
+--alter table daydemand add CBR nvarchar(10)
+--alter table daydemand alter column Stock_Status nvarchar(100)
+update DayDemand set stock_status=a.stock_status from (
+
+select distinct pdno,TPL_Code,child_item,Child_Item_Desc,Req_Del_Date, BOM_Qty,Stock,SNo,
+sum(BOM_Qty) over (partition by child_item order by child_item,sno rows between unbounded preceding and current row) 'Running_BOM_Qty',
+case 
+ when Child_Item_Desc like '%Manual%' then 'Stock_available'
+  when Child_Item_Desc like '%Balancing%' then 'Stock_available'
+when sum(BOM_Qty) over (partition by child_item order by child_item,sno rows between unbounded preceding and current row) <= stock then 'Stock_available'
+else 'No stock' end 'Stock_Status'
+from DayDemand 
+)a where DayDemand.PDNO=a.PDNO and DayDemand.TPL_Code=a.TPL_Code and DayDemand.Child_Item=a.Child_Item
+
+
+
+update DayDemand set CBR= a.cbr from (
+select pdno, CASE 
+        WHEN MIN(CASE WHEN Stock_Status = 'Stock_available' THEN 1 ELSE 0 END) = 1
+        THEN 'YES'
+        ELSE 'NO'
+    END AS CBR
+from ( 
+select distinct pdno,TPL_Code,child_item,Child_Item_Desc,Req_Del_Date, BOM_Qty,Stock,SNo,
+sum(BOM_Qty) over (partition by child_item order by child_item,sno rows between unbounded preceding and current row) 'Running_BOM_Qty',
+case 
+ when Child_Item_Desc like '%Manual%' then 'Stock_available'
+  when Child_Item_Desc like '%Balancing%' then 'Stock_available'
+when sum(BOM_Qty) over (partition by child_item order by child_item,sno rows between unbounded preceding and current row) <= stock then 'Stock_available'
+else 'No stock' end 'Stock_Status'
+from DayDemand 
+
+)a
+--where convert(date,Req_Del_Date)=convert(date,getdate()) 
+--and
+--where pdno='500018464'
+group by pdno
+)a where DayDemand.PDNO=a.PDNO
+
+
+update DayDemand set [status]= 'Can be Released' where DayDemand.cbr='Yes'
+update DayDemand set [status]='Shortage' where DayDemand.cbr='No'
+
+--alter table daydemand add Month_Consump float
+
+--Takes much time here 
+update DayDemand set MaxConsump= a.maxqty from 
+
+(select item,sum(maxqty) 'Maxqty',company from vw_gr_import_parts
+group by item,COMPANY) a where DayDemand.Child_Item=a.item and a.COMPANY='401'
+
+
+update DayDemand set month_Consump=a.consump from 
+(select company,ltrim(rtrim(itemcode)) 'Item',ItemDescr,BuyrCode
+,BuyrName,SuppCode,SuppName,sum(production_consumption)+sum(Sales_Consumption) 'Consump'
+from Consumption
+where CalMonth=month(getdate()) and CalYear=YEAR(GETDATE())
+
+group by company,ltrim(rtrim(itemcode)),ItemDescr,BuyrCode,BuyrName,SuppCode,SuppName
+)a where DayDemand.Child_Item=a.Item and a.COMPANY='401'
+
+
+------CBR for Today, Tomorrow
+
+--ALTER TABLE DayDemand ADD stock_status_T NVARCHAR(50)
+--ALTER TABLE DayDemand ADD SNO_T INT
+
+update DayDemand set SNo_T=a.SINo from (
+select pdno,TPL_Code,child_item,Req_Del_Date,ROW_NUMBER() over (partition by child_item order by req_del_date,pdno asc) 'SINo' 
+from DayDemand 
+WHERE CONVERT(DATE,Req_Del_Date) BETWEEN CONVERT(DATE,GETDATE()) AND CONVERT(DATE,GETDATE()+1)
+--ORDER BY Req_Del_Date
+)a where a.PDNO=DayDemand.pdno and DayDemand.TPL_Code=a.TPL_Code and DayDemand.Child_Item=a.Child_Item
+
+
+update DayDemand set stock_status_T=a.stock_status from (
+
+select distinct pdno,TPL_Code,child_item,Child_Item_Desc,Req_Del_Date, BOM_Qty,Stock,SNo_T,
+sum(BOM_Qty) over (partition by child_item order by child_item,sno_T rows between unbounded preceding and current row) 'Running_BOM_Qty',
+case 
+ when Child_Item_Desc like '%Manual%' then 'Stock_available'
+when Child_Item_Desc like '%Balancing%' then 'Stock_available'
+when sum(BOM_Qty) over (partition by child_item order by child_item,sno_T rows between unbounded preceding and current row) <= stock then 'Stock_available'
+else 'No stock' end 'Stock_Status'
+from DayDemand 
+WHERE CONVERT(DATE,Req_Del_Date) BETWEEN CONVERT(DATE,GETDATE()) AND CONVERT(DATE,GETDATE()+1)
+--ORDER BY Req_Del_DatE,
+
+)a where DayDemand.PDNO=a.PDNO and DayDemand.TPL_Code=a.TPL_Code and DayDemand.Child_Item=a.Child_Item
+
+--ALTER TABLE DayDemand ADD CBR_T NVARCHAR(50)
+
+update DayDemand set CBR_T= a.cbr from (
+select pdno, CASE 
+        WHEN MIN(CASE WHEN stock_status_T = 'Stock_available' THEN 1 ELSE 0 END) = 1
+        THEN 'YES'
+        ELSE 'NO'
+    END AS CBR
+from ( 
+select distinct pdno,TPL_Code,child_item,Child_Item_Desc,Req_Del_Date, BOM_Qty,Stock,SNo_T,
+sum(BOM_Qty) over (partition by child_item order by child_item,sno_T rows between unbounded preceding and current row) 'Running_BOM_Qty',
+case 
+ when Child_Item_Desc like '%Manual%' then 'Stock_available'
+  when Child_Item_Desc like '%Balancing%' then 'Stock_available'
+when sum(BOM_Qty) over (partition by child_item order by child_item,sno_T rows between unbounded preceding and current row) <= stock then 'Stock_available'
+else 'No stock' end 'Stock_Status_t'
+from DayDemand 
+WHERE  CONVERT(DATE,Req_Del_Date) BETWEEN CONVERT(DATE,GETDATE()) AND CONVERT(DATE,GETDATE()+1)
+
+
+)a
+--where convert(date,Req_Del_Date)=convert(date,getdate()) 
+--and
+--where pdno='500018464'
+
+group by pdno
+
+)a where DayDemand.PDNO=a.PDNO
+
+
+--ALTER TABLE DAYDEMAND ADD STATUS_T NVARCHAR(50)
+
+update DayDemand set [status_T]= 'Can be Released' where DayDemand.cbr_T='Yes'
+update DayDemand set [status_T]='Shortage' where DayDemand.cbr_T='No'
+
+
+end

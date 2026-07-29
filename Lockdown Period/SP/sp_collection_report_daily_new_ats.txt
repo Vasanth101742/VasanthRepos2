@@ -1,0 +1,121 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_collection_report_daily_new_ats
+
+CREATE proc [dbo].[sp_collection_report_daily_new_ats] as
+
+begin
+
+--drop table collection_report_daily_new_ats
+--create table collection_report_daily_new_ats
+--(company	int,
+--Trantyp	nvarchar(3),
+--InvNo	int,
+--CustNo	nvarchar(9),
+--CustName1	nvarchar(70),
+--DocDt	datetime,
+--doctyp	int,
+--collection	float,
+--DpstCode	varchar(50),
+--DpstName	varchar(100),
+--Description	varchar(50),
+--areacode	nvarchar(10),
+--AreaName	varchar(50),
+--Zone	varchar(50),
+--region	varchar(50),
+--Global	varchar(20),
+--AnpTranTyp	nvarchar(3),
+--anpdocno	int,
+--ctrantyp	nvarchar(3),
+--cdocno	int,
+--refr	int
+--)
+
+
+Truncate Table  collection_report_daily_new_ats
+
+Insert into collection_report_daily_new_ats(company,Trantyp,InvNo,CustNo,DocDt,doctyp,collection,AnpTranTyp,anpdocno,ctrantyp,cdocno)
+SELECT company, Trantyp, InvNo, CustNo, DocDt,2 AS doctyp, SUM(AmntHome) AS amnthome, AnpTranTyp, MAX(AnpDocNo) AS anpdocno,
+MAX(CTranTyp) AS ctrantyp, MAX(CDocNo) AS cdocno--,[LineNo]
+FROM (select * from Collection_Stage2 where company in (select Company from ELGI_Companies_Master where CompanyGroup='ATS')) a  
+WHERE   convert(datetime,docdt) >= dateadd(yy,-4,getdate()-1) AND      (DocTyp IN (2, 8))
+GROUP BY company, Trantyp, InvNo, CustNo, DocDt, AnpTranTyp--,[LineNo]
+
+update collection_report_daily_new_ats set [collection]=[collection]*(-1) where [collection]<>0
+
+update collection_report_daily_new_ats set areacode=b.area,DpstCode=b.dpst
+from (
+select * from (
+select a.company, a.Trantyp, a.InvNo, a.[LineNo], a.CustNo, 
+a.DocDt,a.CDocNo, CASE WHEN len(ltrim(rtrim(a.area))) = 2 THEN '0' + ltrim(rtrim(a.area)) 
+ELSE a.area END AS area, a.PurNo, a.DueDt, a.CurRate, 
+b.AreaCode AS area_head, CASE WHEN CONVERT(varchar, b.dpst) IS NULL THEN ltrim(rtrim(proj)) 
+ELSE CONVERT(varchar, dpst) END AS dpst FROM 
+(select * from Collection_Stage2 where company in (select Company from ELGI_Companies_Master where CompanyGroup='ATS')
+and purno not like '%[a-z]%' 
+) a  
+LEFT OUTER JOIN 
+(select company,OrderNum as OrderNo,CustCode,t_cofc as dpst,areacode from CI_Lines 
+where company in (select Company from ELGI_Companies_Master where CompanyGroup='ATS')
+and t_cofc not like '%[a-z]%'
+) b
+on b.Company = a.company 
+AND b.OrderNo = a.PurNo 
+AND ltrim(rtrim(b.CustCode)) =ltrim(rtrim(a.CustNo))
+WHERE a.CDocNo = 0
+--order by DocDt
+)a
+)b
+where collection_report_daily_new_ats.company = b.company 
+AND collection_report_daily_new_ats.CustNo = b.CustNo 
+AND collection_report_daily_new_ats.Trantyp = b.Trantyp 
+AND collection_report_daily_new_ats.InvNo = b.InvNo 
+
+update collection_report_daily_new_ats set DpstName=c.DPSTName,Description=c.Description
+from DPST_MASTER_ATS c 
+where LTRIM(RTRIM(collection_report_daily_new_ats.dpstcode))  = LTRIM(RTRIM(c.DpstCode))
+
+
+update collection_report_daily_new_ats set areaname=d.AreaName,zone=d.ATS_Zone,region=d.Region,global=d.Global
+from vw_AREA_MASTER d 
+where LTRIM(RTRIM(collection_report_daily_new_ats.areacode)) = LTRIM(RTRIM(d.AreaCode))
+
+update collection_report_daily_new_ats set custName1=e.t_nama
+from TTCCOM100400 e
+where e.t_bpid = collection_report_daily_new_ats.CustNo
+
+delete from collection_report_daily_new_ats where Trantyp LIKE '%ccj%'
+delete from collection_report_daily_new_ats where Trantyp LIKE '%ccn%'
+delete from collection_report_daily_new_ats where Trantyp LIKE '%cdj%'
+delete from collection_report_daily_new_ats where Trantyp LIKE '%cbc%'
+
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '251' AND '264') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '351' AND '364') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '451' AND '464') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '551' AND '564') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '651' AND '664') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '751' AND '764') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '2A1' AND '2C6') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '3A1' AND '3C6') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '4A1' AND '4C6') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '5A1' AND '5C6') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '7A1' AND '7C6') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '8A1' AND '8C6') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) BETWEEN '9A1' AND '9C6') 
+
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) LIKE 'F%') 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) IN ('BCC')) 
+delete from collection_report_daily_new_ats where (LTRIM(RTRIM(Trantyp)) IN 
+('271', '272', '371', '372', '471', '472', '571', '572','671', '672', '674', '771', '772', '871', '872', '971', '972'))
+
+
+end
+
+select * from collection_report_daily_new_ats order by docdt
+
+
+--Alter table collection_report_daily_new_ats alter column refr int null
+
+
+
+Completion time: 2025-11-19T09:13:13.8505762+05:30

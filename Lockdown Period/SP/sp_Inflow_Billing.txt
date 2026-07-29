@@ -1,0 +1,702 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Inflow_Billing
+CREATE proc [dbo].[sp_Inflow_Billing] as
+begin
+
+Truncate table Inflow_billing_stage
+Truncate table Inflow_billing
+Truncate table inflow_billing_Temp1
+Truncate table inflow_billing_Temp2
+
+
+-------------------------Method1--------------------------------------------------------------------------
+
+----select * into Inflow_billing_stage from Inflow_billing
+
+----Insert into Inflow_billing(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+----CalYear,CalMonth,Wk_Month,inflowOrders,OrderQty,Inflow,
+----DeliveryQty,Sales,SalesOrders,Rnk)
+------select * into Inflow_billing from (
+----select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month, 
+----count(distinct inflowOrders) inflowOrders,
+----sum(OrderQty) as OrderQty,
+----sum(Inflow) as Inflow,
+----sum(DeliveryQty) DeliveryQty,
+----sum(Sales) Sales, 
+----count(distinct SalesOrders) as SalesOrders,
+----row_number () over(partition by Organ,Vertical1,CalYear,CalMonth--,dpst,DpstName,AreaCode,AreaName
+----order by Organ,Vertical1,CalYear,CalMonth--,dpst,DpstName,AreaCode,AreaName
+----) as Rnk
+----from (
+----select a.Organ,a.Vertical1,a.dpst,a.DpstName,a.AreaCode,a.AreaName,
+----year(a.OrderDate) as CalYear,month(a.OrderDate) as CalMonth,
+----1+datepart(wk,a.orderdate)-datepart(wk,convert (date,CONVERT(varchar, month(a.orderdate)) + '/1/' + datename(yy, a.orderdate))) as Wk_Month,
+----a.OrderNum as inflowOrders,
+----qty as OrderQty,
+----a.Sales_USD as Inflow,
+----b.OrderNo as SalesOrders,
+----b.DeliveryQty,
+----b.Sales_USD as Sales
+----from Sales_Inflow a
+----left outer join ELGi_Sales_Details b
+----on a.Company=b.company
+----and a.ordertype=b.SaleOrderType
+----and a.OrderNum=b.OrderNo
+----where a.Organ='COSEA'
+------organ is not null 
+------and OrderDate>='2020-04-01'
+----)a
+----group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month
+------order by year(OrderDate),month(OrderDate),datepart(WK,orderdate)
+------)a
+
+
+----Inflow
+--Insert into Inflow_billing_stage(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+--CalYear,CalMonth,Wk_Month,inflowOrders,OrderQty,Inflow)
+--select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month, 
+--count(distinct inflowOrders) inflowOrders,
+--sum(OrderQty) as OrderQty,
+--sum(Inflow) as Inflow
+--from (
+--select a.Organ,a.Vertical1,a.dpst,a.DpstName,a.AreaCode,a.AreaName,
+--year(a.OrderDate) as CalYear,month(a.OrderDate) as CalMonth,
+--1+datepart(wk,a.orderdate)-datepart(wk,convert (date,CONVERT(varchar, month(a.orderdate)) + '/1/' + datename(yy, a.orderdate))) as Wk_Month,
+--concat(a.company,a.SaleOrderType,a.OrderNo) as inflowOrders,
+--DeliveryQty as OrderQty,--Need to be changed
+--case when a.company='551' and a.areacode='631' then a.Foreign_currency_amount else a.Sales_USD end as Inflow
+--from ELGi_Sales_Details a
+--where a.Organ='COSEA'
+--and OrderDate>='2017-04-01'
+--and sales_category not in (1)
+
+--union
+
+--select a.Organ,a.Vertical1,a.dpst,a.DpstName,a.AreaCode,a.AreaName,
+--year(a.OrderDate) as CalYear,month(a.OrderDate) as CalMonth,
+--1+datepart(wk,a.orderdate)-datepart(wk,convert (date,CONVERT(varchar, month(a.orderdate)) + '/1/' + datename(yy, a.orderdate))) as Wk_Month,
+--concat(a.company,a.ordertype,a.OrderNum) as inflowOrders,
+--qty as OrderQty,
+--case when a.company='551' and a.areacode='631' then a.Foreign_currency_amount else a.Sales_USD end as Inflow
+--from Sales_Inflow a
+--where a.Organ='COSEA'
+--and OrderDate>='2017-04-01'
+--and concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1) ) 
+--)a
+--group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month
+--order by CalYear,CalMonth,Wk_Month
+
+
+----Sales
+--Insert into Inflow_billing_stage(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+--CalYear,CalMonth,Wk_Month,DeliveryQty,Sales,SalesOrders)
+--select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month, 
+--sum(DeliveryQty) DeliveryQty,
+--sum(Sales) Sales, 
+--count(distinct SalesOrders) as SalesOrders
+--from (
+--select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+--year(Invoice_Date) as CalYear,month(Invoice_Date) as CalMonth,
+--1+datepart(wk,Invoice_Date)
+---datepart(wk,convert (date,CONVERT(varchar, month(Invoice_Date)) + '/1/' + datename(yy, Invoice_Date))) as Wk_Month,
+--concat(company,SaleOrderType,OrderNo) as SalesOrders,
+--DeliveryQty,
+--case when company=551 and areacode='631' then Foreign_currency_amount else Sales_USD end as Sales
+--from ELGi_Sales_Details
+--where Organ='COSEA'
+--and Invoice_Date>='2017-04-01'
+--and sales_category not in (1)
+--)a
+--group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month
+--order by CalYear,CalMonth,Wk_Month
+
+----Pending
+
+----insert into Inflow_billing_stage(--Organ,Vertical1,
+----dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month,
+----PendOrders,PendQty,PendValue_USD
+----)
+----select Dpst,Dpstname,areacode,areaname,CalYear,CalMonth,Wk_Month,
+----count(distinct PendOrders) PendOrders,
+----sum(PendQty) PendQty,
+----sum(PendValue_USD) PendValue_USD
+----from (
+----select Dpst,Dpstname,areacode,areaname,year(OrderDate) as CalYear,month(orderdate) as CalMonth,
+----1+datepart(wk,OrderDate)
+-----datepart(wk,convert (date,CONVERT(varchar, month(OrderDate)) + '/1/' + datename(yy, OrderDate))) as Wk_Month,
+----concat(Company,ordertype,OrderNum) as PendOrders,
+----PendQty ,--sum(ord_qty- Cancel_Qty-delqty) as qty1,
+----case when company=551 and areacode='631' then PendValue_ForeignCurrency else PendValue_USD end as PendValue_USD 
+----from Pending_Orders
+----where PendQty<>0
+----and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+----and dpst is not null
+----and OrderDate>
+----('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end)))
+----)a
+----group by Dpst,Dpstname,areacode,areaname,CalYear,CalMonth,Wk_Month
+
+
+
+--update Inflow_billing_stage set organ=a.organ,Vertical1=a.Vertical1
+--from (select distinct organ,vertical1,dpst,areacode from Inflow_billing_stage where organ is not null)a
+--where Inflow_billing_stage.dpst=a.dpst
+--and Inflow_billing_stage.areacode=a.areacode
+--and Inflow_billing_stage.organ is null
+
+
+
+
+--insert into Inflow_billing(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month,
+--InflowOrders,OrderQty,Inflow,SalesOrders,DeliveryQty,Sales,
+--PendOrders,PendQty,PendValue_USD,Rnk)
+--select *,dense_rank() over(partition by Organ,Vertical1,CalYear,CalMonth,dpst,DpstName,AreaCode,AreaName
+--order by Organ,Vertical1,CalYear,CalMonth,Wk_Month,dpst,DpstName,AreaCode,AreaName
+--) as Rnk
+--from(
+--select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month,
+--sum(InflowOrders) as InflowOrders,sum(OrderQty) as OrderQty,sum(Inflow) as Inflow,
+--sum(SalesOrders) as SalesOrders,sum(DeliveryQty) as DeliveryQty,sum(Sales) as Sales,
+--sum(PendOrders) PendOrders,sum(PendQty) PendQty,sum(PendValue_USD) PendValue_USD
+--from Inflow_billing_stage
+--group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month
+--)a	
+--order by CalYear,CalMonth,Wk_Month
+
+
+-------------------------End:Method1--------------------------------------------------------------------------
+
+
+--------------------------Method2--------------------------------------------------------------------------
+
+truncate table inflow_billing_details_Stage
+truncate table inflow_billing_details
+
+
+Insert into inflow_billing_details_Stage(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,inflowOrders,company,SaleOrderType,OrderNo,
+OrderQty,Inflow)
+--select * into inflow_billing_details from (
+select a.Organ,a.Vertical1,a.dpst,a.DpstName,a.AreaCode,a.AreaName,
+year(a.OrderDate) as CalYear,month(a.OrderDate) as CalMonth,
+1+datepart(wk,a.orderdate)-datepart(wk,convert (date,CONVERT(varchar, month(a.orderdate)) + '/1/' + datename(yy, a.orderdate))) as Wk_Month,
+convert(date,a.OrderDate) OrderDate,concat(a.company,a.SaleOrderType,a.OrderNo) as inflowOrders,
+a.company,a.SaleOrderType,a.OrderNo,
+DeliveryQty as OrderQty,--Need to be changed
+case when a.company='551' and a.areacode='631' then a.Foreign_currency_amount else a.Sales_USD end as Inflow
+from ELGi_Sales_Details a
+where a.Organ='COSEA'
+and sales_category not in (1)
+and OrderDate>'2017-04-01'
+--and concat(company,SaleOrderType,OrderNo)='401217290000081'
+
+--)a
+
+
+Insert into inflow_billing_details_Stage(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,inflowOrders,company,SaleOrderType,OrderNo,
+OrderQty,Inflow)
+select a.Organ,a.Vertical1,a.dpst,a.DpstName,a.AreaCode,a.AreaName,
+year(a.OrderDate) as CalYear,month(a.OrderDate) as CalMonth,
+1+datepart(wk,a.orderdate)-datepart(wk,convert (date,CONVERT(varchar, month(a.orderdate)) + '/1/' + datename(yy, a.orderdate))) as Wk_Month,
+convert(date,a.OrderDate),concat(a.company,a.ordertype,a.OrderNum) as inflowOrders,
+a.company,a.ordertype,a.OrderNum,qty as OrderQty,
+case when a.company='551' and a.areacode='631' then a.Foreign_currency_amount else a.Sales_USD end as Inflow
+from Sales_Inflow a
+where a.Organ='COSEA'
+and concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1) ) 
+and concat(a.company,a.ordertype,a.OrderNum) not in (select distinct infloworders from inflow_billing_details_Stage)
+and OrderDate>'2017-04-01'
+--and concat(company,ordertype,OrderNum)='401217290000081'
+
+
+Insert into inflow_billing_details(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,inflowOrders,company,SaleOrderType,OrderNo,OrderQty,Inflow)
+select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,inflowOrders,company,SaleOrderType,OrderNo,
+sum(OrderQty) OrderQty,sum(Inflow) Inflow
+from inflow_billing_details_stage
+group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,inflowOrders,company,SaleOrderType,OrderNo
+
+
+Truncate table inflow_billing_details_Stage
+
+Insert into inflow_billing_details_Stage(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,
+inflowOrders,SalesOrders,
+company,SaleOrderType,OrderNo,--OrderQty,Inflow,
+Invoice_Date,Trantype,Invoice,DeliveryQty,Sales
+)
+--select * into inflow_billing_details from (
+select a.Organ,a.Vertical1,a.dpst,a.DpstName,a.AreaCode,a.AreaName,
+--year(a.OrderDate) as CalYear,month(a.OrderDate) as CalMonth,
+--1+datepart(wk,a.orderdate)-datepart(wk,convert (date,CONVERT(varchar, month(a.orderdate)) + '/1/' + datename(yy, a.orderdate))) as Wk_Month,
+cal_year,cal_Month,
+1+datepart(wk,a.Invoice_Date)-datepart(wk,convert (date,CONVERT(varchar, month(a.Invoice_Date)) + '/1/' + datename(yy, a.Invoice_Date))) as Wk_Month,
+convert(date,a.OrderDate) OrderDate,
+concat(a.company,a.SaleOrderType,a.OrderNo) as InflowOrders,concat(a.company,a.SaleOrderType,a.OrderNo) as SalesOrders,
+a.company,a.SaleOrderType,a.OrderNo,
+a.Invoice_Date,a.trantype,a.Invoice,a.DeliveryQty,
+case when a.company='551' and a.areacode='631' then a.Foreign_currency_amount else a.Sales_USD end as Sales
+from ELGi_Sales_Details a
+where a.Organ='COSEA'
+and sales_category not in (1)
+and Invoice_Date>='2017-04-01'
+--and concat(company,SaleOrderType,OrderNo)='401217290000081'
+
+--)a
+
+insert into inflow_billing_details(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,InflowOrders,SalesOrders,company,SaleOrderType,OrderNo,
+Invoice_Date,Trantype,Invoice,DeliveryQty,Sales)
+select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,inflowOrders,SalesOrders,company,SaleOrderType,OrderNo,
+Invoice_Date,Trantype,Invoice,sum(DeliveryQty) DeliveryQty,
+sum(Sales) Sales
+from  inflow_billing_details_Stage
+--where SalesOrders='401217290000081'
+group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+CalYear,CalMonth,Wk_Month,OrderDate,InflowOrders,SalesOrders,company,SaleOrderType,OrderNo,
+Invoice_Date,Trantype,Invoice
+
+
+
+insert into Inflow_billing(Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month,
+InflowOrders,OrderQty,Inflow,
+SalesOrders,DeliveryQty,Sales,
+PendOrders,PendQty,PendValue_USD,Rnk)
+select *,dense_rank() over(partition by Organ,Vertical1,CalYear,CalMonth,dpst,DpstName,AreaCode,AreaName
+order by Organ,Vertical1,CalYear,CalMonth,Wk_Month,dpst,DpstName,AreaCode,AreaName
+) as Rnk
+from(
+select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month,
+count(distinct InflowOrders) InflowOrders,sum(OrderQty) as OrderQty,sum(Inflow) as Inflow,
+count(distinct SalesOrders) SalesOrders,sum(DeliveryQty) as DeliveryQty,sum(Sales) as Sales,
+null as PendOrders,null as PendQty,null as PendValue_USD
+from Inflow_billing_details
+group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,CalYear,CalMonth,Wk_Month
+)a	
+order by CalYear,CalMonth,Wk_Month
+
+
+
+-----------------------End:Method2--------------------------------------------------------------------------
+
+update inflow_billing_details set Date1=isnull(Invoice_Date,OrderDate)
+
+update inflow_billing_details set FinYear=CalYear-1 where CalMonth<4
+update inflow_billing_details set FinYear=CalYear where CalMonth>=4
+
+update inflow_billing_details set FinMonth=CalMonth+9 where CalMonth<4
+update inflow_billing_details set FinMonth=CalMonth-3 where CalMonth>=4
+
+update inflow_billing_details set FinPeriod= concat(convert(varchar,FinYear),RIGHT('00'+CAST(FinMonth AS VARCHAR(2)),2))
+
+
+update Inflow_billing set Vertical1='Units' where Vertical1 ='OSEA UNITS'
+update Inflow_billing set Vertical1='Parts' where Vertical1 ='OSEA AS'
+
+update Inflow_billing set FinYear=CalYear-1 where CalMonth<4
+update Inflow_billing set FinYear=CalYear where CalMonth>=4
+
+update Inflow_billing set FinMonth=CalMonth+9 where CalMonth<4
+update Inflow_billing set FinMonth=CalMonth-3 where CalMonth>=4
+
+update Inflow_billing set FinPeriod= concat(convert(varchar,FinYear),RIGHT('00'+CAST(FinMonth AS VARCHAR(2)),2))
+
+delete from inflow_billing where organ is null
+delete from Inflow_billing where areaname = 'China'
+
+
+
+--delete from inflow_billing where concat(dpst,areacode)<> '70296624'
+
+
+----Method 1
+--update Inflow_billing set PrevinflowOrders=a.infloworders,PrevOrderQty=a.OrderQty,PrevInflow=a.Inflow,
+--PrevSalesOrders=a.SalesOrders,PrevDeliveryQty=a.deliveryQty,prevsales=a.sales
+----,PrevPendOrders=a.PendOrders,PrevPendQty=a.PendQty,PrevPendValue_USD=a.PendValue_USD
+--from (select Organ,Vertical1,FinPeriod,--dpst,AreaCode,
+--sum(infloworders) infloworders,sum(OrderQty) OrderQty,sum(Inflow) Inflow,
+--sum(SalesOrders) SalesOrders,sum(deliveryQty) deliveryQty,sum(sales) sales
+----,sum(PendOrders) PendOrders,sum(PendQty) PendQty,sum(PendValue_USD) PendValue_USD
+--from Inflow_billing
+--group by Organ,Vertical1,FinPeriod--,dpst,AreaCode
+--)a
+--where Inflow_billing.Organ=a.Organ
+--and Inflow_billing.Vertical1=a.Vertical1
+----and Inflow_billing.dpst=a.dpst
+----and Inflow_billing.AreaCode=a.AreaCode
+--and Inflow_billing.FinPeriod-1=a.FinPeriod
+--and Inflow_billing.Rnk=1
+
+
+--Method 2
+declare @Organ varchar(25)
+declare @Vertical1 varchar(25)
+declare @dpst varchar(20)
+declare @AreaCode varchar(10)
+declare @FinPeriod varchar(10)
+declare @PrevFinPeriod varchar(10)
+declare @Count1 int
+declare @Count2 int
+declare @Count3 int
+declare @Count4 int
+declare @Count5 int
+declare @OrganCnt int
+declare @Vertical1Cnt int
+declare @dpstCnt int
+declare @AreaCnt int
+declare @FinPeriodCnt int
+
+
+Insert into inflow_billing_Temp1
+select * from(
+select distinct organ,Vertical1,dpst,AreaCode,FinPeriod,
+dense_rank() over (order by organ) as OrganRnk,
+dense_rank() over (order by Vertical1) as Vertical1Rnk,
+dense_rank() over (partition by organ,vertical1 order by dpst) as dpstRnk,
+dense_rank() over (partition by organ,vertical1,dpst order by AreaCode) as AreaRnk,
+dense_rank() over (order by FinPeriod) as FinPeriodRnk
+from Inflow_billing
+where  dpst is not null
+and AreaCode is not null and FinPeriod is not null
+
+)a
+order by OrganRnk,Vertical1Rnk,dpstRnk,AreaRnk,FinPeriodRnk
+
+
+set @OrganCnt =(select max(OrganRnk) from inflow_billing_Temp1)
+set @Count1=1
+while (@Count1<=@OrganCnt)
+begin
+
+set @Organ=(select distinct organ from inflow_billing_Temp1 where OrganRnk=@Count1)
+set @Vertical1Cnt=(select max(Vertical1Rnk) from inflow_billing_Temp1)
+set @Count2=1
+while (@Count2<=@Vertical1Cnt)
+begin
+
+set @Vertical1=(select distinct Vertical1 from inflow_billing_Temp1 
+where OrganRnk=@Count1 and Vertical1Rnk=@Count2)
+set @dpstCnt=(select max(dpstRnk) from inflow_billing_Temp1)
+set @Count3=1
+while (@Count3<=@dpstCnt)
+begin
+
+
+set @dpst=(select distinct dpst from inflow_billing_Temp1 
+where OrganRnk=@Count1 and Vertical1Rnk=@Count2 and dpstRnk=@Count3)
+set @AreaCnt=(select max(AreaRnk) from inflow_billing_Temp1)
+set @Count4=1
+while (@Count4<=@AreaCnt)
+begin
+
+
+
+set @AreaCode=(select distinct AreaCode from inflow_billing_Temp1 
+where OrganRnk=@Count1 and Vertical1Rnk=@Count2 and dpstRnk=@Count3 and 
+AreaRnk=@Count4)
+set @FinPeriodCnt=(select max(FinPeriodRnk) from inflow_billing_Temp1)
+set @Count5=1
+while (@Count5<=@FinPeriodCnt)
+--while (@Count5<=10)
+begin
+
+
+set @FinPeriod=(select distinct FinPeriod from inflow_billing_Temp1 
+where --OrganRnk=@Count1 and Vertical1Rnk=@Count2 and dpstRnk=@Count3 and AreaRnk=@Count4 and 
+FinPeriodRnk=@Count5)
+
+set @PrevFinPeriod=(select distinct FinPeriod from inflow_billing_Temp1 
+where --OrganRnk=@Count1 and Vertical1Rnk=@Count2 and dpstRnk=@Count3 and AreaRnk=@Count4 and 
+FinPeriodRnk=@Count5-1)
+
+
+insert into Inflow_billing_Temp2
+select @Count1,@Count2,@Count3,@Count4,@Count5,
+@Organ,@Vertical1,@dpst,@AreaCode,@FinPeriod
+
+insert into Inflow_billing(Organ,Vertical1,dpst,AreaCode,FinPeriod,Rnk)
+select a.Organ,a.Vertical1,a.dpst,a.Area,a.FinPeriod,1 as Rnk from 
+(select Organ,Vertical1,dpst,Area,FinPeriod from Inflow_billing_Temp2 
+where dpst is not null and Area is not null
+and FinPeriod<>''
+)a
+left outer join
+(select distinct Organ,Vertical1,dpst,AreaCode,FinPeriod from inflow_billing)b
+on a.Organ=b.Organ
+and a.dpst=b.dpst
+and a.Area=b.AreaCode
+and a.FinPeriod=b.FinPeriod
+where b.dpst is null
+and b.areacode is null
+--and a.dpst='70283'
+--and a.Area='631'
+
+
+--Alter table Inflow_billing alter column dpst varchar(20)
+--Alter table Inflow_billing alter column AreaCode varchar(20)
+
+--if not exists(select distinct organ,Vertical1,dpst,AreaCode,FinPeriod from Inflow_billing where 
+--Organ=@Organ
+--and Vertical1=@Vertical1
+--and dpst=@dpst
+--and AreaCode=@AreaCode
+--and FinPeriod=@FinPeriod
+----and Rnk=1
+--)
+--begin
+--insert into Inflow_billing(Organ,Vertical1,dpst,AreaCode,FinPeriod,Rnk)
+--select @Organ,@Vertical1,@dpst,@AreaCode,@FinPeriod,1 as Rnk
+--end
+
+
+update Inflow_billing set PrevinflowOrders=a.infloworders,PrevOrderQty=a.OrderQty,PrevInflow=a.Inflow,
+PrevSalesOrders=a.SalesOrders,PrevDeliveryQty=a.deliveryQty,PrevSales=a.sales,
+PrevPendOrders=a.PendOrders,PrevPendQty=a.PendQty,PrevPendValue_USD=a.PendValue_USD
+from(
+select Organ,Vertical1,dpst,AreaCode,--FinPeriod
+sum(isnull(infloworders,0)) infloworders,sum(isnull(OrderQty,0)) OrderQty,sum(isnull(Inflow,0)) Inflow,
+sum(isnull(SalesOrders,0)) SalesOrders,sum(isnull(deliveryQty,0)) deliveryQty,sum(isnull(sales,0)) sales,
+sum(isnull(PendOrders,0)) PendOrders,sum(isnull(PendQty,0)) PendQty,sum(isnull(PendValue_USD,0)) PendValue_USD
+from Inflow_billing
+where Organ=@Organ
+and Vertical1=@Vertical1
+and dpst=@dpst
+and AreaCode=@AreaCode
+and FinPeriod<@FinPeriod
+group by Organ,Vertical1,dpst,AreaCode--,FinPeriod
+)a
+where Inflow_billing.Organ=a.Organ
+and Inflow_billing.Vertical1=a.Vertical1
+and Inflow_billing.dpst=a.dpst
+and Inflow_billing.AreaCode=a.AreaCode
+--and Inflow_billing.FinPeriod=a.FinPeriod
+and Inflow_billing.Organ=@Organ
+and Inflow_billing.Vertical1=@Vertical1
+and Inflow_billing.dpst=@dpst
+and Inflow_billing.AreaCode=@AreaCode
+and Inflow_billing.FinPeriod=@FinPeriod
+and Inflow_billing.Rnk=1
+
+
+--Alter table Inflow_billing add OpeningOrders int
+--Alter table Inflow_billing add ClosingOrders int
+--Alter table Inflow_billing add OpeningValue float
+--Alter table Inflow_billing add ClosingValue float
+
+if(@Count5=1)
+begin
+update Inflow_billing set OpeningOrders =a.OpeningOrders,OpeningValue=a.OpeningValue
+--a.PendOrders
+from 
+(select Organ,Vertical1,dpst,AreaCode,FinPeriod,--PendOrders 
+InflowOrders,SalesOrders,isnull(InflowOrders,0)-isnull(SalesOrders,0) as OpeningOrders,
+isnull(Inflow,0)-isnull(Sales,0) as OpeningValue
+from Inflow_billing
+where FinPeriod=@PrevFinPeriod
+)a
+where Inflow_billing.Organ=a.Organ
+and Inflow_billing.Vertical1=a.Vertical1
+and Inflow_billing.dpst=a.dpst
+and Inflow_billing.AreaCode=a.AreaCode
+and Inflow_billing.FinPeriod=a.FinPeriod
+and Inflow_billing.Organ=@Organ
+and Inflow_billing.Vertical1=@Vertical1
+and Inflow_billing.dpst=@dpst
+and Inflow_billing.AreaCode=@AreaCode
+and Inflow_billing.FinPeriod=@FinPeriod
+and Inflow_billing.Rnk=1
+
+
+update Inflow_billing set ClosingOrders =isnull(a.OpeningOrders,0) +
+isnull(a.InflowOrders,0)-isnull(a.SalesOrders,0),
+ClosingValue=isnull(a.OpeningValue,0) + isnull(a.Inflow,0)-isnull(a.Sales,0) 
+from 
+(select Organ,Vertical1,dpst,FinPeriod,AreaCode,sum(isnull(OpeningOrders,0)) OpeningOrders,
+sum(isnull(PendOrders,0)) PendOrders,
+sum(isnull(InflowOrders,0)) InflowOrders,
+sum(isnull(SalesOrders,0)) SalesOrders,
+sum(isnull(OpeningValue,0)) OpeningValue,
+sum(isnull(Inflow,0)) Inflow,
+sum(isnull(Sales,0)) Sales
+from Inflow_billing
+where Inflow_billing.Organ=@Organ
+and Inflow_billing.Vertical1=@Vertical1
+and Inflow_billing.dpst=@dpst
+and Inflow_billing.AreaCode=@AreaCode
+and Inflow_billing.FinPeriod=@FinPeriod
+group by Organ,Vertical1,dpst,AreaCode,FinPeriod
+)a
+where Inflow_billing.Organ=a.Organ
+and Inflow_billing.Vertical1=a.Vertical1
+and Inflow_billing.dpst=a.dpst
+and Inflow_billing.AreaCode=a.AreaCode
+and Inflow_billing.FinPeriod=a.FinPeriod
+and Inflow_billing.Organ=@Organ
+and Inflow_billing.Vertical1=@Vertical1
+and Inflow_billing.dpst=@dpst
+and Inflow_billing.AreaCode=@AreaCode
+and Inflow_billing.FinPeriod=@FinPeriod
+and Inflow_billing.Rnk=1
+
+
+end
+
+
+
+if(@Count5<>1)
+begin
+
+update Inflow_billing set OpeningOrders =a.ClosingOrders,
+OpeningValue=a.ClosingValue
+from 
+(select Organ,Vertical1,dpst,AreaCode,FinPeriod,
+sum(isnull(PendOrders,0)) PendOrders,
+sum(isnull(InflowOrders,0)) InflowOrders,
+sum(isnull(SalesOrders,0)) SalesOrders, 
+sum(isnull(ClosingOrders,0)) ClosingOrders,
+sum(isnull(ClosingValue,0)) ClosingValue
+from Inflow_billing
+where FinPeriod=@PrevFinPeriod
+group by Organ,Vertical1,dpst,AreaCode,FinPeriod
+)a
+where Inflow_billing.Organ=a.Organ
+and Inflow_billing.Vertical1=a.Vertical1
+and Inflow_billing.dpst=a.dpst
+and Inflow_billing.AreaCode=a.AreaCode
+and Inflow_billing.Organ=@Organ
+and Inflow_billing.Vertical1=@Vertical1
+and Inflow_billing.dpst=@dpst
+and Inflow_billing.AreaCode=@AreaCode
+and Inflow_billing.FinPeriod=@FinPeriod
+and Inflow_billing.Rnk=1
+
+
+update Inflow_billing set ClosingOrders =isnull(a.OpeningOrders,0) +
+isnull(a.InflowOrders,0)-isnull(a.SalesOrders,0),
+ClosingValue =isnull(a.OpeningValue,0) +
+isnull(a.Inflow,0)-isnull(a.Sales,0)
+from 
+(select Organ,Vertical1,dpst,FinPeriod,AreaCode,sum(isnull(OpeningOrders,0)) OpeningOrders,
+sum(isnull(PendOrders,0)) PendOrders,
+sum(isnull(InflowOrders,0)) InflowOrders,
+sum(isnull(SalesOrders,0)) SalesOrders,
+sum(isnull(OpeningValue,0)) OpeningValue,
+sum(isnull(Inflow,0)) Inflow,
+sum(isnull(Sales,0)) Sales
+from Inflow_billing
+where Inflow_billing.Organ=@Organ
+and Inflow_billing.Vertical1=@Vertical1
+and Inflow_billing.dpst=@dpst
+and Inflow_billing.AreaCode=@AreaCode
+and Inflow_billing.FinPeriod=@FinPeriod
+group by Organ,Vertical1,dpst,AreaCode,FinPeriod
+)a
+where Inflow_billing.Organ=a.Organ
+and Inflow_billing.Vertical1=a.Vertical1
+and Inflow_billing.dpst=a.dpst
+and Inflow_billing.AreaCode=a.AreaCode
+and Inflow_billing.FinPeriod=a.FinPeriod
+and Inflow_billing.Organ=@Organ
+and Inflow_billing.Vertical1=@Vertical1
+and Inflow_billing.dpst=@dpst
+and Inflow_billing.AreaCode=@AreaCode
+and Inflow_billing.FinPeriod=@FinPeriod
+and Inflow_billing.Rnk=1
+
+end
+
+
+
+
+
+
+
+
+
+set @Count5=@Count5+1
+end --FinPeriodloop
+
+
+set @Count4=@Count4+1
+end --Arealoop
+
+set @Count3=@Count3+1
+end --dpst1loop
+
+set @Count2=@Count2+1
+end --Vertical1loop
+
+set @Count1=@Count1+1
+end --Organloop
+
+
+
+update Inflow_billing set dpstname=a.DpstName
+from (select distinct dpst,DpstName from Inflow_billing where DpstName is not null)a
+where Inflow_billing.dpst=a.dpst
+and Inflow_billing.DpstName is null
+
+update Inflow_billing set AreaName=a.AreaName
+from (select distinct AreaCode,AreaName from Inflow_billing where AreaName is not null)a
+where Inflow_billing.AreaCode=a.AreaCode
+and Inflow_billing.AreaName is null
+
+update Inflow_billing set CalYear=a.CalYear,CalMonth=a.CalMonth,Wk_Month=1,
+FinYear=a.FinYear,FinMonth=a.FinMonth
+from(
+select distinct FinPeriod,CalYear,CalMonth,FinYear,FinMonth from Inflow_billing
+where finyear is not null )a
+where Inflow_billing.FinPeriod=a.FinPeriod
+and Inflow_billing.FinYear is null
+
+
+end
+
+
+--Details 1
+select a.Organ,a.Vertical1,a.dpst,a.DpstName,a.AreaCode,a.AreaName,
+--b.dpst,b.AreaCode,
+a.FinPeriod,a.company,a.SaleOrderType,a.OrderNo,a.InflowOrdrCnt,
+a.Inflow,b.SalesOrdrCnt,b.Sales,
+isnull(a.InflowOrdrCnt,0)-isnull(b.SalesOrdrCnt,0) as BalanceOrders,
+isnull(a.inflow,0)-isnull(b.sales,0) as BalanceValue
+from 
+(select Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+FinPeriod,inflowOrders,company,SaleOrderType,OrderNo,
+sum(OrderQty) OrderQty,sum(Inflow) Inflow,
+Count(distinct inflowOrders) InflowOrdrCnt
+from inflow_billing_details
+where areacode<>'635'
+--and inflowOrders='551211200000003'
+and SalesOrders is null
+group by Organ,Vertical1,dpst,DpstName,AreaCode,AreaName,
+FinPeriod,inflowOrders,company,SaleOrderType,OrderNo
+)a
+left outer join 
+(
+select dpst,AreaCode,company,SaleOrderType,OrderNo,SalesOrders,
+sum(DeliveryQty) DeliveryQty,sum(Sales) Sales,
+count(distinct SalesOrders) SalesOrdrCnt
+from inflow_billing_details
+where areacode<>'635'
+--and SalesOrders='551211200000003'
+and SalesOrders is not null
+group by dpst,AreaCode,company,SaleOrderType,OrderNo,SalesOrders
+)b
+on a.inflowOrders=b.SalesOrders
+and a.dpst=a.dpst
+and a.AreaCode=a.AreaCode
+and a.Inflow=b.Sales
+--where a.inflowOrders='551211200000003'
+order by FinPeriod,inflowOrders
+
+
+
+
+
+Completion time: 2025-11-19T11:20:30.9519491+05:30

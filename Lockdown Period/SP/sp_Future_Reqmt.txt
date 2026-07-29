@@ -1,0 +1,59 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Alter table Future_Reqmt alter column ordernum varchar(50)
+--exec sp_Future_Reqmt
+
+
+CREATE proc [dbo].[sp_Future_Reqmt] as
+
+Begin
+
+Truncate table Future_Reqmt
+
+insert into Future_Reqmt (company,itemcode,ordernum,No_of_lines,DeliveryDate,
+weekno,monthno,year,OrderQty,DelQty,PendQty)
+--,SuppName,Buyer,BuyerName,OrderValue
+select company,itemcode,ordernum,
+count(OrderNum) No_of_lines,DeliveryDate,
+DATEPART(WK,deliverydate) weekno,month(DeliveryDate) monthno,year(DeliveryDate) year,
+sum(t_qoor) OrderQty,
+sum(t_qidl) as DelQty,
+sum(t_qoor)-sum(t_qidl) as PendQty  
+from Sales_Lines 
+where Company=490
+--and itemcode='         B738207'
+group by company,itemcode,DeliveryDate,ordernum
+having sum(t_qoor)-sum(t_qidl)<>0
+
+--Item Updations
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+
+--Supplierwise Price
+
+update Future_Reqmt set Supplier=ltrim(rtrim(a.OTBP)),UnitPrice=a.BAPR
+from (select * from TTDPCG031ALL where company =490) a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company =490 and CompanyGroup ='ELGi')
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+
+
+
+
+end
+
+
+select * from Future_Reqmt
+
+--select * from TTDPCG031ALL order by company
+--select distinct company from TTDPCG031ALL order by company
+
+
+
+Completion time: 2025-11-19T10:17:16.5429918+05:30

@@ -1,0 +1,322 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Production_orders_Inflow
+CREATE proc sp_Production_orders_Inflow as
+begin
+
+--create table Production_orders_Inflow_Temp
+--(
+--Company varchar(10),
+--CWAR varchar(25),
+--ItemCode varchar(50),
+--ItemDescr varchar(50),
+--[Description] varchar(50),
+--PDNO varchar(50),
+--Planned_qty_till_CurrDay float,
+--Planned_qty_till_PrevDay float,
+--Released_qty_CurrDay float,
+--InflowOrders float
+--)
+
+--select * from Production_orders_Inflow_Temp
+
+
+Truncate table Production_orders_Inflow_Temp
+Truncate table Production_orders_Inflow
+
+
+Insert into Production_orders_Inflow_Temp(Company,CWAR,ItemCode,PDNO,Planned_qty_till_CurrDay)
+select * from (
+select --convert(date,RDLD) as date1,
+company,
+CWAR as cwar,
+MITM as Item,
+PDNO as pdno,
+sum(case when osta in (1,2,3) then QRDR else 0 end ) as Planned_qty_till_CurrDay
+--sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else 
+--(case when osta in (1,2,3) and EFDT <=convert(date,getdate()-1) then qrdr else 0 end) end) as Planned_qty_till_CurrDay,
+--sum(case when RDLD='9999-01-01 00:00:00.000' then 0 else 
+--(case when osta in (1,2,3) and EFDT <=convert(date,getdate()-2) then qrdr else 0 end) end) as Planned_qty_till_PrevDay
+from TTISFC001ALL
+--where ltrim(rtrim(MITM))='S012454'
+group by --convert(date,RDLD),
+company,CWAR,MITM,PDNO
+)a
+where Planned_qty_till_CurrDay <>0
+
+
+
+--select * into Production_orders_Inflow_Temp2 from Production_orders_Inflow_Temp
+--Alter table Production_orders_Inflow_Temp2 add EntryDate date
+--sp_rename 'Production_orders_Inflow_Temp2.Planned_qty','Planned_qty_till_PrevDay'
+
+
+if exists(select * from Production_orders_Inflow_Temp2 where EntryDate=convert(date,getdate()-1))
+begin
+delete from Production_orders_Inflow_Temp2 where EntryDate=convert(date,getdate()-1)
+end
+
+Insert into Production_orders_Inflow_Temp2(Company,CWAR,ItemCode,PDNO,Planned_qty_till_PrevDay,EntryDate)
+select * from (
+select --convert(date,RDLD) as date1,
+company,
+CWAR as cwar,
+MITM as Item,
+PDNO as pdno,
+sum(case when osta in (1,2,3) then QRDR else 0 end ) as Planned_qty,
+getdate()-1 as EntryDate
+from TTISFC001ALL
+--where ltrim(rtrim(MITM))='S012454'
+group by --convert(date,RDLD),
+company,CWAR,MITM,PDNO
+)a
+where Planned_qty<>0
+
+
+Insert into Production_orders_Inflow_Temp(Company,CWAR,ItemCode,
+PDNO,Released_qty_CurrDay
+)
+select * from (
+select 
+--convert(date,ReleaseDt) as date1,
+company,
+CWAR as cwar,
+a.MITM as Item,
+PDNO as pdno,
+sum(case when ADLD='9999-01-01 00:00:00.000' then 0 else (case when osta=6 then qrdr else 0 end) end) as Released_qty_CurrDay
+from (
+select a.*,b.date as ReleaseDt from  TTISFC001ALL a 
+left outer join
+(
+select * from (
+select company,PDNO,OSTA,convert(date,date) as date,row_number() over (partition by company,pdno order by date) dateRank 
+from TTICST151ALL
+where OSTA =6
+--and PDNO='230009816' --for testing Purpose
+)b1
+where dateRank=1
+)b
+on a.company=b.company
+and a.PDNO=b.PDNO
+--where a.PDNO='280021638'  --for testing Purpose
+)a
+where convert(date,ReleaseDt)=convert(date,getdate()-1)
+group by --convert(date,ReleaseDt),
+company,CWAR,MITM,PDNO
+)b
+where Released_qty_CurrDay<>0
+
+
+
+
+insert into Production_orders_Inflow(Company,CWAR,ItemCode,ItemDescr,Description,PDNO,
+Planned_qty_till_PrevDay,Planned_qty_till_CurrDay,Released_qty_CurrDay)
+select Company,CWAR,ItemCode,ItemDescr,Description,PDNO,
+Planned_qty_till_PrevDay,Planned_qty_till_CurrDay,Released_qty_CurrDay
+from (
+select Company,CWAR,
+ItemCode,ItemDescr,Description,PDNO,
+sum(Planned_qty_till_CurrDay) Planned_qty_till_CurrDay,
+sum(Planned_qty_till_PrevDay) Planned_qty_till_PrevDay,
+sum(Released_qty_CurrDay) Released_qty_CurrDay
+from (select Company,CWAR,ItemCode,ItemDescr,Description,PDNO,
+Planned_qty_till_CurrDay,Planned_qty_till_PrevDay,Released_qty_CurrDay
+from Production_orders_Inflow_Temp
+union
+select Company,CWAR,ItemCode,ItemDescr,Description,PDNO,
+Planned_qty_till_CurrDay,Planned_qty_till_PrevDay,Released_qty_CurrDay
+from Production_orders_Inflow_Temp2
+where EntryDate=convert(date,getdate()-2)
+)a
+group by Company,CWAR,ItemCode,ItemDescr,Description,PDNO
+)a
+--where isnull(Planned_qty_till_CurrDay,0) <>0
+--and isnull(Planned_qty_till_PrevDay,0) <>0 
+--and isnull(Released_qty_CurrDay,0)<>0
+
+
+update Production_orders_Inflow set InflowOrders=isnull(Planned_qty_till_CurrDay,0)-isnull(Planned_qty_till_PrevDay,0)+isnull(Released_qty_CurrDay,0)
+update Production_orders_Inflow set InflowOrders=0 where InflowOrders<0
+
+
+update Production_orders_Inflow set Description=b.Description
+from (
+select distinct a.company,Description,prd_from,prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+)b
+where case when Production_orders_Inflow.pdno like '%[a-z]%' then '0' else Production_orders_Inflow.pdno end 
+between case when b.prd_from like '%[a-z]%' then '0' else b.prd_from end 
+and case when b.prd_to like '%[a-z]%' then '0' else b.prd_to end  
+and Production_orders_Inflow.company = b.company
+
+update Production_orders_Inflow set Description='PVD' where company=470 and pdno like '%[a-z]%'
+update Production_orders_Inflow set Description='Motor Division' where company=480
+
+delete from Production_orders_Inflow where pdno like '%[a-z]%' and company not in (470,401)
+delete from Production_orders_Inflow where pdno not like '%PRO%' and company = 470
+
+
+update Production_orders_Inflow set Description='RLY-Spares' where cwar='561' and Description='Railways'
+--update Production_orders_Inflow set Description='Others' where pdno like '901%' and Description='TOPBLOCK'
+update Production_orders_Inflow set Description='Others' where cwar like '991%' and Description='TOPBLOCK'
+
+
+--Item Description
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where Production_orders_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Production_orders_Inflow.Itemcode))=ltrim(rtrim(a.t_item))
+
+
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where Production_orders_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(Production_orders_Inflow.ItemCode))=ltrim(rtrim(a.ITEM))
+
+
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001470 a
+where Production_orders_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(Production_orders_Inflow.ItemCode))=ltrim(rtrim(a.ITEM))
+
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where Production_orders_Inflow.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Production_orders_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where Production_orders_Inflow.company =551
+and ltrim(rtrim(Production_orders_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where Production_orders_Inflow.company =552
+and ltrim(rtrim(Production_orders_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where Production_orders_Inflow.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(Production_orders_Inflow.ItemCode))=ltrim(rtrim(a.t_item))
+
+
+update Production_orders_Inflow set itemdescr=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where Production_orders_Inflow.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(Production_orders_Inflow.ItemCode))=ltrim(rtrim(a.item))
+
+update Production_orders_Inflow set description='Others' where description is null
+
+
+--Removing Sub Assembly Parts in 470 Company
+
+--delete from Production_orders_Inflow where 
+--company =470 and 
+--ltrim(rtrim(ItemCode)) in 
+--('20228160','20228270','20364840','20228080','20364830','34030395A','20227680','20228200','340305550','20365950',
+--'340200820','340303440','340303640','20226950','34030395B','20226410','20230030','15301557','15306446','15304819',
+--'15311262','15306791','15312211','15306841','15308240','15308241','15307935','15307870','15311337','15310632',
+--'15303598','15303309','15308468','15308469','35301147','35301161','35302748','35302194','35302707','35301797',
+--'35302127','15314209','15314208','15305437')
+
+
+----Removing 553 cwar details 
+--delete from Production_orders_Inflow where company=401 and cwar='553'
+
+--delete from Production_orders_Inflow where description='AIREND' and pdno like '991%'
+
+
+--delete from Production_orders_Inflow where cwar in ('253','212') and Description in ('Lepsac','Dpsac','OFSAC')
+----delete from Production_orders_Inflow  where description='LEPSAC' and cwar in ('257') --commented as requested on 09-12-2020
+
+
+--delete from Production_orders_Inflow  where description='SEPSAC' and 
+--cwar not in ('157','257','A57','C57','E57','L57','W57')
+
+----delete from Production_orders_Inflow  where description='Encap' and 
+----cwar not in ('157','257','A57','C57','E57','L57','W57')
+
+
+--delete from Production_orders_Inflow where Description like 'TOPBLOCK%'
+--and cwar='174' --and pdno like '901%' --Commented on 01-Mar-2023
+
+
+--delete from Production_orders_Inflow where Description like 'TOPBLOCK%'
+--and cwar='274' and ltrim(rtrim(itemcode)) not like 'x%'
+
+
+--delete from Production_orders_Inflow where description='Lepsac' and pdno not between 
+--(select distinct prd_from from ELGi_Production_Master a
+--left outer join ELGi_AssemblyLine_Master b
+--on b.code = a.assemblycode
+--where Description='Lepsac'
+--)
+--and 
+--(select distinct prd_to from ELGi_Production_Master a
+--left outer join ELGi_AssemblyLine_Master b
+--on b.code = a.assemblycode
+--where Description='Lepsac'
+--)
+
+--Alter table Production_orders_Inflow add CompName varchar(50)
+--Alter table Production_orders_Inflow_history add CompName varchar(50)
+
+update Production_orders_Inflow set CompName='COMPRESSOR CENTER' where company=401
+update Production_orders_Inflow set CompName='AIR CENTER' where company=450
+update Production_orders_Inflow set CompName='PVD' where company=470
+update Production_orders_Inflow set CompName='Motor Division' where company=480
+
+
+if exists(select * from Production_orders_Inflow_history where EntryDate=convert(date,getdate()-1))
+begin
+delete from Production_orders_Inflow_history where EntryDate=convert(date,getdate()-1)
+end
+
+insert into Production_orders_Inflow_history(Company,CWAR,ItemCode,ItemDescr,Description,
+InflowOrders,EntryDate,PDNO,Planned_qty_till_CurrDay,Planned_qty_till_PrevDay,Released_qty_CurrDay,CompName)
+select * from(
+select Company,CWAR,ItemCode,ItemDescr,Description,sum(InflowOrders) InflowOrders ,convert(date,getdate()-1) as EntryDate,
+PDNO,
+sum(Planned_qty_till_CurrDay) Planned_qty_till_CurrDay,
+sum(Planned_qty_till_PrevDay) Planned_qty_till_PrevDay,
+sum(Released_qty_CurrDay) Released_qty_CurrDay,
+CompName
+from Production_orders_Inflow
+group by Company,CWAR,ItemCode,ItemDescr,Description,PDNO,CompName
+)a
+
+
+insert into Production_orders_Inflow_history
+select Company,CWAR,ItemCode,ItemDescr,Description,
+sum(InflowOrders) InflowOrders,
+EntryDate,null as PDNO,
+sum(Planned_qty_till_CurrDay) Planned_qty_till_CurrDay,
+sum(Planned_qty_till_PrevDay) Planned_qty_till_PrevDay,
+sum(Released_qty_CurrDay) Released_qty_CurrDay,
+CompName
+from Production_orders_Inflow_history
+where PDNO is not null
+and EntryDate<convert(date,getdate()-1)
+group by Company,CWAR,ItemCode,ItemDescr,Description,
+EntryDate,CompName
+
+delete from Production_orders_Inflow_history where PDNO is not null
+and EntryDate<convert(date,getdate()-1)
+
+
+
+end
+
+--select * from Production_orders_Inflow
+--select * into Production_orders_Inflow from Production_orders_Inflow
+
+
+Completion time: 2025-11-19T11:46:51.6624343+05:30

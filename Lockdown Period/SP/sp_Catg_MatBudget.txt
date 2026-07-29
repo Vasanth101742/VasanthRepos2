@@ -1,0 +1,42 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Catg_MatBudget
+CREATE proc sp_Catg_MatBudget as
+
+begin
+
+Truncate table Catg_MatBudget
+
+Insert into Catg_MatBudget(YEAR,UPDT,LOGN,ITEM,PRIC,Q1PR,Q2PR,Q3PR,Q4PR,IMPO,CCUR,RATE,BVAL,COMP,
+REMK1,BUYR,CATG,KITM,QTY1,QTY2,QTY3,QTY4,SUBC,REFCNTD,REFCNTU)
+select *  from TZZINV612ALL
+
+update Catg_MatBudget set emp_name=b.emp_name
+from  [ELGi_Intranet].dbo.Employee_Detail b
+where BUYR =  b.new_emp_code 
+
+update Catg_MatBudget set Item_desc=c.Item_desc
+from (select * from vw_Item_Master where company in (400,490,600)) c
+where Catg_MatBudget.COMP=c.company
+and ltrim(rtrim(Catg_MatBudget.ITEM))=ltrim(rtrim(c.Item))
+
+update Catg_MatBudget set Item_desc=c.Item_desc
+from (select * from vw_Item_Master where company not in (600)) c
+where ltrim(rtrim(Catg_MatBudget.ITEM))=ltrim(rtrim(c.Item))
+and Catg_MatBudget.Item_desc is null
+
+update Catg_MatBudget set WGHT =d.WGHT
+from tzzinv607all d
+where ltrim(rtrim(Catg_MatBudget.ITEM))=ltrim(rtrim(d.ITEM))
+and ltrim(rtrim(Catg_MatBudget.CATG))=ltrim(rtrim(d.CATG))
+and ltrim(rtrim(Catg_MatBudget.SUBC))=ltrim(rtrim(d.SUBC))
+
+
+end
+
+
+
+select * from Catg_MatBudget
+
+
+Completion time: 2025-11-19T09:07:40.4363292+05:30

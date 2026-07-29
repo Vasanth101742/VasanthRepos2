@@ -1,0 +1,220 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Sales_Trend_Australia
+CREATE proc [dbo].[sp_Sales_Trend_Australia] as
+begin
+
+Truncate table Sales_Trend_Australia
+Truncate table Expected_Sales_vs_Budget_Australia
+--Alter table Sales_Trend_Australia drop column Foreign_currency_amount
+
+insert into Sales_Trend_Australia(orderdate,Finyear,Finmonth,wk2,dw2,
+weekdayname,Category,CustType,vertical1,weekly_Inflow)
+select orderdate,Finyear,Finmonth,wk2,dw2,
+weekdayname,Category,CustType,vertical1,--max(weekly_Inflow) 
+weekly_Inflow
+from (
+select a.*,b.Category,b.CustType,b.vertical1,c.Foreign_currency_amount, 
+sum(isnull(Foreign_currency_amount,0)) over (partition by a.Finyear,a.Finmonth,a.Wk2,
+b.Category,b.CustType,b.vertical1  order by a.orderdate 
+rows between UNBOUNDED PRECEDING and CURRENT ROW) as weekly_Inflow
+from 
+(select distinct orderdate,
+--datepart(wk,orderdate) wk,datepart(dw,orderdate) dw,
+case when month(orderdate)<4 then year(orderdate)-1 else year(orderdate) end as Finyear,
+case when month(orderdate)<4 then month(orderdate)+9 else month(orderdate)-3 end as Finmonth,
+case when datepart(dw,orderdate)=7 then datepart(wk,orderdate)+1 else datepart(WK,orderdate) end as wk2,
+case when datepart(dw,orderdate)=7 then 0 else datepart(dw,orderdate) end as dw2,
+datename(weekday,orderdate) weekdayname,1 as id
+from sales_inflow)a
+full outer join vw_Sales_Classification_Australia b
+on a.id=b.id
+full outer join
+(
+--Details
+select orderdate,Company,ordertype,OrderNum,Trantype,invnum,Dpst,DpstName,ItemCode,Item_desc,
+CustName,CustType,vertical1,Category,
+sum(Foreign_currency_amount) as Foreign_currency_amount
+from(
+select orderdate,Company,ordertype,OrderNum,Trantype,invnum,Dpst,DpstName,ItemCode,Item_desc,
+case when vertical1='OSEA AS' then 'AM'
+when vertical1='OSEA UNITS' then 'Units'
+else vertical1 end as vertical1 ,
+case when CustCode='CU1P00009' then 'PULFORD AIR & GAS (PAG)'
+when CustCode='CU1A00019' then 'ADVANCED AIR COMPRESSORS PTY LTD (AA)'
+else CustName end as CustName,
+case when CustCode in ('CU1P00009','CU1A00019') then 'IAC' else 'DEALERS' end as CustType,
+case when Dpst='70282' then 'Portables' else 'Industrials' end as Category,
+Foreign_currency_amount/1000 as Foreign_currency_amount
+from sales_inflow
+where company =551
+and concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1)) 
+--End: Details
+)a
+group by orderdate,Company,ordertype,OrderNum,Trantype,invnum,Dpst,DpstName,ItemCode,Item_desc,
+CustName,CustType,vertical1,Category
+--order by orderdate
+--End: Details
+)c
+on a.OrderDate=c.OrderDate
+and b.Category=c.Category
+and b.CustType=c.CustType
+and b.vertical1=c.vertical1
+)abc
+where weekdayname='Friday'
+and orderdate>=dateadd(wk,-52,convert(date,getdate()-1))
+--group by orderdate,Finyear,Finmonth,wk2,dw2,
+--weekdayname,Category,CustType,vertical1
+
+
+--Alter table Sales_Trend_Australia add FiveWeek_MA float
+--Alter table Sales_Trend_Australia add ThreeMonths_MA float
+
+update Sales_Trend_Australia set FiveWeek_MA=a.FiveWeek_MA
+from (
+select *,avg(weekly_inflow) over(order by orderdate 
+rows between 4 PRECEDING and CURRENT ROW)  as FiveWeek_MA
+from (
+select orderdate,Finyear,Finmonth,wk2,dw2,weekdayname,custtype,
+sum(weekly_inflow) weekly_inflow from Sales_Trend_Australia
+where custtype='Dealers'
+group by orderdate,Finyear,Finmonth,wk2,dw2,weekdayname,custtype
+)a
+)a
+where Sales_Trend_Australia.orderdate=a.orderdate
+and Sales_Trend_Australia.custtype=a.custtype
+
+
+
+update Sales_Trend_Australia set ThreeMonths_MA=a.ThreeMonths_MA
+from (
+select *,avg(weekly_inflow) over(order by finmonth
+rows between 2 PRECEDING and CURRENT ROW)  as ThreeMonths_MA
+from (
+select Finyear,Finmonth,custtype,
+sum(weekly_inflow) weekly_inflow from Sales_Trend_Australia
+where custtype='Dealers'
+group by Finyear,Finmonth,custtype
+)a
+)a
+where Sales_Trend_Australia.finmonth=a.finmonth
+and Sales_Trend_Australia.custtype=a.custtype
+
+--Alter table Sales_Trend_Australia alter column vertical1 varchar(25) Budget float
+
+--Insert into Sales_Trend_Australia(Finyear,Finmonth,CustType,vertical1,Budget)
+--select FYER,FPRD,COMP1,CATG1,BVAL from (
+--select company,case when comp=1 then 'IAC'
+--when comp=2 then 'Industrials'
+--when Comp=3 then 'Portables'
+--when comp=4 then 'DEALERS'
+--end as COMP1,
+--case when Type=1 then 'Budget'
+--when Type=2 then 'Forecast'
+--end as TYPE1,
+--case when catg=1 then 'Units'
+--when catg=2 then 'AM'
+--end as CATG1,
+--FYER,FPRD,BVAL from TZZSLS702ALL
+--where Type=1
+--)a
+
+--update Sales_Trend_Australia set category=custtype where Budget is not null
+--and Custtype in ('Industrials','Portables')
+
+--update Sales_Trend_Australia set custtype=null where Budget is not null
+--and category in ('Industrials','Portables')
+
+
+
+
+----------------------------------------------------------------------
+--Alter table Expected_Sales_vs_Budget_Australia alter column vertical1 varchar(20) null
+
+Insert into Expected_Sales_vs_Budget_Australia(Company,ordertype,OrderNum,
+Finyear,Finmonth,vertical1,CustName,CustType,Category,Foreign_currency_amount)
+select a.* from(
+select Company,ordertype,OrderNum,
+case when month(orderdate)<4 then year(orderdate)-1 else year(orderdate) end as Finyear,
+case when month(orderdate)<4 then month(orderdate)+9 else month(orderdate)-3 end as Finmonth,
+case when vertical1='OSEA AS' then 'AM'
+when vertical1='OSEA UNITS' then 'Units'
+else vertical1 end as vertical1 ,
+case when CustCode='CU1P00009' then 'PULFORD AIR & GAS (PAG)'
+when CustCode='CU1A00019' then 'ADVANCED AIR COMPRESSORS PTY LTD (AA)'
+else CustName end as CustName,
+case when CustCode in ('CU1P00009','CU1A00019') then 'IAC' else 'DEALERS' end as CustType,
+case when Dpst='70282' then 'Portables' else 'Industrials' end as Category,
+Foreign_currency_amount/1000 as Foreign_currency_amount
+from sales_inflow
+where company =551
+and orderdate>='2023-04-01'
+and concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1)) 
+)a
+left outer join
+(select distinct company,SaleOrderType,OrderNo from ELGi_Sales_Details where company=551)b
+on a.company=b.company
+and a.ordertype=b.SaleOrderType
+and a.OrderNum=b.OrderNo
+where b.company is null
+
+
+--Alter table Expected_Sales_vs_Budget_Australia add Calyear int
+--Alter table Expected_Sales_vs_Budget_Australia add Calmonth int
+
+Insert into Expected_Sales_vs_Budget_Australia(Finyear,Finmonth,CustType,vertical1,Budget)
+select FYER,FPRD,COMP1,CATG1,BVAL/1000 from (
+select company,case when comp=1 then 'IAC'
+when comp=2 then 'Industrials'
+when Comp=3 then 'Portables'
+when comp=4 then 'DEALERS'
+end as COMP1,
+case when Type=1 then 'Budget'
+when Type=2 then 'Forecast'
+end as TYPE1,
+case when catg=1 then 'Units'
+when catg=2 then 'AM'
+end as CATG1,
+FYER,FPRD,BVAL from TZZSLS702ALL
+where Type=1
+)a
+
+
+
+update Expected_Sales_vs_Budget_Australia set category=custtype where Budget is not null
+and Custtype in ('Industrials','Portables')
+
+update Expected_Sales_vs_Budget_Australia set custtype=null where Budget is not null
+and category in ('Industrials','Portables')
+
+
+--Mapping Correction 
+update Expected_Sales_vs_Budget_Australia set custtype='DEALERS'
+where vertical1 in ('Units','AM') and Category in ('Industrials','Portables')
+and custtype is null
+
+
+
+update Expected_Sales_vs_Budget_Australia set CalMonth=FinMonth+3 where FinMonth<=9
+update Expected_Sales_vs_Budget_Australia set CalMonth=FinMonth-9 where FinMonth>9
+
+update Expected_Sales_vs_Budget_Australia set CalYear=FinYear where FinMonth<=9
+update Expected_Sales_vs_Budget_Australia set CalYear=FinYear+1 where FinMonth>9
+
+
+
+end
+
+select * from Expected_Sales_vs_Budget_Australia
+
+select * from Sales_Trend_Australia
+--where budget is not null
+--where orderdate>='2023-10-16'
+order by orderdate
+
+
+
+
+
+
+Completion time: 2025-11-19T12:14:17.2973826+05:30

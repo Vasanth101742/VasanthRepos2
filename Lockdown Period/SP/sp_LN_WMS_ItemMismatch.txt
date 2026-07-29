@@ -1,0 +1,60 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Exec sp_LN_WMS_ItemMismatch
+
+CREATE procedure [dbo].[sp_LN_WMS_ItemMismatch] as 
+begin
+
+Truncate table LN_WMS_ItemMismatch
+
+insert into LN_WMS_ItemMismatch(CMP,T$SHPM,T$ORNO,T$PONO,T$SEQN,t_item,[Source])
+select distinct CMP,T$SHPM,T$ORNO,T$PONO,T$SEQN,t_item,'TWHINH480' from
+(select a.CMP,a.T$SHPM,a.T$ORNO,a.T$PONO,a.T$SEQN,b.t_item from
+(select distinct company as CMP,T$SHPM,T$ORNO,T$PONO,T$SEQN from TWHINH480ALL
+--where --T$PLST<>3 and 
+--T$SHPM='SHO150598'--'SHO071366'--'SHO229252'
+)a
+inner join
+(select distinct Company,t_orno,t_pono,t_sqnb,t_item from TTDSLS401ALL
+where ltrim(rtrim(t_item)) in (select distinct ltrim(rtrim(item)) from TWHINH431ALL
+where QSHP<>0)
+--where ltrim(rtrim(t_item))='SHO150'
+)b
+on a.CMP=b.Company
+and a.T$ORNO=b.t_orno
+and a.T$PONO=b.t_pono
+and a.T$SEQN=b.t_sqnb
+)hdr
+order by CMP,T$SHPM,T$ORNO,T$PONO,T$SEQN,t_item
+
+
+insert into LN_WMS_ItemMismatch(CMP,T$SHPM,T$ORNO,T$PONO,T$SEQN,t_item,[Source])
+select distinct COMPANY,SHPM,WORN,WPON,WSEQ,ITEM,'TWHINH431' from TWHINH431ALL
+where QSHP<>0
+and concat(COMPANY,SHPM,WORN) in 
+(select distinct concat(cmp,T$SHPM,T$ORNO) from LN_WMS_ItemMismatch)
+--('490SHO041519531001060')
+--Alter table LN_WMS_ItemMismatch add Source Varchar(25)
+order by COMPANY,SHPM,WORN,WPON,WSEQ,ITEM
+
+
+
+delete from LN_WMS_ItemMismatch where 
+concat(cmp,T$shpm,T$orno,t_item) in (select distinct concat(cmp,T$shpm,T$orno,t_item) as col1 
+from (select *,row_number() over(partition by cmp,T$SHPM,T$ORNO,t_item order by t_item,[Source] desc) as Rno
+from LN_WMS_ItemMismatch
+)a
+where Rno=2)
+
+
+
+end
+
+select * from LN_WMS_ItemMismatch
+order by CMP,T$SHPM,T$ORNO,T$PONO,T$SEQN,t_item,[Source] desc
+
+--where T$SHPM='SHO150598'
+--where [Source]='TWHINH431'
+
+
+Completion time: 2025-11-19T11:35:52.7119183+05:30

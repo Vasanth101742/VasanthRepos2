@@ -1,0 +1,32 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- exec sp_cost_difference
+CREATE proc [dbo].[sp_cost_difference]
+as
+begin
+
+--create table cost_difference
+--(Status varchar(100),BPrice float,Nprice float,NetPrice float)
+
+--truncate table cost_difference
+--insert into cost_difference(Status) values('Base')
+--insert into cost_difference(Status) values('New')
+--insert into cost_difference(Status) values('Net Incr/Decr')
+
+update cost_difference set BPrice =a.base,Nprice =0,netprice=0 from(select sum([Import+15%]) as base From cost_BASE)a where cost_difference.Status ='Base'
+update cost_difference set BPrice =0,Nprice=base,netprice=0 from(select sum([Import+15%]) as base From Cost_Comparision)a where cost_difference.Status ='New'
+
+update cost_difference set BPrice=0,nprice=0  where cost_difference.Status ='Net Incr/Decr'
+
+
+update cost_difference set  netprice=a.nf from (select (sum(nprice)-sum(bprice)) as Nf from cost_difference)a where cost_difference.Status ='Net Incr/Decr'
+
+--select * From cost_difference
+
+select sum(bprice) as Base,sum(nprice) as New,round(sum(netprice),2) as [Net Incr/Decr] from cost_difference
+end
+
+
+
+
+Completion time: 2025-11-19T09:17:39.0687037+05:30

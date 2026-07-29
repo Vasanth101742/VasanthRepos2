@@ -1,0 +1,141 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Purchase_data_Baan_LN
+CREATE proc [dbo].[sp_Purchase_data_Baan_LN]
+as
+begin
+truncate table Purchase_data_Baan_LN
+insert into Purchase_data_Baan_LN
+---------------------------- p Header
+select *  from (
+select 'P Header'as Categ,'LN'AS TYPE,year(odat)as Year,month(odat)as Month,day(odat)as Day,count(*)as count From ttdpur400ALL
+where CONVERT(DATE,odat) between '2017-04-01'and '2017-04-30' AND Company IN (400,401,490,450) 
+group by year(odat),month(odat),day(odat)
+union all
+select 'P Header'as Categ,'BAAN'AS TYPE,YEAR(ODAT)AS Year,month(odat)as Month,Day(odat)as Day,count(*)as Count From [ELGI-DW].dbo.TTDPUR040ALL  
+where CONVERT(DATE,odat) between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by year(odat),month(odat),day(odat)
+)a
+-------------p Lines
+ 
+union all
+select * from (
+select 'P Line'as Categ,'LN'AS TYPE,year(odat)as Year,month(odat)as Month,day(odat)as Day,count(*)as count From ttdpur401ALL
+where CONVERT(DATE,odat) between '2017-04-01'and '2017-04-30' AND Company IN (400,401,490,450)
+group by year(odat),month(odat),day(odat)
+union all
+select 'P Line'as Categ,'BAAN'AS TYPE,YEAR(T$ODAT)AS Year,month(T$ODAT)as Month,Day(T$ODAT)as Day,count(*)as Count From [ELGI-DW].dbo.TTDPUR041ALL  
+where convert(date,T$ODAT) between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by year(T$ODAT),month(T$ODAT),day(T$ODAT)
+)b
+
+---------------S Header
+union all
+
+select * from (
+select 'S Header'as Categ,'LN'AS TYPE,year(OrderDate)as Year,month(OrderDate)as Month,day(OrderDate)as Day,count(*)as count From Sales_Header 
+where CONVERT(DATE,OrderDate) between '2017-04-01'and '2017-04-30' AND Company IN (400,401,490,450)
+group by year(OrderDate),month(OrderDate),day(OrderDate)
+union all
+select 'S Header'as Categ,'BAAN'AS TYPE,YEAR(OrderDate)AS Year,month(OrderDate)as Month,Day(OrderDate)as Day,count(*)as Count From [ELGI-DW].dbo.TmpSlsHeader  
+where convert(date,OrderDate) between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by year(OrderDate),month(OrderDate),day(OrderDate)
+)c
+------------------S Lines
+union all
+
+select * from (
+select 'S Line'as Categ,'LN'AS TYPE,year(OrderDate)as Year,month(OrderDate)as Month,day(OrderDate)as Day,count(*)as count From Sales_Lines 
+where CONVERT(DATE,OrderDate) between '2017-04-01'and '2017-04-30' AND Company IN (400,401,490,450)
+group by year(OrderDate),month(OrderDate),day(OrderDate)
+union all
+select 'S Line'as Categ,'BAAN'AS TYPE,YEAR(OrderDate)AS Year,month(OrderDate)as Month,Day(OrderDate)as Day,count(*)as Count From [ELGI-DW].dbo.TmpSlsLines  
+where convert(date,OrderDate) between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by year(OrderDate),month(OrderDate),day(OrderDate)
+)d
+
+-----------------Invoice
+union all
+
+select *  from (
+select 'Sales Invoice' as Categ,'LN'AS TYPE,year(t_idat)as Year,month(t_idat)as Month,day(t_idat)as Day,count(*)as count 
+From CI_Header
+where CONVERT(DATE,t_idat) between '2017-04-01'and '2017-04-30' AND Company IN (400,401,490,450) 
+group by year(t_idat),month(t_idat),day(t_idat)
+union all
+select 'Sales Invoice' as Categ,'BAAN'AS TYPE,YEAR(InvoiceDt)AS Year,month(InvoiceDt)as Month,Day(InvoiceDt)as Day,count(*)as Count 
+From(select Company ,InvoiceDt,InvoiceNum,TranType   
+From [ELGI-DW].dbo.TmpSlsDelivery   
+where DeliveryDt between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by Company ,InvoiceDt,InvoiceNum,TranType )a
+group by year(InvoiceDt),month(InvoiceDt),day(InvoiceDt)
+)e
+
+--------------- sales value
+union all
+select * From (
+select 'Sales Value'as Categ,'LN'AS TYPE,year(t_idat )as Year,month(t_idat )as Month,day(t_idat )as Day,round(sum(t_amth_1/1000000),2)as count 
+From (select a.t_idat,b.t_amth_1,
+ case when b.company = 490 and saletype  in('226','242','246','270','274','284','326','342','346','374','384','526','546')then '1'
+when b.company = 401 and saletype  in('223','240','244','246','225','252','344','523','RGS')then '1'
+when b.company = 450 and saletype  in('A14','244')then '1'else  0 end as sales_category
+  From CI_Header a
+inner join CI_Lines b
+on a.company =b.Company 
+and ltrim(rtrim(a.invnum)) =ltrim(rtrim(b.invnum )) 
+and ltrim(rtrim(a.Trantyp)) =ltrim(rtrim(b.Trantype)) 
+and b.Company IN (400,401,490,450))a
+where CONVERT(DATE,t_idat ) between '2017-04-01'and '2017-04-30'
+and sales_category =0
+group by year(t_idat ),month(t_idat ),day(t_idat )
+union all
+select 'Sales Value'as Categ,'BAAN'AS TYPE,year(Date )as Year,month(Date )as Month,day(Date )as Day,round(sum(AssesValue/1000000),2)as count 
+From [ELGI-DW].dbo.tmpslsdespdata
+where Date between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by year(Date ),month(Date ),day(Date )
+)gg
+
+-------------------- 
+UNION ALL
+select * From (
+select 'Packing Slip'as Categ,'LN'AS TYPE,year(sdtf)as Year,month(sdtf)as Month,day(sdtf)as Day,count(*)as count 
+From twhinh430all
+where CONVERT(DATE,sdtf) between '2017-04-01'and '2017-04-30' AND Company IN (400,401,490,450) 
+group by year(sdtf),month(sdtf),day(sdtf)
+union all
+select 'Packing Slip' as Categ,'BAAN'AS TYPE,YEAR(DeliveryDt)AS Year,month(DeliveryDt)as Month,Day(DeliveryDt)as Day,count(*)as Count 
+From(select Company ,DeliveryDt,InvoiceNum,TranType   
+From [ELGI-DW].dbo.TmpSlsDelivery   
+where DeliveryDt between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by Company ,DeliveryDt,InvoiceNum,TranType )a
+group by year(DeliveryDt),month(DeliveryDt),day(DeliveryDt)
+)f
+
+union all
+
+
+select * from (
+select 'Production'as Categ,'LN'AS TYPE,year(date1)as Year,month(date1)as Month,day(date1)as Day,count(*)as count From ELGi_production_details 
+where CONVERT(DATE,date1) between '2017-04-01'and '2017-04-30' AND Company IN (400,401,490,450)
+group by year(date1),month(date1),day(date1)
+union all
+select 'Production'as Categ,'BAAN'AS TYPE,YEAR(date1)AS Year,month(date1)as Month,Day(date1)as Day,count(*)as Count From [ELGI-DW].dbo.production_plan_vs_actual_ver2  
+where convert(date,date1) between '2017-03-01'and '2017-03-31' and COMPANY in (100,150,102,108) 
+group by year(date1),month(date1),day(date1)
+)g
+
+
+update Baan_Ln_Data set count=b.count
+from Purchase_data_Baan_LN b
+where b.Categ =Baan_Ln_Data.categ
+and b.TYPE =Baan_Ln_Data.type
+and b.Year =Baan_Ln_Data.year
+and b.Month =Baan_Ln_Data.month
+and b.Day =Baan_Ln_Data.day
+
+end
+
+
+
+
+Completion time: 2025-11-19T11:49:51.0166020+05:30

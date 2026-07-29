@@ -1,0 +1,391 @@
+--exec sp_ACR_Debtors_551552 '2024-02-10'
+
+CREATE proc sp_ACR_Debtors_551552 (@AS_OF_DATE date) as 
+Begin
+
+--Declare @AS_OF_DATE date ='2024-05-15'
+Declare @Finyear varchar(10)=case when month(@AS_OF_DATE)<4 then year(@AS_OF_DATE)-1 else year(@AS_OF_DATE) end
+declare @Finmonth varchar(10) =case when month(@AS_OF_DATE)<4 then month(@AS_OF_DATE)+9 else month(@AS_OF_DATE)-3 end
+set  @Finmonth=RIGHT('00'+CAST(@Finmonth AS VARCHAR(2)),2)
+
+
+--select * from ACR_Debtors_Stage
+--drop table ACR_Debtors_Stage
+
+--select * into  from ACR_Debtors_BTA
+--alter table ttfacr200551552 alter column AMTI float
+
+Truncate table ACR_Debtors_Details_551552
+Truncate table ACR_Debtors_FOC_551552
+Truncate table ACR_Debtors_Trial_551552
+Truncate table ACR_Debtors_BTA_551552
+
+
+
+
+Insert into ACR_Debtors_Details_551552(Company,Trantyp,InvNo,Line,CustNo,CustName,FinCustGrp,VerticalOrdr,
+Vertical1,Vertical,DPST,DpstName,AreaCode,AreaName,InvDate,DueDate,Currency,CurRate,InvAmt,PaidAmt,BalanceAmt,
+InvAmti,PaidAmti,BalanceAmti,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth)
+--select * into ACR_Debtors_Details_551552 from(
+SELECT a.Company,a.ttyp as Trantyp,a.ninv as InvNo,a.line as Line,
+a.itbp as CustNo,null as CustName,null as FinCustGrp,
+null as VerticalOrdr,null as Vertical1,null as Vertical ,
+null as DPST,null as DpstName, null as AreaCode,null as AreaName,
+a.docd as InvDate,a.DueDate,a.ccur as Currency,a.RATE$1 as CurRate,
+avg(a.InvAmt),(sum(isnull(b.PaidAmt,0))),
+null as BalanceAmt,
+avg(a.InvAmti),sum(isnull(b.PaidAmti,0)),
+null as BalanceAmti,
+case when a.DueDate='9999-01-01 00:00:00.000' then 'NA'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) <30 then 'LessThan30' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 30 and 60 then '30-60'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 60 and 90 then '60-90'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 90 and 120 then '90-120'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 120 and 150 then '120-150'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 150 and 180 then '150-180' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) >180 then 'GreaterThan180' end as Ageing,
+null as AgeingOrdr,a.year as FinYear,a.prod as FinMonth,null as CalYear,null as CalMonth
+
+
+FROM 
+(SELECT COMPANY,ttyp,ninv,line,itbp,ccur,RATE$1,docd,
+case when dued='9999-01-01 00:00:00.000' then docd
+else dued end as DueDate,
+prod,year,
+SUM(amth$1) InvAmt ,SUM(amti) InvAmti  
+FROM TTFACR200551552 
+WHERE docn=0
+and concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth)
+--and company= 401 and t_ttyp ='C21' and t_ninv=	16000227
+
+group by COMPANY,ttyp,ninv,line,itbp,ccur,RATE$1,docd,dued,prod,year
+)A
+LEFT OUTER JOIN
+(SELECT COMPANY,ttyp,ninv,line,itbp,ccur,RATE$1,docd,dued,prod,year,
+SUM(amth$1+padh$1+dc1h$1+CDAM$1) PaidAmt ,SUM(amti) PaidAmti FROM TTFACR200551552
+WHERE docn<>0
+and concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth)
+--and company= 401 and t_ttyp ='C21' and t_ninv=	16000227
+
+group by COMPANY,ttyp,ninv,line,itbp,ccur,RATE$1,docd,dued,prod,year
+)B
+ON A.Company=B.Company
+AND A.ttyp=B.ttyp
+AND A.ninv=B.ninv
+AND A.line=B.line
+and a.itbp=b.itbp
+--order by a.Company,a.t_ninv,a.t_line
+--)a
+
+group by a.Company,a.ttyp,a.ninv,a.line,a.itbp,a.docd,a.DueDate,a.ccur,a.RATE$1,a.year,a.prod
+
+
+
+----Part 1: Rate_USD Update for INR to USD----------------------
+--update acr_debtors_details set Rate_USD= a.CurRate
+--from (select distinct Invdate,currency,CurRate from acr_debtors_details 
+--where currency='USD'
+--and company not in (500,551,552,553)
+--and CurRate>1
+--)a
+--where acr_debtors_details.invdate=a.invdate
+--and acr_debtors_details.currency='USD'
+--and acr_debtors_details.company not in (500,551,552,553)
+
+
+----Data Reconciliation
+--update acr_debtors_details set Rate_USD =a.Rate_USD 
+--from (
+--select InvDate,Rate_USD,Rnk1 from (
+--select a.InvDate,b.Rate_USD,row_number() over(partition by a.Invdate order by datediff(dd,b.Invdate,a.InvDate) desc ) as Rnk1 from
+--(select distinct Invdate,Rate_USD from acr_debtors_details_551552
+--where --Rate_USD is null and 
+--company not in (500,551,552,553)
+--)a
+--left outer join
+--(select distinct Invdate,Rate_USD from acr_debtors_details 
+--where Rate_USD is not null
+--and company not in (500,551,552,553)
+--)b
+--on a.Invdate<=b.Invdate
+--)a
+--where Rnk1=1
+--)a
+--where acr_debtors_details.InvDate=a.InvDate
+--and acr_debtors_details.Rate_USD is null
+--and acr_debtors_details.company not in (500,551,552,553)
+
+----End: Part 1: Rate_USD Update for INR to USD----------------------
+
+--Part 2: Rate_USD Update for Home Currency of Subsidiary Companies to USD---------------------------
+update acr_debtors_details_551552 set Rate_USD=a.CurRate
+from (select distinct company,Invdate,currency,CurRate 
+from acr_debtors_details_551552
+where currency='USD'
+and company in (500,551,552,553)
+)a
+where acr_debtors_details_551552.company=a.company
+and acr_debtors_details_551552.invdate=a.invdate
+and acr_debtors_details_551552.currency='USD'
+
+
+--Data Reconciliation
+update acr_debtors_details_551552 set Rate_USD =a.Rate_USD 
+from (
+select company,InvDate,Rate_USD,Rnk1 from (
+select a.company,a.InvDate,b.Rate_USD,row_number() over(partition by a.company,a.Invdate order by datediff(dd,b.Invdate,a.InvDate) desc ) as Rnk1 from
+(select distinct Company,Invdate,Rate_USD from acr_debtors_details_551552
+where Rate_USD is null
+and company in (500,551,552,553)
+)a
+left outer join
+(select distinct Company,Invdate,Rate_USD from acr_debtors_details_551552 
+where Rate_USD is not null
+and company in (500,551,552,553)
+)b
+on a.company=b.company
+and a.Invdate<=b.Invdate
+)a
+where Rnk1=1
+)a
+where acr_debtors_details_551552.company=a.company
+and acr_debtors_details_551552.InvDate=a.InvDate
+and acr_debtors_details_551552.Rate_USD is null
+
+
+-- End of Part 2: Rate_USD Update for Home Currency of Subsidiary Companies to USD---------------------------
+
+
+update ACR_Debtors_Details_551552 set BalanceAmt= invamt+paidamt
+update ACR_Debtors_Details_551552 set BalanceAmt= invamt where paidamt=0 or paidamt is null
+
+
+update ACR_Debtors_Details_551552 set BalanceAmti= invamti+paidamti
+update ACR_Debtors_Details_551552 set BalanceAmti= invamti where paidamti=0 or paidamti is null
+
+
+update ACR_Debtors_Details_551552 set InvAmt_USD=invAmti where currency='USD'
+update ACR_Debtors_Details_551552 set PaidAmt_USD=PaidAmti  where currency='USD'
+update ACR_Debtors_Details_551552 set BalanceAmt_USD=BalanceAmti  where currency='USD'
+
+
+update ACR_Debtors_Details_551552 set InvAmt_USD=invAmt/Rate_USD where currency<>'USD' and CurRate>1 and Rate_USD is not null
+update ACR_Debtors_Details_551552 set PaidAmt_USD=PaidAmt/Rate_USD where currency<>'USD' and CurRate>1 and Rate_USD is not null
+update ACR_Debtors_Details_551552 set BalanceAmt_USD=BalanceAmt/Rate_USD where currency<>'USD' and CurRate>1 and Rate_USD is not null
+
+
+update ACR_Debtors_Details_551552 set InvAmt_USD=invAmt*Rate_USD where currency<>'USD' and CurRate<1 and Rate_USD is not null
+update ACR_Debtors_Details_551552 set PaidAmt_USD=PaidAmt*Rate_USD where currency<>'USD' and CurRate<1 and Rate_USD is not null
+update ACR_Debtors_Details_551552 set BalanceAmt_USD=BalanceAmt*Rate_USD where currency<>'USD' and CurRate<1 and Rate_USD is not null
+------------
+
+
+
+update ACR_Debtors_Details_551552 set AgeingOrdr=1 where Ageing= 'LessThan30' 
+update ACR_Debtors_Details_551552 set AgeingOrdr=2 where Ageing= '30-60'
+update ACR_Debtors_Details_551552 set AgeingOrdr=3 where Ageing= '60-90'
+update ACR_Debtors_Details_551552 set AgeingOrdr=4 where Ageing= '90-120'
+update ACR_Debtors_Details_551552 set AgeingOrdr=5 where Ageing= '120-150'
+update ACR_Debtors_Details_551552 set AgeingOrdr=6 where Ageing= '150-180' 
+update ACR_Debtors_Details_551552 set AgeingOrdr=7 where Ageing= 'GreaterThan180'
+update ACR_Debtors_Details_551552 set AgeingOrdr=8 where Ageing='NA'
+
+
+update ACR_Debtors_Details_551552 set CalMonth=FinMonth+3 where FinMonth<=9
+update ACR_Debtors_Details_551552 set CalMonth=FinMonth-9 where FinMonth>9
+
+update ACR_Debtors_Details_551552 set CalYear=FinYear where FinMonth<=9
+update ACR_Debtors_Details_551552 set CalYear=FinYear+1 where FinMonth>9
+
+--Special Case: Updating Areacode for ELGI Australia, ELGi Indonesia and ELGi Malaysia companies (551,552,553)
+update ACR_Debtors_Details_551552 set areacode='631' where company=551 
+update ACR_Debtors_Details_551552 set areacode='624' where company=552 
+update ACR_Debtors_Details_551552 set areacode='622' where company=553
+
+
+--Commenting the Below Logic as AreaCode is not updated in LN Business Partner Master Tables
+--update LN_Sales_Details_ver2 set areacode=a.CustAreaCode 
+--select * from vw_Business_Partner_551  a
+--where ltrim(rtrim(LN_Sales_Details_ver2.CustCode))=ltrim(rtrim(a.custcode)) 
+--and LN_Sales_Details_ver2.areacode is null
+--and LN_Sales_Details_ver2.company in (551)
+
+--update LN_Sales_Details_ver2 set areacode=a.CustAreaCode 
+--select * from vw_Business_Partner_552  a
+--where ltrim(rtrim(LN_Sales_Details_ver2.CustCode))=ltrim(rtrim(a.custcode)) 
+--and LN_Sales_Details_ver2.areacode is null
+--and LN_Sales_Details_ver2.company in (552)
+
+--update LN_Sales_Details_ver2 set areacode=a.CustAreaCode 
+--select * from vw_Business_Partner_553  a
+--where ltrim(rtrim(LN_Sales_Details_ver2.CustCode))=ltrim(rtrim(a.custcode)) 
+--and LN_Sales_Details_ver2.areacode is null
+--and LN_Sales_Details_ver2.company in (553)
+
+
+
+update ACR_Debtors_Details_551552 set CustName =v.custname1
+from vw_Business_Partner_551 v
+where ACR_Debtors_Details_551552.custno=v.custcode
+and ACR_Debtors_Details_551552.company=551
+
+update ACR_Debtors_Details_551552 set CustName =v.custname1
+from vw_Business_Partner_552 v
+where ACR_Debtors_Details_551552.custno=v.custcode
+and ACR_Debtors_Details_551552.company=552
+
+
+update ACR_Debtors_Details_551552 set CustName =v.custname1
+from vw_Business_Partner_553 v
+where ACR_Debtors_Details_551552.custno=v.custcode
+and ACR_Debtors_Details_551552.company=553
+
+
+update ACR_Debtors_Details_551552 set AreaName=v.AreaName
+from (select distinct areacode,AreaName from  vw_AREA_MASTER where areacode not like '%[a-z]%') v
+where ACR_Debtors_Details_551552.AreaCode=v.Areacode
+
+
+
+update ACR_Debtors_Details_551552 set dpst=a.Dpst
+from (select distinct company,TranType,InvoiceNum,CustCode,Dpst from TmpSlsDespData_baan 
+--where convert(date,Date)>='2000-04-01'
+)a
+where ACR_Debtors_Details_551552.Company=a.Company
+and ACR_Debtors_Details_551552.Trantyp=a.TranType
+and ACR_Debtors_Details_551552.InvNo=a.InvoiceNum
+AND SUBSTRING(ACR_Debtors_Details_551552.CustNo,4,6)=a.CustCode
+and ACR_Debtors_Details_551552.DPST is null
+
+
+UPDATE ACR_Debtors_Details_551552 SET DPST=A.ProductGrp
+FROM AccReceivable_BAAN A
+WHERE ACR_Debtors_Details_551552.Company=A.company
+AND ACR_Debtors_Details_551552.Trantyp=A.Trantyp
+AND ACR_Debtors_Details_551552.InvNo=A.InvNo
+AND SUBSTRING(ACR_Debtors_Details_551552.CustNo,4,6)=A.CustNo
+and ACR_Debtors_Details_551552.DPST is null
+
+
+UPDATE ACR_Debtors_Details_551552 SET DPST=A.t_cofc
+FROM (SELECT * FROM CI_Lines WHERE T_COFC NOT LIKE '%[A-Z]%') A
+WHERE ACR_Debtors_Details_551552.Company=A.Company
+AND ACR_Debtors_Details_551552.Trantyp=A.Trantype
+AND ACR_Debtors_Details_551552.InvNo=A.invnum
+AND ACR_Debtors_Details_551552.CustNo=A.CustCode
+
+
+update ACR_Debtors_Details_551552  set  dpst  = a.dpst 
+from (select * from LN_Sales_Details_ver2 where dpst not like '%[a-z]%' )a
+where ACR_Debtors_Details_551552.InvDate >='2017-04-01'
+and ACR_Debtors_Details_551552.Company =a.company
+and ACR_Debtors_Details_551552.Company=551
+and ACR_Debtors_Details_551552.Trantyp=a.trantype
+and ACR_Debtors_Details_551552.InvNo=a.Invoice
+and ACR_Debtors_Details_551552.DPST is null
+
+
+
+update ACR_Debtors_Details_551552  set  dpst  = a.dpst 
+from LN_Sales_Details_ver2 a
+where ACR_Debtors_Details_551552.InvDate >='2017-04-01'
+and ACR_Debtors_Details_551552.Company =a.company
+and ACR_Debtors_Details_551552.Company=552
+and ACR_Debtors_Details_551552.Trantyp=a.trantype
+and ACR_Debtors_Details_551552.InvNo=a.Invoice
+and ACR_Debtors_Details_551552.DPST is null
+
+
+
+update ACR_Debtors_Details_551552  set  dpst  = a.dpst 
+from LN_Sales_Details_ver2 a
+where ACR_Debtors_Details_551552.InvDate >='2017-04-01'
+and ACR_Debtors_Details_551552.Company =a.company
+and ACR_Debtors_Details_551552.Company=553
+and ACR_Debtors_Details_551552.Trantyp=a.trantype
+and ACR_Debtors_Details_551552.InvNo=a.Invoice
+and ACR_Debtors_Details_551552.DPST is null
+
+
+update ACR_Debtors_Details_551552 set dpstname=v.DPSTName,Vertical=v.Description
+from vw_DPST_MASTER v
+where ACR_Debtors_Details_551552.dpst=v.DPSTcode
+
+
+
+update ACR_Debtors_Details_551552 set vertical1 ='International' where vertical='exports'
+update ACR_Debtors_Details_551552 set vertical1 ='Channel'  where vertical='Compressor-Channel'
+update ACR_Debtors_Details_551552 set vertical1 ='Compressor-C&M'  where vertical='Compressor-C&M'
+update ACR_Debtors_Details_551552 set vertical1 ='Compressor-WW' where vertical='Compressor-WW'
+update ACR_Debtors_Details_551552 set vertical1 ='Direct'  where vertical='Compressor-Direct'
+update ACR_Debtors_Details_551552 set vertical1 ='Compressor-RLY' where vertical='Compressor-RLY'
+update ACR_Debtors_Details_551552 set vertical1 ='After Sales' where vertical='After Sales'
+update ACR_Debtors_Details_551552 set vertical1 ='International' where vertical is null or 
+vertical not in ('exports','Compressor-Channel','Compressor-C&M','Compressor-WW','Compressor-Direct','Compressor-RLY','After Sales')
+
+
+update ACR_Debtors_Details_551552 set VerticalOrdr =7 where vertical='exports'
+update ACR_Debtors_Details_551552 set VerticalOrdr =1  where vertical='Compressor-Channel'
+update ACR_Debtors_Details_551552 set VerticalOrdr =2  where vertical='Compressor-C&M'
+update ACR_Debtors_Details_551552 set VerticalOrdr =3 where vertical='Compressor-WW'
+update ACR_Debtors_Details_551552 set VerticalOrdr =4  where vertical='Compressor-Direct'
+update ACR_Debtors_Details_551552 set VerticalOrdr =5 where vertical='Compressor-RLY'
+update ACR_Debtors_Details_551552 set VerticalOrdr =6 where vertical='After Sales'
+
+update ACR_Debtors_Details_551552 set VerticalOrdr =7 where vertical1 ='Others'
+
+
+
+
+
+
+--insert into ACR_Debtors_FOC_551552
+--select * from ACR_Debtors_Details_551552 where company =551 --and ltrim(rtrim(trantyp))  in ('251','351','451','551','252','352','452','552')
+--union
+--select * from ACR_Debtors_Details_551552 where company =552 --and ltrim(rtrim(trantyp))  in ('256','356','456','556')
+
+
+--insert into ACR_Debtors_Trial_551552
+--select * from ACR_Debtors_Details_551552 where  ltrim(rtrim(trantyp))  in ('2C1','2C2','2C3','2C4','2T1','2T2','22A','32A')
+--union
+--select * from ACR_Debtors_Details_551552 where  ltrim(rtrim(trantyp))  in ('3C1','3C2','3C3','3C4','3T1','3T2','4T1')
+
+--Insert into ACR_Debtors_BTA_551552
+--select * from ACR_Debtors_Details_551552 where  ltrim(rtrim(Custno))  in 
+--('CU1E00001','CU1E00002','CU1E00003','CU1E00004','CU1E00005','CU1E00006','CU1E00008','CU1E00009','CU1E00010',
+--'CU1E00011','CU1E00012','CU1E00014','CU1E00015','CU1E00026','CU1E00028','CU1E00144','CU1E00203','CU1E00263',
+--'CU1E00371','CU1E00396','CU1E00424','CU1E00477','CU1E00508','CU1E00629','CU1E00676','CU1E00780','CU1E00791',
+--'CU1E00798','CU1E00814','CU1E00885','CU1E00887','CU1E00893','CU1E00914','CU1E00926','CU1E00992','CU1E99998',
+--'CU1E99999','CU1DUMMY1')
+
+
+
+--Removing FOC
+--delete from ACR_Debtors_details_551552 where company =401 and ltrim(rtrim(trantyp))  in ('251','351','451','551','252','352','452','552')
+--delete from ACR_Debtors_details_551552 where company =490 and ltrim(rtrim(trantyp))  in ('256','356','456','556')
+
+--Removing Trial
+--delete from ACR_Debtors_details_551552 where  ltrim(rtrim(trantyp))  in ('2C1','2C2','2C3','2C4','2T1','2T2','22A','32A')
+--delete from ACR_Debtors_details_551552 where  ltrim(rtrim(trantyp))  in ('3C1','3C2','3C3','3C4','3T1','3T2','4T1')
+
+--Removing BTA Customers
+
+--delete from ACR_Debtors_details_551552 where  ltrim(rtrim(Custno))  in 
+--('CU1E00001','CU1E00002','CU1E00003','CU1E00004','CU1E00005','CU1E00006','CU1E00008','CU1E00009','CU1E00010',
+--'CU1E00011','CU1E00012','CU1E00014','CU1E00015','CU1E00026','CU1E00028','CU1E00144','CU1E00203','CU1E00263',
+--'CU1E00371','CU1E00396','CU1E00424','CU1E00477','CU1E00508','CU1E00629','CU1E00676','CU1E00780','CU1E00791',
+--'CU1E00798','CU1E00814','CU1E00885','CU1E00887','CU1E00893','CU1E00914','CU1E00926','CU1E00992','CU1E99998',
+--'CU1E99999','CU1DUMMY1')
+
+
+delete from ACR_Debtors_Details_551552 where BalanceAmti between -0.1 and 0.1
+
+
+End
+
+
+--Select concat(Company,Trantyp,InvNo) Inv ,sum(BalanceAmti) BalanceAmti 
+--from ACR_Debtors_Details_551552 where BalanceAmti between -0.1 and 0.1
+--group by concat(Company,Trantyp,InvNo)
+--Select * from ACR_Debtors_Details_551552 where concat(Company,Trantyp,InvNo)='5522s118000177'
+

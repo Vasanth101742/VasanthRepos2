@@ -1,0 +1,301 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_FG_Inventory
+--select * from FG_Inventory
+CREATE proc sp_FG_Inventory as
+
+Begin
+
+
+Truncate table FG_Inventory
+Truncate table FG_Inventory_cons
+
+
+Insert into FG_Inventory (COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt)
+--select * into Inventory from (
+select a.COMPANY,a.CWAR,a.ITEM,null as ItemDescr,b.IDAT,null,null,b.QHND,b.AMNT
+from 
+(select COMPANY,CWAR,ITEM
+--,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+left outer join TZZINV306401 b
+on a.COMPANY=b.COMP
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+
+where a.COMPANY in (401)
+and ltrim(rtrim(a.ITEM)) in (select ltrim(rtrim(t_item)) from TTCIBD001400 where t_seri=1)
+and ltrim(rtrim(a.ITEM)) in (select ltrim(rtrim(item)) from TWHWMD400ALL where  COMPANY=401 and SINV=1 and SRTR=1)
+order by a.COMPANY,a.CWAR,a.ITEM,b.IDAT,b.QHND,b.AMNT
+
+
+--select * from TZZINV306401
+--where comp=401	and ltrim(rtrim(cwar))='357'	and ltrim(rtrim(item)) ='Z02250'
+
+--Item Updations
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.t_item))
+
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.ITEM))
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.DSCA))
+from ttcibd001470 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.ITEM))
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.item))
+
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where Company in (551) )
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.item))
+
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where Company in (552) )
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.item))
+
+
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.t_item))
+
+
+update FG_Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where FG_Inventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(FG_Inventory.Item))=ltrim(rtrim(a.item))
+
+
+
+--select * from Inventory where ItemDescr is null
+--where Ageingordr is null
+
+
+delete from FG_Inventory where COMPANY=600 and CWAR in (
+'025','180','183','184','185','186','187','188','189','190','191',   
+'306','648','669','683','699','751','AED','COR','181')
+
+
+-----------------------------------------------------------------------------
+----Part 2 Changes
+
+--insert into FG_Inventory_cons (COMPANY,CWAR,ITEM,QSKT)
+--select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$QSKT
+--from 
+--(select distinct COMPANY,T$CWAR,T$ITEM,sum(T$QSKT) T$QSKT from TWHINA112ALL
+--where T$KOOR in (1,2,32,36)
+--group by COMPANY,T$CWAR,T$ITEM
+--)a
+
+
+
+--update FG_Inventory_cons set stock_955=a.STOC
+--from 
+--(select comp,WAR,ITEM,sum(STOC) STOC from Inven_eval_955_to_LN 
+--group by comp,WAR,ITEM
+--)a
+--where FG_Inventory_cons.COMPANY=a.COMP
+--and FG_Inventory_cons.CWAR=a.WAR
+--and ltrim(rtrim(FG_Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+--update FG_Inventory_cons set stock_215=a.QHND
+--from 
+--(select COMPANY,CWAR,ITEM,sum(QHND) QHND 
+--from TWHWMD215ALL
+--group by COMPANY,CWAR,ITEM
+--having sum(QHND)>0
+--)a
+--where FG_Inventory_cons.COMPANY=a.COMPANY
+--and FG_Inventory_cons.CWAR=a.CWAR
+--and ltrim(rtrim(FG_Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+
+--update FG_Inventory_cons  set Remarks='LN'
+--where (qskt >= stock_955 and stock_215 <= stock_955)
+--and Remarks is null
+
+--update FG_Inventory_cons  set Remarks='LN'
+--where qskt >= stock_215
+--and Remarks is null
+
+--update FG_Inventory_cons  set Remarks='LN'
+--where isnull(stock_955,0)=0
+--and Remarks is null
+
+--update FG_Inventory_cons  set Remarks='BAAN'
+--where Remarks is null
+
+
+------------------------------------------------
+
+--update FG_Inventory set stock_955=a.stock_955,Cumulative_stk=a.Cum_Stock,Remarks=a.Remarks
+--from(
+--select a.COMPANY,a.CWAR,a.ITEM,trdt,b.stock_955,b.Remarks,
+--sum(a.QSKT) over (partition by a.COMPANY,a.CWAR,a.ITEM  order by TRDT desc
+--rows between UNBOUNDED PRECEDING and CURRENT ROW) as Cum_Stock
+--from Inventory a
+--inner join  (select * from Inventory_cons where remarks ='BAAN') b
+--on a.COMPANY=b.Company
+--and a.CWAR=b.CWAR
+--and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+--)a
+--where FG_Inventory.COMPANY=a.Company
+--and FG_Inventory.CWAR=a.CWAR
+--and ltrim(rtrim(FG_Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+--and FG_Inventory.TRDT=a.TRDT
+
+
+--update FG_Inventory set TRDT = a.LRDT
+--from(
+--select comp,war,item,max(LRDT) LRDT
+----count(distinct LRDT) LRDT 
+--from Inven_eval_955_to_LN
+--group by  comp,war,item
+--having max(LRDT)<>'9999-01-01 00:00:00.000'
+--)a
+--where FG_Inventory.COMPANY=a.COMP
+--and FG_Inventory.CWAR=a.WAR
+--and ltrim(rtrim(FG_Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+--and stock_955 > Cumulative_stk
+--and FG_Inventory.Remarks='BAAN'
+
+update FG_Inventory set Ageing='FTM' where convert(date,TRDT) 
+between convert(date,DATEADD(month, DATEDIFF(month, 0, getdate()-1), 0))  and  convert(date,getdate()-1)
+
+update FG_Inventory set Ageing='LessThan30' where datediff(dd,TRDT,getdate()-1) <30  and
+convert(date,TRDT) < convert(date,DATEADD(month, DATEDIFF(month, 0, getdate()-1), 0))
+
+update FG_Inventory set Ageing='30-60' where datediff(dd,TRDT,getdate()-1) between 30 and 60
+update FG_Inventory set Ageing='61-90' where datediff(dd,TRDT,getdate()-1) between 61 and 90
+update FG_Inventory set Ageing='91-120' where datediff(dd,TRDT,getdate()-1) between 91 and 120
+update FG_Inventory set Ageing='121-150' where datediff(dd,TRDT,getdate()-1) between 121 and 150
+update FG_Inventory set Ageing='151-180' where datediff(dd,TRDT,getdate()-1) between 151 and 180
+update FG_Inventory set Ageing='181-365' where datediff(dd,TRDT,getdate()-1) between 181 and 365
+update FG_Inventory set Ageing='GreaterThan_1Year' where datediff(dd,TRDT,getdate()-1) between 366 and 730
+update FG_Inventory set Ageing='GreaterThan_2Years' where datediff(dd,TRDT,getdate()-1) between 731 and 1095
+update FG_Inventory set Ageing='GreaterThan_3Years' where datediff(dd,TRDT,getdate()-1) between 1096 and 1460
+update FG_Inventory set Ageing='GreaterThan_4Years' where datediff(dd,TRDT,getdate()-1) > 1460
+
+
+
+
+update FG_Inventory set AgeingOrdr=1 where Ageing='FTM'
+update FG_Inventory set AgeingOrdr=2 where Ageing='LessThan30'
+update FG_Inventory set AgeingOrdr=3 where Ageing='30-60'
+update FG_Inventory set AgeingOrdr=4 where Ageing='61-90'
+update FG_Inventory set AgeingOrdr=5 where Ageing='91-120'
+update FG_Inventory set AgeingOrdr=6 where Ageing='121-150'
+update FG_Inventory set AgeingOrdr=7 where Ageing='151-180'
+update FG_Inventory set AgeingOrdr=8 where Ageing='181-365'
+update FG_Inventory set AgeingOrdr=9 where Ageing='GreaterThan_1Year'
+update FG_Inventory set AgeingOrdr=10 where Ageing='GreaterThan_2Years'
+update FG_Inventory set AgeingOrdr=11 where Ageing='GreaterThan_3Years'
+update FG_Inventory set AgeingOrdr=12 where Ageing='GreaterThan_4Years'
+update FG_Inventory set AgeingOrdr=100 where Ageing ='NA'
+
+
+delete from FG_Inventory where QSKT is null
+
+
+update FG_Inventory set PredictionType=a.PredictionType
+from (select *,'Prediction' as PredictionType from TZZSFC211401 where T$FGTM<>3)a
+where ltrim(rtrim(FG_Inventory.ITEM))=ltrim(rtrim(a.T$ITEM))
+
+update FG_Inventory set PredictionType=a.PredictionType
+from (select *,'Accessories' as PredictionType from TZZSFC211401 where --T$FGTM<>3 and 
+T$LINE=37)a
+where ltrim(rtrim(FG_Inventory.ITEM))=ltrim(rtrim(a.T$ITEM))
+
+update FG_Inventory set PredictionType='Non Prediction' where PredictionType is null 
+and ltrim(rtrim(FG_Inventory.ITEM)) not in (select distinct item from FG_Inventory where PredictionType is not null )
+
+if exists ( select * from FG_Inventory_Trend where EntryDate=convert(date,getdate()-1))
+begin
+delete from FG_Inventory_Trend where EntryDate=convert(date,getdate()-1)
+end
+
+Insert into FG_Inventory_Trend
+--select * into FG_Inventory_Trend from(
+select convert(date,getdate()-1) as EntryDate,COMPANY,CWAR,null as WH_desc ,sum(QSKT) QSKT, sum(Amnt)/1000000 Amnt,PredictionType from FG_Inventory
+group by COMPANY,CWAR,PredictionType
+--)a
+
+--Alter table FG_Inventory_Trend add PredictionType varchar(25)
+
+
+
+update FG_Inventory_Trend set WH_desc='SAAME' where cwar='157'
+update FG_Inventory_Trend set WH_desc='ROCD-INDIA' where cwar='257'
+update FG_Inventory_Trend set WH_desc='RCD-INDIA' where cwar='357'
+update FG_Inventory_Trend set WH_desc='ENGC-INDIA' where cwar='457'
+update FG_Inventory_Trend set WH_desc='RLY' where cwar='557'
+update FG_Inventory_Trend set WH_desc='AMERICA' where cwar='A57'
+update FG_Inventory_Trend set WH_desc='COSEA' where cwar='C57'
+update FG_Inventory_Trend set WH_desc='C&M-INDIA' where cwar='D57'
+update FG_Inventory_Trend set WH_desc='EUROPE' where cwar='E57'
+update FG_Inventory_Trend set WH_desc='MRP-INDIA' where cwar='G57'
+update FG_Inventory_Trend set WH_desc='DIRECT-INDIA' where cwar='L57'
+update FG_Inventory_Trend set WH_desc='WIPER' where cwar='U57'
+update FG_Inventory_Trend set WH_desc='INTERNATIONAL' where cwar='W57'
+update FG_Inventory_Trend set WH_desc='M57-WW' where cwar='M57'
+update FG_Inventory_Trend set WH_desc='VACUUM' where cwar='V57'
+
+
+end
+
+select * from FG_Inventory where 
+--ageing='FTM'
+cwar='V57'
+
+--select * from FG_Inventory_Trend
+
+--select distinct Ageing from FG_Inventory
+
+--select distinct trdt from FG_Inventory
+--order by TRDT desc
+
+
+--For Analysis
+--select * from Inventory where Cumulative_stk is not null
+----and stock_955 > Cumulative_stk
+----and Inventory.Remarks='BAAN'
+--and TRDT < '2016-04-01'
+--and company like '4%'
+--order by company,CWAR,item,TRDT
+
+
+--select * from FG_Inventory where company=401	
+----and TRDT < '2016-04-01'
+--and stock_955 > Cumulative_stk
+--and CWAR='212' and ltrim(rtrim(ITEM))='000441040'
+
+--select * from Inven_eval_955_to_LN where COMP=401 and war='212' and ltrim(rtrim(item))='000441040'
+
+
+Completion time: 2025-11-19T10:12:08.4656479+05:30

@@ -1,0 +1,361 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec [SP_PendingOrders]
+CREATE proc [dbo].[SP_PendingOrders] as 
+
+begin 
+
+Declare @BlockClosureStartDate date ='2025-05-10'
+Declare @BlockClosureEndDate date ='2025-05-18'
+
+update tzzsls158490 set t$item=replace(t$item,' ','')
+
+update pending_orders set ItemCode = replace (ItemCode,' ','')
+
+declare @Saturday int
+set @Saturday = DATEPART(weekday,'20230211');
+
+truncate table gr_PendingOrders
+
+insert into  gr_PendingOrders 
+
+select a.*,b.PlanRecDate,0,'','',0,0,'',0,null,null,0,0,0,getdate(),'','','' From (
+select * From (
+select plan_recp_date,blocked,disc_origin,plan_del_date,Sales_Inv_Address,Cust_Inv_Address,Sales_GSTN_NO,Cust_GSTN_NO,SALES_SEQ,Cust_SEQ,cust_state,Sales_state,
+state,sum(STOCK_401_onhand)'STOCK_401_onhand',Old_positionno,BP_SEQ_NO ,Tax_Desc,HSN_CODE,GSTN_NO,PRICE_ORIGIN,Ref,  
+dpst,dpstname,PositionNum,OrderNum,ordertype,origin,Baan_orderno ,Baan_positionno,DeliveryDate,ItemCode,Item_desc
+,TaxCode,Price,DiscPerc1,DiscPerc2,buyer,Indent ,OrderDate,CustCode,Custname,
+sum(value)as value,sum(ord_qty_new)ord_qty,sum(delqty)delqty,sum(pendqty)as penqty,sum(STOCK_490_act)STOCK_490_act,sum(STOCK_490_onhand)STOCK_490_onhand
+,Next_Due_Date1,Next_Due_Date2,Reason1,Reason2,Supplier ,sum(t_oamt)t_oamt
+ from (
+	select *,ord_qty-isnull(cancel_qty,0) as ord_qty_new From pending_orders where company in (490) --where OrderNum ='236001180'and PositionNum=10
+	 )a
+group by plan_recp_date,blocked,
+disc_origin,plan_del_date,Sales_Inv_Address,Cust_Inv_Address,Sales_GSTN_NO,Cust_GSTN_NO,SALES_SEQ,Cust_SEQ,cust_state,Sales_state,state
+,Old_positionno,BP_SEQ_NO,Tax_Desc,HSN_CODE,GSTN_NO,PRICE_ORIGIN,Ref,  dpst,dpstname,PositionNum,OrderNum,ordertype,origin,Baan_orderno ,Baan_positionno,DeliveryDate,ItemCode,Item_desc
+,TaxCode,Price,DiscPerc1,DiscPerc2,buyer ,OrderDate,CustCode,Custname,Indent,Next_Due_Date1,Next_Due_Date2,Reason1,Reason2,Supplier
+)a
+where penqty >0
+and OrderDate>'20220331' and ItemCode not in ('FRT')
+
+and ltrim(rtrim(custcode))not in ('CU1E00263','CU1E9999','CU1E99999','CU1E00893')
+and OrderNum not in ('292081260','292078032','292075102','292053491','293008156','293008167','292091660','292079543','292067146'
+,'292072077','293008100','292079424','292079354','292077404','292079295','292079572','292067146','292072077','293008100'
+,'292079295','292079572','292109047','292131850','293008433','292130890','292131091','236063185','343012156','343012158','242031446',
+'343017074','236063868','236063871','236063876','236063890','236063895','236063899','236063959','236064006','292144971','292151197','292151196','292074454','292128442')
+
+--and OrderType not IN (select distinct t$sotp From [wms].dbo.tzzsls608490 where t$bdio=1)
+
+)a
+left join (select max(PlanRecDate)PlanRecDate,OrderNum From Sales_Header where Company =490 group by OrderNum )b
+on a.OrderNum =b.OrderNum 
+
+
+update a set a.lead_days = isnull(b.leaddays,90) from gr_PendingOrders a
+left join GSC_LeadTime b on  b.ItemCode=a.ItemCode
+
+update a set seq=b.t_sqnb from gr_pendingorders a
+inner join (select t_orno,t_pono,max(t_sqnb)'t_sqnb' from TTDSLS401ALL where company='490' and t_odat>'20220401'  and t_clyn<>1
+						group by t_orno,t_pono) b on b.t_orno=a.ordernum and b.t_pono =a.positionnum 
+
+update a set ShipmentNO=replace(T$SHPM,' ',''),ShipQty=T$QPLI from gr_pendingorders a
+inner join TWHINH480ALL b on b.T$ORNO=a.ordernum and b.T$PONO =a.positionnum  and b.T$SEQN=a.seq
+
+
+update a set wh_orderdate=isnull(b.wh_orderdate,'1900-01-01') from gr_PendingOrders a
+inner join Pending_orders_wms b on  b.COMPANY='490' 
+and replace(b.itemcode,' ','')=replace(a.ItemCode,' ','')
+and b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum
+
+update a set  a.subproduct=b.wh_orderdate from sales_report_LN a
+left join Pending_orders_wms b on  b.COMPANY=a.company 
+and replace(b.itemcode,' ','')=replace(a.ItemCode,' ','')
+and b.OrderNum=a.OrderNum and b.PositionNum=a.positionno 
+
+update gr_PendingOrders set wh_orderdate= isnull(wh_orderdate,'1900-01-01')
+update gr_PendingOrders set wh_orderdate=dateadd(dd,9,wh_orderdate) where wh_orderdate between @BlockClosureStartDate and @BlockClosureEndDate
+
+update gr_PendingOrders set PlannedDelDate=(convert(datetime,wh_orderdate)+Lead_days)
+
+update gr_PendingOrders set PlannedDelDate=dateadd(dd,9,PlannedDelDate) where PlannedDelDate between @BlockClosureStartDate and @BlockClosureEndDate
+
+update a set  custcode=b.t_stbp,custname=c.NAMA from gr_PendingOrders a
+left join TTDSLS400ALL b on b.t_orno=a.Ordernum and t_sotp=a.ordertype and b.company=490 and b.t_cofc=a.dpst
+left join TTCCOM100All c on c.company=400 and bpid=b.t_stbp
+where a.dpst in (70016,70028,70045,70065,70085,70096) 
+
+
+
+
+--update a set  a.DeliveryDate=b.PlannedDelDate  from gr_PendingOrders a
+--left join ( select a.Ordernum,a.PositionNum,a.ItemCode,
+
+--(select DATEADD(day,(lead_days/5)*7+(lead_days%5)+CASE WHEN
+--	 (select top 1 MAX(CASE WHEN DATEPART(weekday,DATEADD(day,b.n,case when isnull(wh_orderdate,'1900-01-01')='1900-01-01' then getdate()+1000 else wh_orderdate end  ))=@Saturday THEN 1 ELSE 0 END) as HitWeekend
+--		from    gr_PendingOrders g 
+--		left join WeekNumber b on (lead_days%5)>=b.n
+--		where g.OrderNum=a.OrderNum and g.PositionNum=a.PositionNum and replace (g.ItemCode,' ','')=replace (a.ItemCode,' ','')
+
+--		group by (lead_days/5),(lead_days%5))=1 THEN 2 ELSE 0 END,case when isnull(wh_orderdate,'1900-01-01')='1900-01-01' then getdate()+1000 else wh_orderdate end ))'PlannedDelDate'
+		
+--from gr_PendingOrders a)b on  b.OrderNum=a.OrderNum and b.PositionNum=a.positionNum and b.ItemCode=a.ItemCode
+
+
+update a set a.PlannedDelDate=b.DelDate from gr_PendingOrders a 
+left join 
+(select OrderNum,max(PlannedDelDate)'DelDate' from gr_PendingOrders where ordertype='250'
+group by OrderNum) b on b.OrderNum=a.OrderNum
+where a.ordertype='250'
+
+
+
+update a set Ship_Status=(Case when (isnull(b.REMK,''))='Packing Completed' then 'Waiting For Invoice'
+when (isnull(b.REMK,''))='WAITING FOR ELGI PACKING' then 'In Packing'
+when (isnull(b.REMK,''))=' Waiting for Elgi Packing' then 'In Packing'
+when (isnull(b.REMK,''))='Packing In Process' then 'In Packing'
+when (isnull(b.REMK,''))='' then ''
+end) from gr_PendingOrders a
+inner join TZZSLS602all b on b.COMPANY='490' and replace(SHPM,' ','') =ShipmentNO and replace(ITEM,' ','')=ItemCode
+
+
+update gr_PendingOrders set Ship_Status='In-Packing / Billing' where isnull(Ship_Status,'')='' and ShipmentNO <>''
+
+
+update gr_PendingOrders set ItemCode = replace (ItemCode,' ','')
+
+update pending_orders set ItemCode = replace (ItemCode,' ','')
+
+
+update a set QtyBlock=b.QBLK,
+STOCK_490_onhand=(case when isnull((QHND-QBLK-QLAL),0)<=0 then 0 else isnull((QHND-QBLK-QLAL),0) end)
+from gr_PendingOrders a
+inner join TWHWMD215ALL b on  b.COMPANY='490' and b.CWAR='102'and replace(b.ITEM,' ','')=a.ItemCode
+
+
+update a set a.itemtype=b.itemtype,areacode=b.areacode,areaname=b.areaname from gr_PendingOrders a
+inner join pending_orders b on b.OrderNum=a.OrderNum and b.PositionNum=a.positionNum and replace(b.ItemCode,' ','')=replace(a.ItemCode,' ','')
+
+
+update a set a.Reason1=b.updt from gr_PendingOrders a 
+inner join TZZSLS602ALL b on b.Company='490' and b.SHPM=a.ShipmentNO and replace(b.item,' ','')=a.ItemCode and REMK='Packing Completed'
+
+update a set allocation= gr.Allocation,Next_Due_date2=AdviseDate from gr_PendingOrders a
+inner join 
+
+(select replace(T$ITEM,' ','')'Itemcode',sum(cast(replace(T$QADV,':','0.') as float))'Allocation',max(T$PDDT)'AdviseDate',T$ORNO,T$PONO ,t$seqn
+	from TWHINH220490 
+			where COMPANY=490 and T$CWAR='102' 
+			group by replace(T$ITEM,' ',''), COMPANY,T$CWAR,T$ORNO,T$PONO,t$seqn) GR on GR.Itemcode=replace(A.ItemCode,' ','')
+			and gr.T$ORNO=OrderNum and gr.T$PONO=a.PositionNum and gr.t$seqn=a.seq
+
+--update a set  a.PlannedDelDate=b.PlannedDelDate  from gr_PendingOrders a
+--left join ( select a.Ordernum,a.PositionNum,a.ItemCode,
+
+--(select DATEADD(day,(lead_days/5)*7+(lead_days%5)+CASE WHEN
+--	 (select top 1 MAX(CASE WHEN DATEPART(weekday,DATEADD(day,b.n,wh_orderdate))=@Saturday THEN 1 ELSE 0 END) as HitWeekend
+--		from    gr_PendingOrders g 
+--		left join WeekNumber b on (lead_days%5)>=b.n
+--		where g.OrderNum=a.OrderNum and g.PositionNum=a.PositionNum and replace (g.ItemCode,' ','')=replace (a.ItemCode,' ','')
+
+--		group by (lead_days/5),(lead_days%5))=1 THEN 2 ELSE 0 END,wh_orderdate))
+--				'PlannedDelDate'
+		
+--from gr_PendingOrders a)b on  b.OrderNum=a.OrderNum and b.PositionNum=a.positionNum and b.ItemCode=a.ItemCode
+
+
+
+
+
+
+update a set ship_status=b.Status1 from GR_PendingOrders  a 
+inner join (
+select OrderNum,ItemCode,ShipmentNO,PositionNum,Allocation,ord_qty,penqty,delqty,Ship_Status,
+case when penqty<=Allocation then 'Fully Advised' 
+		when penqty>Allocation then 'Partialy Advised'end 'Status1'
+
+from GR_PendingOrders 
+where isnull(Allocation,0)>0 and isnull(ShipmentNO,'')='' and isnull(wh_orderdate,'1900-01-01')>'1900-01-01' 
+and convert(date,OrderDate)>'20220331'  and isnull(Ship_Status,'')='') b on b.ItemCode= a.ItemCode and b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum
+
+
+update gr_PendingOrders set Ship_Status=(case when (STOCK_490_onhand+qtyblock)=0 and Allocation=0 and ItemType='P' then 'Stock Not Available'
+											when (STOCK_490_onhand+qtyblock)=0 and Allocation=0 and ItemType='M' then 'Stock Not Available' end) 
+							where isnull(Ship_Status,'')='' and ShipmentNO ='' and (isnull(STOCK_490_onhand,0)+isnull(qtyblock,0))=0 and Allocation=0 
+
+
+update a set slno=b.SlNum,STock_Block=b.stock from gr_PendingOrders a
+inner join (select OrderNum,Allocation,PositionNum,ItemCode,PlannedDelDate,ROW_NUMBER() over (partition by Itemcode order by ItemCode,PlannedDelDate asc) 'SlNum',
+			(STOCK_490_onhand+qtyblock)stock
+			from gr_PendingOrders where isnull(wh_orderdate,'1900-01-01')>'2000-01-01' 
+			and convert(date,OrderDate)>'20220331' and isnull(Ship_Status,'')=''and  isnull(Allocation,0)=0 
+			) b 
+	on b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum and b.ItemCode=a.ItemCode
+
+
+----update a set Ship_Status='Partially Available'	from gr_PendingOrders a where isnull(wh_orderdate,'1900-01-01')>'2000-01-01' 
+----and convert(date,OrderDate)>'20220331' and isnull(Ship_Status,'')=''and  isnull(Allocation,0)=0 and STock_Block<penqty  and slno=1
+
+
+----update a set slno=b.SlNum,STock_Block=b.stock from gr_PendingOrders a
+----inner join (
+----			select OrderNum,Allocation,PositionNum,ItemCode,plan_del_date,ROW_NUMBER() over (partition by Itemcode order by ItemCode,plan_del_date asc) 'SlNum',
+----			(STOCK_490_onhand+qtyblock)stock
+----			from gr_PendingOrders where isnull(wh_orderdate,'1900-01-01')>'2000-01-01' 
+----			and convert(date,OrderDate)>'20220331' and isnull(Ship_Status,'')=''and  isnull(Allocation,0)=0 ) b 
+----	on b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum and b.ItemCode=a.ItemCode
+
+update a set ship_status=b.Comment from gr_PendingOrders a
+inner join (
+
+select OrderNum,PositionNum,itemcode,slno,penqty,stock_block, sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)'StockIn',
+
+case  when (sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row))-penqty>stock_block then 'Stock Not Available' 
+when sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)>stock_block then 'Partially Available'
+ when (sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row))-penqty>stock_block then 'Stock Not Available' 
+ when sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)<=stock_block then 'Stock Available' end'Comment'
+ 
+from gr_PendingOrders a 
+
+where isnull(wh_orderdate,'1900-01-01')>'2000-01-01' 
+		and convert(date,OrderDate)>'20220331' and isnull(Ship_Status,'')=''  and  isnull(Allocation,0)=0 
+
+) b on b.ItemCode=a.ItemCode and b.slno=a.slno and b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum
+
+
+update a set ship_status='Order Not released' from gr_PendingOrders a where isnull(wh_orderdate,'1900-01-01')='1900-01-01' 
+
+update a set ship_status=
+	(case when replace(buyer,' ','') in ('SASIKUMARR')and  SUPPLIER like 'ELGI%'   then 'Stock Not Available - HO Manf Parts'
+	when replace(buyer,' ','') in ('VEERASAMYV')and  SUPPLIER like 'ELGI%'   then 'Stock Not Available - ACP Manf Parts'
+	else 'Stock Not Available' end) 
+
+from gr_PendingOrders a where Ship_Status='Stock Not Available'
+
+------------------Reason 2------------
+
+update a set Reason2=(Case when (isnull(b.REMK,''))='Packing Completed' then 'Waiting For Invoice'
+when (isnull(b.REMK,''))='WAITING FOR ELGI PACKING' then 'In Packing'
+when (isnull(b.REMK,''))=' Waiting for Elgi Packing' then 'In Packing'
+when (isnull(b.REMK,''))='Packing In Process' then 'In Packing'
+when (isnull(b.REMK,''))='' then ''
+end) from gr_PendingOrders a
+inner join TZZSLS602All b on b.COMPANY='490' and replace(SHPM,' ','') =ShipmentNO and replace(ITEM,' ','')=ItemCode
+
+
+update gr_PendingOrders set Reason2='In-Packing / Billing' where isnull(Reason2,'')='' and ShipmentNO <>''
+
+
+update a set Reason2=b.Status1 from GR_PendingOrders  a 
+inner join (
+select OrderNum,ItemCode,ShipmentNO,PositionNum,Allocation,ord_qty,penqty,delqty,Ship_Status,
+case when penqty<=Allocation then 'Fully Advised' 
+		when penqty>Allocation then 'Partialy Advised'end 'Status1'
+
+from GR_PendingOrders 
+where isnull(Allocation,0)>0 and isnull(ShipmentNO,'')='' --and isnull(wh_orderdate,'1900-01-01')>'1900-01-01' 
+and convert(date,OrderDate)>'20220331'  and isnull(Reason2,'')='') b on b.ItemCode= a.ItemCode and b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum
+
+
+update gr_PendingOrders set Reason2=(case when (STOCK_490_onhand+qtyblock)=0 and Allocation=0 and ItemType='P' then 'Stock Not Available'
+											when (STOCK_490_onhand+qtyblock)=0 and Allocation=0 and ItemType='M' then 'Stock Not Available' end) 
+							where isnull(Ship_Status,'')='' and ShipmentNO ='' and (isnull(STOCK_490_onhand,0)+isnull(qtyblock,0))=0 and Allocation=0 
+
+
+update gr_PendingOrders set SlNo=0
+
+update a set slno=b.SlNum,STock_Block=b.stock from gr_PendingOrders a
+inner join (select OrderNum,Allocation,PositionNum,ItemCode,PlannedDelDate,ROW_NUMBER() over (partition by Itemcode order by ItemCode,DeliveryDate asc) 'SlNum',
+			(STOCK_490_onhand+qtyblock)stock
+			from gr_PendingOrders where --isnull(wh_orderdate,'1900-01-01')>'2000-01-01' and
+			 convert(date,OrderDate)>'20220331' and  isnull(Allocation,0)=0 and isnull(Reason2,'')=''
+			) b 
+	on b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum and b.ItemCode=a.ItemCode
+
+
+update a set Reason2=b.Comment from gr_PendingOrders a
+inner join (
+
+select OrderNum,PositionNum,itemcode,slno,penqty,stock_block, 
+
+sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)'StockIn',
+case  when (sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row))-penqty>stock_block then 'Stock Not Available' 
+when sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)>stock_block then 'Partially Available'
+when (sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row))-penqty>stock_block then 'Stock Not Available' 
+when sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)<=stock_block then 'Stock Available' end'Comment'
+ 
+from gr_PendingOrders a 
+
+where convert(date,OrderDate)>'20220331' and isnull(Reason2,'')=''  and  isnull(Allocation,0)=0 
+
+) b on b.ItemCode=a.ItemCode and b.slno=a.slno and b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum
+
+
+
+update a set Reason2=
+	(case when replace(buyer,' ','') in ('SASIKUMARR')and  SUPPLIER like 'ELGI%'   then 'Stock Not Available - HO Manf Parts'
+	when replace(buyer,' ','') in ('VEERASAMYV')and  SUPPLIER like 'ELGI%'   then 'Stock Not Available - ACP Manf Parts'
+	else 'Stock Not Available' end) 
+
+from gr_PendingOrders a where Ship_Status='Stock Not Available'
+
+
+update a set Next_Due_Date1=ReleaseDate from gr_PendingOrders a
+left  join (select t$orno,T$pono,replace(t$Item,' ','' )'item',MAX(t$lddt) as ReleaseDate from wms.dbo.wms_order_status group by t$orno,T$pono,replace(t$Item,' ','' )) b
+on b.t$orno=a.ordernum and b.T$pono=a.positionnum and b.item=a.itemcode 
+
+create  table #temp(
+parentitem nvarchar(30),
+Qty decimal(19,2)
+) 
+
+insert into #temp
+select b.parentitem,sum(parentqty) from 
+ (select  substring(referencedocument,3,40) as prodorder,parentitem, avg(parentqty)parentqty
+	from WMS.DBO.line_po WHERE (status_desc <>'Shipped complete' AND lnordstatus <>'Closed')
+	group by substring(referencedocument,3,40),parentitem)b 
+	group by b.parentitem
+
+	
+update gr_PendingOrders set slno=0 where ItemType='M'
+
+update a set slno=b.SlNum from gr_PendingOrders a
+inner join (select OrderNum,Allocation,PositionNum,ItemCode,PlannedDelDate,ROW_NUMBER() over (partition by Itemcode order by ItemCode,DeliveryDate asc) 'SlNum'
+			from gr_PendingOrders
+			where convert(date,OrderDate)>'20220331' and ItemType='M' and Ship_Status in ('Stock Not Available','Partially Available','Partially Advised')
+			) b 
+	on b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum and b.ItemCode=a.ItemCode
+
+
+update a set Reason2=b.Comment,Ship_Status=b.Comment from gr_PendingOrders a
+inner join (
+
+		select OrderNum,PositionNum,itemcode,slno,penqty, 
+		sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)'CummulativeQty',
+		case  when (sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row))>b.Qty then 'Stock Not Available' 
+		when sum(penqty) over (partition by itemcode order by Itemcode,slno rows between unbounded preceding and current row)<=b.Qty then 'Kits-WIP'
+		end'Comment'
+		from gr_PendingOrders a 
+		inner join #temp b on b.parentitem=a.ItemCode
+		where convert(date,OrderDate)>'20220331' and ItemType='M' 
+		and Ship_Status in ('Stock Not Available','Partially Available','Partially Advised') 
+
+) b on b.ItemCode=a.ItemCode and b.slno=a.slno and b.OrderNum=a.OrderNum and b.PositionNum=a.PositionNum
+
+
+update a set a.Custname=isnull(c.t_nama,Custname) from GR_PendingOrders a
+left join TTDSLS400ALL b on b.t_orno=a.OrderNum and b.t_sotp=a.ordertype
+left join TTCCOM100400 c on c.t_bpid=b.t_stbp
+where a.Custname<>c.t_nama
+
+
+delete gr_PendingOrders where isnull(shipmentNO,'') in ('SHO506155','SHO506327','SHO506288','SHO505349','SHO506287'
+,'SHO506384','SHO505906','SHO506382','SHO506369','SHO506008','SHO533466','SHO533691','SHO533910','SHO479951','SHO505498','SHO553085','SHO567208','SHO518971',
+'SHO505522','SHO507577','SHO529492','SHO533911','SHO534255','SHO536512','SHO538933','SHO538911','SHO538922','SHO547204','SHO538940','SHO549963','SHO552499')
+
+end 
+
+
+
+
+
+Completion time: 2025-11-19T11:43:05.0608989+05:30

@@ -1,0 +1,595 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--select OTG_GAPDAYS,TARGET_OTG,Prod_Gen_Date,* From UTN_VER1 where utn='GA3125'
+--exec sp_utn_ver1
+CREATE proc [dbo].[sp_utn_ver1]
+as 
+begin
+Truncate table UTN_VER1
+Truncate table utn_Ver1_borewell
+
+INSERT INTO UTN_VER1
+
+--select * into utn_ver1 from (
+SELECT * fROM (
+select 
+A.ORNO AS SaleOrderno,A.PONO AS PONO,A.PUTN as UTN,A.ITEM AS Item,
+CWAR as Warehouse,a.OQUA as Ordqty_old,1 as Ordqty,a.DDAT as Cust_Date,
+a.CLDT as Clearence_Date, 
+CASE WHEN a.MAKE=1 THEN 'ELGI' ELSE 'SIEMENS'END as M,
+case when a.CLER=1 then 'Yes' else 'No' end as Cler,
+case when a.ALLO=1 then 'Yes' else 'No' end as Allocation,
+case when a.INVO=1 then 'Yes' else 'No' end as Invoiced,
+case when a.PACK=1 then 'Yes' else 'No' end as Packed,
+case when a.DELI=1 then 'Yes' else 'No' end as Delivered,
+case when a.schd=1 then 'Yes' else 'No' end as Schedule,
+
+b.PDNO as Production_ord_no,b.PDAT as Prod_Gen_Date,
+null as POQty,null as S,
+'1900-01-01 00:00:00.000' as delivery_date,'1900-01-01 00:00:00.000' as Release_Date,
+'1900-01-01 00:00:00.000' as Completed_Date,null as Planning_model,
+'1900-01-01 00:00:00.000' as Order_Date,
+null as item_Desc,null as custcode,null as CustName,null as Delqty,null as Area,null as Areaname,null as Region,null as OtaCountry,
+null as Division,null as TPL_CLASS,null AS TPL_SUBCLASS,'' AS Score,'' as Final_Score,null AS OTA_Finalscore,
+null as LT_OTA,NULL AS LT_OTG,NULL AS LT_OTP,NULL AS LT_OTR,NULL AS LT_OTC,
+NULL AS TARGET_OTA,NULL AS TARGET_OTG,NULL AS TARGET_OTP,NULL AS TARGET_OTR,NULL AS TARGET_OTC,
+NULL AS TARGET_OTA_ISS,NULL AS TARGET_OTG_ISS,NULL AS TARGET_OTP_ISS,NULL AS TARGET_OTR_ISS,NULL AS TARGET_OTC_ISS,
+0 as LeadtimeOTA,
+NULL as OTA_GAPDAYS,NULL AS OTG_GAPDAYS,NULL as OTP_GAPDAYS,NULL AS OTR_GAPDAYS,NULL AS OTC_GAPDAYS
+,'                     ' as Remarks
+,0 as score_0,0 as score_100,0 as score_blank,
+ 0 as Finalscore_0,0 as Finalscore_100,0 as Finalscore_blank,
+	0 as final_score_max_blank,0 as final_score_max_0,0 as final_score_max_100,
+	0 as OTA_NH,0 as OTG_NH,0 as OTP_NH,0 as OTR_NH,0 as OTC_NH,
+	NULL AS PRODUCT_LINE,NULL AS SUB_DIV,
+	a.CLDT as Clearence_Date_orijinal,
+	0 as Clearence_Date_NH,null as H_allocation,null as Fabno,null as H_alloc_Qty,
+	null as TARGET_OTA_NH,null as TARGET_OTG_NH,null as TARGET_OTP_NH,null as TARGET_OTR_NH,null as TARGET_OTC_NH,
+		0 as OTA_NH2,0 as OTG_NH2,0 as OTP_NH2,0 as OTR_NH2,0 as OTC_NH2,
+
+		null as TARGET_OTA_NH1,null as TARGET_OTG_NH1,null as TARGET_OTP_NH1,null as TARGET_OTR_NH1,null as TARGET_OTC_NH1,
+		0 as OTA_NH3,0 as OTG_NH3,0 as OTP_NH3,0 as OTR_NH3,0 as OTC_NH3,
+
+		null as Clearence_Date_chk, 0 as Clearence_Date_NH1
+				
+		From (select * From  TZZSFC254ALL where company=401 and CLER=1) A ----- earlier allo=1 but Sep182018 on wards CLER=1 (kavitha confirmation)
+LEFT JOIN (select * from  TZZSFC289ALL where company=401)B
+on a.PUTN=b.PUTN 
+and a.PONO =b.PONO
+and a.ORNO =b.ORNO 
+--and ltrim(rtrim(a.ITEM)) =ltrim(rtrim(b.ITEM))  
+--)a where 1=2
+)a 
+where Clearence_Date >='2017-08-01'
+AND LTRIM(RTRIM(ITEM)) NOT IN (SELECT DISTINCT LTRIM(RTRIM(ITEM)) ITEM FROM TZZSFC227ALL where company=401) ---- eliminating borewell items
+and LTRIM(RTRIM(ITEM))NOT IN ('S06041','S06042','S06012') ---- eliminating borewell items
+--and concat(saleorderno,pono) in (select distinct concat(OrderNum,PositionNum )  From sales_lines where company=401)
+
+----------- CLEARENCE DATE CALCULATION ------------------------------------
+
+update utn_ver1 set Clearence_Date = case when Schedule='Yes' then dbo.UFN_working_wkdays(Cust_Date,-10) 
+else Clearence_Date end
+
+update utn_ver1 set Clearence_Date_chk=Clearence_Date
+
+update utn_ver1 set Clearence_Date_NH=case when Schedule='Yes' then (select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.Clearence_Date and utn_ver1.Cust_Date ) else 0 end
+
+update utn_ver1 set Clearence_Date = case when Schedule='Yes' 
+then dbo.UFN_working_wkdays(Clearence_Date,-Clearence_Date_NH) else Clearence_Date end
+
+update utn_ver1 set Clearence_Date=case when datepart(dw,Clearence_Date) in (1,7) 
+then dbo.UFN_working_wkdays(Clearence_Date,1) else Clearence_Date end
+
+
+---------End: CLEARENCE DATE CALCULATION -----------------------------------
+
+
+update UTN_VER1 set h_allocation=a.Halloc,H_alloc_Qty=a.h_Qty  
+from(select distinct putn,orno,pono,sum(HQUA) as h_Qty,
+case when HALL=1 then 'Yes' else 'No' end as Halloc  
+From TZZSFC261ALL where company=401 group by putn,orno,pono,HALL)a
+where UTN_VER1.UTN =a.PUTN 
+and utn_ver1.SaleOrderno =a.ORNO
+and utn_ver1.PONO =a.PONO 
+
+
+update UTN_VER1 set poqty=a.Poqty,s=a.OSTA,delivery_date=RDLD,Completed_Date=CMDT  
+from(select PDNO,sum(isnull(QRDR,0))as Poqty,	
+case when OSTA=1 then 'Planned' when OSTA=2 then 'Scheduled' 
+when OSTA=3 then 'Documents Printed'when OSTA=4 then 'Released'when OSTA=6 then 'Active'
+when OSTA=7 then 'TO be Completed'when OSTA=8 then 'Completed'when OSTA=9 then 'Closed'when 
+OSTA=10 then 'Archived' end as OSTA,RDLD,CMDT 
+From TTISFC001ALL where COMPANY =401 group by pdno,OSTA,RDLD,CMDT)a
+where ltrim(rtrim(UTN_VER1.Production_ord_no))=ltrim(rtrim(a.PDNO))  
+
+
+update UTN_VER1 set Release_Date=a.date 
+from (select distinct pdno,min(date)date,osta From TTICST151ALL where company=401 and osta=4 group by 
+PDNO,OSTA)a where UTN_VER1.Production_ord_no=a.pdno
+
+--UPDATE UTN_VER1 SET Planning_model=a.T$FGTM  
+--from(select distinct T$ITEM,
+--case when T$FGTM=1 then 'Stock' 
+--when T$FGTM=2 then  'AO'
+--when T$FGTM=3 then 'Forecast' 
+--when T$FGTM=4 then 'Subsidiaries' 
+--when T$FGTM=5 then 'Manual' 
+--when T$FGTM=6 then 'AO1' ELSE '' end as T$FGTM
+--  from TZZSFC211401)a
+--where ltrim(rtrim(UTN_VER1.Item))=ltrim(rtrim(a.T$ITEM))
+
+
+update UTN_VER1 SET Order_Date =B.OrderDate,CustCode =B.CustCode--,OrdQty =B.OrdQty   
+FROM(
+select distinct OrderNum,PositionNum ,ItemCode,CustCode,OrderDate,sum(t_qoor)as OrdQty 
+From Sales_Lines where company=401 
+group by OrderNum,PositionNum ,ItemCode,CustCode,OrderDate)b
+WHERE ltrim(rtrim(UTN_VER1.SaleOrderno)) =ltrim(rtrim(b.OrderNum))
+and ltrim(rtrim(UTN_VER1.Pono))=ltrim(rtrim(b.PositionNum ))
+
+UPDATE UTN_VER1 SET item_Desc=a.Item_desc
+from (select distinct  Item,Item_desc   From vw_Item_Master where company =400)a
+where ltrim(rtrim(a.Item))=ltrim(rtrim(UTN_VER1.item))
+
+UPDATE UTN_VER1  SET custname=a.custname1 
+from (select distinct custcode,custname1 From vw_Business_Partner)a
+where ltrim(rtrim(a.custcode))=ltrim(rtrim(UTN_VER1 .custcode))
+
+UPDATE UTN_VER1  SET Area =a.area
+from(select distinct ordernum,area  from sales_header  where COMPANY =401)a
+where UTN_VER1.SaleOrderno =a.ordernum  
+
+UPDATE UTN_VER1 SET AreaName  =a.areaname 
+from(select distinct Areacode,AreaName from vw_AREA_MASTER)a
+where UTN_VER1.Area =a.Areacode
+
+UPDATE UTN_VER1 set Delqty=isnull(a.DelQty,0) 
+from(select COMPANY,ORNO,PONO,sum(QIDL) as DelQty from  sales_delivery 
+where QIDL>0 and company=401 group by COMPANY,ORNO,PONO)a
+where UTN_VER1.saleorderno=a.ORNO 
+and UTN_VER1.PONO =a.PONO 
+
+UPDATE utn_region_master SET Areacode =right(concat(0,ISNULL(areacode,0)),3)
+
+update UTN_VER1 set region=a.region,otacountry=a.otacountry
+from (select RIGHT(CONCAT('0',Areacode),3)AS Areacode  ,region,otacountry  From utn_region_master where areacode is not null)a
+where UTN_VER1.area=a.Areacode
+
+update b set Division=a.Division,TPL_CLASS=DEMCLASS ,TPL_SUBCLASS=DEMSUBCLASS ,product_line=a.PRODUCTLINE ,
+SUB_DIV=SUBDIVISION 
+from UTN_VER1 b
+left join (select  LTRIM(RTRIM(ITEMCODE))AS ITEM,DIVISION,DEMCLASS,DEMSUBCLASS ,PRODUCTLINE ,SUBDIVISION,YEAR,MONTH  
+From OTA_TPL_MASTER)a on 
+A.ITEM=LTRIM(RTRIM(b.Item))
+and a.[year]=year(b.Clearence_Date) and a.[Month]=Month(b.Clearence_Date) 
+ 
+update UTN_VER1 set Target_OTA_LT=a.Target_OTA_LT,LT_OTG=a.LT_OTG,LT_OTP=a.LT_OTP,LT_OTR=a.LT_OTR,LT_OTC=a.LT_OTC
+from (select * From UTN_MODEL_MASTER)a
+where LTRIM(RTRIM(UTN_VER1.TPL_CLASS))=LTRIM(RTRIM(a.Model))
+AND  LTRIM(RTRIM(UTN_VER1.Division))=LTRIM(RTRIM(a.TYPE))
+
+-- update UTN_VER1 set Target_OTA_LT=Target_OTA_LT+2 where Region <>'India' and TPL_CLASS<>'AO1'
+
+update UTN_VER1 set Target_OTA_LT=Target_OTA_LT-11 where Region <>'India' and TPL_CLASS='Subsidiaries' and division='LEPSAC'
+
+update UTN_VER1 set Target_OTA_LT=a.Target_OTA_LT,LT_OTG=a.LT_OTG,LT_OTP=a.LT_OTP,LT_OTR=a.LT_OTR,LT_OTC=4--a.LT_OTC
+from (select * From UTN_MODEL_MASTER WHERE MODEL ='Forecast')a
+where LTRIM(RTRIM(UTN_VER1.TPL_CLASS)) IS NULL
+
+
+update utn_ver1 set Cust_Date=case when year(cust_date)<2000 or cust_date is null then '1900-01-01'  else Cust_Date end 
+update utn_ver1 set Clearence_Date=case when year(Clearence_Date)<2000 or Clearence_Date is null then '1900-01-01' else Clearence_Date end
+update utn_ver1 set Prod_Gen_Date=case when year(Prod_Gen_Date)<2000 or Prod_Gen_Date is null  then '1900-01-01' else Prod_Gen_Date end 
+update utn_ver1 set delivery_date=case when year(delivery_date)<2000 or delivery_date is null then '1900-01-01' else delivery_date end
+update utn_ver1 set Release_Date=case when year(Release_Date)<2000 or Release_Date is null then '1900-01-01' else Release_Date end
+update utn_ver1 set Completed_Date=case when year(Completed_Date)<2000 or Completed_Date is null then '1900-01-01' else Completed_Date end
+update utn_ver1 set Order_Date=case when year(Order_Date)<2000 or Order_Date is null then '1900-01-01' else Order_Date end
+update utn_ver1 set Clearence_Date_orijinal=case when year(Clearence_Date_orijinal)<2000 or Clearence_Date_orijinal is null then '1900-01-01' else Clearence_Date_orijinal end
+
+
+update UTN_VER1 set TARGET_OTA_ISS =DATEADD(dd,Target_OTA_LT,Clearence_Date) 
+update UTN_VER1 set TARGET_OTG_ISS =DATEADD(dd,LT_OTG,Clearence_Date) 
+update UTN_VER1 set TARGET_OTP_ISS =DATEADD(dd,LT_OTP,Clearence_Date) 
+update UTN_VER1 set TARGET_OTR_ISS =DATEADD(dd,LT_OTR,delivery_date) 
+
+update UTN_VER1 set TARGET_OTC_ISS =DATEADD(dd,LT_OTC,Release_Date) WHERE UTN_VER1.Division='SEPSAC' 
+update UTN_VER1 set TARGET_OTC_ISS =DATEADD(dd,LT_OTC,Release_Date) WHERE UTN_VER1.Division='LEPSAC' 
+update UTN_VER1 set TARGET_OTC_ISS =DATEADD(dd,LT_OTC,Release_Date) WHERE UTN_VER1.Division='DPSAC' 
+update UTN_VER1 set TARGET_OTC_ISS =DATEADD(dd,LT_OTC,Release_Date) WHERE UTN_VER1.Division='RCD' 
+
+--------- maximum case utn is available clearence date shoudn't blank
+
+update UTN_VER1 set TARGET_OTA =dbo.UFN_working_wkdays(Clearence_Date,Target_OTA_LT)
+update UTN_VER1 set TARGET_OTG =dbo.UFN_working_wkdays(Clearence_Date,LT_OTG)
+update UTN_VER1 set TARGET_OTP =dbo.UFN_working_wkdays(Clearence_Date,LT_OTP)
+update UTN_VER1 set TARGET_OTR =
+case when convert(date,delivery_date)='1900-01-01'then '1900-01-01' else dbo.UFN_working_wkdays(delivery_date,LT_OTR) end
+update UTN_VER1 set TARGET_OTC =
+case when convert(date,Release_Date)='1900-01-01'then '1900-01-01' else dbo.UFN_working_wkdays(Release_Date,LT_OTC) end
+
+----- old method
+--case when 
+--Clearence_Date='1900-01-01 00:00:00.000' or Clearence_Date='1970-01-01 00:00:00.000' or Clearence_Date is null then '1900-01-01 00:00:00.000'
+--else (select 
+--DATEADD(d,CASE DATEPART(dw,Clearence_Date) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Clearence_Date) +
+--(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Clearence_Date) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Clearence_Date))-2 +convert(int,Target_OTA_LT)) %5 +
+--((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Clearence_Date)WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Clearence_Date))-2+convert(int,Target_OTA_LT))/5)*7-
+--(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Clearence_Date) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Clearence_Date))-2))end
+
+
+
+-- Note: if when we ariving target date base data shoud be blank then target date also blank
+-- target dates before find national holidays 
+update UTN_VER1 set TARGET_OTA_NH=CONVERT(DATE,TARGET_OTA)
+update UTN_VER1 set TARGET_OTG_NH=CONVERT(DATE,TARGET_OTG)
+update UTN_VER1 set TARGET_OTP_NH=CONVERT(DATE,TARGET_OTP)
+update UTN_VER1 set TARGET_OTR_NH=CONVERT(DATE,TARGET_OTR)
+update UTN_VER1 set TARGET_OTC_NH=CONVERT(DATE,TARGET_OTC)
+
+------- finding national holidays
+update utn_ver1 set OTA_NH=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between utn_ver1.Clearence_Date and utn_ver1.TARGET_OTA)
+
+update utn_ver1 set OTG_NH=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between utn_ver1.Clearence_Date and utn_ver1.TARGET_OTG)
+
+update utn_ver1 set OTP_NH=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between utn_ver1.Clearence_Date and utn_ver1.TARGET_OTP)
+
+update utn_ver1 set OTR_NH=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between utn_ver1.delivery_date and utn_ver1.TARGET_OTR)
+
+update utn_ver1 set OTC_NH=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between utn_ver1.Release_Date and utn_ver1.TARGET_OTC)
+    
+---------- FOR NATIONAL HOLIDAYS
+
+update UTN_VER1 set TARGET_OTA =dbo.UFN_working_wkdays(TARGET_OTA,OTA_NH)
+update UTN_VER1 set TARGET_OTG =dbo.UFN_working_wkdays(TARGET_OTG,OTG_NH)
+update UTN_VER1 set TARGET_OTP =dbo.UFN_working_wkdays(TARGET_OTP,OTP_NH)
+update UTN_VER1 set TARGET_OTR =
+case when convert(date,TARGET_OTR)='1900-01-01' then '1900-01-01' else dbo.UFN_working_wkdays(TARGET_OTR,OTR_NH) end
+update UTN_VER1 set TARGET_OTC =
+case when convert(date,TARGET_OTC)='1900-01-01'then '1900-01-01' else dbo.UFN_working_wkdays(TARGET_OTC,OTC_NH) end
+
+--------- 2ND TIME NATIONAL HOLIDAYS FINDING
+
+update UTN_VER1 set TARGET_OTA_NH1=CONVERT(DATE,TARGET_OTA)
+update UTN_VER1 set TARGET_OTG_NH1=CONVERT(DATE,TARGET_OTG)
+update UTN_VER1 set TARGET_OTP_NH1=CONVERT(DATE,TARGET_OTP)
+update UTN_VER1 set TARGET_OTR_NH1=CONVERT(DATE,TARGET_OTR)
+update UTN_VER1 set TARGET_OTC_NH1=CONVERT(DATE,TARGET_OTC)
+
+update utn_ver1 set OTA_NH2=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTA_NH) and utn_ver1.TARGET_OTA)
+
+update utn_ver1 set OTG_NH2=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTG_NH) and utn_ver1.TARGET_OTG)
+
+update utn_ver1 set OTP_NH2=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTP_NH) and utn_ver1.TARGET_OTP)
+
+update utn_ver1 set OTR_NH2=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTR_NH) and utn_ver1.TARGET_OTR)
+
+update utn_ver1 set OTC_NH2=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTC_NH) and utn_ver1.TARGET_OTC)
+
+
+update UTN_VER1 set TARGET_OTA =dbo.UFN_working_wkdays(TARGET_OTA,OTA_NH2)
+update UTN_VER1 set TARGET_OTG =dbo.UFN_working_wkdays(TARGET_OTG,OTG_NH2)
+update UTN_VER1 set TARGET_OTP =dbo.UFN_working_wkdays(TARGET_OTP,OTP_NH2)
+update UTN_VER1 set TARGET_OTR =
+case when convert(date,TARGET_OTR)='1900-01-01' then '1900-01-01' else dbo.UFN_working_wkdays(TARGET_OTR,OTR_NH2) end
+update UTN_VER1 set TARGET_OTC =
+case when convert(date,TARGET_OTC)='1900-01-01'then '1900-01-01' else dbo.UFN_working_wkdays(TARGET_OTC,OTC_NH2) end 
+
+------------ end 2nd time
+
+----------------- 3rd time 
+
+update utn_ver1 set OTA_NH3=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTA_NH1) and utn_ver1.TARGET_OTA)
+
+update utn_ver1 set OTG_NH3=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTG_NH1) and utn_ver1.TARGET_OTG)
+
+update utn_ver1 set OTP_NH3=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTP_NH1) and utn_ver1.TARGET_OTP)
+
+update utn_ver1 set OTR_NH3=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTR_NH1) and utn_ver1.TARGET_OTR)
+
+update utn_ver1 set OTC_NH3=(select count(*) from TTCCCP020400 where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between DATEADD(DAY,1,utn_ver1.TARGET_OTC_NH1) and utn_ver1.TARGET_OTC)
+
+
+update UTN_VER1 set TARGET_OTA =dbo.UFN_working_wkdays(TARGET_OTA,OTA_NH3)
+update UTN_VER1 set TARGET_OTG =dbo.UFN_working_wkdays(TARGET_OTG,OTG_NH3)
+update UTN_VER1 set TARGET_OTP =dbo.UFN_working_wkdays(TARGET_OTP,OTP_NH3)
+update UTN_VER1 set TARGET_OTR =
+case when convert(date,TARGET_OTR)='1900-01-01' then '1900-01-01' else dbo.UFN_working_wkdays(TARGET_OTR,OTR_NH3) end
+update UTN_VER1 set TARGET_OTC =
+case when convert(date,TARGET_OTC)='1900-01-01'then '1900-01-01' else dbo.UFN_working_wkdays(TARGET_OTC,OTC_NH3) end 
+
+-------- end 3rd time
+--------------------
+update UTN_VER1 set Actual_OTA_LT= 
+case when (Production_ord_no='' or Production_ord_no is null) and h_allocation='Yes' then 0 else
+(select count(distinct DATE) from TTCCCP020400 where 
+(convert(date,date) between convert(date,Clearence_Date) 
+and (dateadd(dd,-1,convert(date,case when (Completed_Date='1900-01-01 00:00:00.000')then convert(date,getdate())
+else convert(date,completed_date) end)))and CCAL ='company' and DFCA<>4))end
+
+--update UTN_VER1 set LeadtimeOTA=(select count(distinct DATE) from TTCCCP020400 where 
+--(convert(date,date) between convert(date,Clearence_Date) and (dateadd(dd,-1,convert(date,case when (Completed_Date='1900-01-01 00:00:00.000' or Completed_Date='1970-01-01 00:00:00.000')then getdate()
+-- else completed_date end)))and CCAL ='company' and DFCA<>4))
+
+---- ota target nerver blank
+update UTN_VER1 set OTA_GAPDAYS=
+(SELECT  
+((DATEDIFF(dd, TARGET_OTA, case when year(Completed_Date)<2000  
+then convert(date,getdate()) else convert(date,Completed_Date) end))
+-(DATEDIFF(wk, TARGET_OTA, case when year(Completed_Date)<2000 
+then convert(date,getdate()) else convert(date,Completed_Date) end) * 2)
+-(CASE WHEN DATENAME(dw, TARGET_OTA) = 'Sunday' THEN 1 ELSE 0 END)
+-(CASE WHEN DATENAME(dw, case when year(Completed_Date)<2000 
+then convert(date,getdate()) else convert(date,Completed_Date) end) = 'Saturday' THEN 1 ELSE 0 END))) 
+
+
+		--- otg target date never blank
+		
+update UTN_VER1 set OTG_GAPDAYS=
+(SELECT  
+((DATEDIFF(dd, TARGET_OTG, 
+case when year(Prod_Gen_Date)<2000  then convert(date,getdate()) 
+else convert(date,Prod_Gen_Date) end)) -(DATEDIFF(wk, TARGET_OTG, 
+case when year(Prod_Gen_Date)<2000 then convert(date,getdate()) 
+else convert(date,Prod_Gen_Date)end) * 2)
+-(CASE WHEN DATENAME(dw, TARGET_OTG) = 'Sunday' THEN 1 ELSE 0 END)
+-(CASE WHEN DATENAME(dw, case when year(Prod_Gen_Date)<2000 then convert(date,getdate()) 
+else convert(date,Prod_Gen_Date) end) = 'Saturday' THEN 1 ELSE 0 END))) 
+	
+---------- otp target date never blank
+update UTN_VER1 set OTP_GAPDAYS=
+(SELECT  
+((DATEDIFF(dd, TARGET_OTP, case when year(delivery_date)<2000 then convert(date,getdate()) 
+else convert(date,delivery_date) end))
+-(DATEDIFF(wk, TARGET_OTP, case when year(delivery_date)<2000 then convert(date,getdate()) 
+else convert(date,delivery_date) end) * 2)
+-(CASE WHEN DATENAME(dw, TARGET_OTP) = 'Sunday' THEN 1 ELSE 0 END)
+-(CASE WHEN DATENAME(dw, case when year(delivery_date)<2000 then convert(date,getdate()) 
+else convert(date,delivery_date) end) = 'Saturday' THEN 1 ELSE 0 END))) 
+
+----------- otr target date is blank then blank if otr target date not blank and actual is blank then getdate()
+update UTN_VER1 set OTR_GAPDAYS=
+(SELECT  CASE WHEN YEAR(TARGET_OTR)<2000 THEN '' ELSE
+((DATEDIFF(dd, TARGET_OTR, case when year(Release_Date)<2000 then convert(date,getdate()) 
+else convert(date,Release_Date) end)) 
+-(DATEDIFF(wk, TARGET_OTR, case when year(Release_Date)<2000 then convert(date,getdate()) 
+else convert(date,Release_Date) 
+end)* 2)
+-(CASE WHEN DATENAME(dw, TARGET_OTR) = 'Sunday' THEN 1 ELSE 0 END)-
+(CASE WHEN DATENAME(dw, case when year(Release_Date)<2000 then convert(date,getdate()) 
+else convert(date,Release_Date) end) = 'Saturday' THEN 1 ELSE 0 END))END) 
+
+--- otc target date is blank then blank if otc target date not blank and actual is blank then getdate()
+		
+update UTN_VER1 set OTC_GAPDAYS=
+(SELECT  CASE WHEN YEAR(TARGET_OTC)<2000 THEN '' ELSE
+((DATEDIFF(dd, TARGET_OTC, case when year(Completed_Date)<2000 then convert(date,getdate()) 
+else convert(date,Completed_Date) end)) -(DATEDIFF(wk, TARGET_OTC, case when year(Completed_Date)<2000 then convert(date,getdate())
+else convert(date,Completed_Date) end) * 2)
+-(CASE WHEN DATENAME(dw, TARGET_OTC) = 'Sunday' THEN 1 ELSE 0 END)-
+(CASE WHEN DATENAME(dw, case when year(Completed_Date)<2000 then convert(date,getdate()) 
+else convert(date,Completed_Date) end) = 'Saturday' THEN 1 ELSE 0 END))END) 
+				
+
+update UTN_VER1  set Remarks='Po Deleted' 
+where UTN_VER1.Production_ord_no in
+(select distinct Production_ord_no  From UTN_VER1 
+where UTN<>'' and Production_ord_no is not null and Production_ord_no <>''
+and Production_ord_no not in (select distinct PDNO  From TTISFC001All where company=401 ))
+
+update UTN_VER1 set Actual_OTA_LT=0 where ltrim(rtrim(UTN_VER1.Production_ord_no))='' and h_allocation='Yes'
+update UTN_VER1 set Actual_OTA_LT=0 where UTN_VER1.Production_ord_no is null and h_allocation='Yes'
+
+--delete From utn_Ver1 where division not in ('RCD','SEPSAC','LEPSAC','OFSAC','DPSAC')
+
+update utn_ver1 set OTA_GAPDAYS='' where utn_ver1.TARGET_OTA ='1900-01-01 00:00:00.000' and utn_ver1.Completed_Date='1900-01-01 00:00:00.000'  
+update utn_ver1 set OTG_GAPDAYS='' where utn_ver1.TARGET_OTG ='1900-01-01 00:00:00.000' and utn_ver1.Prod_Gen_Date='1900-01-01 00:00:00.000'  
+update utn_ver1 set OTP_GAPDAYS='' where utn_ver1.TARGET_OTP ='1900-01-01 00:00:00.000' and utn_ver1.delivery_date='1900-01-01 00:00:00.000'  
+update utn_ver1 set OTR_GAPDAYS='' where utn_ver1.TARGET_OTR ='1900-01-01 00:00:00.000' and utn_ver1.Release_Date='1900-01-01 00:00:00.000'  
+update utn_ver1 set OTC_GAPDAYS='' where utn_ver1.TARGET_OTC ='1900-01-01 00:00:00.000' and utn_ver1.Completed_Date='1900-01-01 00:00:00.000'  
+
+
+UPDATE utn_ver1  SET OTG_GAPDAYS =''  
+WHERE (YEAR(TARGET_OTG)<2000 OR TARGET_OTG='' OR CONVERT(DATE,TARGET_OTG)>=CONVERT(DATE,GETDATE()))
+AND (YEAR(Prod_Gen_Date)<2000 OR Prod_Gen_Date='') 
+
+UPDATE utn_ver1  SET OTP_GAPDAYS =''  
+WHERE (YEAR(TARGET_OTP)<2000 OR TARGET_OTP='' OR CONVERT(DATE,TARGET_OTP)>=CONVERT(DATE,GETDATE()))
+AND (YEAR(delivery_date)<2000 OR delivery_date='') 
+
+UPDATE utn_ver1  SET OTR_GAPDAYS =''  
+WHERE (YEAR(TARGET_OTR)<2000 OR TARGET_OTR='' OR CONVERT(DATE,TARGET_OTR)>=CONVERT(DATE,GETDATE()))
+AND (YEAR(Release_Date)<2000 OR Release_Date='') 
+
+UPDATE utn_ver1  SET OTC_GAPDAYS =''  
+WHERE (YEAR(TARGET_OTC)<2000 OR TARGET_OTC='' OR CONVERT(DATE,TARGET_OTC)>=CONVERT(DATE,GETDATE()))
+AND (YEAR(Completed_Date)<2000 OR Completed_Date='') 
+
+UPDATE utn_ver1  SET OTA_GAPDAYS =''  
+WHERE (YEAR(TARGET_OTA)<2000 OR TARGET_OTA='' OR CONVERT(DATE,TARGET_OTA)>=CONVERT(DATE,GETDATE()))
+AND (YEAR(Completed_Date)<2000 OR Completed_Date='') 
+
+------------------ Eliminating holidays
+UPDATE utn_ver1  SET OTG_GAPDAYS =OTG_GAPDAYS-(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.TARGET_OTG and utn_ver1.Prod_Gen_Date) 
+where OTG_GAPDAYS<>'' and TARGET_OTG<Prod_Gen_Date and year(Prod_Gen_Date)>2000
+
+UPDATE utn_ver1  SET OTG_GAPDAYS =OTG_GAPDAYS+(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.Prod_Gen_Date and utn_ver1.TARGET_OTG) 
+where OTG_GAPDAYS<>'' and TARGET_OTG>Prod_Gen_Date and year(Prod_Gen_Date)>2000
+
+UPDATE utn_ver1  SET OTP_GAPDAYS =OTP_GAPDAYS-(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.TARGET_OTP and utn_ver1.delivery_date) 
+where OTP_GAPDAYS<>'' and TARGET_OTP<delivery_date and year(delivery_date)>2000
+
+UPDATE utn_ver1  SET OTP_GAPDAYS =OTP_GAPDAYS+(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.delivery_date and utn_ver1.TARGET_OTP) 
+where OTP_GAPDAYS<>'' and TARGET_OTP>delivery_date  and year(delivery_date)>2000
+
+UPDATE utn_ver1  SET OTR_GAPDAYS =OTR_GAPDAYS-(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.TARGET_OTR and utn_ver1.Release_Date) 
+where OTR_GAPDAYS<>'' and TARGET_OTR<Release_Date  and year(Release_Date)>2000
+
+UPDATE utn_ver1  SET OTR_GAPDAYS =OTR_GAPDAYS+(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.Release_Date and utn_ver1.TARGET_OTR) 
+where OTR_GAPDAYS<>'' and TARGET_OTR>Release_Date and year(Release_Date)>2000
+
+UPDATE utn_ver1  SET OTC_GAPDAYS =OTC_GAPDAYS-(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.TARGET_OTC  and utn_ver1.Completed_Date) 
+where OTC_GAPDAYS<>'' and TARGET_OTC<Completed_Date and year(Completed_Date)>2000
+
+UPDATE utn_ver1  SET OTC_GAPDAYS =OTC_GAPDAYS+(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.Completed_Date and utn_ver1.TARGET_OTC) 
+where OTC_GAPDAYS<>'' and TARGET_OTC>Completed_Date and year(Completed_Date)>2000
+
+UPDATE utn_ver1  SET OTA_GAPDAYS =OTA_GAPDAYS-(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.TARGET_OTA  and utn_ver1.Completed_Date) 
+where OTA_GAPDAYS<>'' and TARGET_OTA<Completed_Date and year(Completed_Date)>2000
+
+UPDATE utn_ver1  SET OTA_GAPDAYS =OTA_GAPDAYS+(select count(*) from TTCCCP020400 
+where datepart(dw,date) not in(1,7) and DFCA='4' 
+and date between utn_ver1.Completed_Date and utn_ver1.TARGET_OTA) 
+where OTA_GAPDAYS<>'' and TARGET_OTA>Completed_Date and year(Completed_Date)>2000
+
+--------------- calculating score
+--select distinct Score,count(score)as cnt  From utn_ver1  group by score
+--select * From utn_ver1 where Completed_Date='1900-01-01 00:00:00.000'
+
+
+update UTN_VER1 set score='Blank' where Ordqty <1  
+update UTN_VER1 set score='Blank' where Ordqty is null and score<>'Blank'
+update UTN_VER1 set score='Blank' where custcode is null and score<>'Blank'
+update UTN_VER1 set score='Blank' where custcode='' and score<>'Blank'
+update UTN_VER1 set score='Blank' where (convert(Date,TARGET_OTA)>=convert(date,getdate())) 
+and (Completed_Date is null or Completed_Date='1900-01-01 00:00:00.000' or Completed_Date='1970-01-01 00:00:00.000') 
+and score<>'Blank'
+
+
+update UTN_VER1 set score='FREE STOCK AO' where remarks='po deleted' and score<>'Blank'
+
+
+--update UTN_VER1 set score=100 where (Production_ord_no ='' or Production_ord_no is null) and Delqty>0 and score<>'Blank' and score<>100
+-- Insted of above logic we have check this logic
+update UTN_VER1 set score=100 where (Production_ord_no ='' or Production_ord_no is null) 
+and h_allocation='Yes' and score<>'Blank' 
+and score <>'FREE STOCK AO'
+--and score<>100 
+
+
+update UTN_VER1 set score=100 where Actual_OTA_LT<=Target_OTA_LT 
+and score<>'Blank'and score<>100 and score <>'FREE STOCK AO'
+--OTA_GAPDAYS and score<>'Blank'and score<>100
+
+-- update UTN set score=0 where score<>100 and score<>'Blank' and(LeadtimeOTA>TargetLeadTime)   
+update UTN_VER1 set score=0 where score<>100 and score<>'Blank' and score <>'FREE STOCK AO'
+------------------- score completed
+
+update UTN_VER1 set score_Blank=1 where score='Blank'
+update UTN_VER1 set score_100=1 where score='100'
+update UTN_VER1 set score_0=1 where score='0'
+
+update UTN_VER1 set final_score=score
+update UTN_VER1 set final_score=100 where OTP_GAPDAYS>2 and OTG_GAPDAYS <2 and final_score='0'
+
+update UTN_VER1 set finalscore_blank=1 where final_score='Blank'
+update UTN_VER1 set finalscore_100=1 where final_score='100'
+update UTN_VER1 set finalscore_0=1 where final_score='0'
+
+--update UTN_VER1 set score_Blank=1 where Ordqty <1  
+--update UTN_VER1 set score_Blank=1 where Ordqty is null 
+--update UTN_VER1 set score_Blank=1 where custcode is null 
+--update UTN_VER1 set score_Blank=1 where custcode='' 
+--update UTN_VER1 set score_Blank=1 where (convert(Date,TARGET_OTA)>convert(date,getdate())) and (Completed_Date is null or Completed_Date='1900-01-01 00:00:00.000' or Completed_Date='1970-01-01 00:00:00.000')
+
+--update UTN_VER1 set score_100=1 where remarks='po deleted' and score_blank <>1
+--update UTN_VER1 set score_100=1 where (Production_ord_no ='' or Production_ord_no is null) and Delqty>0 and score_blank <>1
+--update UTN_VER1 set score_100=1 where LeadtimeOTA<=LT_OTA  and score_blank <>1
+
+---- update UTN set score_0=1 where (score_100<>1 and score_blank<>1) and(LeadtimeOTA>TargetLeadTime)   
+--update UTN_VER1 set score_0=1 where score_100<>1 and score_blank<>1
+
+--update UTN_VER1 set final_score=score where score<>'0'
+--update UTN_VER1 set final_score=0 where Score='0'
+--update UTN_VER1 set final_score=100 where OTP_GAPDAYS>2 and OTG_GAPDAYS <2 and score='0'
+
+--update UTN_VER1 set finalscore_blank=1 where score_blank=1
+--update UTN_VER1 set finalscore_100=1 where score_100=1
+--update UTN_VER1 set finalscore_100=1 where score='0' and (OTP_GAPDAYS>2 and OTG_GAPDAYS <2)
+--update UTN_VER1 set finalscore_0=1 where score_0=1 and finalscore_100<>1 and finalscore_blank<>1
+
+update UTN_VER1 set final_score_max_blank=1 where finalscore_blank=1
+update UTN_VER1 set final_score_max_100=1 where Finalscore_100 =1
+update UTN_VER1 set final_score_max_100=1 where OTP_GAPDAYS>2 and OTG_GAPDAYS <2 and score='0'
+update UTN_VER1 set final_score_max_0=1 where Finalscore_100 =1
+
+update utn_Ver1 set Division='OTHERS'  where division is null
+
+update utn_Ver1 set fabno=a.fabno 
+from(SELECT pdno,max(mser)as Fabno fROM TTIMFC010all 
+WHERE COMPANY=401 group by pdno)a
+where utn_Ver1.Production_ord_no =a.pdno
+
+
+insert into utn_Ver1_borewell
+select * From utn_Ver1 where Division ='RCD' AND PRODUCT_LINE ='BW'
+
+delete From utn_Ver1 where Division ='RCD' AND PRODUCT_LINE ='BW'
+
+
+--update UTN_MODEL_MASTER set Target_OTA_LT=12,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=3 where model='AO' and type='DPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=18,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=4 where model='AO' and type='LEPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=10,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=1 where model='AO' and type='RCD'
+--update UTN_MODEL_MASTER set Target_OTA_LT=12,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=2 where model='AO' and type='SEPSAC'
+
+
+
+--update UTN_MODEL_MASTER set Target_OTA_LT=12,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=3 where model='AO1' and type='DPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=23,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=4 where model='AO1' and type='LEPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=8,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=1 where model='AO1' and type='RCD'
+--update UTN_MODEL_MASTER set Target_OTA_LT=10,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=2 where model='AO1' and type='SEPSAC'
+
+
+--update UTN_MODEL_MASTER set Target_OTA_LT=70,LT_OTG=0,LT_OTP=8,LT_OTR=0,LT_OTC=3 where model='forecast' and type='DPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=70,LT_OTG=0,LT_OTP=8,LT_OTR=0,LT_OTC=4 where model='forecast' and type='LEPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=40,LT_OTG=0,LT_OTP=8,LT_OTR=0,LT_OTC=1 where model='forecast' and type='RCD'
+--update UTN_MODEL_MASTER set Target_OTA_LT=60,LT_OTG=0,LT_OTP=8,LT_OTR=0,LT_OTC=2 where model='forecast' and type='SEPSAC'
+
+
+--update UTN_MODEL_MASTER set Target_OTA_LT=12,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=3 where model='Subsidiaries' and type='DPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=23,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=4 where model='Subsidiaries' and type='LEPSAC'
+--update UTN_MODEL_MASTER set Target_OTA_LT=10,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=1 where model='Subsidiaries' and type='RCD'
+--update UTN_MODEL_MASTER set Target_OTA_LT=10,LT_OTG=0,LT_OTP=6,LT_OTR=0,LT_OTC=2 where model='Subsidiaries' and type='SEPSAC'
+
+end
+
+
+
+
+
+
+Completion time: 2025-11-19T12:42:41.9556110+05:30

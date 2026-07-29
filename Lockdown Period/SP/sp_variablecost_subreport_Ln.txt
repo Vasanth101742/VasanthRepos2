@@ -1,0 +1,55 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_variablecost_subreport_Ln
+--select * From variablecost_subreport_Ln
+CREATE proc [dbo].[sp_variablecost_subreport_Ln]
+as
+begin
+truncate table variablecost_subreport_Ln
+
+insert into variablecost_subreport_Ln 
+
+select distinct company,t$Leac ,
+case when t$dim2=' ' then '-' else t$Dim2 end as dim2_new,
+case when t$Dim3=' 'then '-'else t$Dim3 end as dim3_new,year ,prno ,
+case when t$Refr=' 'then '-'else t$Refr end as refr_new ,
+''as item_new,
+--case when t$item=' ' or t$item is null then '-' else t$item end as item_new,
+case when T$BPID=' 'then '-'else T$BPID end as suno_new,new_amth,Particulars ,functions   from 
+(select distinct *,T$FYER as year,T$FPRD as prno,
+case when COMPANY in (401)then 'Compressor Center'
+						when COMPANY in (450)then 'Air Centre'
+						--when t$COMPANY in (104)then 'MED'
+						when COMPANY in (470)then 'PVD'
+						when COMPANY in (490)then 'GSC'
+						when COMPANY in (411,412,413,414,415,416,417,418,419,420,421,422)then 'Branch'
+						when COMPANY in (440)then 'R&D '
+						when COMPANY in (400)then 'ME'
+						end as functions
+						From (
+select  *,row_number()over(partition by ltrim(rtrim(company)),ltrim(rtrim(t$leac)),ltrim(rtrim(t$dim2)),ltrim(rtrim(t$dim3)),
+ltrim(rtrim(t$Fyer)),ltrim(rtrim(t$dbcr)),ltrim(rtrim(t$fprd)),
+--ltrim(rtrim(Refr)) ,ltrim(rtrim(item)),
+ltrim(rtrim(T$AMTH$1)),ltrim(rtrim(T$BPID)) 
+order by ltrim(rtrim(company)),ltrim(rtrim(t$leac)),ltrim(rtrim(t$dim2)),ltrim(rtrim(t$dim3)),ltrim(rtrim(t$Fyer)),ltrim(rtrim(t$dbcr)),
+ltrim(rtrim(t$fprd)),
+--ltrim(rtrim(Refr)) ,ltrim(rtrim(item)),
+ltrim(rtrim(T$AMTH$1)),ltrim(rtrim(T$BPID)))as rownum
+ ,case when T$DBCR =1
+ then T$AMTH$1*1 else T$AMTH$1*-1 end new_amth,
+ case when t$leac between 'EA0107001   'and 'EA0107999   ' then 'Machining Charges'
+	 when t$leac between 'EC0301001   'and 'EC0399999   ' then 'Packing Charges' 
+	 when t$leac between 'EC0101001   'and 'EC0199999   ' then 'Consumption of Stores'
+	 end  as Particulars
+		  From TTFGLD106ALL 
+				where T$FYER =2017)a
+		where particulars is not null
+		and rownum =1)a
+	end
+
+
+	
+	
+
+
+Completion time: 2025-11-19T12:44:05.0715553+05:30

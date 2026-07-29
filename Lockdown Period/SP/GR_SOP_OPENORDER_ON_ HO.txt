@@ -1,0 +1,31 @@
+
+create proc [GR_SOP_OPENORDER_ON_ HO]
+
+as
+begin
+
+select case when compnr= '3110' then 'USA'
+when compnr='2000' then 'Brazil'
+when compnr='1100' then 'Rotair' end company,orno,pono,a.item,pric,qana,convert(date,ordt)'Odat',bpid,
+case when bpid in ('G00000009') then 'GSC' else 'HO' end 'Order Placeed'
+,(pric*qana)'Amount',Demand_Forecasting_Unit_DFU
+from ln_whinp100 a
+left join elgi_ln.dbo.SOP_TPL_MASTER_New  g1 on g1.Item=replace(a.item,' ','') and g1.Company= a.compnr
+where koor = 2  and bpid in ('G00000001','G00000009','PN0001000','33-00001')
+and compnr<>'2000'
+
+union all
+
+select case when compnr= '3110' then 'USA'
+when compnr='2000' then 'Brazil'
+when compnr='1100' then 'Rotair' end company,orno,pono,a.item,pric,qana,convert(date,ordt)'Odat',bpid,
+case when bpid in ('G00000009') then 'GSC' else 'HO' end 'Order Placeed'
+,(pric*qana)'Amount',Demand_Forecasting_Unit_DFU
+from ln_whinp100 a
+left join elgi_ln.dbo.SOP_TPL_MASTER_New  g1 on g1.Item=replace(a.item,' ','') and g1.Region= 'India'
+where koor = 2  and bpid in ('G00000001','G00000009','PN0001000','33-00001')
+and compnr='2000'
+
+
+end 
+

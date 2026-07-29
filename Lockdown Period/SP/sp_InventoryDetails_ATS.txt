@@ -1,0 +1,433 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_InventoryDetails_ATS
+
+CREATE proc sp_InventoryDetails_ATS
+as
+
+begin
+
+Truncate table InventoryDetails_ATS_Tmp1
+Truncate table InventoryDetails_ATS
+
+
+--Alter Table InventoryDetails_ATS_History add Ageing varchar(50)
+--Alter Table InventoryDetails_ATS_History add AgeingOrdr int
+
+--Alter Table InventoryDetails_ATS add Ageing varchar(50)
+--Alter Table InventoryDetails_ATS add AgeingOrdr int
+
+
+
+insert into InventoryDetails_ATS_Tmp1(COMPANY,CWAR,ITEM,ItemDescr,QSKT,Amnt4,Rnk1,
+CalYear,CalMonth,FinYear,FinMonth,Month_Name,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--,Ageing,AgeingOrdr --Awaiting for SR
+)
+select COMPANY,CWAR,ltrim(rtrim(ITEM)) ITEM,ItemDescr,
+sum(QSKT) QSKT,
+--sum(Amnt) Amnt,sum(Amnt2) Amnt2,sum(Amnt3) Amnt3,--FrtRate,MultiplyFactor,
+sum(Amnt4) Amnt4,
+ROW_NUMBER() over (partition by COMPANY,CWAR order by COMPANY,CWAR) as Rnk1,
+year(getdate()-1) as CalYear,month(getdate()-1) as CalMonth,null as FinYear,null as FinMonth,
+datename(mm,dateadd(mm,month(getdate()-1),-1)) as Month_Name,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--,Ageing,AgeingOrdr --Awaiting for SR
+from InventoryDetails where 
+--company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+company in ('600','612','616')
+and cwar not in ('621','AED')
+group by COMPANY,CWAR,ltrim(rtrim(ITEM)),ItemDescr,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--,Ageing,AgeingOrdr --Awaiting for SR
+
+--insert into InventoryDetails_ATS_Tmp1(COMPANY,CWAR,ITEM,ItemDescr,QSKT,Amnt4,Rnk1,
+--CalYear,CalMonth,FinYear,FinMonth,Month_Name,
+--CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--)
+--select COMPANY,CWAR,ltrim(rtrim(ITEM)) ITEM,ItemDescr,
+--sum(QSKT) QSKT,
+----sum(Amnt) Amnt,sum(Amnt2) Amnt2,sum(Amnt3) Amnt3,--FrtRate,MultiplyFactor,
+--sum(Amnt4) Amnt4,
+--ROW_NUMBER() over (partition by COMPANY,CWAR order by COMPANY,CWAR) as Rnk1,
+--year(getdate()-1) as CalYear,month(getdate()-1) as CalMonth,null as FinYear,null as FinMonth,
+--datename(mm,dateadd(mm,month(getdate()-1),-1)) as Month_Name,
+--CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--from InventoryDetails where 
+----company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+--company in ('640')
+--and cwar in ('691','651','664','698')
+--group by COMPANY,CWAR,ltrim(rtrim(ITEM)),ItemDescr,
+--CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+
+
+
+
+insert into InventoryDetails_ATS_Tmp1(COMPANY,CWAR,ITEM,ItemDescr,
+CalYear,CalMonth,FinYear,FinMonth,Month_Name,Sales_Amount)
+select company,warehouse,ltrim(rtrim(Item)) Item,Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname],sum(Sales_amount) Sales_amount 
+from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+and dpst not in ('90049')
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and ltrim(rtrim(Item))<>'FRT'
+group by company,warehouse,ltrim(rtrim(Item)),Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname]
+
+
+
+--Duplicating the below Sales data to show it under RM Category as per user requirement
+insert into InventoryDetails_ATS_Tmp1(INVType,Vertical,COMPANY,CWAR,ITEM,ItemDescr,
+CalYear,CalMonth,FinYear,FinMonth,Month_Name,Sales_Amount)
+select 'RM','RM',company,warehouse,ltrim(rtrim(Item)) Item,Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname],sum(Sales_amount) Sales_amount 
+from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and dpst not in ('90049')
+and ltrim(rtrim(Item))<>'FRT'
+and warehouse in ('657','661','664','694',
+'698' --Added based on SR:6008064715
+)
+group by company,warehouse,ltrim(rtrim(Item)),Item_desc,cal_year,cal_Month,Fin_year,Fin_month,[Monthname]
+
+
+
+
+--Duplicating the below Sales data to show it under WIP Category as per user requirement
+insert into InventoryDetails_ATS_Tmp1(INVType,Vertical,COMPANY,CWAR,ITEM,ItemDescr,
+CalYear,CalMonth,FinYear,FinMonth,Month_Name,Sales_Amount)
+select 'WIP','WIP',company,warehouse,ltrim(rtrim(Item)) Item,Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname],sum(Sales_amount) Sales_amount 
+from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and dpst not in ('90049')
+and ltrim(rtrim(Item))<>'FRT'
+and warehouse in ('657','661','664',
+'698' --Added based on SR:6008064715
+)
+group by company,warehouse,ltrim(rtrim(Item)),Item_desc,cal_year,cal_Month,Fin_year,Fin_month,[Monthname]
+
+
+
+ --Added based on SR:6008064715
+--Duplicating the below Sales data to show it under WIP Category as per user requirement
+insert into InventoryDetails_ATS_Tmp1(INVType,Vertical,COMPANY,CWAR,ITEM,ItemDescr,
+CalYear,CalMonth,FinYear,FinMonth,Month_Name,Sales_Amount)
+select 'FG','FG-MFG',company,warehouse,ltrim(rtrim(Item)) Item,Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname],sum(Sales_amount) Sales_amount 
+from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and dpst not in ('90049')
+and ltrim(rtrim(Item))<>'FRT'
+and warehouse in ('698')
+group by company,warehouse,ltrim(rtrim(Item)),Item_desc,cal_year,cal_Month,Fin_year,Fin_month,[Monthname]
+
+
+ --Added based on SR:6008064715
+--Duplicating the below Sales data to show it under WIP Category as per user requirement
+insert into InventoryDetails_ATS_Tmp1(INVType,Vertical,COMPANY,CWAR,ITEM,ItemDescr,
+CalYear,CalMonth,FinYear,FinMonth,Month_Name,Sales_Amount)
+select 'FG','FG-Traded',company,warehouse,ltrim(rtrim(Item)) Item,Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname],sum(Sales_amount) Sales_amount 
+from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and dpst not in ('90049')
+and ltrim(rtrim(Item))<>'FRT'
+and warehouse in ('691','697')
+group by company,warehouse,ltrim(rtrim(Item)),Item_desc,cal_year,cal_Month,Fin_year,Fin_month,[Monthname]
+
+
+-----Unit Price logic-------------------------------------------------------------
+
+update InventoryDetails_ATS_Tmp1 set UnitPrice=a.PRIC
+from (
+select a.Company,a.ITEM,a.PRIC,a.ENTR from 
+(select Company,item,PRIC,ENTR from TZZINV901600
+--where item='         Z12115'
+)a
+inner join
+(select Company,ITEM,max(ENTR) LatestEntrDate from TZZINV901600
+group by Company,ITEM)b
+on a.Company=b.Company
+and a.ITEM=b.ITEM
+and a.ENTR=b.LatestEntrDate
+)a
+where ltrim(rtrim(InventoryDetails_ATS_Tmp1.ITEM))=ltrim(rtrim(a.ITEM))
+and InventoryDetails_ATS_Tmp1.COMPANY<>'640'
+
+update InventoryDetails_ATS_Tmp1 set Amnt4=QSKT*UnitPrice
+where UnitPrice is not null
+
+
+---End: Unit Price logic-----------------------------------------------------------
+
+--select * from InventoryDetails_ATS_Tmp1 where UnitPrice is not null
+
+
+
+
+Insert into InventoryDetails_ATS(INVType,Vertical,COMPANY,CWAR,ITEM,ItemDescr,
+QSKT,UnitPrice,Amnt4,CalYear,CalMonth,FinYear,FinMonth,Month_Name,Sales_Amount,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--,Ageing,AgeingOrdr --Awaiting for SR
+)
+select INVType,Vertical,COMPANY,CWAR,ITEM,ItemDescr,
+sum(QSKT) QSKT,UnitPrice,sum(Amnt4) Amnt4,CalYear,CalMonth,FinYear,
+FinMonth,Month_Name,sum(Sales_Amount) Sales_Amount, 
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--,Ageing,AgeingOrdr --Awaiting for SR
+from InventoryDetails_ATS_Tmp1
+group by INVType,Vertical,COMPANY,CWAR,ITEM,ItemDescr,UnitPrice,CalYear,CalMonth,FinYear,FinMonth,Month_Name,
+CITM,CDSCA,ORDT,PDNO,PONO,QRDR,WQTY,WAMT,UPDT,MultiplyFactor
+--,Ageing,AgeingOrdr --Awaiting for SR
+
+
+--Manually Including the Inv Value of 1.71 Mn maintained in '6DS' inventory since it is not captured anywhere in the system.
+--upto 29-11-2020
+--Insert into InventoryDetails_ATS(INVType,Vertical,Amnt4,CalYear,CalMonth,Month_Name) values
+--('FG','Spares -Traded',1710000,year(getdate()-1),month(getdate()-1),datename(mm,dateadd(mm,month(getdate()-1),-1)))
+
+--Since 31-03-2021
+--Insert into InventoryDetails_ATS(INVType,Vertical,Amnt4,CalYear,CalMonth,Month_Name) values
+--('FG','Spares -Traded',670257,year(getdate()-1),month(getdate()-1),datename(mm,dateadd(mm,month(getdate()-1),-1)))
+
+----Since 07-09-2021
+--Insert into InventoryDetails_ATS(INVType,Vertical,Amnt4,CalYear,CalMonth,Month_Name) values
+--('FG','Spares -Traded',148495,year(getdate()-1),month(getdate()-1),datename(mm,dateadd(mm,month(getdate()-1),-1)))
+
+----Since 24-05-2023
+--Insert into InventoryDetails_ATS(INVType,Vertical,Amnt4,CalYear,CalMonth,Month_Name) values
+--('FG','Spares -Traded',94790,year(getdate()-1),month(getdate()-1),datename(mm,dateadd(mm,month(getdate()-1),-1)))
+
+--Since 12-12-2023
+--Insert into InventoryDetails_ATS(INVType,Vertical,Amnt4,CalYear,CalMonth,Month_Name) values
+--('FG','Spares -Traded',499508,year(getdate()-1),month(getdate()-1),datename(mm,dateadd(mm,month(getdate()-1),-1)))
+
+--Since 09-01-2024
+Insert into InventoryDetails_ATS(INVType,Vertical,Amnt4,CalYear,CalMonth,Month_Name) values
+('FG','Spares -Traded',751632,year(getdate()-1),month(getdate()-1),datename(mm,dateadd(mm,month(getdate()-1),-1)))
+
+
+update InventoryDetails_ATS set INVType=a.Group1,vertical=a.Group2
+from Inventory_Master_ATS a
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and ltrim(rtrim(InventoryDetails_ATS.CWAR))=ltrim(rtrim(a.WH))
+AND InventoryDetails_ATS.INVType IS NULL
+
+update InventoryDetails_ATS set INVType='WIP',vertical='WIP' where CITM is not null
+update InventoryDetails_ATS set Amnt4=WAMT,UnitPrice=null where CITM is not null
+update InventoryDetails_ATS set MultiplyFactor=1 where UnitPrice is not null
+update InventoryDetails_ATS set MultiplyFactor=1 where CITM is not null
+
+update InventoryDetails_ATS set INVType='RM' where company=640 and CWAR='691'
+update InventoryDetails_ATS set INVType='RM Pilot' where company=640 and CWAR='651'
+update InventoryDetails_ATS set INVType='FG' where company=640 and CWAR in ('664','698')
+
+
+update InventoryDetails_ATS set vertical=a.Group2
+from Inventory_Master_ATS a
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and ltrim(rtrim(InventoryDetails_ATS.CWAR))=ltrim(rtrim(a.WH))
+AND InventoryDetails_ATS.INVType='FG' and company=640 and CWAR in ('664','698')
+
+update InventoryDetails_ATS set Finyear=CalYear-1 where CalMonth<4
+update InventoryDetails_ATS set Finyear=CalYear where CalMonth>=4
+
+update InventoryDetails_ATS set FinMonth=CalMonth+9 where CalMonth<4
+update InventoryDetails_ATS set FinMonth=CalMonth-3 where CalMonth>=4
+
+
+--Alter table InventoryDetails_ATS add ProductGroup varchar(50)
+
+--update InventoryDetails_ATS set ProductGroup=a.Productgroup
+--from (select distinct ltrim(rtrim(itemcode)) as itemcode,Productgroup from ATS_Inv_ItemMaster_Temp)a
+--where ltrim(rtrim(InventoryDetails_ATS.ITEM))=a.itemcode
+
+
+--update ATS_temp11 set Productgroup=a.ProductGroup
+--from (select distinct ltrim(rtrim(itemcode)) as itemcode,Productgroup from ATS_Inv_ItemMaster_Temp)a
+--where ltrim(rtrim(ATS_temp11.ITEM))=a.itemcode
+
+--update ATS_temp11 set Productgroup=a.ProductGroup
+--from (select distinct CWAR,ltrim(rtrim(item)) as itemcode,prdgrp from ATS_tmp12)a
+--where ltrim(rtrim(ATS_temp11.ITEM))=a.itemcode
+--and ATS_temp11.CWAR=a.CWAR
+
+
+--update ATS_temp11 set ProductGroup='Spares'
+--where CWAR in ('649','659','661','672','A49','M49','M61','A61')
+
+
+--update InventoryDetails_ATS set ProductGroup=a.prdgrp
+--from (select distinct CWAR,ltrim(rtrim(item)) as itemcode,prdgrp from ATS_tmp12)a
+--where ltrim(rtrim(InventoryDetails_ATS.ITEM))=a.itemcode
+--and InventoryDetails_ATS.CWAR=a.CWAR
+
+
+--update InventoryDetails_ATS set ProductGroup=a.ProductGroup
+--from (select distinct CWAR,ltrim(rtrim(ItemCode)) as itemcode,ProductGroup from Inventory_Prdgrp_Master_ATS
+--)a
+--where ltrim(rtrim(InventoryDetails_ATS.ITEM))=a.itemcode
+--and InventoryDetails_ATS.CWAR=a.CWAR
+
+
+update InventoryDetails_ATS set ProductGroup=a.PROD
+from (select distinct WARH,ltrim(rtrim(ITEM)) as itemcode,PROD from TZZINV902600
+)a
+where ltrim(rtrim(InventoryDetails_ATS.ITEM))=a.itemcode
+and InventoryDetails_ATS.CWAR=a.WARH
+
+
+
+update InventoryDetails_ATS set InvTypeOrdr=1 where invtype= 'RM'
+update InventoryDetails_ATS set InvTypeOrdr=2 where invtype= 'WIP'
+update InventoryDetails_ATS set InvTypeOrdr=3 where invtype= 'FG'
+update InventoryDetails_ATS set InvTypeOrdr=4 where invtype is null
+
+update InventoryDetails_ATS set VerticalOrdr=1 where Vertical= 'FG-MFG'
+update InventoryDetails_ATS set VerticalOrdr=2 where Vertical= 'FG-Traded'
+update InventoryDetails_ATS set VerticalOrdr=3 where Vertical= 'Spares -MFG'
+update InventoryDetails_ATS set VerticalOrdr=4 where Vertical= 'Spares -Traded'
+
+
+delete from InventoryDetails_ATS where COMPANY='600' and CWAR in ('623','697')
+
+
+
+if exists ( select * from InventoryDetails_ATS_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1))
+begin
+delete from InventoryDetails_ATS_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+end
+
+Insert into InventoryDetails_ATS_History
+select * from InventoryDetails_ATS
+
+if exists (select * from InventoryDetails_ATS_History2 where month(Entrydate)<>month(getdate()-1))
+begin
+Truncate Table InventoryDetails_ATS_History2
+end
+
+
+if exists (select * from InventoryDetails_ATS_History2 where Entrydate=convert(date,getdate()-1))
+begin
+delete from InventoryDetails_ATS_History2 where Entrydate=convert(date,getdate()-1)
+end
+
+Insert into InventoryDetails_ATS_History2(InvType,Vertical,Productgroup,QSKT,Amnt4,
+Sales_Amount,CalYear,CalMonth,EntryDate,InvTypeOrdr,VerticalOrdr,ProductGroupOrdr)
+select InvType,Vertical,Productgroup,sum(QSKT) QSKT,sum(Amnt4) Amnt4,
+sum(Sales_Amount) Sales_Amount, CalYear,CalMonth,convert(date,getdate()-1),
+InvTypeOrdr,VerticalOrdr,ProductGroupOrdr from InventoryDetails_ATS_History
+where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+group by InvType,Vertical,Productgroup,CalYear,CalMonth,
+InvTypeOrdr,VerticalOrdr,ProductGroupOrdr
+
+--Similar logic to be developed for ATS
+--update Inventory_History set ActualDays=(Amnt4/Sales_Amount)*30
+--update Inventory_History set ActualDays=(Amnt4/((Sales_Amount/day(getdate()-1))*30))*30
+--where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+
+
+--Total value Calculation: it is done as seperate logic in order to eliminate the redundancy in the sales data available in 
+--the table InventoryDetails_ATS_History
+
+
+if exists ( select * from Inv_Total_ATS_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1))
+begin
+delete from Inv_Total_ATS_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+end
+
+
+--Step 1: Extract the Sales data as shown in the ATS Daily Performance Report
+Insert into Inv_Total_ATS_History
+--select * into Inv_Total_ATS from (
+select cal_year,cal_Month,Fin_year,Fin_month,[Monthname],null as Amnt4,sum(Sales_amount) Sales_amount from (
+select company,warehouse,ltrim(rtrim(Item)) Item,Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname],sum(Sales_amount) Sales_amount 
+from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+and dpst not in ('90049')
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and ltrim(rtrim(Item))<>'FRT'
+group by company,warehouse,ltrim(rtrim(Item)),Item_desc,
+cal_year,cal_Month,Fin_year,Fin_month,[Monthname]
+
+)a
+group by cal_year,cal_Month,Fin_year,Fin_month,[Monthname]
+--)a
+
+
+if not exists ( select * from Inv_Total_ATS_History where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1))
+begin
+
+Insert into Inv_Total_ATS_History(CalYear,CalMonth,FinYear,FinMonth,Monthname,Amnt4,Sales_Amount)
+select year(getdate()-1) as cal_year,month(getdate()-1) as cal_Month,
+case when month(getdate()-1) <4 then year(getdate()-1)-1 else year(getdate()-1) end as Fin_year,
+case when month(getdate()-1) <4 then month(getdate()-1) +9 else month(getdate()-1) -3 end as Fin_month,
+datename(mm,dateadd(mm,month(getdate()-1),-1)) as [Monthname],null as Amnt4,null as Sales_amount
+
+end
+
+
+
+
+--Step 2: Update the Closing Inventory for the month
+update Inv_Total_ATS_History set Amnt4=a.Amnt4
+from(
+select calyear,calMonth,sum(Amnt4) Amnt4 from InventoryDetails_ATS_History  
+where calyear=year(getdate()-1)
+and calMonth=month(getdate()-1)
+group by calyear,calMonth
+)a
+where Inv_Total_ATS_History.CalYear=a.CalYear
+and Inv_Total_ATS_History.CalMonth=a.CalMonth
+
+
+
+
+
+if exists (select * from Inv_Total_ATS_History2 where month(Entrydate)<>month(getdate()-1))
+begin
+Truncate Table Inv_Total_ATS_History2
+end
+
+
+if exists (select * from Inv_Total_ATS_History2 where Entrydate=convert(date,getdate()-1))
+begin
+delete from Inv_Total_ATS_History2 where Entrydate=convert(date,getdate()-1)
+end
+
+Insert into Inv_Total_ATS_History2(CalYear,CalMonth,FinYear,FinMonth,Monthname,Amnt4,Sales_Amount,EntryDate)
+--select * into Inv_Total_ATS_History2 from (
+select CalYear,CalMonth,FinYear,FinMonth,Monthname,Amnt4,Sales_Amount,
+convert(date,getdate()-1) as EntryDate from Inv_Total_ATS_History
+where CalYear=year(getdate()-1) and CalMonth=month(getdate()-1)
+--)a
+
+
+
+
+end
+
+
+--select * from Inv_Total_ATS_History
+select * from InventoryDetails_ATS_History
+where invtype='WIP'
+and sales_amount is not null
+and Finyear=2024 and FinMonth=8
+
+
+
+
+Completion time: 2025-11-19T11:26:14.3258174+05:30

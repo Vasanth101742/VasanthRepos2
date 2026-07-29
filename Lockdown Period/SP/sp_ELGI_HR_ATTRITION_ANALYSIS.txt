@@ -1,0 +1,454 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGI_HR_ATTRITION_ANALYSIS
+--select * from hr_attrition_analysis
+
+CREATE proc [dbo].[sp_ELGI_HR_ATTRITION_ANALYSIS] as
+
+begin
+
+Truncate table HR_Attrition_Analysis
+Truncate table ELGi_HR_Final_Data
+Truncate table ELGI_HR_Company
+
+
+insert into ELGi_HR_Final_Data 
+select GLOBAL,Emp_Name,OLD_BAAN_EMPCODE,EMP_CODE,ERANK,Designation,Org_Unit,Division_Name,Function_Name,Department,
+Band,Location,Emp_Status,Reason,Seperation_Date,Transfer_Date,
+Start_Date,Data_Load_Date,num,FinMonthNo,FinMonthName,FinYear,Fin_Year,company from 
+--vw_elgi_HR
+ELGI_HR
+
+update ELGi_HR_Final_Data set company=a.company
+from
+(select distinct company,Emp_Code,FinYear,FinMonthNo from ELGI_HR)a
+where ELGi_HR_Final_Data.EMP_CODE=a.Emp_Code
+and ELGi_HR_Final_Data.FinYear=a.FinYear
+and ELGi_HR_Final_Data.FinMonthNo=a.FinMonthNo
+
+delete from ELGi_HR_Final_Data where company=101 and finyear<2019
+delete from ELGi_HR_Final_Data where company=101 and finyear=2019  and FinMonthNo<7 
+--delete from ELGi_HR_Final_Data where company=101 and finyear<2019
+
+
+--select finyear,finmonthno,count(EMP_CODE) from ELGi_HR_Final_Data where company=101
+--group by finyear,finmonthno
+--order by finyear,finmonthno
+
+
+declare @FinYear int
+declare @FinMonthNo int
+declare @FinYearCnt int
+declare @FinMonthNoCnt int
+declare @ResignedCnt int
+declare @count1 int
+declare @count2 int
+declare @OpeningBalance int
+declare @JoinedCnt int
+declare @closingbalance int =0
+declare @Company int
+declare @CompanyCnt int
+declare @count3 int
+declare @CalYear int
+declare @CalMonth int
+
+
+set @FinYear=(select min(FinYear) from ELGi_HR_Final_Data)
+set @FinMonthNo=1
+set @FinYearCnt=(select count(distinct FinYear) from ELGi_HR_Final_Data)
+
+
+
+Insert into ELGI_HR_Company
+--select * into ELGI_HR_Company from(
+select company,row_number() over (order by company) as Rnk  from 
+(select distinct company from ELGi_HR_Final_Data)a
+--)b
+
+--delete from ELGI_HR_Company where company=101
+
+set @CompanyCnt= (select count(company) from ELGI_HR_Company)
+
+set @count3=1
+while (@count3<=@CompanyCnt)
+
+begin
+
+set @Company= (select company from ELGI_HR_Company where Rnk=@count3)
+
+
+set @count1=1
+while (@count1<=@FinYearCnt)
+
+begin
+
+
+set @FinMonthNo=1
+
+set @FinYear=(
+select finyear from 
+(select finyear ,row_number() over (order by finyear) finyearrank from
+(select distinct finyear from ELGi_HR_Final_Data --where company=@Company
+)a)b
+where finyearrank=@count1)
+
+set @FinMonthNoCnt=(select count(distinct FinMonthNo) from ELGi_HR_Final_Data where FinYear=@FinYear
+--and company=@Company
+)
+
+
+
+set @count2=1
+while(@count2<=@FinMonthNoCnt)
+
+begin
+
+set @CalYear=(select distinct year(Data_Load_Date) from ELGi_HR_Final_Data where FinYear=@FinYear and FinMonthNo=@FinMonthNo)
+set @CalMonth=(select distinct month(Data_Load_Date) from ELGi_HR_Final_Data where FinYear=@FinYear and FinMonthNo=@FinMonthNo)
+
+
+--Part 1
+
+if(((@FinMonthNo<=12 and @FinYear='2015') or (@FinMonthNo=1 and @FinYear='2016')) and @Company=100)   ---Attrition Logic for Manual Source data from HRD
+
+begin
+
+
+--calculating Joined Counts based on difference in two months data
+
+set @JoinedCnt=
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where Band<>'0'
+and company=@Company
+and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+
+except
+
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where Band<>'0'
+and company=@Company
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+)a
+)
+
+--calculating Resigned Counts based on difference in two months data
+
+set @ResignedCnt =
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and company=@Company
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+except
+
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and company=@Company
+and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+)a
+)
+
+set @OpeningBalance =@closingbalance
+
+end
+
+--End of Part 1
+
+
+
+----Part 2
+
+else  ---Attrition Logic for SAP Source data
+
+
+begin
+
+
+set @JoinedCnt=(select count(distinct emp_code) from ELGi_HR_Final_Data 
+where band<>'0'
+and company=@Company
+and month(Start_Date)=
+case when @FinMonthNo<10 then @FinMonthNo+3 else @FinMonthNo-9  end 
+and year(Start_Date)=
+case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+)
+
+
+--set @ResignedCnt =(select count(distinct emp_code) from ELGi_HR_Final_Data 
+--where band<>'0'
+--and company=@Company
+--and FinYear=@FinYear
+--and FinMonthNo=@FinMonthNo
+--and month(Seperation_Date)=
+--case when @FinMonthNo<10 then @FinMonthNo+3 else @FinMonthNo-9  end 
+--and year(Seperation_Date)=
+--case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+--)
+
+
+----calculating Resigned Counts based on difference in two months data for 101 company alone
+
+--set @ResignedCnt =
+--(
+--select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+--(
+--select distinct Emp_Code from ELGi_HR_Final_Data 
+--where band <>'0'
+--and company='101'
+----and company=@Company
+--and FinMonthNo=@FinMonthNo 
+--and FinYear=@FinYear
+
+--except
+
+--select distinct Emp_Code from ELGi_HR_Final_Data 
+--where band <>'0'
+--and company='101'
+----and company=@Company
+--and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+--and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+--and Data_Load_Date<=(select max(Data_Load_Date) from ELGi_HR_Final_Data)
+--)a
+--)
+
+
+set @ResignedCnt =
+(
+select count(Seperations) from (
+-------------Seperations----------
+--Employees with valid Seperation Date
+select * ,'' as additions,num as Seperations,'' as Transfers from 
+--vw_elgi_hr 
+ELGI_HR where
+month(Seperation_Date)=@CalMonth
+and year(Seperation_Date)=@CalYear
+and month(Data_Load_Date)=@CalMonth
+and year(Data_Load_Date)=@CalYear
+and Emp_Status1<>'ACTIVE'
+and Company=@Company
+and Band<>'0'
+
+union
+
+----Employees not in current month but available in last month
+select * ,'' as additions,num as Seperations,'' as Transfers from 
+ELGI_HR
+where 
+EMP_CODE in (
+select distinct EMP_CODE 
+from elgi_hr
+where
+month(Data_Load_Date)=case when @CalMonth-1=0 then 12 else @CalMonth-1 end
+and year(Data_Load_Date)=case when @CalMonth-1=0 then @CalYear-1  else @CalYear end
+and company=@Company
+and Band<>'0'
+
+except
+select distinct EMP_CODE from 
+elgi_hr
+where 
+month(Data_Load_Date)=@CalMonth
+and year(Data_Load_Date)=@CalYear
+and company=@Company
+and Band<>'0'
+)
+and 
+month(Data_Load_Date)=case when @CalMonth-1=0 then 12 else @CalMonth-1 end
+and year(Data_Load_Date)=case when @CalMonth-1=0 then @CalYear-1  else @CalYear end
+and Seperation_Date= '1900-01-01 00:00:00.000'
+and company=@Company
+
+
+union
+--Employees resigned on last day of last month
+select * ,'' as additions,num as Seperations,'' as Transfers from 
+--vw_elgi_hr 
+ELGI_HR where 
+month(Data_Load_Date)=@CalMonth
+and year(Data_Load_Date)=@CalYear
+and Company=@Company
+and Seperation_Date=
+(select distinct convert(date,DATEADD(s,-1,DATEADD(mm, DATEDIFF(m,0,Data_Load_Date),0))) from ELGI_HR
+where month(Data_Load_Date)=@CalMonth
+and year(Data_Load_Date)=@CalYear
+and Company=@Company
+)
+and Band<>'0'
+
+union
+--Employees resigned on last day of current month
+select * ,'' as additions,num as Seperations,'' as Transfers from 
+--vw_elgi_hr 
+ELGI_HR where 
+month(Data_Load_Date)=@CalMonth
+and year(Data_Load_Date)=@CalYear
+and Company=@Company
+and Seperation_Date=dateadd(d,-1,dateadd(m,1,(convert(varchar,@CalYear)+'-'+RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2)+'-01')))
+and emp_code between 800000 and 899999
+and Band<>'0'
+
+union  --New Logic 
+--EMPLOYEE RESIGNATION DATE IS IN PREVIOUS MONTH OR BEFORE PREVIOUS MONTH, BUT RESIGNATION DATE IS UPDATED 
+--ONLY IN THE CURRENT MONTH SAP FILE, HOWEVER HEADCOUNT OF PAST MONTH DATA SHOWN IN HR DASHBOARD SHOULD NOT 
+--BE ALTERED INSTEAD INCLUDE THEM IN THE ADDITIONS AND SEPERATIONS LIST ONLY
+
+select * ,'' as additions,num as Seperations,'' as Transfers from ELGI_HR A
+where concat(month(Seperation_Date),year(Seperation_Date)) 
+=concat(case when @CalMonth-1=0 then 12 else @CalMonth-1 END ,case when @CalMonth-1=0 then @CalYear-1  else @CalYear END)
+and concat(month(Data_Load_Date),year(Data_Load_Date))=concat(@CalMonth,@CalYear)
+and emp_code in (
+select emp_code from ELGI_HR  
+where Seperation_Date ='1900-01-01'
+and Company=@Company
+and concat(month(Data_Load_Date),year(Data_Load_Date))
+=concat(case when @CalMonth-1=0 then 12 else @CalMonth-1 END ,case when @CalMonth-1=0 then @CalYear-1  else @CalYear END)
+and EMP_CODE=a.EMP_CODE)
+and Company=@Company
+and Band<>'0'
+-------End of Seperations----------
+)a
+)
+
+
+end
+
+--End of Part 2
+
+
+--Part 3
+
+if(@FinMonthNo=1 and @FinYear='2015' and @Company=100)  ---Attrition Logic for Manual Source data from HRD
+
+begin
+
+set @JoinedCnt=0
+
+set @ResignedCnt =
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and company=@Company
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+except
+
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and company=@Company
+and FinMonthNo=
+case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=
+case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+)a
+)
+
+
+set   @OpeningBalance= 
+(select sum(num) from ELGi_HR_Final_Data 
+where band<>'0'
+and company=@Company
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+group by finyear,FinMonthNo,FinMonthName
+)
+
+
+end
+
+
+if (@FinMonthNo=7 and @FinYear='2019' and @Company=101)
+
+begin
+
+set   @OpeningBalance= 
+(select sum(num) from ELGi_HR_Final_Data 
+where band<>'0'
+and company=@Company
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+group by finyear,FinMonthNo,FinMonthName
+)
+
+--select @OpeningBalance+' is the opening balance'
+
+end
+
+
+
+--End of Part 3
+
+
+
+set @closingbalance =@OpeningBalance+@JoinedCnt-@ResignedCnt
+
+
+
+insert into HR_Attrition_Analysis
+select FinYear,FinMonthNo,FinMonthName,
+@OpeningBalance,
+@JoinedCnt as Joined,
+@ResignedCnt as Resigned,
+@closingbalance as ClosingBalance,
+@Company as company
+from ELGi_HR_Final_Data 
+where band<>'0'
+and company=@Company
+and FinMonthNo=@FinMonthNo
+--case when @FinMonthNo<10 then @FinMonthNo-3 else @FinMonthNo-9  end 
+and FinYear=@FinYear
+--case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+group by finyear,FinMonthNo,FinMonthName,company
+
+
+set   @OpeningBalance= @closingbalance
+
+set @FinMonthNo=@FinMonthNo+1
+set @count2=@count2+1
+
+
+end --End of Month loop
+
+
+set @count1=@count1+1
+
+end --End of Year loop
+
+set @count3=@count3+1
+
+
+end  --End of company loop
+
+
+--delete from HR_Attrition_Analysis where company=101 and FinYear<2019
+--delete from HR_Attrition_Analysis where company=101 and FinYear=2019 and FinMonthNo=1
+
+end
+
+
+
+
+--select * from ELGi_HR_Final_Data
+select * from HR_Attrition_Analysis where company=101
+--select * from ELGI_HR_Company
+
+
+
+
+
+
+
+Completion time: 2025-11-19T09:45:23.3131406+05:30

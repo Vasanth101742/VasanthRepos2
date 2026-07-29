@@ -1,0 +1,91 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+CREATE proc [dbo].[sp_GR_XML_Credit]
+as
+begin 
+
+create table #TestTable
+(XMLFILE  xml)
+
+insert into #TestTable
+
+select '<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ProcessSalesOrder releaseID="2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schema.infor.com/InforOAGIS/2 ../InforOAGIS/BODs/Developer/ProcessSalesOrder.xsd" xmlns="http://schema.infor.com/InforOAGIS/2">
+	<ApplicationArea>
+		<Sender>
+			<LogicalID>infor.engine.monitor</LogicalID>
+			<ComponentID>BEM</ComponentID>
+			<ConfirmationCode>OnError</ConfirmationCode>
+		</Sender>
+		<CreationDateTime>2023-02-01T07:15:10.935Z</CreationDateTime>
+	</ApplicationArea>
+	<DataArea>
+		<Process acknowledgeCode="Always">
+			<TenantID>ELGI2_TRN</TenantID>
+			<AccountingEntityID>401</AccountingEntityID>
+			<LocationID>D_90091</LocationID>
+			<ActionCriteria>
+				<ActionExpression actionCode="Change"/>
+			</ActionCriteria>
+		</Process>
+		<SalesOrder>
+			<SalesOrderHeader>
+				<DocumentID>
+					<ID accountingEntity="401" location="D_90091">501001777</ID>
+				</DocumentID>
+				<DocumentDateTime>2023-02-01T07:14:20Z</DocumentDateTime>
+				<UserArea>
+					<Property>
+						<NameValue name="elgi.aoarea" type="StringType">BANGALORE</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.comments"> test3</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.comments">test1</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.Approver1_Name" type="StringType">SURESH S</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.WFStatus">4</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.aoregion" type="StringType">South</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.Approver1" type="StringType">102375</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.completionUser">102375</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.BSOPosition">1</NameValue>
+					</Property>
+					<Property>
+						<NameValue name="elgi.Approver1_Mail" type="StringType">suresh.s@elgi.com</NameValue>
+					</Property>
+				</UserArea>
+				<Classification>
+					<Codes>
+						<Code listID="Departments" sequence="3">90091</Code>
+					</Codes>
+				</Classification>
+			</SalesOrderHeader>
+		</SalesOrder>
+	</DataArea>
+</ProcessSalesOrder>'
+
+
+
+
+select b.G.value('(/ProcessSalesOrder/ApplicationArea/Sender/LocationID)[1]','nvarchar(100)') 'Date' from #TestTable a
+cross apply  a.XMLFILE.nodes('/XMLfile/Report') b(G)
+
+end
+
+
+Completion time: 2025-11-19T10:37:29.9631372+05:30

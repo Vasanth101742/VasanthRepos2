@@ -1,0 +1,84 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Catg_MatBudget2
+CREATE proc sp_Catg_MatBudget2 as
+
+begin
+
+Declare @Input varchar(max)
+Declare @rownum int
+Declare @TotalCount int
+
+Truncate table CatgBudget_Rmks
+Truncate table Catg_MatBudget2
+
+Insert into CatgBudget_Rmks
+--select * into CatgBudget_Rmks from (
+select RMK1,ROW_NUMBER() over (order by RMK1) as rownum from
+(select distinct RMK1 from tzzinv609all where ltrim(rtrim(RMK1))<>'')a
+--)a
+
+
+
+
+set @rownum =1
+set @TotalCount=(select count(*) from CatgBudget_Rmks)
+
+while (@rownum<=@TotalCount)
+begin
+
+set @Input =(select RMK1 from CatgBudget_Rmks where rownum=@rownum)
+
+Insert into Catg_MatBudget2 
+--select * into Catg_MatBudget2 from (
+select @Input as RMK1,* From(
+SELECT splitdata,'col'+cast(ROW_NUMBER() over (order by splitdata) as varchar) as ColumnsToSplit
+FROM ufn_SplitString(@Input,'|') 
+)a
+pivot
+(
+max(splitdata) for ColumnsToSplit in (
+col1,col2,col3,col4,col5,col6,col7,col8,col9,col10,
+col11,col12,col13,col14,col15,col16,col17,col18,col19,col20,
+col21,col22,col23,col24,col25) 
+)as k
+--)a
+set @rownum =@rownum+1
+
+
+end
+
+
+
+update Catg_MatBudget2 set COMP=replace(COMP,'COMP:','')
+update Catg_MatBudget2 set CON=replace(CON,'CON:','')
+update Catg_MatBudget2 set IMP=replace(IMP,'IMP:','')
+update Catg_MatBudget2 set PriYr=replace(PriYr,'PriYr:','')
+update Catg_MatBudget2 set S1C=replace(S1C,'S1C:','')
+update Catg_MatBudget2 set S1Pr=replace(S1Pr,'S1Pr:','')
+update Catg_MatBudget2 set S1sh=replace(S1sh,'S1sh:','')
+update Catg_MatBudget2 set S2C=replace(S2C,'S2C:','')
+update Catg_MatBudget2 set S2Pr=replace(S2Pr,'S2Pr:','')
+update Catg_MatBudget2 set S2sh=replace(S2sh,'S2sh:','')
+update Catg_MatBudget2 set S3C=replace(S3C,'S3C:','')
+update Catg_MatBudget2 set S3Pr=replace(S3Pr,'S3Pr:','')
+update Catg_MatBudget2 set S3sh=replace(S3sh,'S3sh:','')
+update Catg_MatBudget2 set S4C=replace(S4C,'S4C:','')
+update Catg_MatBudget2 set S4Pr=replace(S4Pr,'S4Pr:','')
+update Catg_MatBudget2 set S4sh=replace(S4sh,'S4sh:','')
+update Catg_MatBudget2 set S5C=replace(S5C,'S5C:','')
+update Catg_MatBudget2 set S5Pr=replace(S5Pr,'S5Pr:','')
+update Catg_MatBudget2 set S5sh=replace(S5sh,'S5sh:','')
+
+
+end
+
+select * from Catg_MatBudget2 a
+--where a.REMK1='COMP:400|PriYr:1516|IMP:N|CON:N|S1C:SU1H00234|S1Pr:543|S1sh:100|S2C:|S2Pr:0|S2sh:0|S3C:|S3Pr:0|--S3sh:0|S4C:|S4Pr:0|S4sh:0|S5C:|S5Pr:0|S5sh:0'
+
+----where a.REMK1='COMP:400|PriYr:1516|IMP:N|CON:N|S1C:SU1H00234|S1Pr:543|S1sh:100|S2C:|S2Pr:0|S2sh:0|S3C:|S3Pr:0|S3sh:0|S4C:|S4Pr:0|S4sh:0|S5C:|S5Pr:0|S5sh:0'
+
+
+
+
+Completion time: 2025-11-19T09:08:42.7377069+05:30

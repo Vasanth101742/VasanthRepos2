@@ -1,0 +1,718 @@
+
+--exec sp_ACR_As_of_Date_Details
+
+CREATE proc [dbo].[sp_ACR_As_of_Date_Details] as
+
+Begin
+
+Declare @CurFinYear  varchar(10)=case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1) end
+Declare @CurFinMonth varchar(10)=case when month(getdate()-1)<4 then RIGHT('00'+CAST(month(getdate()-1)+9 AS VARCHAR(2)),2)else RIGHT('00'+CAST(month(getdate()-1)-3 AS VARCHAR(2)),2) end
+
+
+
+Truncate table ACR_As_of_Date_Details
+Truncate table ACR_Status
+Truncate table ACR_As_of_Date_Details_log
+
+--create table ACR_As_of_Date_Details_log
+--(
+--Remarks varchar(50),
+--StartTime datetime,
+--EndTime datetime
+--)
+
+
+Insert into ACR_As_of_Date_Details_log values('ACR_Insert', getdate(),null)
+
+insert into ACR_As_of_Date_Details(Company,CustCode,InvDate,TranType,InvNo,InvLine,InvSchedule,
+InitialDocTyp,InitialDocNo,Currency,CurRate,InvAmti,InvAmth,Period,trec)
+
+select  distinct Company,t_itbp,t_docd,t_ttyp,t_ninv,t_line,t_schn,t_tdoc,t_docn,t_ccur,t_rate_1,t_amti,
+t_amth_1+t_padh_1+t_dc1h_1+t_cdam_1,
+concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2)) as Period,
+t_trec
+from TTFACR200ALL a
+where a.t_docn=0
+--and a.t_amnt>0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+
+
+insert into ACR_As_of_Date_Details(Company,CustCode,DueDate,TranType,InvNo,InvLine,InvSchedule,
+InitialDocTyp,InitialDocNo,Currency,CurRate,DueAmti,DueAmth,Period,trec)
+
+select  distinct Company,t_itbp,t_dued,t_ttyp,t_ninv,t_line,t_schn,t_tdoc,t_docn,t_ccur,t_rate_1,t_amti,
+t_amth_1+t_padh_1+t_dc1h_1+t_cdam_1,
+concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2)) as Period,t_trec
+from TTFACR200ALL a
+where a.t_docn=0
+
+
+insert into ACR_As_of_Date_Details(Company,CustCode,TranType,InvNo,
+RecvDate,Recvline,RecvSchedule,RecvDocType,RecvDocNo,Currency,CurRate,RecvAmti,RecvAmth,Period,trec)
+
+select Company,t_itbp,t_ttyp,t_ninv,t_docd,t_line,t_schn,t_tdoc,t_docn,t_ccur,t_rate_1,t_amti,
+t_amth_1+t_padh_1+t_dc1h_1+t_cdam_1,
+concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2)) as Period,t_trec
+from TTFACR200ALL
+where t_docn <>0
+--and t_schn=0  
+--and t_amnt<0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+--group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn,t_year,t_prod
+
+
+
+---------------------------------------
+insert into ACR_As_of_Date_Details(Company,CustCode,InvDate,TranType,InvNo,InvLine,InvSchedule,
+InitialDocTyp,InitialDocNo,Currency,CurRate,InvAmti,InvAmth,Period,trec)
+
+select  distinct COMPANY,ITBP,DOCD,TTYP,NINV,LINE,schn,tdoc,docn,ccur,rate$1,amti,
+AMTH$1+PADH$1+DC1H$1+CDAM$1,
+concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2)) as Period,
+trec
+from TTFACR200551552 a
+where a.docn=0
+--and a.t_amnt>0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+
+
+insert into ACR_As_of_Date_Details(Company,CustCode,DueDate,TranType,InvNo,InvLine,InvSchedule,
+InitialDocTyp,InitialDocNo,Currency,CurRate,DueAmti,DueAmth,Period,trec)
+
+select  distinct Company,itbp,dued,ttyp,ninv,line,schn,tdoc,docn,ccur,rate$1,amti,
+amth$1+padh$1+dc1h$1+cdam$1,
+concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2)) as Period,trec
+from TTFACR200551552 a
+where a.docn=0
+
+insert into ACR_As_of_Date_Details(Company,CustCode,TranType,InvNo,
+RecvDate,Recvline,RecvSchedule,RecvDocType,RecvDocNo,Currency,CurRate,RecvAmti,RecvAmth,Period,trec)
+
+select Company,itbp,ttyp,ninv,docd,line,schn,tdoc,docn,ccur,rate$1,amti,
+amth$1+padh$1+dc1h$1+cdam$1,
+concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2)) as Period,trec
+from TTFACR200551552
+where docn <>0
+--and t_schn=0  
+--and t_amnt<0
+--and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+--group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn,t_year,t_prod
+
+-----------------------------------------
+
+Truncate table ACR_USD_Conversion
+
+insert into ACR_USD_Conversion(InvDate,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk)
+select InvDate,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk from (
+select *,datediff(dd,STDT,InvDate) as DaysDiff,
+row_number() over (partition by InvDate,currency order by datediff(dd,STDT,InvDate)) as Rnk 
+from (
+select distinct t_docd as InvDate,t_ccur as Currency from TTFACR200ALL 
+union
+select distinct convert(date,docd) as InvDate,ccur as Currency from TTFACR200551552 
+--where currency='MYR'
+)a
+left outer join 
+(select BCUR,CCUR,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+where RTYP='SLS' 
+and ccur='USD'
+group by BCUR,CCUR,convert(date,STDT))b
+on a.currency=b.bcur
+and a.InvDate>=b.STDT
+)a
+where Rnk=1
+and RATE<>1
+order by InvDate
+
+
+--Alter table ACR_As_of_Date_Details add InvAmt_USD float
+--Alter table ACR_As_of_Date_Details add DueAmt_USD float
+--Alter table ACR_As_of_Date_Details add RecvAmt_USD float
+--Alter table ACR_As_of_Date_Details add InvBal_USD float
+--Alter table ACR_As_of_Date_Details add DueBal_USD float
+
+--------------------------------------------
+
+--Delete Future Payments
+delete from ACR_As_of_Date_Details where Period>concat(@CurFinYear,@CurFinMonth)
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='ACR_Insert'
+Insert into ACR_As_of_Date_Details_log values('Dates_Update', getdate(),null)
+
+
+
+update ACR_As_of_Date_Details set EntryDate=a.Date1
+from (select distinct concat(company,CustCode,TranType,InvNo,isnull(RecvDocType,'0'),isnull(RecvDocNo,0)) inv ,coalesce(InvDate,RecvDate) as Date1 
+from ACR_As_of_Date_Details
+)a
+where concat(company,CustCode,TranType,InvNo,isnull(RecvDocType,'0'),isnull(RecvDocNo,0))=inv
+and DueDate is null
+
+
+
+
+update ACR_As_of_Date_Details set EntryDate=a.Date1
+from (select distinct concat(company,CustCode,TranType,InvNo,isnull(RecvDocType,'0'),isnull(RecvDocNo,0)) inv ,DueDate as Date1 
+from ACR_As_of_Date_Details
+)a
+where concat(company,CustCode,TranType,InvNo,isnull(RecvDocType,'0'),isnull(RecvDocNo,0))=inv
+and EntryDate is null
+
+
+
+update ACR_As_of_Date_Details set InvDate=a.InvDate
+from (select distinct concat(company,CustCode,TranType,InvNo) inv,InvDate
+from ACR_As_of_Date_Details where InvDate is not null
+)a
+where concat(company,CustCode,TranType,InvNo)=inv
+and ACR_As_of_Date_Details.InvDate is null
+
+
+
+update ACR_As_of_Date_Details set custname=a.custname1
+from vw_Business_Partner a
+where ltrim(rtrim(ACR_As_of_Date_Details.custcode))=ltrim(rtrim(a.custcode))
+and ACR_As_of_Date_Details.company not in ('551','552','553','951')
+
+
+update ACR_As_of_Date_Details set custname=a.custname1
+from vw_Business_Partner_551 a
+where ltrim(rtrim(ACR_As_of_Date_Details.custcode))=ltrim(rtrim(a.custcode))
+and ACR_As_of_Date_Details.company in ('551')
+
+update ACR_As_of_Date_Details set custname=a.custname1
+from vw_Business_Partner_552 a
+where ltrim(rtrim(ACR_As_of_Date_Details.custcode))=ltrim(rtrim(a.custcode))
+and ACR_As_of_Date_Details.company in ('552')
+
+update ACR_As_of_Date_Details set custname=a.custname1
+from vw_Business_Partner_553 a
+where ltrim(rtrim(ACR_As_of_Date_Details.custcode))=ltrim(rtrim(a.custcode))
+and ACR_As_of_Date_Details.company in ('553')
+
+update ACR_As_of_Date_Details set custname=a.custname1
+from vw_Business_Partner_IAS a
+where ltrim(rtrim(ACR_As_of_Date_Details.custcode))=ltrim(rtrim(a.custcode))
+and ACR_As_of_Date_Details.company in ('951')
+
+
+
+update ACR_As_of_Date_Details set InvBali=isnull(InvAmti,0)+isnull(RecvAmti,0)
+update ACR_As_of_Date_Details set InvBalh=isnull(InvAmth,0)+isnull(RecvAmth,0)
+update ACR_As_of_Date_Details set DueBali=isnull(DueAmti,0)+isnull(RecvAmti,0)
+update ACR_As_of_Date_Details set DueBalh=isnull(DueAmth,0)+isnull(RecvAmth,0)
+
+--Method 1: Finyear calculation from the Period data from LN
+--update ACR_As_of_Date_Details set FinYear=substring(Period,1,4)
+--update ACR_As_of_Date_Details set FinMonth=substring(Period,5,2)
+--update ACR_As_of_Date_Details set CalMonth=FinMonth+3 where FinMonth<=9
+--update ACR_As_of_Date_Details set CalMonth=FinMonth-9 where FinMonth>9
+--update ACR_As_of_Date_Details set CalYear=FinYear where FinMonth<=9
+--update ACR_As_of_Date_Details set CalYear=FinYear+1 where FinMonth>9
+
+
+--Method2: Finyear Calculation from the EntryDate Column Derived.
+update ACR_As_of_Date_Details set CalMonth=month(EntryDate)
+update ACR_As_of_Date_Details set CalYear=year(EntryDate)
+update ACR_As_of_Date_Details set FinMonth=CalMonth+9 where CalMonth<4
+update ACR_As_of_Date_Details set FinMonth=CalMonth-3 where CalMonth>=4
+update ACR_As_of_Date_Details set FinYear=CalYear-1 where CalMonth<4
+update ACR_As_of_Date_Details set FinYear=CalYear where CalMonth>=4
+
+
+
+update ACR_As_of_Date_Details set Month_Name=substring(datename(mm,dateadd(mm,CalMonth,-1)),1,3)+
+'-'+substring(convert(varchar,CalYear),3,2)
+update ACR_As_of_Date_Details set FiscalYear=convert(varchar,FinYear)+'-'+substring(convert(varchar,FinYear+1),3,2)
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='Dates_Update'
+Insert into ACR_As_of_Date_Details_log values('Deletion', getdate(),null)
+
+
+-----------Data Removal----------
+--Removing FOC
+--Commented on 5 July 2018
+--delete from ACR_As_of_Date_Details where company =401 and ltrim(rtrim(trantyp))  in ('251','351','451','551','252','352','452','552')
+--delete from ACR_As_of_Date_Details where company =490 and ltrim(rtrim(trantyp))  in ('256','356','456','556')
+
+--delete from ACR_As_of_Date_Details where concat(Company,TranType,InvNo) not in
+--(select distinct concat(Company,Trantyp,InvNo) colA from ACR_Debtors_Details)
+
+delete from ACR_As_of_Date_Details where invdate<='1950-01-01'
+
+
+delete from ACR_As_of_Date_Details
+where concat(Company,TranType,InvNo,CustCode) in
+(select distinct concat(company,trantype,Invoice,custcode) from Elgi_Sales_Details
+where company = 490 and SaleOrderType in ('226','236','246','270','284','326','332','346','384','516','544','526','546'))
+
+delete from ACR_As_of_Date_Details
+where concat(Company,TranType,InvNo,CustCode) in
+(select distinct concat(company,trantype,Invoice,custcode) from Elgi_Sales_Details
+where company = 401 and saleordertype in ('223','240','244','246','225','252','344','523','RGS','516','526','544','546'))
+
+delete from ACR_As_of_Date_Details
+where concat(Company,TranType,InvNo,CustCode) in
+(select distinct concat(company,trantype,Invoice,custcode) from Elgi_Sales_Details
+where company = 440 and saleordertype in ('225','244','344'))
+
+delete from ACR_As_of_Date_Details
+where concat(Company,TranType,InvNo,CustCode) in
+(select distinct concat(company,trantype,Invoice,custcode) from Elgi_Sales_Details
+where company = 450 and saleordertype in ('A14','244'))
+
+--union
+--select * from LN_Sales_Details_ver2 where
+--company = 465 and saleordertype in ('212','214','715')  --Commented As per request of RajaMohan, Accounts 
+
+delete from ACR_As_of_Date_Details
+where concat(Company,TranType,InvNo,CustCode) in
+(select distinct concat(company,trantype,Invoice,custcode) from Elgi_Sales_Details
+where company = 470 and saleordertype in ('P13'))
+
+
+
+--Removing Trial
+delete from ACR_As_of_Date_Details where company like '4%' and  ltrim(rtrim(TranType))  in ('2C1','2C2','2C3','2C4','2T1','2T2','22A','32A')
+delete from ACR_As_of_Date_Details where company like '4%' and  ltrim(rtrim(TranType))  in ('3C1','3C2','3C3','3C4','3T1','3T2','4T1')
+
+
+--Removing FOC for GULF
+delete from ACR_As_of_Date_Details where company=500 and TranType in ('7A1','751')
+
+--Removing BTA Customers
+
+delete from ACR_As_of_Date_Details where company like '4%' 
+and ltrim(rtrim(CustCode))  in 
+(select distinct ltrim(rtrim(CustCode)) from vw_ELGi_BTA_Customers)
+--('CU1E00001','CU1E00002','CU1E00003','CU1E00004','CU1E00005','CU1E00006','CU1E00008','CU1E00009','CU1E00010',
+--'CU1E00011','CU1E00012','CU1E00014','CU1E00015','CU1E00026','CU1E00028','CU1E00144','CU1E00203','CU1E00263',
+--'CU1E00371','CU1E00396','CU1E00424','CU1E00477','CU1E00508','CU1E00629','CU1E00676','CU1E00780','CU1E00791',
+--'CU1E00798','CU1E00814','CU1E00885','CU1E00887','CU1E00893','CU1E00914','CU1E00926','CU1E00992','CU1E99998',
+--'CU1E99999','CU1DUMMY1')
+
+--Removing Dealer Cash Discount Payment for ATS Companies
+delete from ACR_As_of_Date_Details where company like '6%' and TranType='CBC'
+
+---End of Data Removal-----------
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='Deletion'
+Insert into ACR_As_of_Date_Details_log values('ACR_Status', getdate(),null)
+
+
+--Truncate table ACR_Status
+Insert into ACR_Status
+--select * into ACR_Status from (
+select * ,
+case 
+when LatestPaidDate is not null and isnull(InvAmth,0)+isnull(RecvAmth,0) between -1 and 1 then 'FullyReceived'
+when LatestPaidDate is not null and isnull(InvAmth,0)+isnull(RecvAmth,0) not between -1 and 1 then 'PartialReceived'
+when LatestPaidDate is null then 'NotYetReceived'
+end as ReceivedStatus,
+case when LatestPaidDate is not null and LatestPaidDate<DueDate then 'WithinDue'
+when LatestPaidDate is null and DueDate>getdate()-1 then 'WithinDue'
+else 'OverDue' end as DueStatus
+from (
+select Company,TranType,InvNo,
+min(case when invamth<>0 then EntryDate else null end) as InvDate,
+sum(InvAmth) InvAmth,
+min(case when Dueamth<>0 then EntryDate else null end) as DueDate,
+sum(DueAmth) DueAmth,
+sum(RecvAmth) RecvAmth,
+max(case when recvamth<>0 then EntryDate else null end) as LatestPaidDate,
+sum(InvBalh) InvBalh,
+sum(DueBalh) DueBalh
+from ACR_As_of_Date_Details
+--where --InvAmth<>0 and 
+--Company=401	and TranType='211' and InvNo=17012611 	
+group by  Company,TranType,InvNo
+)a
+--)b
+
+
+delete from ACR_Status where InvAmth is null and DueAmth is null and RecvAmth is not null
+
+update ACR_As_of_Date_Details set ReceivedStatus=a.ReceivedStatus,DueStatus=a.DueStatus
+from ACR_Status a
+where ACR_As_of_Date_Details.Company=a.company
+and ACR_As_of_Date_Details.TranType=a.TranType
+and ACR_As_of_Date_Details.InvNo=a.InvNo
+
+
+delete from ACR_As_of_Date_Details where ReceivedStatus is null and DueStatus is null
+
+
+--Alter table ACR_As_of_Date_Details alter column trec varchar(20)
+update ACR_As_of_Date_Details set RecptType=trec
+
+update ACR_As_of_Date_Details set RecptType='Collection'  where trec in ('2','8','10')
+update ACR_As_of_Date_Details set RecptType='Advance'  where trec in ('9')--,'11')
+
+
+update ACR_As_of_Date_Details set RecptType='SalesInvoice'  where trec ='1'
+update ACR_As_of_Date_Details set RecptType='Others' where RecptType not in ('Collection','Advance','SalesInvoice')
+--update ACR_As_of_Date_Details set RecptType='PurInvoice'  where RecptType ='3'
+--update ACR_As_of_Date_Details set RecptType='CreditNote'  where RecptType ='4'
+--update ACR_As_of_Date_Details set RecptType='PaymtDiff'  where RecptType ='7'
+--update ACR_As_of_Date_Details set RecptType=null where DueAmth<>0
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='ACR_Status'
+Insert into ACR_As_of_Date_Details_log values('RecptType_Update', getdate(),null)
+
+update ACR_As_of_Date_Details set RecptType='Collection-Others' 
+where company = 490 and TranType in ('276','376','476','576')
+update ACR_As_of_Date_Details set RecptType='Collection-Others'
+where company = 401 and trantype in ('271','272','371','372','471','472','571','572')
+update ACR_As_of_Date_Details set RecptType='Collection-Others'
+where trantype in ('CCR','ICR','ICN','CCN')
+
+update ACR_As_of_Date_Details set RecptType='Collection-Others'
+where 
+RecptType='Collection'
+and TranType like '%ccj%' 
+and TranType like '%ccn%' 
+and TranType like '%cdj%' 
+and ltrim(rtrim(TranType)) between '251' and  '264'
+and ltrim(rtrim(TranType)) between '351' and '364'
+and ltrim(rtrim(TranType)) between '451' and '464'
+and ltrim(rtrim(TranType)) between '551' and '564'
+and ltrim(rtrim(TranType)) between '651' and '664'
+and ltrim(rtrim(TranType)) between '751' and '764'
+and ltrim(rtrim(TranType)) between '2A1' and '2C6'
+and ltrim(rtrim(TranType)) between '3A1' and '3C6'
+and ltrim(rtrim(TranType)) between '4A1' and '4C6'
+and ltrim(rtrim(TranType)) between '5A1' and '5C6'
+and ltrim(rtrim(TranType)) between '7A1' and '7C6'
+and ltrim(rtrim(TranType)) between '8A1' and '8C6'
+and ltrim(rtrim(TranType)) between '9A1' and '9C6'
+and ltrim(rtrim(TranType)) like 'F%' 
+and ltrim(rtrim(TranType)) in ('BCC','CBD')
+and ltrim(rtrim(TranType)) in ('271','272','371','372','471','472','571','572','671','672','771','772','871','872','971','972','A52')
+
+
+update ACR_As_of_Date_Details set RecptType='Advance-Others'
+where RecptType='Advance'
+and trantype in ('B23','B28','B44','B45','cdj') 
+
+update ACR_As_of_Date_Details set RecptType='Advance-Others'
+where RecptType='Advance'
+and trantype in 
+('251','252','351','352','451','452','551','552','751','752','851','852','951','952')
+or trantype between '2A1' and  '2A6' 
+or trantype between '2B1' and  '2B6'
+or trantype between '3A1' and  '3B6'
+or trantype between '4A1' and  '4B6'
+or trantype between '5A1' and  '5B6' 
+or trantype between '7A1' and  '7B6'
+or trantype between '8A1' and  '8B6'
+or trantype between '9A1' and  '9B6'
+or trantype between '2C1' and  '2C6'
+or trantype between '3C1' and  '3C6'
+or trantype between '4C1' and  '4C6'
+or trantype between '5C1' and  '5C6'
+or trantype between '7C1' and  '7C6'
+or trantype between '8C1' and  '8C6'
+or trantype between '9C1' and  '9C6'
+
+
+
+update ACR_As_of_Date_Details set RecptType='Collection'  where trec in ('2','8','10')  and company like '6%'
+update ACR_As_of_Date_Details set RecptType='Advance'  where trec in ('9','11') and company like '6%'
+
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='RecptType_Update'
+Insert into ACR_As_of_Date_Details_log values('Verticals_Update1', getdate(),null)
+
+--delete from ACR_As_of_Date_Details where  RecptType='Others' 
+--delete from ACR_As_of_Date_Details where EntryDate= '9999-01-01' 
+--and invamth is null
+--and RecvAmth is null
+
+--update ACR_As_of_Date_Details set DueAmti=null,DueAmth=null where RecptType like '%Advance%'
+
+--update ACR_As_of_Date_Details set DueStatus=null where RecptType like '%Advance%'
+--update ACR_As_of_Date_Details set DueStatus=null where RecptType<>'Collection' or RecptType is null
+
+update ACR_As_of_Date_Details set DueDate=a.t_dued
+from
+(select distinct Company,t_ttyp,t_ninv,t_docd,t_dued from TTFACR200ALL where t_docn=0 )a
+where ACR_As_of_Date_Details.company=a.Company
+and ACR_As_of_Date_Details.trantype=a.t_ttyp
+and ACR_As_of_Date_Details.invno=a.t_ninv
+and RecptType not like '%Advance%'
+
+
+update ACR_As_of_Date_Details set DueDate=a.dued
+from
+(select distinct Company,ttyp,ninv,docd,dued from TTFACR200551552 where docn=0 )a
+where ACR_As_of_Date_Details.company=a.Company
+and ACR_As_of_Date_Details.trantype=a.ttyp
+and ACR_As_of_Date_Details.invno=a.ninv
+and RecptType not like '%Advance%'
+
+update ACR_As_of_Date_Details set Reference=A.Reference
+FROM ACR_Debtors_Details A
+where ACR_As_of_Date_Details.company=a.Company
+and ACR_As_of_Date_Details.trantype=a.Trantyp
+and ACR_As_of_Date_Details.invno=a.InvNo
+
+
+update ACR_As_of_Date_Details set Reference=A.Reference
+FROM ACR_Debtors_Details_551552 A
+where ACR_As_of_Date_Details.company=a.Company
+and ACR_As_of_Date_Details.trantype=a.Trantyp
+and ACR_As_of_Date_Details.invno=a.InvNo
+
+
+update ACR_As_of_Date_Details set SalesOffice=a.DPST,SalesOfficeName=a.DpstName,Vertical=a.Vertical1
+from ACR_Debtors_Details a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.Trantyp
+and ACR_As_of_Date_Details.InvNo=a.InvNo
+
+
+update ACR_As_of_Date_Details set SalesOffice=a.DPST,SalesOfficeName=a.DpstName,Vertical=a.Vertical1
+from ACR_Debtors_Details_551552 a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.Trantyp
+and ACR_As_of_Date_Details.InvNo=a.InvNo
+
+
+--update ACR_As_of_Date_Details set SalesOfficeName=a.DPSTName
+--from DPST_Master_ATS a
+--where ACR_As_of_Date_Details.SalesOffice=a.DPSTcode
+
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='Verticals_Update1'
+Insert into ACR_As_of_Date_Details_log values('Verticals_Update2', getdate(),null)
+
+update ACR_As_of_Date_Details set Organ=a.organ
+from ELGi_Sales_Details a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.trantype
+and ACR_As_of_Date_Details.InvNo=a.Invoice
+
+
+update ACR_As_of_Date_Details set AreaCode=a.AreaCode,AreaName=a.AreaName
+from ACR_Debtors_Details a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.Trantyp
+and ACR_As_of_Date_Details.InvNo=a.InvNo
+and ACR_As_of_Date_Details.Company not in (select company from ELGI_Companies_Master where companygroup='ATS')
+
+
+update ACR_As_of_Date_Details set AreaCode=a.AreaCode,AreaName=a.AreaName
+from ACR_Debtors_Details_551552 a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.Trantyp
+and ACR_As_of_Date_Details.InvNo=a.InvNo
+
+
+--Area Updation for advances
+
+update ACR_As_of_Date_Details set areacode=a.CustAreaCode
+from vw_business_partner a
+where ltrim(rtrim(ACR_As_of_Date_Details.custcode))=ltrim(rtrim(a.custcode))
+and ACR_As_of_Date_Details.recpttype='Advance'
+and ACR_As_of_Date_Details.areaname is null 
+and ACR_As_of_Date_Details.Company not in (select company from ELGI_Companies_Master where companygroup='ATS')
+and ACR_As_of_Date_Details.Company not in (551,552,553)
+
+
+--Special Case: Updating Areacode for ELGI Australia, ELGi Indonesia and ELGi Malaysia companies (551,552,553)
+update ACR_As_of_Date_Details set areacode='631' where company=551 and (areacode is null or ltrim(rtrim(areacode)) in ('','Others'))
+update ACR_As_of_Date_Details set areacode='624' where company=552 and (areacode is null or ltrim(rtrim(areacode)) in ('','Others')) 
+update ACR_As_of_Date_Details set areacode='622' where company=553 and (areacode is null or ltrim(rtrim(areacode)) in ('','Others'))
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='Verticals_Update2'
+Insert into ACR_As_of_Date_Details_log values('Verticals_Update3', getdate(),null)
+
+--------AreaCode Updation for ATS-----------------------------------------------------------------------------
+
+update ACR_As_of_Date_Details set AreaCode=a.area  --Area Code from the Sales Order
+from (
+select distinct b.Company,b.OrderType,b.OrderNum,--a.Company,a.saletype,a.OrderNum,
+a.Trantype,a.invnum,b.Area 
+from CI_Lines a 
+inner join Sales_Header b
+on a.Company=b.Company
+and a.OrderNum=b.OrderNum
+and a.saletype=b.OrderType
+where a.Company in (select company from ELGI_Companies_Master where companygroup='ATS')
+)a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.Trantype
+and ACR_As_of_Date_Details.InvNo=a.invnum
+and ACR_As_of_Date_Details.RecptType='Collection'
+and ACR_As_of_Date_Details.Company in (select company from ELGI_Companies_Master where companygroup='ATS')
+
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='Verticals_Update3'
+Insert into ACR_As_of_Date_Details_log values('Verticals_Update4', getdate(),null)
+
+
+
+--Fetching Area from Customer Master for ATS Advance Receipts
+
+update ACR_As_of_Date_Details set AreaCode=a.CustAreaCode
+from vw_Business_Partner a
+where ltrim(rtrim(ACR_As_of_Date_Details.CustCode))=ltrim(rtrim(a.custcode))
+and ACR_As_of_Date_Details.RecptType='Advance'
+--and ACR_As_of_Date_Details.AreaCode is null 
+and ACR_As_of_Date_Details.Company in (select company from ELGI_Companies_Master where companygroup='ATS')
+
+
+--------End: AreaCode Updation for ATS------------------------------------------------------------------------
+
+
+update ACR_As_of_Date_Details set areaname=a.areaname
+from vw_area_Master a
+where ACR_As_of_Date_Details.areacode=a.areacode
+and ACR_As_of_Date_Details.areaname is null
+
+
+update ACR_As_of_Date_Details set areaname=areaname + ',India' where areaname like '%salem%'
+
+update ACR_As_of_Date_Details set AgeingOrdr=a.AgeingOrdr,Ageing=a.Ageing
+from ACR_Debtors_Details a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.Trantyp
+and ACR_As_of_Date_Details.InvNo=a.InvNo
+
+update ACR_As_of_Date_Details set AgeingOrdr=a.AgeingOrdr,Ageing=a.Ageing
+from ACR_Debtors_Details_551552 a
+where ACR_As_of_Date_Details.Company=a.Company
+and ACR_As_of_Date_Details.TranType=a.Trantyp
+and ACR_As_of_Date_Details.InvNo=a.InvNo
+
+
+update ACR_As_of_Date_Details set Zone=a.Zone
+from vw_AREA_MASTER a
+where ACR_As_of_Date_Details.AreaCode=a.Areacode
+and ACR_As_of_Date_Details.Company not like '6%'
+
+update ACR_As_of_Date_Details set Zone=a.ATS_Zone
+from vw_AREA_MASTER a
+where ACR_As_of_Date_Details.AreaCode=a.Areacode
+and ACR_As_of_Date_Details.Company like '6%'
+
+
+update ACR_As_of_Date_Details set Vertical='Domestic' where Zone in ('South','North','West','East') and company like '6%'
+update ACR_As_of_Date_Details set Vertical='Exports' where Zone not in ('South','North','West','East') and company like '6%'
+
+update ACR_As_of_Date_Details set Zone='SEA' where Zone is null and company in (552,553)
+update ACR_As_of_Date_Details set Vertical='International' where Vertical is null and company in (552,553)
+
+update ACR_As_of_Date_Details set Zone='SEA' where Zone is null and Areacode in ('624','622')
+update ACR_As_of_Date_Details set Vertical='International' where Vertical is null and Areacode in ('624','622')
+
+update ACR_As_of_Date_Details set Zone='Others' where Zone is null
+update ACR_As_of_Date_Details set AreaCode='Others' where AreaCode is null
+update ACR_As_of_Date_Details set AreaCode='Others' where ltrim(rtrim(AreaCode)) =''
+update ACR_As_of_Date_Details set AreaCode='Others' where AreaCode ='000'
+update ACR_As_of_Date_Details set AreaName='Others' where AreaCode is null
+update ACR_As_of_Date_Details set AreaName='Others' where AreaCode ='Others'
+update ACR_As_of_Date_Details set Vertical='Others' where Vertical is null
+
+
+update ACR_As_of_Date_Details set ZoneOrdr=1 where ZONE='South'
+update ACR_As_of_Date_Details set ZoneOrdr=2 where ZONE='North'
+update ACR_As_of_Date_Details set ZoneOrdr=3 where ZONE='West'
+update ACR_As_of_Date_Details set ZoneOrdr=4 where ZONE='East'
+update ACR_As_of_Date_Details set ZoneOrdr=5 where ZONE='Others'
+
+
+
+update ACR_As_of_Date_Details set VerticalOrdr=1 where Vertical='Channel'--'Compressor-Channel'
+update ACR_As_of_Date_Details set VerticalOrdr=2 where Vertical='Compressor-C&M'
+update ACR_As_of_Date_Details set VerticalOrdr=3 where Vertical='Compressor-WW'
+update ACR_As_of_Date_Details set VerticalOrdr=4 where Vertical='Direct'--'Compressor-Direct'
+update ACR_As_of_Date_Details set VerticalOrdr=5 where Vertical='Compressor-RLY'
+update ACR_As_of_Date_Details set VerticalOrdr=6 where Vertical='After Sales'
+update ACR_As_of_Date_Details set VerticalOrdr=7 where Vertical='International'
+update ACR_As_of_Date_Details set VerticalOrdr=8 where Vertical='Domestic'
+update ACR_As_of_Date_Details set VerticalOrdr=9 where Vertical='Exports'
+update  ACR_As_of_Date_Details set VerticalOrdr=10 where Vertical='Vacuum'
+update ACR_As_of_Date_Details set VerticalOrdr=11 where Vertical='Others'
+
+--Alter table ACR_As_of_Date_Details add Vertical1 varchar(100)
+
+update ACR_As_of_Date_Details set vertical1 ='International' where vertical='exports'
+update ACR_As_of_Date_Details set vertical1 ='Channel'  where vertical='Compressor-Channel'
+update ACR_As_of_Date_Details set vertical1 ='Compressor-C&M'  where vertical='Compressor-C&M'
+update ACR_As_of_Date_Details set vertical1 ='Compressor-WW' where vertical='Compressor-WW'
+update ACR_As_of_Date_Details set vertical1 ='Direct'  where vertical='Compressor-Direct'
+update ACR_As_of_Date_Details set vertical1 ='Compressor-RLY' where vertical='Compressor-RLY'
+update ACR_As_of_Date_Details set vertical1 ='After Sales' where vertical='After Sales'
+update ACR_As_of_Date_Details set vertical1 ='Others' where vertical is null or 
+vertical not in ('exports','Compressor-Channel','Compressor-C&M','Compressor-WW','Compressor-Direct','Compressor-RLY','After Sales')
+
+
+--ATS AR Verticals based on Company and Trantypes
+update ACR_As_of_Date_Details set vertical1=null where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update ACR_As_of_Date_Details set vertical1='Export AR' where concat(company,trantype) in ('600633','600634')
+update ACR_As_of_Date_Details set vertical1='PAYU Sales' where concat(company,trantype) in ('600PPT','600PPW','600PDU','600PDT')
+update ACR_As_of_Date_Details set vertical1='Demo Sales' where concat(company,trantype) in ('6006C1','6006C2','6006C3','6006T7','6006T5','6007C1')
+update ACR_As_of_Date_Details set vertical1='BTA Sales' where concat(company,trantype) in ('612M64','616A64','600623','600624','600625')
+update ACR_As_of_Date_Details set vertical1='FOC Sales' where concat(company,trantype) in ('600654','616A54','612M54','600653','6006W1',
+'6006A4','640653','640654')
+update ACR_As_of_Date_Details set vertical1='High Value Spares' where concat(company,trantype) in ('6006DS','6006M1')
+update ACR_As_of_Date_Details set vertical1='High Value Spares' where concat(company,trantype) in ('6006DS','6006M1')
+update ACR_As_of_Date_Details set vertical1='PAYU AR' where concat(company,trantype) in 
+('600SW1','611SW1','612SW1','613SW1','614SW1','615SW1','616SW1','617SW1','618SW1','619SW1','620SW1','622SW1')
+
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='Verticals_Update4'
+Insert into ACR_As_of_Date_Details_log values('OriginalReceipts', getdate(),null)
+
+update ACR_As_of_Date_Details set org_Company=a.COMPANY,org_DocType=a.T$OTYP,org_DocNo=a.T$ODOC
+from ACR_Original_Receipts a
+where ACR_As_of_Date_Details.Company=a.t_cono
+and ACR_As_of_Date_Details.RecvDocType=a.t_ttyp
+and ACR_As_of_Date_Details.RecvDocNo=a.t_docn
+and ltrim(rtrim(ACR_As_of_Date_Details.CustCode))=ltrim(rtrim(a.T$BPID))
+and ACR_As_of_Date_Details.RecptType in ('Collection')
+--and ACR_As_of_Date_Details.Company like '6%'
+
+update ACR_As_of_Date_Details set org_Company=a.COMPANY,org_DocType=a.T$OTYP,org_DocNo=a.T$ODOC
+from ACR_Original_Receipts a
+where ACR_As_of_Date_Details.Company=a.t_cono
+and ACR_As_of_Date_Details.TranType=a.t_ttyp
+and ACR_As_of_Date_Details.InvNo=a.t_docn
+and ltrim(rtrim(ACR_As_of_Date_Details.CustCode))=ltrim(rtrim(a.T$BPID))
+and ACR_As_of_Date_Details.RecptType in ('Advance')
+
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='OriginalReceipts'
+Insert into ACR_As_of_Date_Details_log values('CreditNoteRemoval', getdate(),null)
+
+--Removing Credit note Entries
+delete from ACR_As_of_Date_Details where concat(company,trantype) in ('401ICR','401ICN','401IBC','490CCN')
+delete from ACR_As_of_Date_Details where trantype in ('DMD','DMY')
+delete from ACR_As_of_Date_Details where RecvDocType in ('DMD','DMY')
+delete from ACR_As_of_Date_Details where org_DocType in ('DMD','DMY')
+
+
+
+update ACR_As_of_Date_Details_log set EndTime=getdate() where Remarks='CreditNoteRemoval'
+
+
+end
+

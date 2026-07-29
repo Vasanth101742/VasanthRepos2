@@ -1,0 +1,169 @@
+--exec sp_Budget_Sales_CUBE
+CREATE proc [dbo].[sp_Budget_Sales_CUBE] as
+
+Begin
+
+
+Truncate table Budget_Sales_CUBE
+Truncate table Budget_Sales_CUBE_COSEA
+Truncate table Budget_Sales_CUBE_ID
+
+Insert into Budget_Sales_CUBE
+(Global,date,organ,region,user_names,Division,Vertical1,AreaCode,areaname,
+Dpstcode,DPSTName,Budget)
+SELECT	ltrim(rtrim(b.Global)) Global,
+convert(date,date) date,
+case when ltrim(rtrim(isnull(a.organ,c.organ)))='ISAAME' then 'SAAME' else ltrim(rtrim(isnull(a.organ,c.organ))) end as organ,
+ltrim(rtrim(c.region)) region,
+ltrim(rtrim(c.user_names)) user_names,
+ltrim(rtrim(c.Division)) as Division,
+ltrim(rtrim(c.Vertical1)) as Vertical1,
+a.Area,ltrim(rtrim(c.areaname)) areaname,c.DPSTCode as dpst,c.DPSTName,
+round(sum(a.target),2) as Budget
+
+FROM	(select * from Sales_Budget)a
+INNER JOIN vw_AREA_MASTER b
+ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.Area))
+INNER JOIN vw_SALESMAPPING_MASTER c
+ON ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode))    
+and ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+
+GROUP BY date,ltrim(rtrim(b.Global)),ltrim(rtrim(isnull(a.organ,c.organ))),
+ltrim(rtrim(c.region)),ltrim(rtrim(c.user_names)),ltrim(rtrim(c.Division)),ltrim(rtrim(c.Vertical1)),
+a.Area,ltrim(rtrim(c.areaname)),c.DPSTCode,c.DPSTName
+
+
+Insert into Budget_Sales_CUBE
+(Global,date,organ,region,user_names,Division,Vertical1,AreaCode,areaname,
+Dpstcode,DPSTName,Sales,description)
+
+select * from (
+SELECT b.global,a.date,c.organ,c.region,c.user_names,c.Division as Division,c.Vertical1,
+b.Areacode,b.AreaName, d.Dpstcode,d.dpstname,
+round(sum(a.sales/1000000),2) Sales,
+d.description
+ FROM 
+(select distinct COMPANY,'' as SaleOrderType,convert(date,date)date,year(date)as year,month(date)as Month,dpst,Area as areacode,sum(AssesValue)as sales  From [ELGi_LN].dbo.TmpSlsDespData_baan 
+where Company not like '6%' and convert(date,date) between '2011-04-01' and '2017-03-31' and SaleType in (0,2) 
+and dpst is not null
+and area is not null
+group by  COMPANY,date,year(date),month(date),dpst,Area
+--order by year(date),month(date) 
+union 
+select distinct COMPANY,SaleOrderType,convert(date,invoice_date)as date,year(Invoice_Date)as year,month(Invoice_Date)as Month,dpst,areacode,sum(Sales_amount)as sales  From [ELGi_LN].dbo.ELGi_Sales_Details 
+where convert(date,Invoice_Date)>='2017-04-01' and sales_category not in (1) 
+--and Company not like '6%' 
+--and dpst is not null
+--and areacode is not null
+--and Organ is not null
+--and Organ <>''
+and dpst not like '%[a-z]%'
+AND concat(company,SaleOrderType) not in (
+select concat(company,SaleOrderType) from SaleType_Master where Sales_Category in (1))
+group by COMPANY,SaleOrderType,invoice_date,year(Invoice_Date),month(Invoice_Date),dpst,areacode) a 
+	
+	left outer JOIN vw_AREA_MASTER b ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.areacode))
+	left outer JOIN vw_SALESMAPPING_MASTER c
+	ON 	ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode)) 
+	AND ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+	left outer join vw_DPST_MASTER d
+	on ltrim(rtrim(d.DpstCode))=ltrim(rtrim(c.DPSTCode))
+
+GROUP BY a.date,b.global,c.organ,c.region,c.user_names,c.Division,c.Vertical1,b.Areacode,b.AreaName,d.Dpstcode,d.dpstname,d.Description 
+
+)a
+
+
+
+update Budget_Sales_CUBE set custcode =a.custcode from (select distinct dpst,area,custcode  From [ELGi_LN].dbo.TmpSlsDespData_baan 
+where Company not like '6%' and convert(date,date) between '2011-04-01' and '2017-03-31' and SaleType in (0,2))a 
+where Budget_Sales_CUBE.areacode =a.Area 
+and Budget_Sales_CUBE.Dpstcode =a.Dpst 
+and Budget_Sales_CUBE.date <'2017-04-01'  
+
+
+update Budget_Sales_CUBE set custcode =concat('CU1',convert(varchar,custcode))
+WHERE Budget_Sales_CUBE.date <'2017-04-01'  
+AND Budget_Sales_CUBE.custcode IS NOT NULL
+
+update Budget_Sales_CUBE set custcode =a.custcode from (select distinct dpst,areacode,custcode  From ELGi_Sales_Details 
+where Company not like '6%' and convert(date,Invoice_Date)>='2017-04-01' and sales_category not in (1) 
+and dpst is not null
+and dpst not like '%[a-z]%'
+and areacode is not null
+and Organ is not null
+and Organ <>''
+)a
+where Budget_Sales_CUBE.areacode =a.areacode 
+and Budget_Sales_CUBE.Dpstcode =a.Dpst 
+and Budget_Sales_CUBE.date >='2017-04-01'  
+
+update Budget_Sales_CUBE set custname = 'Customer' where custcode is not null
+
+update Budget_Sales_CUBE set custname =CONCAT(a.CustCode,' - ',a.CustName)  from DealerMaster_COSEA a
+where Budget_Sales_CUBE .custcode =a.CustCode 
+
+
+--Alter table Budget_Sales_CUBE add CalYear int,CalMonth int,Month_Name varchar(20),FinYear int,FinMonth int
+
+update Budget_Sales_CUBE set CalYear=year(date)
+update Budget_Sales_CUBE set CalMonth=month(date)
+update Budget_Sales_CUBE set Month_Name=substring(datename(mm,date),1,3) +'-'+substring(convert(varchar,year(date)),3,2)
+
+update Budget_Sales_CUBE set FinYear=CalYear-1 where CalMonth<4
+update Budget_Sales_CUBE set FinYear=CalYear where CalMonth>=4
+update Budget_Sales_CUBE set FinMonth=CalMonth+9  where CalMonth<4
+update Budget_Sales_CUBE set FinMonth=CalMonth-3  where CalMonth>=4
+
+update Budget_Sales_CUBE set HalfYear =1 where FinMonth<=6
+update Budget_Sales_CUBE set HalfYear =2 where FinMonth>6
+
+update Budget_Sales_CUBE set Qrtr =1 where FinMonth in (1,2,3)
+update Budget_Sales_CUBE set Qrtr =2 where FinMonth in (4,5,6)
+update Budget_Sales_CUBE set Qrtr =3 where FinMonth in (7,8,9)
+update Budget_Sales_CUBE set Qrtr =4 where FinMonth in (10,11,12)
+
+update Budget_Sales_CUBE set FiscalYear=convert(varchar,FinYear)+'-'+substring(convert(varchar,FinYear+1),3,2)
+
+delete from Budget_Sales_CUBE_COSEA  where date<=convert(varchar,year(getdate()-1)-1)+'-04-01'
+and budget<>0
+
+--update Budget_Sales_CUBE set areaname=AreaCode+'-'+areaname
+update Budget_Sales_CUBE set areaname='' where AreaCode='001'
+update Budget_Sales_CUBE set DPSTName=Dpstcode+'-'+DPSTName
+
+
+--Alter table Budget_Sales_CUBE add Latitude  float
+--Alter table Budget_Sales_CUBE add Longitude float
+--Alter table Budget_Sales_CUBE_COSEA add Latitude  float
+--Alter table Budget_Sales_CUBE_COSEA add Longitude float
+--Alter table Budget_Sales_CUBE_ID add Latitude  float
+--Alter table Budget_Sales_CUBE_ID add Longitude float
+
+--update Budget_Sales_CUBE set Latitude='11.6643' ,Longitude='78.1460' where AreaCode='054'
+
+update Budget_Sales_CUBE set areaname=areaname + ',India' where organ='India'
+update Budget_Sales_CUBE set areaname=areaname where organ<>'India'
+
+update Budget_Sales_CUBE set Vertical1=null where organ='ID'
+
+update Budget_Sales_CUBE set Vertical1='After Sales' where organ='ID'
+and Dpstcode in ('90213','90231','90252','90253','90257')
+
+
+update Budget_Sales_CUBE set Vertical1='Units' where organ='ID'
+and Dpstcode in ('70224','90210','90212','90220','90221','90222','90225','90265','90276','90277')
+
+
+
+
+
+Insert into Budget_Sales_CUBE_COSEA 
+select * from Budget_Sales_CUBE where organ='COSEA'
+
+Insert into Budget_Sales_CUBE_ID
+select * from Budget_Sales_CUBE where organ='ID'
+
+end
+
+--select * from Budget_Sales_CUBE_COSEA

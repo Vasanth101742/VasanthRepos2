@@ -1,0 +1,165 @@
+--exec sp_ATS_Prd_Master_New
+CREATE proc sp_ATS_Prd_Master_New as
+
+begin
+
+--History Data load
+--Truncate table ATS_Prd_Master_New
+
+--insert into ATS_Prd_Master_New
+----drop table ATS_Prd_Master_New
+----select * into ATS_Prd_Master_New from (
+--select *,row_number() over (partition by ltrim(rtrim(dpst)),ltrim(rtrim(item)) order by dpstname desc,item desc ) as Rnk from 
+--(select distinct DPST,DpstName,Item,Item_desc,null as ProductGroups,getdate() as UpdatedDate from ATS_Sales_Details
+--union
+--select distinct convert(nvarchar,dpst) dpst,null,ItemCode,null as Item_desc,null,null from tmpslsdespdata_bckup where Company='101'
+--)a
+----)b
+
+
+--insert into ATS_Prd_Master_New
+--select * from (
+--select distinct DPST,DpstName,Item,Item_desc,null as ProductGroups,getdate() as UpdatedDate,
+--row_number() over (partition by ltrim(rtrim(dpst)),ltrim(rtrim(item)) order by dpstname desc,item desc ) as Rnk
+--from ATS_Sales_Details
+--where concat(DPST,ltrim(rtrim(item))) not in (select concat(DPST,ltrim(rtrim(item))) from ATS_Prd_Master_New)
+--and dpst in (select DPSTcode from DPST_Master_ATS)
+--and ltrim(rtrim(item))<>''
+--)a
+
+insert into ATS_Prd_Master_New
+select * from (
+select *,getdate() as Updt,
+row_number() over (partition by ltrim(rtrim(dpst)),ltrim(rtrim(itemcode)) order by dpstname desc,itemcode desc ) as Rnk 
+from (
+select isnull(a.Dpst,b.dpst) Dpst,isnull(d.DPSTName,b.DpstName) DpstName,isnull(a.ItemCode,b.Item) ItemCode,
+isnull(c.t_dsca,b.Item_desc) Item_desc,b.ProductGroups 
+from 
+(select distinct dpst,ItemCode from  Sales_Inflow where company like '6%')a
+full outer  join (select * from ATS_Prd_Master_New) b
+on a.Dpst=b.DPST
+and ltrim(rtrim(a.ItemCode))=ltrim(rtrim(b.Item))
+left outer  join TTCIBD001600 c
+on ltrim(rtrim(a.ItemCode))=ltrim(rtrim(c.t_item))
+left outer join DPST_Master_ATS d
+on a.Dpst=d.DPSTcode
+where b.ProductGroups is null 
+and concat(a.DPST,ltrim(rtrim(a.ItemCode))) not in (select concat(DPST,ltrim(rtrim(item))) from ATS_Prd_Master_New)
+and a.Dpst in (select DPSTcode from DPST_Master_ATS)
+
+union
+
+select isnull(a.Dpst,b.dpst) Dpst,isnull(d.DPSTName,b.DpstName) DpstName,isnull(a.Item,b.Item) ItemCode,
+isnull(c.t_dsca,b.Item_desc) Item_desc,b.ProductGroups 
+from 
+(select distinct dpst,Item from  ATS_Sales_Details where company like '6%')a
+full outer  join (select * from ATS_Prd_Master_New) b
+on a.Dpst=b.DPST
+and ltrim(rtrim(a.Item))=ltrim(rtrim(b.Item))
+left outer  join TTCIBD001600 c
+on ltrim(rtrim(a.Item))=ltrim(rtrim(c.t_item))
+left outer join DPST_Master_ATS d
+on a.Dpst=d.DPSTcode
+where b.ProductGroups is null 
+and concat(a.DPST,ltrim(rtrim(a.Item))) not in (select concat(DPST,ltrim(rtrim(item))) from ATS_Prd_Master_New)
+and a.Dpst in (select DPSTcode from DPST_Master_ATS)
+
+
+union
+
+--Special Case
+select a.Dpst,d.DPSTName,a.ItemCode,c.t_dsca,null as ProductGroups 
+from 
+(select distinct dpst,ItemCode from  Sales_Inflow where company like '6%')a
+left outer  join TTCIBD001600 c
+on ltrim(rtrim(a.ItemCode))=ltrim(rtrim(c.t_item))
+left outer join DPST_Master_ATS d
+on a.Dpst=d.DPSTcode
+where concat(a.DPST,ltrim(rtrim(a.ItemCode))) not in (select concat(DPST,ltrim(rtrim(item))) from ATS_Prd_Master_New)
+and a.Dpst in (select DPSTcode from DPST_Master_ATS)
+
+
+
+)a
+)b
+where rnk=1
+--ltrim(rtrim(ItemCode))='20FSK01BR'
+order by ItemCode,rnk
+
+
+
+delete from ATS_Prd_Master_New where dpst is null
+delete from ATS_Prd_Master_New where dpst like '%[a-z]%'
+delete from ATS_Prd_Master_New where item is null
+delete from ATS_Prd_Master_New where ltrim(rtrim(item)) =''
+delete from ATS_Prd_Master_new where rnk>1
+delete from ATS_Prd_Master_new where dpst in ('60041','90252')
+--delete select * from ATS_Prd_Master_new where dpst not in (select DPSTcode from DPST_Master_ATS)
+
+update ATS_Prd_Master_New set item=ltrim(rtrim(item))
+
+update ATS_Prd_Master_New set dpstname=a.DPSTName
+from DPST_Master_ATS a
+where ATS_Prd_Master_New.dpst=a.DPSTcode
+
+
+update ATS_Prd_Master_New set Item_desc=a.t_dsca
+from TTCIBD001600 a
+where ltrim(rtrim(Item))=ltrim(rtrim(a.t_item))
+
+--Alter table ATS_Prd_Master_New alter column ProductGroups varchar(100)
+
+update ATS_Prd_Master_New set ProductGroups='SPARES / ACCESSORIES'
+where dpst in ('90041','90051')
+
+update ATS_Prd_Master_New set ProductGroups='Consumables'
+where dpst in ('90041','90051')
+and ltrim(rtrim(item)) in (select itemcode from vw_ATS_Consumables_Itemlist)
+
+update ATS_Prd_Master_New set ProductGroups='International Sales'
+where dpst in (select distinct DPSTcode from DPST_Master_ATS where Description='Exports')
+
+update ATS_Prd_Master_New set ProductGroups='SERVICE BILLING' where ltrim(rtrim(item))='SER001'
+update ATS_Prd_Master_New set ProductGroups='SERVICE BILLING' where ltrim(rtrim(item)) like 'SC%'
+update ATS_Prd_Master_New set ProductGroups='SERVICE BILLING' where DPST in ('90043','90045','90048','90054')
+
+
+update ATS_Prd_Master_New set ProductGroups='SUPPLIER SALES' where DPST= '90049'
+update ATS_Prd_Master_New set ProductGroups='SCRAP' where DPST= '90111'
+
+update ATS_Prd_Master_New set ProductGroups='Training Income' where DPST= '90046'
+update ATS_Prd_Master_New set ProductGroups='PAYU Income' where DPST= '90047'
+
+update ATS_Prd_Master_New set ProductGroups=a.PRGP,UpdatedDate=a.UPDT
+from (
+select * from TZZSLS927600 a
+where updt in (select max(UPDT) from TZZSLS927600 b
+where a.DPST=b.DPST
+and a.item=b.item)
+)a
+where ATS_Prd_Master_New.DPST=a.DPST
+and ltrim(rtrim(ATS_Prd_Master_New.Item))=ltrim(rtrim(a.item))
+
+
+end
+
+--select DPST,	DpstName,	Item,	Item_desc,	ProductGroups from ATS_Prd_Master_new where ProductGroups is null 
+--and item='         1199PP002'
+----item='000900005'
+
+
+select * from TZZSLS927600 a
+left outer join ATS_Prd_Master_New b
+on a.dpst=b.dpst
+and ltrim(rtrim(a.Item))=ltrim(rtrim(b.item))
+
+
+--select * from DPST_Master_ATS where dpstname like '%scrap%'
+--DPSTcode= '90111'
+
+--select * from ATS_Sales_Details where ltrim(rtrim(item))='000900078'
+--dpst='90029'
+
+
+
+--select * from ats_prd_master where productgroups='scrap'

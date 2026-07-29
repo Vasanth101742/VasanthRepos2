@@ -1,0 +1,322 @@
+
+--exec sp_Bin_Effective_Check
+CREATE Proc [dbo].[sp_Bin_Effective_Check] as
+begin
+
+Truncate table Bin_Effective_Check
+
+--alter table Bin_Effective_Check add  T$COMP int
+
+Insert into Bin_Effective_Check(Company,T$COMP,ItemType,Region,ProductGroup,Item,
+MODEL,BINType,BinQty,SlotQty,Block,SalesOffice)
+(select distinct Company,T$COMP,T$ITYP,T$REGN,T$PGRP,ltrim(rtrim(T$ITEM)) T$ITEM,T$MODL,T$BTYP,T$BQTY,T$SLOQ,T$BLCK,
+T$SOFC from TZZSLS316ALL where T$COMP in ('401','490'))
+--where company=490
+
+update Bin_Effective_Check set TotalQty=BinQty*SlotQty
+
+update Bin_Effective_Check set ItemDesc=a.t_dsca
+from (select distinct t_item,t_dsca from TTCIBD001400)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.t_item))
+and Bin_Effective_Check.company=401
+
+
+update Bin_Effective_Check set ItemDesc=a.dsca
+from (select distinct item,dsca from TTCIBD001490)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.item))
+and Bin_Effective_Check.company=490
+
+update Bin_Effective_Check set ItemType='Units' where ItemType='1'
+update Bin_Effective_Check set ItemType='Spares' where ItemType='2'
+
+update Bin_Effective_Check set Region='GULF' where Region='1'
+update Bin_Effective_Check set Region='CHINA' where Region='2'
+update Bin_Effective_Check set Region='BRAZIL' where Region='3'
+update Bin_Effective_Check set Region='AUSTRALIA' where Region='4'
+update Bin_Effective_Check set Region='USA' where Region='5'
+update Bin_Effective_Check set Region='INDONESIA' where Region='6'
+update Bin_Effective_Check set Region='ROTAIR' where Region='8'
+update Bin_Effective_Check set Region='IAS' where Region='9'
+
+update Bin_Effective_Check set ProductGroup='SEPSAC' where ProductGroup='1'
+update Bin_Effective_Check set ProductGroup='LEPSAC' where ProductGroup='2'
+update Bin_Effective_Check set ProductGroup='DPSAC' where ProductGroup='3'
+update Bin_Effective_Check set ProductGroup='OFSAC' where ProductGroup='4'
+update Bin_Effective_Check set ProductGroup='RCD' where ProductGroup='5'
+update Bin_Effective_Check set ProductGroup='RAILWAY' where ProductGroup='6'
+update Bin_Effective_Check set ProductGroup='RAILWAY_TOPBLOCK' where ProductGroup='7'
+update Bin_Effective_Check set ProductGroup='ENGC' where ProductGroup='8'
+update Bin_Effective_Check set ProductGroup='BOREWELL' where ProductGroup='9'
+update Bin_Effective_Check set ProductGroup='ROTOR_SHOP' where ProductGroup='10'
+update Bin_Effective_Check set ProductGroup='SPARES' where ProductGroup='11'
+
+update Bin_Effective_Check set BINType='TWO_BIN' where BINType='1'
+update Bin_Effective_Check set BINType='Maximum_Sales_Qty' where BINType='2'
+update Bin_Effective_Check set BINType='MULTI_BIN' where BINType='3'
+update Bin_Effective_Check set BINType='NO_BIN' where BINType='4'
+
+update Bin_Effective_Check set Block='Yes' where Block='1'
+update Bin_Effective_Check set Block='No' where Block='2'
+
+--Alter Table Bin_Effective_Check add StockQty float
+--Alter Table Bin_Effective_Check add StockValue float
+--Alter Table Bin_Effective_Check add PendOrdrQty float
+--Updating stock qty---
+
+--------Stock qty and value
+update Bin_Effective_Check set StockQty=a.QSKT,StockValue=a.Amnt4
+from (select company,Item,sum(QSKT) QSKT,sum(Amnt4) Amnt4 from Inventory
+where company in ('500') and CWAR in ('G64','G84')
+group by company,Item
+)a
+where 
+--Bin_Effective_Check.company=a.company and
+ ltrim(rtrim(Bin_Effective_Check.item))=ltrim(rtrim(a.item)) and Bin_Effective_Check.Region='Gulf'
+
+
+update Bin_Effective_Check set Stock_3Mto6M_qty=a.qskt, Stock_3Mto6M_value=a.Amnt4 from 
+(select company,item,sum(qskt) QSKT,sum(Amnt4) 'Amnt4' from Inventory
+where company in ('500') and CWAR in ('G64','G84') and datediff(dd,TRDT,getdate()-1) between 91 and 180  
+group by company,Item)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.Item)) and Bin_Effective_Check.Region='Gulf'
+
+update Bin_Effective_Check set Stock_6Mto12M_qty=a.qskt, Stock_6Mto12M_value=a.Amnt4 from 
+(select company,item,sum(qskt) QSKT,sum(Amnt4) 'Amnt4' from Inventory
+where company in ('500') and CWAR in ('G64','G84') and datediff(dd,TRDT,getdate()-1) between 181 and 365  
+group by company,Item)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.Item)) and Bin_Effective_Check.Region='Gulf'
+
+
+update Bin_Effective_Check set Stock_12Mto24M_qty=a.qskt, Stock_12Mto24M_value=a.Amnt4 from 
+(select company,item,sum(qskt) QSKT,sum(Amnt4) 'Amnt4' from Inventory
+where company in ('500') and CWAR in ('G64','G84') and datediff(dd,TRDT,getdate()-1) between 366 and 730  
+group by company,Item)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.Item)) and Bin_Effective_Check.Region='Gulf'
+
+
+update Bin_Effective_Check set Stock_gr24M_qty=a.qskt, Stock_gr24M_value=a.Amnt4 from 
+(select company,item,sum(qskt) QSKT,sum(Amnt4) 'Amnt4' from Inventory
+where company in ('500') and CWAR in ('G64','G84') and datediff(dd,TRDT,getdate()-1) > 731
+group by company,Item)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.Item)) and Bin_Effective_Check.Region='Gulf'
+
+--update Bin_Effective_Check set Ageing=a.ageing from 
+--(select distinct company,item,ageing from Inventory
+--where company in ('500') and CWAR in ('G64','G84')
+--group by company,Item,Ageing)a
+--where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.Item)) and Bin_Effective_Check.Region='Gulf'
+
+---pending order qty----
+
+--As per mail, dpst required is 70238,70239&70240
+update Bin_Effective_Check set PendOrdrQty=a.PendQty
+from(select distinct ItemCode,sum(PendQty) PendQty from pending_orders
+where Warehouse='G84' and dpst in ('70238','70239','70240') and company='500'
+group by ItemCode
+)a
+where ltrim(rtrim(Bin_Effective_Check.item))=ltrim(rtrim(a.ItemCode)) and Bin_Effective_Check.Region='Gulf'
+
+--Added by me 
+
+--alter table Bin_Effective_Check add pendingPOtoHO nvarchar(max)
+
+--alter table Bin_Effective_Check add Pndqty_401_490 float
+--Alter table Bin_Effective_Check add salesqty float
+--Alter table Bin_Effective_Check add SalesQty_3M float
+--Alter table Bin_Effective_Check add TurnOverQty float
+--Alter table Bin_Effective_Check add Avg_SalesQty_3M float
+--alter table Bin_Effective_Check add Ageing nvarchar(max)
+--alter table Bin_Effective_Check add AgeingOrder int
+--Alter table Bin_Effective_Check add Avg_SalesQty_6M float
+--Alter table Bin_Effective_Check add Avg_Monthly_SalesQty float
+--alter table Bin_Effective_Check add Noofinv int
+--alter table Bin_Effective_Check add Min_Ord_qty int
+--alter table Bin_Effective_Check add Max_Ord_qty int
+
+
+
+update Bin_Effective_Check set Pndqty_401_490=a.PendQty from
+(select distinct Company,ItemCode,sum(pendqty) PendQty from pending_orders 
+where company in ('401','490') 
+and custcode in ('CU1E00625','DLY002152')
+group by itemcode,Company)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode)) and Bin_Effective_Check.Company=a.Company  and Bin_Effective_Check.Region='Gulf'
+
+
+--------end of pending order qty ------------
+
+--pending purchase order qty
+update Bin_Effective_Check set pendingPOtoHO=a.pend_qty
+from (select distinct company,item,sum(qoor) 'Ord qty',sum(qiap) 'Approved Qty',sum(qoor-qiap) 'pend_qty'
+--,qibo 'Back ord qty' 
+from [dbo].TTDPUR401ALL 
+where company='500' and cwar='G64' and ltrim(rtrim(sfbp))='SU1E00438' and qoor<>QIAP and CLYN=2 and ltrim(rtrim(orno)) like '300%'
+group by company,item
+ )a where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.item))  and Bin_Effective_Check.Region='Gulf'
+
+ ---------------end -----------
+
+
+-----------Sales Quantity----------
+
+Update Bin_Effective_Check set salesqty=a.salesQty from 
+(select distinct itemcode,sum(deliveredQty) 'SalesQty',sum(AssesValue) 'SalesAmount' 
+from sales_report_LN 
+where
+--company in ('401','490') and 
+dpst in ('70238','70239','70240')
+--group by company,ItemCode
+group by ItemCode)a 
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode)) and Bin_Effective_Check.Region='Gulf'
+--and Bin_Effective_Check.Company=a.company
+
+update Bin_Effective_Check set SalesQty_3M=a.SalesQty_3M from 
+(select distinct itemcode,sum(AssesValue) 'SalesValue_3M',sum(DeliveredQty) 'SalesQty_3M'
+from sales_report_ln 
+where
+--company in ('401','490') and 
+convert(date,[Date]) >= DATEADD(MONTH, -3, CAST(GETDATE() AS DATE)) and dpst in ('70238','70239','70240')
+--group by itemcode,company
+group by itemcode)a 
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode))  and Bin_Effective_Check.Region='Gulf'
+--and Bin_Effective_Check.Company=a.company
+
+update Bin_Effective_Check set Avg_SalesQty_3M =round(SalesQty_3M/3,2)
+
+update Bin_Effective_Check set Avg_SalesQty_6M=round(a.SalesQty_6M/6,2) from 
+(select distinct itemcode,sum(AssesValue) 'SalesValue_6M',sum(DeliveredQty) 'SalesQty_6M'
+from sales_report_ln 
+where 
+--company in ('401','490') and 
+convert(date,[Date]) >= DATEADD(MONTH, -6, CAST(GETDATE() AS DATE)) and dpst in ('70238','70239','70240')
+--group by itemcode,company
+group by itemcode)a 
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode))  and Bin_Effective_Check.Region='Gulf'
+--and Bin_Effective_Check.Company=a.company
+
+update Bin_Effective_Check set Avg_SalesQty_12M=round(a.SalesQty_12M/6,2) from 
+(select distinct itemcode,sum(AssesValue) 'SalesValue_12M',sum(DeliveredQty) 'SalesQty_12M'
+from sales_report_ln 
+where 
+--company in ('401','490') and 
+convert(date,[Date]) >=  DATEADD(MONTH, -12, CAST(GETDATE() AS DATE)) and dpst in ('70238','70239','70240')
+--group by itemcode,company
+group by itemcode)a 
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode))  and Bin_Effective_Check.Region='Gulf'
+--and Bin_Effective_Check.Company=a.company
+
+update Bin_Effective_Check set Avg_Monthly_SalesQty=round(a.SalesQty/1,2) from 
+(select distinct itemcode,sum(AssesValue) 'SalesValue',sum(DeliveredQty) 'SalesQty'
+from sales_report_ln 
+where 
+--company in ('401','490') and 
+convert(date,[Date]) >=  DATEADD(MONTH, -1, CAST(GETDATE() AS DATE)) and dpst in ('70238','70239','70240')
+--group by itemcode,company
+group by itemcode)a 
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode))  and Bin_Effective_Check.Region='Gulf'
+--and Bin_Effective_Check.Company=a.company
+
+---------end of sales qty---------
+
+--Updating turnover qty
+
+
+update Bin_Effective_Check set TurnoverQty=isnull(round(salesQty_3M/StockQty,2),0)
+
+------------
+
+--No of invoice per month
+
+update Bin_Effective_Check set Noofinv=a.[No of Invoice per month] from 
+(select ltrim(rtrim(item)) 'ItemCode',count(Invoice) 'No of Invoice per month'  from  ELGi_Sales_Details 
+where company='500' and warehouse in ('G64','G84') and  OrderDate between convert(date,DATEADD(m,-1,getdate())) and convert(date,GETDATE())
+group by company,Item)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode))  and Bin_Effective_Check.Region='Gulf'
+
+--Min & max order qty
+update Bin_Effective_Check set Min_ord_qty=a.Min_ord_qty,max_ord_qty=a.Max_ord_qty from 
+(
+select ltrim(rtrim(ItemCode)) 'ItemCode',min(qty) 'Min_ord_qty',max(qty) 'Max_ord_qty' from Sales_Inflow
+where company='500' and warehouse in ('G64','G84') and  OrderDate between convert(date,DATEADD(m,-1,getdate())) and convert(date,GETDATE())
+group by company,ItemCode
+)a
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode)) and Bin_Effective_Check.Region='Gulf'
+
+--S&OP Requirement new columns --
+--alter table Bin_Effective_Check add TotalPeriodsCount int 
+--alter table Bin_Effective_Check add DemandPeriodsCount int 
+update Bin_Effective_Check set TotalPeriodsCount= datediff(MONTH,'2023-04-01',getdate())
+
+update Bin_Effective_Check set DemandPeriodsCount = a.invoicedMonth from 
+
+(select distinct itemcode, COUNT(DISTINCT FORMAT(Date, 'yyyyMM')) 'InvoicedMonth',
+sum(deliveredQty) 'SalesQty',sum(AssesValue) 'SalesAmount' 
+from sales_report_LN 
+where
+dpst in ('70238','70239','70240') and 
+convert(date,[Date])>='2023-04-01' and
+convert(date,[Date]) < getdate() 
+
+group by ItemCode
+
+)a 
+where ltrim(rtrim(Bin_Effective_Check.Item))=ltrim(rtrim(a.ItemCode)) and Bin_Effective_Check.Region='Gulf'
+
+
+--Ageing calculation 
+
+--Alter table Bin_Effective_Check add  Stock_3Mto6M_qty float
+--Alter table Bin_Effective_Check add  Stock_3Mto6M_value float
+--Alter table Bin_Effective_Check add  Stock_6Mto12M_qty float
+--Alter table Bin_Effective_Check add  Stock_6Mto12M_value float
+--Alter table Bin_Effective_Check add  Stock_12Mto24M_qty float
+--Alter table Bin_Effective_Check add  Stock_12Mto24M_value float
+--Alter table Bin_Effective_Check add  Stock_gr24M_qty float
+--Alter table Bin_Effective_Check add  Stock_gr24M_value float
+
+
+----Inventory details 
+--insert into Bin_Effective_Check(
+----company,
+--item,StockQty,StockValue)
+----,Ageing,AgeingOrder)
+--(select distinct ltrim(rtrim(item)) 'Item',sum(QSKT) 'StockQty',sum(Amnt4)'StockValue'
+----case when datediff(dd,TRDT,getdate()-1) <30 then 'Lessthan30'
+----	 when datediff(dd,TRDT,getdate()-1) between 30 and 60 then '30-60'
+----	 when datediff(dd,TRDT,getdate()-1) between 61 and 90 then '61-90'
+----	 when datediff(dd,TRDT,getdate()-1) between 91 and 120 then '91-120'
+----	 when datediff(dd,TRDT,getdate()-1) between 121 and 150 then '121-150'
+----	 when datediff(dd,TRDT,getdate()-1) between 151 and 180 then '151-180'
+----	 when datediff(dd,TRDT,getdate()-1) between 181 and 365 then  '181-365'
+----	 when datediff(dd,TRDT,getdate()-1) between 366 and 730 then 'GreaterThan_1Year'
+----	 when datediff(dd,TRDT,getdate()-1) between 731 and 1095 then 'GreaterThan_2Years'
+----	 when datediff(dd,TRDT,getdate()-1) between 1096 and 1460 then 'GreaterThan_3Years'
+----	 when datediff(dd,TRDT,getdate()-1) between 1461 and 1826  then 'GreaterThan_4Years'
+----	 when datediff(dd,TRDT,getdate()-1) between 1827 and 2192 then 'GreaterThan_5Years'
+----	 when datediff(dd,TRDT,getdate()-1) > 2192 then 'GreaterThan_6Years'
+----end 'Ageing', 
+----case when datediff(dd,TRDT,getdate()-1) <30 then 1
+----	 when datediff(dd,TRDT,getdate()-1) between 30 and 60 then 2
+----	 when datediff(dd,TRDT,getdate()-1) between 61 and 90 then 3
+----	 when datediff(dd,TRDT,getdate()-1) between 91 and 120 then 4
+----	 when datediff(dd,TRDT,getdate()-1) between 121 and 150 then 5
+----	 when datediff(dd,TRDT,getdate()-1) between 151 and 180 then 6
+----	 when datediff(dd,TRDT,getdate()-1) between 181 and 365 then  7
+----	 when datediff(dd,TRDT,getdate()-1) between 366 and 730 then 8
+----	 when datediff(dd,TRDT,getdate()-1) between 731 and 1095 then 9
+----	 when datediff(dd,TRDT,getdate()-1) between 1096 and 1460 then 10
+----	 when datediff(dd,TRDT,getdate()-1) between 1461 and 1826  then 11
+----	 when datediff(dd,TRDT,getdate()-1) between 1827 and 2192 then 12
+----	 when datediff(dd,TRDT,getdate()-1) > 2192 then 13
+----end 'AgeingOrder'
+--from Inventory a
+--right join TZZSLS316ALL b on ltrim(rtrim(a.item))=ltrim(rtrim(b.T$ITEM))
+----and a.COMPANY=b.COMPANY
+--where a.company in ('500') and CWAR in ('G64','G84')
+--group by a.ITEM
+--)
+---------------------------
+
+
+select  distinct  * from Bin_Effective_Check where region='Gulf' ORDER BY Item 
+end

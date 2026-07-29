@@ -1,0 +1,70 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE Proc [dbo].[SP_GR_JOBStatus]
+(
+@ItemCode nvarchar(30),
+@CardCode nvarchar(30),
+@Price   decimal(19,2)
+
+)
+as
+begin
+
+declare @ItemName nvarchar(100)
+declare @CardName nvarchar(100)
+DECLARE @MAIL_BODY  nVARCHAR(MAX)
+DECLARE @SUBJECT NVARCHAR(MAX)
+DECLARE @CONTENT NVARCHAR(MAX)
+declare @PriceNum nvarchar(10)
+
+
+set @ItemName=(select ItemName from OITM where ItemCode=@ItemCode)
+set @CardName=(select CardName from OCRD where CardCode=@CardCode)
+
+set @CardName=(select @CardName +' ('+@CardCode+')')
+
+set @PriceNum=(select convert(nvarchar(10),isnull(@Price,0)))
+
+Set @SUBJECT='New Price is Added in SAP'+' - '+ @CardName
+set @CONTENT ='This is to inform you that New Price is Added in SAP.'
+
+ ----------SELECT @CCEMAIL ,@CREATOREMAIL,@STATUS;
+SET @MAIL_BODY = '<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"><script src="https://stackpath.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>' 
+SET @MAIL_BODY = @MAIL_BODY + '<body style="background-color: #FFF; font-family: Arial;font-size: 14px;">Dear Sir <b><i></i></b>,<br>'
+SET @MAIL_BODY =@MAIL_BODY + '	<p style="font-size: 14px;"><b>' +ISNULL(@SUBJECT, ' ... ')  + '</b></p>
+				<p>' +ISNULL(@CONTENT, ' ... ')  + '</p><div>
+				Below are the details –<br></br><br><br>
+				<table id="customers" style=" border-collapse: collapse;width: 70%;border: 1px solid #40A1F5;">  
+				<tr>    <td style="background-color: #40A1F5;color: white;padding: 10px;">Customer</td>    
+				<td style="background-color: #40A1F5;color: white;padding: 10px;">' +ISNULL(@CardName, ' ... ')  + '</td>  </tr>   
+				<tr>   <td style="padding: 10px;">Product Name</td>    <td style="padding: 10px;">' +ISNULL(@ItemName, ' ... ')  + '</td>  </tr>    
+				  <tr>    <td style="padding: 10px;">Customer Price</td>    <td style="padding: 10px;"> ' + @PriceNum + '</td>  </tr> 
+				  </table>     
+				    <br>
+				    <BR>
+				    <br>  <a href="http://202.153.37.149:85/ROBO" target="_blank">Robo CRM - Click Here to Login</a>  
+				  <br><br/>Thank You,<br/><br/></body>'
+
+
+
+declare @recep nvarchar(max)
+declare @copy_cc nvarchar(max)
+set @recep='vasanthk@elgi.com;gokulnath@elgi.com;prakashk@elgi.com'
+set @copy_cc=''
+
+EXEC msdb.dbo.sp_send_dbmail
+
+
+    @profile_name = 'SAP4',
+    @recipients = @recep,
+    @copy_recipients=@copy_cc,
+    @subject = @Subject,
+    @body = @MAIL_BODY ,
+    @body_format='HTML'
+
+
+end
+
+
+Completion time: 2025-11-19T10:30:55.0982529+05:30

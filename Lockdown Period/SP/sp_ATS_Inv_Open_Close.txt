@@ -1,0 +1,97 @@
+--exec sp_ATS_Inv_Open_Close 
+CREATE proc [dbo].[sp_ATS_Inv_Open_Close] as
+
+Begin
+
+
+Truncate table ATS_Inv_Open_Close
+
+Insert into ATS_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,ORNO,KOOR_R,QSTK_R,QSKT_R)
+--Drop table ATS_Inv_Open_Close
+--select * into ATS_Inv_Open_Close from (
+select COMPANY,T$CWAR CWAR,T$ITEM ITEM,convert(date,T$TRDT) Date1,T$ORNO ORNO,T$KOOR KOOR_R,
+sum(isnull(T$QSTK,0)) QSTK_R,sum(isnull(T$QSKT,0)) QSKT_R from TWHINA112ALL
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+group by COMPANY,T$CWAR,T$ITEM,convert(date,T$TRDT),T$KOOR,T$ORNO
+--)a
+
+--Alter  table ATS_Inv_Open_Close add KOOR_I int
+--Alter  table ATS_Inv_Open_Close add QSTK_I float
+
+--Alter  table ATS_Inv_Open_Close add PUR_R float
+--Alter  table ATS_Inv_Open_Close add WHT_R float 
+--Alter  table ATS_Inv_Open_Close add ADJ_R float
+--Alter  table ATS_Inv_Open_Close add PRD_R float
+--Alter  table ATS_Inv_Open_Close add SLS_R float
+--Alter  table ATS_Inv_Open_Close add FOC_R float
+--Alter  table ATS_Inv_Open_Close add BTA_R float
+--Alter  table ATS_Inv_Open_Close add SCR_R float
+--Alter  table ATS_Inv_Open_Close add OTH_R float
+
+
+--Alter  table ATS_Inv_Open_Close add PUR_I float
+--Alter  table ATS_Inv_Open_Close add WHT_I float
+--Alter  table ATS_Inv_Open_Close add ADJ_I float
+--Alter  table ATS_Inv_Open_Close add PRD_I float
+--Alter  table ATS_Inv_Open_Close add SLS_I float
+--Alter  table ATS_Inv_Open_Close add FOC_I float
+--Alter  table ATS_Inv_Open_Close add BTA_I float
+--Alter  table ATS_Inv_Open_Close add SCR_I float
+--Alter  table ATS_Inv_Open_Close add OTH_I float
+
+
+Insert into ATS_Inv_Open_Close(COMPANY,CWAR,ITEM,Date1,ORNO,KOOR_I,QSTK_I)
+select COMPANY,T$CWAR,T$ITEM,convert(date,T$CTDT) T$CTDT,T$ORNO,T$KOOR KOOR_I,
+sum(isnull(T$QSTK,0)) QSTK_I from TWHINA114ALL
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+group by COMPANY,T$CWAR,T$ITEM,convert(date,T$CTDT),T$KOOR,T$ORNO
+
+update ATS_Inv_Open_Close set PUR_R=QSTK_R where KOOR_R in (2)
+update ATS_Inv_Open_Close set PUR_I=QSTK_I where KOOR_I in (2)
+
+update ATS_Inv_Open_Close set WHT_R=QSTK_R where KOOR_R in (22,36)
+update ATS_Inv_Open_Close set WHT_I=QSTK_I where KOOR_I in (22,36)
+
+update ATS_Inv_Open_Close set ADJ_R=QSTK_R where KOOR_R in (52)
+update ATS_Inv_Open_Close set ADJ_I=QSTK_I where KOOR_I in (52)
+
+update ATS_Inv_Open_Close set PRD_R=QSTK_R where KOOR_R in (1,32,46)
+update ATS_Inv_Open_Close set PRD_I=QSTK_I where KOOR_I in (1,32,46)
+
+update ATS_Inv_Open_Close set SLS_R=QSTK_R where KOOR_R in (3)
+update ATS_Inv_Open_Close set SLS_I=QSTK_I where KOOR_I in (3)
+
+update ATS_Inv_Open_Close set OTH_R=QSTK_R where KOOR_R in (35,42,51,100)
+update ATS_Inv_Open_Close set OTH_I=QSTK_I where KOOR_I in (35,42,51,100)
+
+update ATS_Inv_Open_Close set BTA_I= A.DeliveryQty
+FROM (select COMPANY,CONVERT(DATE,Invoice_Date) Invoice_Date,warehouse,ITEM,SUM(DeliveryQty) DeliveryQty  from LN_SALES_BDI 
+where custcode in ('CU1A03537','CU1A03538')
+GROUP BY COMPANY,Invoice_Date,warehouse,ITEM
+)A
+WHERE ATS_Inv_Open_Close.COMPANY=A.company
+AND ATS_Inv_Open_Close.CWAR=A.warehouse
+AND LTRIM(RTRIM(ATS_Inv_Open_Close.ITEM))=LTRIM(RTRIM(A.Item))
+AND ATS_Inv_Open_Close.Date1=A.Invoice_Date
+
+update ATS_Inv_Open_Close set FOC_I= A.DeliveryQty
+FROM (select COMPANY,CONVERT(DATE,Invoice_Date) Invoice_Date,warehouse,ITEM,SUM(DeliveryQty) DeliveryQty  from ATS_Sales_Details 
+where CONCAT(COMPANY,SaleOrderType) IN (SELECT CONCAT(COMPANY,SALEORDERTYPE) FROM saletype_master_ATS WHERE Remarks='Not Considered')
+GROUP BY COMPANY,Invoice_Date,warehouse,ITEM
+)A
+WHERE ATS_Inv_Open_Close.COMPANY=A.company
+AND ATS_Inv_Open_Close.CWAR=A.warehouse
+AND LTRIM(RTRIM(ATS_Inv_Open_Close.ITEM))=LTRIM(RTRIM(A.Item))
+AND ATS_Inv_Open_Close.Date1=A.Invoice_Date
+
+
+
+
+
+end
+
+select * from ATS_Inv_Open_Close WHERE BTA_I IS NOT NULL
+--_Tmp where CWAR='695' and ltrim(rtrim(ITEM))='M600004954'
+--select sum(T$QSTK),sum(T$QSKT) from TWHINA112ALL where company=600 and T$CWAR='695' and ltrim(rtrim(T$ITEM))='M600004954'
+--select sum(T$QSTK) from TWHINA114ALL where  company=600 and T$CWAR='695' and ltrim(rtrim(T$ITEM))='M600004954'
+

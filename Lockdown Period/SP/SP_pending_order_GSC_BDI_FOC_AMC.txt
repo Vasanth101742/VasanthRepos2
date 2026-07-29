@@ -1,0 +1,221 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec SP_pending_order_GSC_BDI_FOC_AMC
+CREATE proc [dbo].[SP_pending_order_GSC_BDI_FOC_AMC]
+as 
+begin
+truncate table pending_order_GSC_BDI_FOC_AMC
+insert into pending_order_GSC_BDI_FOC_AMC
+
+select a.*,isnull(b.OORN,'') as Baan_orderno,isnull(b.OPOS,'') as Baan_positionno,0 as Cancel_Qty From (
+select a.*,'' as Item_desc,'' as Custname,'' as Dpstname,'' as areacode,'' as areaname,h.Dpst,H.ordertype,h.t_corn ,h.origin,case when h.Origin=3 then 'EDI' else 'Manual' End as orjn,h.RefA AS Indent,
+0 AS STOCK_440_act,0 AS STOCK_440_onhand,0 AS STOCK_401_act,0 AS STOCK_401_onhand,0 AS STOCK_416_act,0 AS STOCK_416_onhand,
+0 AS STOCK_450_act,0 AS STOCK_450_onhand,0 AS STOCK_490_act,0 AS STOCK_490_onhand,0 as STOCK_DEL_act,0 as STOCK_DEL_onhand,0 AS STOCK_CAL_act,0 AS STOCK_CAL_onhand
+ From (
+
+select a.Company,a.CustCode,a.ItemCode,a.OrderDate,a.OrderNum,a.PositionNum,
+avg(a.ord_qty) as ord_qty,
+--TranType,--b.ShipNo,--c.INVNUM,
+sum(ShipQty) ShipQty,
+sum(DelQty) DelQty,
+avg(a.ord_qty)-sum(isnull(DelQty,0)) as PendQty,
+TaxCode,DeliveryDate,WareHouse,Price,DiscPerc1,t_rats_1,t_oamt,case when t_rats_1<1 then 1*t_oamt else t_rats_1*t_oamt end  as Value,
+DATEDIFF(dd,OrderDate,getdate())as diffdays 
+ from 
+(
+--Detailed Data
+select a.Company,CustCode,ItemCode,a.OrderDate,a.OrderNum,a.PositionNum,a.ord_qty,TaxCode,DeliveryDate,WareHouse,Price,DiscPerc1,case when t_rats_1<1 then 1*t_oamt else t_rats_1*t_oamt end  as Value,
+DATEDIFF(dd,OrderDate,getdate())as diffdays,t_rats_1,t_oamt, 
+--c.TranType,b.ShipNo,--c.INVNUM,
+ISNULL(b.ShipQty,0)ShipQty,
+ISNULL(c.DelQty,0)DelQty From 
+(
+
+select Company,OrderDate,CustCode,ItemCode,OrderNum ,PositionNum,t_qoor as ord_qty,invnum,
+TaxCode,DeliveryDate,WareHouse,Price,DiscPerc1,case when t_rats_1<1 then 1*t_oamt else t_rats_1*t_oamt end  as Value,
+DATEDIFF(dd,OrderDate,getdate())as diffdays,t_rats_1,t_oamt 
+ From Sales_Lines
+where company in (490) and t_sqnb=0 
+--and ltrim(rtrim(custcode))not in ('CU1K02388','CU1E00893','CU1L00543','CU1E00015','CU1E00791',
+--'CU1E00008','CU1E00814','CU1E00914','CU1E00477','CU1E00679','CU1E00263','CU1E00926','CU1E00396','CU1E00887')
+ and t_clyn<>1 
+	AND t_qoor > 0
+	--and t_dldt='1970-01-01 00:00:00.000'
+	)a
+
+left outer join
+(select COMPANY,WORN as OrderNum , WPON as PosNum,sum(convert(float,QSHP))as ShipQty from TWHINH431ALL where convert(float,QSHP)>0 group by COMPANY,WORN,WPON)b
+on a.Company=b.COMPANY
+and a.OrderNum=b.OrderNum
+and a.PositionNum=b.PosNum
+left outer join 
+(select COMPANY,ORNO,PONO,sum(QIDL) as DelQty from TTDSLS406ALL where QIDL>0 --and INVN <>0 
+group by COMPANY,ORNO,PONO)c
+on a.Company=c.COMPANY
+and a.OrderNum=c.ORNO
+and a.PositionNum=c.PONO
+--WHERE 
+--a.company=490
+--and a.OrderNum= '292000008'
+--and a.PositionNum=30
+)a
+--where ord_qty >0 
+group by a.Company,a.CustCode,a.ItemCode,a.OrderDate,a.OrderNum,a.PositionNum,TaxCode,DeliveryDate,WareHouse,Price,DiscPerc1,t_rats_1,t_oamt
+having avg(a.ord_qty)-sum(isnull(DelQty,0))<>0
+
+
+)a
+inner join (select * From Sales_Header where Company in (490) AND dpst not in ('SAL01','SLS01')) h
+on a.OrderNum =h.OrderNum 
+and a.Company =h.Company 
+and h.OrderType  IN ('274','374','284','384','242','342','226','246','346','326','526','546','AMC')
+)a
+left join (select * From tsacom999all where type=2)b
+on ltrim(rtrim(a.OrderNum)) =ltrim(rtrim(b.NORN ))
+and ltrim(rtrim(a.PositionNum)) =ltrim(rtrim(b.NPOS))
+
+
+update pending_order_GSC_BDI_FOC set Cancel_Qty=a.qty from (select company,OrderNum,PositionNum,t_clyn,sum(t_qoor)as qty From Sales_Lines where company in (401,490) and t_clyn=1 and t_qoor>0 group by OrderNum,PositionNum,t_clyn,Company )a
+where a.Company =pending_order_GSC_BDI_FOC.Company 
+and a.OrderNum =pending_order_GSC_BDI_FOC.OrderNum 
+and a.PositionNum =pending_order_GSC_BDI_FOC.PositionNum 
+and a.t_clyn=1
+
+
+update pending_order_GSC_BDI_FOC set custname=a.custname1
+from vw_Business_Partner a
+where pending_order_GSC_BDI_FOC.custcode=a.custcode
+
+
+update pending_order_GSC_BDI_FOC set dpstname=a.DPSTName
+from vw_DPST_MASTER a
+where pending_order_GSC_BDI_FOC.dpst=a.dpstcode
+
+update pending_order_GSC_BDI_FOC set areacode=a.t_creg
+from TTCCOM110400 a
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.CustCode))=ltrim(rtrim(a.t_ofbp)) 
+
+update pending_order_GSC_BDI_FOC set areaname=a.AreaName
+from vw_AREA_MASTER  a
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.Areacode)) =ltrim(rtrim(a.Areacode ))
+
+
+update pending_order_GSC_BDI_FOC set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where pending_order_GSC_BDI_FOC.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(a.item))
+
+
+--------stock
+
+update pending_order_GSC_BDI_FOC set STOCK_440_act=b.qhnd from (select ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+WHERE ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=440  
+and b.cwar in ('024','290','291','591','e91','287')
+update pending_order_GSC_BDI_FOC set STOCK_440_onhand=b.qhnd from (select sum(qhnd)qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+WHERE ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=440  
+and b.cwar in ('024','290','291','591','e91','287')
+
+
+
+update pending_order_GSC_BDI_FOC set STOCK_401_act=b.qhnd from (select ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=401  
+and b.cwar in ('253','353','453','553','209','210','211','O53','L46','246','346','L53','252','901')
+update pending_order_GSC_BDI_FOC set STOCK_401_onhand=b.qhnd from (select sum(qhnd)qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=401  
+and b.cwar in ('253','353','453','553','209','210','211','O53','L46','246','346','L53','252','901')
+
+
+
+update pending_order_GSC_BDI_FOC set STOCK_416_act=b.qhnd from  (select ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=416  
+update pending_order_GSC_BDI_FOC set STOCK_416_onhand=b.qhnd from  (select sum(qhnd)qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=416  
+
+
+
+update pending_order_GSC_BDI_FOC set STOCK_450_act=b.qhnd from  (select ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=450  
+update pending_order_GSC_BDI_FOC set STOCK_450_onhand=b.qhnd from  (select sum(qhnd)qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=450
+
+
+update pending_order_GSC_BDI_FOC set STOCK_490_act=b.qhnd from  (select ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=490  
+ and b.cwar in ('102')
+update pending_order_GSC_BDI_FOC set STOCK_490_onhand=b.qhnd from  (select sum(qhnd)qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=490  
+ and b.cwar in ('102')
+
+
+
+	update pending_order_GSC_BDI_FOC set STOCK_DEL_act=b.qhnd from  (select ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=490  
+ and LTRIM(RTRIM(b.cwar)) in ('DEL')
+		update pending_order_GSC_BDI_FOC set STOCK_DEL_onhand=b.qhnd from  (select sum(qhnd)qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=490  
+ and LTRIM(RTRIM(b.cwar)) in ('DEL')
+
+	
+
+	update pending_order_GSC_BDI_FOC set STOCK_CAL_act=b.qhnd from  (select ((sum(qhnd))-(sum(QlAL)+sum(QBLK)))as qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=490  
+ and LTRIM(RTRIM(b.cwar)) in ('CAL')
+		
+		update pending_order_GSC_BDI_FOC set STOCK_CAL_onhand=b.qhnd from  (select sum(qhnd)qhnd,company,item,cwar from twhwmd215all
+group by company,item,cwar
+) b
+where ltrim(rtrim(pending_order_GSC_BDI_FOC.ItemCode))=ltrim(rtrim(b.item)) 
+and b.Company=490  
+ and LTRIM(RTRIM(b.cwar)) in ('CAL')
+		end
+
+
+
+
+
+
+
+
+
+
+Completion time: 2025-11-19T11:39:49.2083805+05:30

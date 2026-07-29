@@ -1,0 +1,29 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- =============================================
+-- Author:		<Author,,Raviprasath>
+-- Create date: 13/10/2025
+-- Description:	<Lean_Stock_Out_History_Avg,,>
+-- =============================================
+CREATE PROCEDURE sp_Lean_Stock_Out_History_Avg
+	-- Add the parameters for the stored procedure here
+
+AS
+BEGIN
+
+IF
+--CONVERT(DATE, GETDATE()) =  EOMONTH(GETDATE()) and
+GETDATE() < DATEADD(HOUR, 16, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+BEGIN
+DELETE FROM Lean_Stock_Out_History_Avg Where CurrentMonth =  FORMAT(GETDATE(), 'MMM-yyyy')
+Insert  Lean_Stock_Out_History_Avg
+Select Distinct empname'Buyer',company,0 as Average,Format(Getdate(),'MMM-yyyy')'CurrentMonth',
+Convert(date,EntryDate)'EntryDate',Count(Distinct ITEM)'Item_Count' from Lean_Stock_Out_History
+Group BY Convert(date,EntryDate),empname,company
+END
+
+
+END
+
+
+Completion time: 2025-11-19T11:30:56.4237798+05:30

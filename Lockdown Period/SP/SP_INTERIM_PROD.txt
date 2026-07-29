@@ -1,0 +1,78 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--EXEC SP_INTERIM_PROD'AB0201004'
+--SELECT * FROM INTRIM_MATCHED
+--SELECT * FROM INTERIM_UNMATCHED
+CREATE proc [dbo].[SP_INTERIM_PROD](@LEDGER VARCHAR(20))
+as
+begin
+TRUNCATE TABLE INTRIM_MATCHED
+TRUNCATE TABLE INTERIM_UNMATCHED 
+
+INSERT INTO INTRIM_MATCHED
+SELECT * fROM (
+select company,T$RBID,T$RBON,sum(Value) Value from (
+select a.*,b.T$DESC as leac_desc From (
+select * From (
+SELECT  convert(varchar,ltrim(rtrim(T$OCMP))) AS Company,iif(T$DBCR =1,'Debit','Credit')as Type,T$RBID,T$RBON,T$LEAC,
+SUM(iif(T$DBCR=1,T$AMTH$1 ,-T$AMTH$1)) as Value	fROM TTFGLD495ALL 
+where T$OCMP like '4%' 
+and T$LEAC in (@LEDGER)
+and T$FYER in (2017)
+and T$FPRD in (1,2,3,4,5)
+group by T$OCMP,iif(T$DBCR =1,'Debit','Credit'),T$RBON,T$RBID,T$LEAC 
+)a
+)a
+left join TTFGLD008ALL b
+on ltrim(rtrim(a.T$LEAC)) =ltrim(rtrim(b.T$LEAC)) 
+)a1
+group by  company,T$RBID,T$RBON
+)A
+WHERE Value between -1 and 1
+
+
+
+insert  INTO INTERIM_UNMATCHED 
+select a.*,b.T$DESC as leac_desc From (
+select * From (
+SELECT  convert(varchar,ltrim(rtrim(T$OCMP))) AS Company,iif(T$DBCR =1,'Debit','Credit')as Type,
+T$LINK,
+convert(varchar,ltrim(rtrim(T$LEAC )))T$LEAC,
+convert(varchar,ltrim(rtrim(T$RBON)))T$RBON,
+convert(varchar,ltrim(rtrim(T$RBID)))T$RBID,
+convert(varchar,ltrim(rtrim(T$TTYP)))T$TTYP,
+convert(varchar,ltrim(rtrim(T$DOCN)))T$DOCN,
+convert(varchar,ltrim(rtrim(T$FYER)))T$FYER,
+convert(varchar,ltrim(rtrim(T$FPRD)))T$FPRD,
+SUM(iif(T$DBCR=1,T$AMTH$1 ,-T$AMTH$1)) as Value
+
+fROM TTFGLD495ALL 
+where T$OCMP like '4%' 
+and T$LEAC in (@LEDGER)
+and T$FYER in (2017)
+and T$FPRD in (1,2,3,4,5)
+and concat(COMPANY,T$RBID,T$RBON) not in (select concat(COMPANY,T$RBID,T$RBON) from INTRIM_MATCHED)
+group by T$OCMP,iif(T$DBCR =1,'Debit','Credit'),T$LINK,T$RBON,T$TTYP,T$DOCN,T$FYER,T$FPRD,T$RBID,T$LEAC 
+)a
+)a
+left join TTFGLD008ALL b
+on ltrim(rtrim(a.T$LEAC)) =ltrim(rtrim(b.T$LEAC)) 
+
+
+select a.*,b.MITM as item ,b.CWAR as warehouse,b.EFDT ,b.QRDR as ordqty,b.QDLV as delqty,qrdr-QDLV as Pndqty ,c.OSTADESC as Status
+ from	(select * From (
+select Company,T$LEAC,T$RBON,T$RBID,sum(value)as value   From INTERIM_UNMATCHED
+group by Company,T$LEAC,T$RBON,T$RBID
+ )a
+	where value not between -1 and 1)a
+	left join TTISFC001ALL b
+on ltrim(rtrim(a.T$RBID)) =ltrim(rtrim(b.PDNO ))
+and a.Company =b.COMPANY 
+left join OSTA_DESCRIPTION c
+on b.OSTA =c.OSTANO 
+
+end
+
+
+
+Completion time: 2025-11-19T11:22:57.1665933+05:30

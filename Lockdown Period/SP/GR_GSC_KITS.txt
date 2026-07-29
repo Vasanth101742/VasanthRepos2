@@ -1,0 +1,73 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE  proc [dbo].[GR_GSC_KITS]
+as
+begin
+
+select distinct a.PDNO , replace(a.MITM, ' ','')'MItem',b.DSCA'ItemDesc',c.T$PONO'Position',replace(c.T$SITM,' ','')'ChildItem',d.DSCA'ChildDesc' ,
+(convert(float,replace(e.T$QORD,':','.'))  - convert(float,replace(e.T$QADV,':','.')))  'PenQty'
+,replace(j.BUYR,' ','')buyr,replace(r.NAMA,' ','')BuyerName,REPLACE(j.OTBP,' ','') suno1
+,max((g.QHND-g.QBLK-(convert(float,replace(g.QCOM,':','.'))) -(convert(float,replace(g.QLAL,':','.'))) +(convert(float,replace(g.QCPR,':','.')))))'availInv'
+,sum(g.QBLK)'QBLK'
+,(case  when e.T$LSTA='2' then 'Planned'  
+when e.T$LSTA='5' then 'Open'
+when e.T$LSTA='10' then 'Advised'  
+when e.T$LSTA='15' then 'Released'
+when e.T$LSTA='20' then 'Picked'  
+when e.T$LSTA='22' then 'To Be Inspected'  
+when e.T$LSTA='23' then 'Inspected'  
+when e.T$LSTA='25' then 'Staged'  
+when e.T$LSTA='30' then 'Shipped'  
+
+end)   'Status'
+,isnull(h.[Pend.grn],0)'Pend.grn',isnull(i.[Pend.asn],0)'Pend.asn'
+,max(a.QRDR)'OrderQty',max(a.RDLD)'ReqDate',max(c.T$QUES)'Est',max(convert(float,replace(e.T$QADV,':','.')))'Adv'
+
+from TTISFC001ALL a
+inner join TTCIBD001490 b on replace(b.ITEM,' ','')=replace(a.mitm,' ' ,'')
+inner join TTICST001ALL c on c.T$PDNO=a.PDNO and c.COMPANY=a.COMPANY
+inner join TTCIBD001490 d on replace(d.ITEM,' ','')=replace(c.T$SITM,' ' ,'')
+inner join TWHINH220490 e on e.COMPANY=a.COMPANY and e.T$OORG='50' and e.T$ORNO=a.PDNO and e.T$PONO=c.T$PONO 
+								and e.T$CNCL<>1 --and e.T$LSTA in (5,10)
+left join TZZPUR049ALL f on replace(f.ITEM,' ','')=replace(c.T$SITM,' ' ,'')  and f.COMPANY=c.COMPANY
+inner join TWHWMD215ALL g on replace(g.ITEM,' ','')=replace(c.T$SITM,' ' ,'')  and g.CWAR=c.T$CWAR and g.COMPANY='490' 
+left join TTDIPU001ALL j on replace(j.ITEM,' ','')=replace(c.T$SITM,' ' ,'') and j.COMPANY='490'
+left join TTCCOM001ALL r on j.BUYR = r.EMNO
+
+left join (select replace(t$ITEM,' ','')'Item',sum((convert(float,replace(T$nopk,':','.'))))'Pend.grn'  from TZZPUR916490 where  T$invn=' ' and T$loca=3 group by replace(t$ITEM,' ','')) h 
+			on replace(h.Item,' ','')=replace(c.T$SITM,' ' ,'') 
+
+
+left join (select replace(t$ITEM,' ','')'Item',sum((convert(float,replace(T$nopk,':','.'))))'Pend.asn'  from TZZPUR925490 where t$gate=0 group by replace(t$ITEM,' ','')) i
+			on replace(i.Item,' ','')=replace(c.T$SITM,' ' ,'') 
+
+where a.OSTA between 1 and 4 and a.COMPANY=490 
+and (convert(float,replace(e.T$QORD,':','.'))  - convert(float,replace(e.T$QADV,':','.'))) >0
+--and ((g.QHND-g.QBLK-(convert(float,replace(g.QCOM,':','.'))) -(convert(float,replace(g.QLAL,':','.'))) +(convert(float,replace(g.QCPR,':','.')))))=0
+
+--and a.pdno+replace(a.MITM, ' ','')='100016014412400818'
+
+group by a.PDNO , replace(a.MITM, ' ',''),b.DSCA,c.T$PONO,c.T$SITM,d.DSCA ,
+(convert(float,replace(e.T$QORD,':','.'))  - convert(float,replace(e.T$QADV,':','.')))  
+,replace(j.BUYR,' ',''),replace(r.NAMA,' ',''),REPLACE(j.OTBP,' ','')
+
+
+,(case  when e.T$LSTA='2' then 'Planned'  
+when e.T$LSTA='5' then 'Open'
+when e.T$LSTA='10' then 'Advised'  
+when e.T$LSTA='15' then 'Released'
+when e.T$LSTA='20' then 'Picked'  
+when e.T$LSTA='22' then 'To Be Inspected'  
+when e.T$LSTA='23' then 'Inspected'  
+when e.T$LSTA='25' then 'Staged'  
+when e.T$LSTA='30' then 'Shipped'  
+
+end)   
+,h.[Pend.grn],i.[Pend.asn]
+
+order by a.PDNO 
+
+end 
+
+
+Completion time: 2025-11-10T14:40:35.2846958+05:30

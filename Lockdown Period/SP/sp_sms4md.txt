@@ -1,0 +1,34 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE proc [dbo].[sp_sms4md]
+as
+begin
+
+truncate table sms4md
+insert into sms4md
+
+select organ,sum(isnull(Mbud,0))as Mbud,sum(isnull(Msal,0))as Msal,sum(isnull(Ybud,0))as Ybud,sum(isnull(Ysal,0))as Ysal,sum(isnull(LMSal,0))as LMSal,sum(isnull(LYSal,0))as LYSal
+   from (
+select ltrim(rtrim(isnull(bud.organ,sls.organ))) as organ,
+this_month_budget as Mbud,this_month_sale as Msal,ytd_budget as Ybud ,this_year_sale as Ysal,last_month_sale as LMSal,last_year_sale as LYSal From (select * from vw_bud_Global WHERE GLOBAL='International')bud
+full JOIN 
+(SELECT * fROM vw_sls_Global WHERE GLOBAL='International')sls
+ON  ltrim(rtrim(isnull(bud.Dpst,'0')))=ltrim(rtrim(isnull(sls.Dpstcode,'0')))
+and ltrim(rtrim(isnull(bud.Area,'0')))=ltrim(rtrim(isnull(sls.Areacode,'0')))
+
+union
+
+select 'India'as organ,
+this_month_budget as Mbud,this_month_sale as Msal,ytd_budget as Ybud ,this_year_sale as Ysal,last_month_sale as LMSal,last_year_sale as LYSal from vw_bud_Domestic_DPSTwise bud
+full join vw_sls_Domestic_DPSTwise sls
+on ltrim(rtrim(isnull(bud.Dpst,'0')))=ltrim(rtrim(isnull(sls.Dpstcode,'0')))
+)a
+where organ in ('SAAME','ID','India','COSEA')
+group by organ 
+order by organ 
+end
+
+
+
+
+Completion time: 2025-11-19T12:17:35.1790742+05:30

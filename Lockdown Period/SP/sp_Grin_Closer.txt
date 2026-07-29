@@ -1,0 +1,57 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- exec sp_Grin_Closer 
+CREATE proc [dbo].[sp_Grin_Closer] 
+as
+begin
+truncate table Grin_Closer 
+insert into Grin_Closer  
+select  *,' ' as NEW_RECEIPT_DATE fROM (
+select a.*,t_dsca as Item_desc From (
+select a.*,B.suppliercode ,b.Supplier_Name  From (
+select * From (
+SELECT * From (
+select COMPANY,T$ORNO,T$PONO,T$SQNB,T$RCNO as Receiptno,T$RSEQ as Receipt_seq,sum(T$QIDL)as Receiptqty,dateadd(MINUTE,30,dateadd(HOUR,5,T$DDTE)) as Receptdate From TTDPUR406401
+where CONVERT(float,T$QUAL)=1 and CONVERT(float,T$QIDL)>0
+group by COMPANY,T$ORNO,T$PONO,T$SQNB,T$RCNO,T$RSEQ ,T$DDTE
+)a
+left join 
+(select orno,pono,SEQN,RCNO,rcln,apno as Aprove_NO,sum(QAPR) as Aprove_qty,sum(QTBU) as Pending_qty,dateadd(MINUTE,30,dateadd(HOUR,5,ADAT)) as Aprove_date,CWAR as Warehouse,ITEM  From TWHINH211401 where ADAT='1970-01-01 00:00:00.000' or convert(date,ADAT)
+>=(getdate()-2)
+group by orno,pono,SEQN,RCNO,rcln,apno,ADAT ,CWAR ,ITEM
+)b
+
+on a.T$ORNO =b.ORNO 
+and a.T$PONO =b.PONO 
+and a.T$SQNB =b.SEQN
+and a.Receiptno =b.RCNO 
+and a.Receipt_seq=b.RCLN 
+)a
+WHERE ORNO IS NOT NULL
+
+)a
+
+left join 
+(select distinct b.*,b.SFBP as suppliercode,d.t_nama as Supplier_Name from (select distinct orno,pono,SQNB ,cwar,ITEM,SFBP  from TTDPUR401401)b
+left join TTCCOM100400 d
+on ltrim(rtrim(b.SFBP)) =ltrim(rtrim(d.t_bpid)))b
+on ltrim(rtrim(a.T$ORNO)) =ltrim(rtrim(b.ORNO)) 
+and ltrim(rtrim(a.T$PONO)) =ltrim(rtrim(b.PONO)) 
+and ltrim(rtrim(a.T$SQNB)) =ltrim(rtrim(b.SQNB)) 
+																												
+)a
+left join (select ltrim(rtrim(t_item)) as Item,t_dsca  from TTCIBD001400)b
+on ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.Item))
+)A
+
+
+UPDATE  Grin_Closer SET NEW_RECEIPT_DATE=DATEADD(DD,
+(select count(*) from CompanyCalendar where datepart(dw,date) not in(1,7) and DFCA='4'
+and date between Grin_Closer.Receptdate and (case when Grin_Closer.Aprove_date='1970-01-01 00:00:00.000'then GETDATE() else Grin_Closer.Aprove_date END)),NEW_RECEIPT_DATE)
+
+UPDATE  Grin_Closer SET NEW_RECEIPT_DATE=DATEADD(DD,(SELECT dbo.UFN_WEEKEND_DAYS(Grin_Closer.Receptdate,case when Grin_Closer.Aprove_date='1970-01-01 00:00:00.000'then GETDATE() else Grin_Closer.Aprove_date END)),NEW_RECEIPT_DATE)
+
+end
+
+
+Completion time: 2025-11-19T10:38:52.9774573+05:30

@@ -1,0 +1,1397 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ -- SELECT * fROM CRM_HF_FINAL_ver1 where ordr=0
+ --		EXEC SP_CRM_HF '2020-07-01' ,'2020-12-31' 
+	-- EXEC SP_CRM_HF '2020-07-01' ,'2020-12-31' 
+	-- EXEC SP_CRM_HF '2020-04-01' ,'2020-12-31' 
+ -- EXEC SP_CRM_HF @fromdate ,@todate 
+CREATE PROC [dbo].[SP_CRM_HF] @fromdate date,@todate date
+AS
+BEGIN
+
+truncate table  HF_VISITS
+truncate table HF_ENQ
+truncate table HF_WON
+truncate table Productive_Visits_through_visits
+truncate table Productive_Visits_Direct_Enquiries
+truncate table CRM_HF_FINAL
+truncate table CRM_HF_FINAL_ver1
+
+
+INSERT INTO HF_VISITS 
+
+select *  From (
+select a.*,b.type,'Dealer' as new,row_number()over(partition by account_id order by account_id) as distcust
+  From(
+select 
+CustomerName,Account_ID,CityName,StateName,Customer_Cluster,Customer_Classification,Industry,
+Dealer,Dealer_Engineer,EnquiryID,CustomerVisitID,MonthstartDate,VisitDate,VisitStatus,
+EnquiryStage,EnquiryStatus,Probability,EstimatedCloseDate,ActualCloseDate,Createdon,
+OwnerName,SalesOffice,ItemCode,Product,priceperunit,quantity,baseamount,ProductCategory,
+opportunityid,ownerid,Region,elgi_businessverticalname,Quotedate,
+Negotiationdate,elgi_losttoname,elgi_reasonname,elgi_remarks,elgi_numbers,elgi_pricewelosttheorderat,
+elgi_model,pincode,businessunitidname,elgi_customertypesalesname,elgi_cityname,elgi_statename,
+elgi_locationofcustomer,elgi_lineofbusinessname,Enq_Desc
+  From crm_dealer where convert(date,visitdate) between @fromdate and @todate 
+and (elgi_businessverticalname='Industrial' or elgi_businessverticalname='Blank'))a
+left join (select distinct  * From productive_Master)b
+on a.VisitStatus=b.[CRM Visit Status]
+
+union all
+
+select  a.*,b.type,'Eng' as new,row_number()over(partition by account_id order by account_id) as distcust
+  From(
+select 
+CustomerName,Account_ID,CityName,StateName,Customer_Cluster,Customer_Classification,Industry,
+Dealer,Dealer_Engineer,EnquiryID,CustomerVisitID,MonthstartDate,VisitDate,VisitStatus,
+EnquiryStage,EnquiryStatus,Probability,EstimatedCloseDate,ActualCloseDate,Createdon,
+OwnerName,SalesOffice,ItemCode,Product,priceperunit,quantity,baseamount,ProductCategory,
+opportunityid,ownerid,Region,elgi_businessverticalname,Quotedate,
+Negotiationdate,elgi_losttoname,elgi_reasonname,elgi_remarks,elgi_numbers,elgi_pricewelosttheorderat,
+elgi_model,pincode,businessunitidname,elgi_customertypesalesname,elgi_cityname,elgi_statename,
+elgi_locationofcustomer,elgi_lineofbusinessname,Enq_Desc
+  From CRM_ENGINEER where convert(date,visitdate) between @fromdate and @todate 
+and (elgi_businessverticalname='Industrial' or elgi_businessverticalname='Blank'))a
+left join (select distinct  * From productive_Master)b	
+on a.VisitStatus=b.[CRM Visit Status])a
+
+
+delete from HF_VISITS where Account_ID is null
+
+
+INSERT INTO  HF_ENQ
+
+select * from (
+select 
+CustomerName,Account_ID,CityName,StateName,Customer_Cluster,Customer_Classification,Industry,
+Dealer,Dealer_Engineer,EnquiryID,CustomerVisitID,MonthstartDate,VisitDate,VisitStatus,
+EnquiryStage,EnquiryStatus,Probability,EstimatedCloseDate,ActualCloseDate,Createdon,
+OwnerName,SalesOffice,ItemCode,Product,priceperunit,quantity,baseamount,ProductCategory,
+opportunityid,ownerid,Region,elgi_businessverticalname,Quotedate,
+Negotiationdate,elgi_losttoname,elgi_reasonname,elgi_remarks,elgi_numbers,elgi_pricewelosttheorderat,
+elgi_model,pincode,businessunitidname,elgi_customertypesalesname,elgi_cityname,elgi_statename,
+elgi_locationofcustomer,elgi_lineofbusinessname,Enq_Desc
+,'' as type,'Dealer' as new,
+row_number()over(partition by account_id order by account_id) as distcust
+  From crm_dealer where convert(date,createdon) between @fromdate and @todate
+and (elgi_businessverticalname='Industrial' or elgi_businessverticalname='Blank')
+and ProductCategory in ('s0','s1','s2')
+
+union all
+
+select 
+CustomerName,Account_ID,CityName,StateName,Customer_Cluster,Customer_Classification,Industry,
+Dealer,Dealer_Engineer,EnquiryID,CustomerVisitID,MonthstartDate,VisitDate,VisitStatus,
+EnquiryStage,EnquiryStatus,Probability,EstimatedCloseDate,ActualCloseDate,Createdon,
+OwnerName,SalesOffice,ItemCode,Product,priceperunit,quantity,baseamount,ProductCategory,
+opportunityid,ownerid,Region,elgi_businessverticalname,Quotedate,
+Negotiationdate,elgi_losttoname,elgi_reasonname,elgi_remarks,elgi_numbers,elgi_pricewelosttheorderat,
+elgi_model,pincode,businessunitidname,elgi_customertypesalesname,elgi_cityname,elgi_statename,
+elgi_locationofcustomer,elgi_lineofbusinessname,Enq_Desc
+,'' as type,'Eng' as new ,
+row_number()over(partition by account_id order by account_id) as distcust
+ From crm_engineer where convert(date,createdon) between @fromdate and @todate
+and (elgi_businessverticalname='Industrial' or elgi_businessverticalname='Blank')
+and ProductCategory in ('s0','s1','s2'))a
+
+delete from  HF_ENQ where Account_ID is null
+
+
+INSERT INTO  HF_WON
+select * from (
+select 
+CustomerName,Account_ID,CityName,StateName,Customer_Cluster,Customer_Classification,Industry,
+Dealer,Dealer_Engineer,EnquiryID,CustomerVisitID,MonthstartDate,VisitDate,VisitStatus,
+EnquiryStage,EnquiryStatus,Probability,EstimatedCloseDate,ActualCloseDate,Createdon,
+OwnerName,SalesOffice,ItemCode,Product,priceperunit,quantity,baseamount,ProductCategory,
+opportunityid,ownerid,Region,elgi_businessverticalname,Quotedate,
+Negotiationdate,elgi_losttoname,elgi_reasonname,elgi_remarks,elgi_numbers,elgi_pricewelosttheorderat,
+elgi_model,pincode,businessunitidname,elgi_customertypesalesname,elgi_cityname,elgi_statename,
+elgi_locationofcustomer,elgi_lineofbusinessname,Enq_Desc
+,'' as type,'Dealer' as New,row_number()over(partition by account_id order by account_id) as distcust
+  From crm_dealer where convert(date,ActualCloseDate) between @fromdate and @todate
+and (elgi_businessverticalname='Industrial' or elgi_businessverticalname='Blank')
+and ProductCategory in ('s0','s1','s2')
+and EnquiryStatus='Won'
+
+union all
+
+select 
+CustomerName,Account_ID,CityName,StateName,Customer_Cluster,Customer_Classification,Industry,
+Dealer,Dealer_Engineer,EnquiryID,CustomerVisitID,MonthstartDate,VisitDate,VisitStatus,
+EnquiryStage,EnquiryStatus,Probability,EstimatedCloseDate,ActualCloseDate,Createdon,
+OwnerName,SalesOffice,ItemCode,Product,priceperunit,quantity,baseamount,ProductCategory,
+opportunityid,ownerid,Region,elgi_businessverticalname,Quotedate,
+Negotiationdate,elgi_losttoname,elgi_reasonname,elgi_remarks,elgi_numbers,elgi_pricewelosttheorderat,
+elgi_model,pincode,businessunitidname,elgi_customertypesalesname,elgi_cityname,elgi_statename,
+elgi_locationofcustomer,elgi_lineofbusinessname,Enq_Desc
+,'' as type,'Eng'as New,
+row_number()over(partition by account_id order by account_id) as distcust
+  From CRM_ENGINEER where convert(date,ActualCloseDate) between @fromdate and @todate
+and (elgi_businessverticalname='Industrial' or elgi_businessverticalname='Blank')
+and ProductCategory in ('s0','s1','s2')
+and EnquiryStatus='Won')a
+
+delete from  HF_WON where Account_ID is null
+
+update HF_VISITS set distcust=0 where distcust>1
+update HF_ENQ set distcust=0 where distcust>1
+update HF_WON set distcust=0 where distcust>1
+
+
+UPDATE HF_ENQ SET VisitDate=a.VisitDate from 
+(SELECT Account_ID,min(VisitDate)VisitDate fROM HF_VISITS where visitdate is not null and new='Dealer' group by Account_ID)a
+where HF_ENQ.Account_ID=a.Account_ID and new='Dealer'
+
+UPDATE HF_ENQ SET VisitDate=a.VisitDate from 
+(SELECT Account_ID,min(VisitDate)VisitDate fROM HF_VISITS where visitdate is not null and new='Eng' group by Account_ID)a
+where HF_ENQ.Account_ID=a.Account_ID and new='Eng'
+
+UPDATE HF_WON SET VisitDate=a.VisitDate from 
+(SELECT Account_ID,min(VisitDate)VisitDate fROM HF_VISITS where visitdate is not null and new='Dealer' group by Account_ID)a
+where HF_won.Account_ID=a.Account_ID and new='Dealer'
+
+UPDATE HF_WON SET VisitDate=a.VisitDate from 
+(SELECT Account_ID,min(VisitDate)VisitDate fROM HF_VISITS where visitdate is not null and new='Eng' group by Account_ID)a
+where HF_won.Account_ID=a.Account_ID and new='Eng'
+
+UPDATE HF_WON SET Createdon=a.Createdon from 
+(SELECT Account_ID,min(Createdon)Createdon fROM HF_ENQ where Createdon is not null and new='Dealer' group by Account_ID)a
+where HF_won.Account_ID=a.Account_ID and new='Dealer'
+
+UPDATE HF_WON SET Createdon=a.Createdon from 
+(SELECT Account_ID,min(Createdon)Createdon fROM HF_ENQ where Createdon is not null and new='Eng' group by Account_ID)a
+where HF_won.Account_ID=a.Account_ID and new='Eng'
+
+insert into Productive_Visits_through_visits -- Dealer
+select *,row_number()over(partition by account_id order by account_id) as distcust1 from(
+select *  From HF_VISITS  -- how many visits done to get 1191 customers through visits (link with 2.1)
+where Account_ID in (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+and  convert(date,VisitDate)<=convert(date,Createdon)and new='Dealer') and new='Dealer')a
+
+insert into Productive_Visits_through_visits -- Eng
+select *,row_number()over(partition by account_id order by account_id) as distcust1 from(
+select *  From HF_VISITS  -- how many visits done to get 1191 customers through visits (link with 2.1)
+where Account_ID in (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+and  convert(date,VisitDate)<=convert(date,Createdon)and new='Eng') and new='Eng')a
+
+update Productive_Visits_through_visits set distcust1=0 where distcust1>1
+
+insert into  Productive_Visits_Direct_Enquiries -- dealer
+
+select *,row_number()over(partition by account_id order by account_id) as distcust1 from(
+select *  From HF_VISITS  -- how many visits done to get 2922 customers through direct (link with 2.2)
+where Account_ID in (
+select distinct Account_ID from (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+ and  convert(date,VisitDate)>convert(date,Createdon) and new='Dealer'
+
+	union all
+	
+select distinct Account_ID From HF_ENQ
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Dealer')and new='Dealer')a) and new='Dealer'
+)a
+
+insert into  Productive_Visits_Direct_Enquiries -- Eng
+select *,row_number()over(partition by account_id order by account_id) as distcust1 from(
+select *  From HF_VISITS  -- how many visits done to get 2922 customers through direct (link with 2.2)
+where Account_ID in (
+select distinct Account_ID from (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+ and  convert(date,VisitDate)>convert(date,Createdon) and new='Eng'
+
+	union all
+	
+select distinct Account_ID From HF_ENQ
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Eng')and new='Eng')a) and new='Eng')a
+
+
+update Productive_Visits_Direct_Enquiries set distcust1=0 where distcust1>1
+
+------live
+
+--INSERT into CRM_HF_FINAL
+--select *  From (
+--select 'Total Visits' as Name,0 as Lines,0 Customers,0.0 as LinePercent,0.0 CustPercent,0 as ordr union all
+--select 'Productive Visits' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,1 as ordr union all
+--select 'Productive Visits – resulted in enquiries' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,2 as ordr union all
+--select 'Productive Visits for Direct Enquiries' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,3 as ordr union all
+--select 'Visits which were not productive' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,4 as ordr union all
+--select 'Productive Visits - requirement with in 12 months' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,5 as ordr union all
+--select 'Other productive visits(Courtesy, competition, reference, OEM,Payment etc.)' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,
+--6 as ordr union all
+--select 'Planned – Not Visited' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,7 as ordr union all
+
+--select 'Total Enquiries' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,8 as ordr union all
+--select 'Enquiries through visits(VE)' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,9 as ordr union all
+--select 'Direct Enquiries(DE)' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,10 as ordr union all
+
+--select 'Total Orders' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,11 as ordr union all
+--select 'Orders generated through Visits' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,12 as ordr union all
+--select 'Orders generated from direct enquiries' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,13 as ordr union all
+--select 'Total units sold' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,14 as ordr union all
+
+--select 'Enquiries lost' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,15 as ordr union all
+--select 'Enquiries open' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,16 as ordr union all 
+--select 'Visit per enquiry' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,17 as ordr union all 
+--select 'Visit per customer of enquiry gen&conv - VE' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,18 as ordr union all 
+--select 'Visit per customer of enquiry gen&conv-DE' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,19 as ordr union all 
+--select 'Conversion based on enquiry generated' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,20 as ordr union all 
+--select 'Conversion based on enquiry Closed' as Name,0 as Lines,0 Customers,0 as LinePercent,0 CustPercent,21 as ordr 
+--)a
+
+
+--	UPDATE CRM_HF_FINAL SET LINES=CNT FROM (select COUNT(*)AS CNT From hf_visits)A WHERE ordr=0
+--	UPDATE CRM_HF_FINAL SET CUSTOMERS=CNT FROM (select COUNT(DISTINCT Account_ID)AS CNT From hf_visits)A WHERE ordr=0
+
+--UPDATE CRM_HF_FINAL SET LINES=CNT FROM (select COUNT(*)AS CNT From hf_visits where type='Productive visit')A WHERE ordr=1
+--UPDATE CRM_HF_FINAL SET CUSTOMERS=CNT FROM (select COUNT(DISTINCT Account_ID)AS CNT From hf_visits where type='Productive visit')A WHERE ordr=1
+
+--UPDATE CRM_HF_FINAL SET LINES=CNT FROM (
+--select count(*)cnt From HF_VISITS  -- how many visits done to get 1191 customers through visits (link with 2.1)
+--where Account_ID in (
+--select distinct Account_ID From HF_ENQ
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+--and  convert(date,VisitDate)<=convert(date,Createdon)))a WHERE ordr=2
+
+
+--UPDATE CRM_HF_FINAL SET CUSTOMERS=CNT FROM (
+--select count(distinct Account_ID)cnt From HF_VISITS  -- how many visits done to get 1191 customers through visits (link with 2.1)
+--where Account_ID in (
+--select distinct Account_ID From HF_ENQ
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+--and  convert(date,VisitDate)<=convert(date,Createdon)))a WHERE ordr=2
+
+
+--UPDATE CRM_HF_FINAL SET lines=CNT FROM (
+--select count(*)cnt From HF_VISITS  -- how many visits done to get 2922 customers through direct (link with 2.2)
+--where Account_ID in (
+--select distinct Account_ID from (
+--select distinct Account_ID From HF_ENQ
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon)
+
+--	union all
+	
+--select distinct Account_ID From HF_ENQ
+--where Account_ID not in (select distinct Account_ID from HF_VISITS))a))a WHERE ordr=3
+
+
+--UPDATE CRM_HF_FINAL SET customers=CNT FROM (
+--select count(distinct Account_ID)cnt From HF_VISITS  -- how many visits done to get 2922 customers through direct (link with 2.2)
+--where Account_ID in (
+--select distinct Account_ID from (
+--select distinct Account_ID From HF_ENQ
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon)
+
+--	union all 
+
+--select distinct Account_ID From HF_ENQ
+--where Account_ID not in (select distinct Account_ID from HF_VISITS))a))a WHERE ordr=3
+
+--UPDATE CRM_HF_FINAL SET LINES=CNT FROM (select COUNT(*)AS CNT From hf_visits where type='UnProductive visit')A WHERE ordr=4
+--UPDATE CRM_HF_FINAL SET CUSTOMERS=CNT FROM (select COUNT(DISTINCT Account_ID)AS CNT From hf_visits where type='UnProductive visit')A WHERE ordr=4
+
+
+--UPDATE CRM_HF_FINAL SET LINES=CNT FROM (
+--select count(*)cnt From hf_visits 
+--where VisitStatus in ('Visited - Enquiry Received (maturing within 3 months)',
+--'Visited - Positive conversation',
+--'Visited - Positive Conversations, Potential Demand Identified',
+--'Visited - Positive conversations Customer',
+--'Visited - Positive conversations Units',
+--'Visited - Initial discussions positive, follow up required')
+--and (Account_ID not in (select distinct Account_ID from Productive_Visits_through_visits)
+--and  Account_ID not in (select distinct Account_ID from Productive_Visits_Direct_Enquiries))
+--)A WHERE ordr=5
+
+
+--UPDATE CRM_HF_FINAL SET CUSTOMERS=CNT FROM (
+--select count(distinct Account_ID)cnt From hf_visits 
+--where VisitStatus in ('Visited - Enquiry Received (maturing within 3 months)',
+--'Visited - Positive conversation',
+--'Visited - Positive Conversations, Potential Demand Identified',
+--'Visited - Positive conversations Customer',
+--'Visited - Positive conversations Units',
+--'Visited - Initial discussions positive, follow up required')
+--and (Account_ID not in (select distinct Account_ID from Productive_Visits_through_visits)
+--and  Account_ID not in (select distinct Account_ID from Productive_Visits_Direct_Enquiries))
+--)A WHERE ordr=5
+
+--UPDATE CRM_HF_FINAL SET LINES=CNT FROM (select COUNT(*)AS CNT From hf_visits where type='Not visited')A WHERE ordr=7
+--UPDATE CRM_HF_FINAL SET CUSTOMERS=CNT FROM (select COUNT(DISTINCT Account_ID)AS CNT From hf_visits where type='Not visited')A WHERE ordr=7
+
+--UPDATE CRM_HF_FINAL SET LINES=CNT FROM (select COUNT(*)AS CNT From HF_ENQ )A WHERE ordr=8
+--UPDATE CRM_HF_FINAL SET CUSTOMERS=CNT FROM (select COUNT(DISTINCT Account_ID)AS CNT From HF_ENQ )A WHERE ordr=8
+
+
+--UPDATE CRM_HF_FINAL SET LINES=CNT FROM (
+--select count(*)cnt From HF_ENQ  ----2.1 total enq throuth visits (visit<=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))A WHERE ordr=9
+
+
+--UPDATE CRM_HF_FINAL SET Customers=CNT FROM (
+--select count(distinct Account_ID)cnt From HF_ENQ  ----2.1 total enq throuth visits (visit<=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))A WHERE ordr=9
+
+
+--	UPDATE CRM_HF_FINAL SET LINES=CNT FROM (
+--select count(*)cnt From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon)
+	
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS))a)a  WHERE ordr=10
+
+
+--	UPDATE CRM_HF_FINAL SET customers=CNT FROM (
+--select count(distinct Account_ID)cnt From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon)
+	
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS))a)a  WHERE ordr=10
+
+
+--UPDATE CRM_HF_FINAL SET Lines=CNT FROM (select count(*)cnt From HF_ENQ where EnquiryStatus='won')a  WHERE ordr=11
+--UPDATE CRM_HF_FINAL SET customers=CNT FROM (select count(distinct Account_ID)cnt From HF_ENQ where EnquiryStatus='won')a  WHERE ordr=11
+
+
+--UPDATE CRM_HF_FINAL SET Lines=CNT FROM (
+--select count(*)cnt From HF_ENQ where EnquiryStatus='won' and 
+--Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))a  WHERE ordr=12
+
+--UPDATE CRM_HF_FINAL SET customers=CNT FROM (
+--select count(distinct Account_ID)cnt From HF_ENQ where EnquiryStatus='won' and 
+--Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))a  WHERE ordr=12
+
+
+--			UPDATE CRM_HF_FINAL SET Lines=CNT FROM (
+--select count(*)cnt From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon) and EnquiryStatus='won'
+
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS) and EnquiryStatus='won')a)a  WHERE ordr=13
+
+
+--		UPDATE CRM_HF_FINAL SET customers=CNT FROM (
+--select count(distinct Account_ID)cnt From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon) and EnquiryStatus='won'
+
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS) and EnquiryStatus='won')a)a  WHERE ordr=13
+
+
+--UPDATE CRM_HF_FINAL SET Lines=CNT FROM (select sum(quantity)cnt From HF_ENQ where EnquiryStatus='won')a  WHERE ordr=14
+
+--UPDATE CRM_HF_FINAL SET LinePercent= round(
+--(convert(float,(select Lines from CRM_HF_FINAL where ordr=14)) / convert(float,(select Lines from CRM_HF_FINAL where ordr=11))),2)
+--WHERE ordr=14
+
+
+--UPDATE CRM_HF_FINAL SET Lines=CNT FROM (select count(*)cnt From HF_ENQ where EnquiryStatus='lost')a  WHERE ordr=15
+
+--UPDATE CRM_HF_FINAL SET customers=CNT FROM (
+--select count(*)cnt From HF_ENQ where EnquiryStatus='lost' and 
+--Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))a  WHERE ordr=15
+
+--	UPDATE CRM_HF_FINAL SET LinePercent=CNT FROM (
+--select count(*)cnt From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon) and EnquiryStatus='lost'
+
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS) and EnquiryStatus='lost')a)a  WHERE ordr=15
+
+--UPDATE CRM_HF_FINAL SET CustPercent=CNT FROM (
+--select count(DISTINCT Account_ID)cnt From HF_ENQ where EnquiryStatus='lost' and 
+--Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))a  WHERE ordr=15
+
+--UPDATE CRM_HF_FINAL SET Lines=CNT FROM (select count(*)cnt From HF_ENQ where EnquiryStatus='open')a  WHERE ordr=16 -- total open enq
+
+--UPDATE CRM_HF_FINAL SET customers=CNT FROM ( -- enq from visit
+--select count(*)cnt From HF_ENQ where EnquiryStatus='open' and 
+--Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))a  WHERE ordr=16
+
+--	UPDATE CRM_HF_FINAL SET LinePercent=CNT FROM ( -- enq from direct
+--select count(*)cnt From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon) and EnquiryStatus='open'
+
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS) and EnquiryStatus='open')a)a  WHERE ordr=16
+
+--	UPDATE CRM_HF_FINAL SET CustPercent=CNT FROM ( -- distinct customers(enq from visit)
+--select count(distinct Account_ID)cnt From HF_ENQ where EnquiryStatus='open' and 
+--Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon))a  WHERE ordr=16
+
+
+--	UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=1)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=1
+
+--		UPDATE CRM_HF_FINAL SET CustPercent=
+--	round((select lines from CRM_HF_FINAL where ordr=1)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=1
+
+
+--	UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=2)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=2
+
+--		UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=3)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=3
+
+--		UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=4)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=4
+
+
+--			UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=5)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=5
+
+--				UPDATE CRM_HF_FINAL SET Lines=
+--	(select lines from CRM_HF_FINAL where ordr=1)-convert(float,(select lines from CRM_HF_FINAL where ordr=2))
+--	-convert(float,(select lines from CRM_HF_FINAL where ordr=5))
+--	WHERE ordr=6
+
+--					UPDATE CRM_HF_FINAL SET Customers=
+--	(select Customers from CRM_HF_FINAL where ordr=1)-convert(float,(select Customers from CRM_HF_FINAL where ordr=2))
+--	-convert(float,(select Customers from CRM_HF_FINAL where ordr=5))
+--	WHERE ordr=6
+
+--						UPDATE CRM_HF_FINAL SET LinePercent=
+--							round((select lines from CRM_HF_FINAL where ordr=6)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=6
+
+--							UPDATE CRM_HF_FINAL SET CustPercent=
+--							round((select Customers from CRM_HF_FINAL where ordr=6)/convert(float,(select Customers from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=6
+
+
+--			UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=7)/convert(float,(select lines from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=7
+	
+--		UPDATE CRM_HF_FINAL SET CustPercent=
+--	round((select Customers from CRM_HF_FINAL where ordr=2)/convert(float,(select Customers from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=2
+
+--		UPDATE CRM_HF_FINAL SET CustPercent=
+--	round((select Customers from CRM_HF_FINAL where ordr=3)/convert(float,(select Customers from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=3
+
+--		UPDATE CRM_HF_FINAL SET CustPercent=
+--	round((select Customers from CRM_HF_FINAL where ordr=4)/convert(float,(select Customers from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=4
+
+
+--			UPDATE CRM_HF_FINAL SET CustPercent=
+--	round((select Customers from CRM_HF_FINAL where ordr=5)/convert(float,(select Customers from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=5
+
+--			UPDATE CRM_HF_FINAL SET CustPercent=
+--	round((select Customers from CRM_HF_FINAL where ordr=7)/convert(float,(select Customers from CRM_HF_FINAL where ordr=0)),2)*100
+--	WHERE ordr=7
+
+--	------------------------------
+--		UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=8)/convert(float,(select Customers from CRM_HF_FINAL where ordr=8)),2)
+--	WHERE ordr=8
+
+--					UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=9)/convert(float,(select Customers from CRM_HF_FINAL where ordr=9)),2)
+--	WHERE ordr=9
+
+--					UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=10)/convert(float,(select Customers from CRM_HF_FINAL where ordr=10)),2)
+--	WHERE ordr=10
+
+--					UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=11)/convert(float,(select Customers from CRM_HF_FINAL where ordr=11)),2)
+--	WHERE ordr=11
+
+--					UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=12)/convert(float,(select Customers from CRM_HF_FINAL where ordr=12)),2)
+--	WHERE ordr=12
+
+--					UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=13)/convert(float,(select Customers from CRM_HF_FINAL where ordr=13)),2)
+--	WHERE ordr=13
+
+--						UPDATE CRM_HF_FINAL SET lines=
+--	round((select lines from CRM_HF_FINAL where ordr=2)/convert(float,(select lines from CRM_HF_FINAL where ordr=9)),1)
+--	WHERE ordr=17
+
+--							UPDATE CRM_HF_FINAL SET lines=
+--	round((select lines from CRM_HF_FINAL where ordr=2)/convert(float,(select customers from CRM_HF_FINAL where ordr=2)),1)
+--	WHERE ordr=18
+
+--							UPDATE CRM_HF_FINAL SET lines=
+--	round((select lines from CRM_HF_FINAL where ordr=3)/convert(float,(select customers from CRM_HF_FINAL where ordr=3)),1)
+--	WHERE ordr=19
+
+--								UPDATE CRM_HF_FINAL SET lines=
+--	round((select lines from CRM_HF_FINAL where ordr=11)/convert(float,(select lines from CRM_HF_FINAL where ordr=8)),2)*100
+--	WHERE ordr=20
+
+--									UPDATE CRM_HF_FINAL SET Customers=
+--	round((select lines from CRM_HF_FINAL where ordr=12)/convert(float,(select lines from CRM_HF_FINAL where ordr=9)),2)*100
+--	WHERE ordr=20
+
+--										UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=13)/convert(float,(select lines from CRM_HF_FINAL where ordr=10)),2)*100
+--	WHERE ordr=20
+		
+
+--										UPDATE CRM_HF_FINAL SET lines=
+--	round((select lines from CRM_HF_FINAL where ordr=11)/
+--	convert(float,((select lines from CRM_HF_FINAL where ordr=11)+(select lines from CRM_HF_FINAL where ordr=15))),2)*100
+--	WHERE ordr=21
+
+--											UPDATE CRM_HF_FINAL SET Customers=
+--	round((select lines from CRM_HF_FINAL where ordr=12)/
+--	convert(float,((select lines from CRM_HF_FINAL where ordr=12)+(select Customers from CRM_HF_FINAL where ordr=15))),2)*100
+--	WHERE ordr=21
+
+--												UPDATE CRM_HF_FINAL SET LinePercent=
+--	round((select lines from CRM_HF_FINAL where ordr=13)/
+--	convert(float,((select lines from CRM_HF_FINAL where ordr=13)+(select LinePercent from CRM_HF_FINAL where ordr=15))),2)*100
+--	WHERE ordr=21
+
+------ end live
+
+-------- FOR TESTING
+
+--truncate table HF_VISITS
+--truncate table HF_ENQ
+--truncate table HF_WON
+
+--INSERT INTO HF_VISITS(Account_ID,
+--ActualCloseDate,
+--baseamount,
+--CityName,
+--Createdon,
+--Customer_Classification,
+--Customer_Cluster,
+--CustomerName,
+--CustomerVisitID,
+--Dealer,
+--Dealer_Engineer,
+--elgi_businessverticalname,
+--elgi_customertypesalesname,
+--elgi_dealeroffername,
+--elgi_losttoname,
+--elgi_model,
+--elgi_numbers,
+--elgi_pricewelosttheorderat,
+--elgi_reasonname,
+--elgi_remarks,
+--EnquiryID,
+--EnquiryStage,
+--EnquiryStatus,
+--EstimatedCloseDate,
+--Industry,
+--ItemCode,
+--MonthstartDate,
+--Negotiationdate,
+--opportunityid,
+--ownerid,
+--OwnerName,
+--pincode,
+--priceperunit,
+--Probability,
+--Product,
+--ProductCategory,
+--quantity,
+--Quotedate,
+--Region,
+--SalesOffice,
+--StateName,
+--Type,
+--VisitDate,
+--VisitStatus)
+
+--SELECT Account_ID,
+--ActualCloseDate,
+--baseamount,
+--CityName,
+--Createdon,
+--Customer_Classification,
+--Customer_Cluster,
+--CustomerName,
+--CustomerVisitID,
+--Dealer,
+--Dealer_Engineer,
+--elgi_businessverticalname,
+--elgi_customertypesalesname,
+--elgi_dealeroffername,
+--elgi_losttoname,
+--elgi_model,
+--elgi_numbers,
+--elgi_pricewelosttheorderat,
+--elgi_reasonname,
+--elgi_remarks,
+--EnquiryID,
+--EnquiryStage,
+--EnquiryStatus,
+--EstimatedCloseDate,
+--Industry,
+--ItemCode,
+--MonthstartDate,
+--Negotiationdate,
+--opportunityid,
+--ownerid,
+--OwnerName,
+--pincode,
+--priceperunit,
+--Probability,
+--Product,
+--ProductCategory,
+--quantity,
+--Quotedate,
+--Region,
+--SalesOffice,
+--StateName,
+--Type,
+--VisitDate,
+--VisitStatus
+-- fROM HF_VISITS_bckup
+
+--	-----------
+
+	
+--INSERT INTO HF_ENQ(Account_ID,
+--ActualCloseDate,
+--baseamount,
+--CityName,
+--Createdon,
+--Customer_Classification,
+--Customer_Cluster,
+--CustomerName,
+--CustomerVisitID,
+--Dealer,
+--Dealer_Engineer,
+--elgi_businessverticalname,
+--elgi_customertypesalesname,
+--elgi_dealeroffername,
+--elgi_losttoname,
+--elgi_model,
+--elgi_numbers,
+--elgi_pricewelosttheorderat,
+--elgi_reasonname,
+--elgi_remarks,
+--EnquiryID,
+--EnquiryStage,
+--EnquiryStatus,
+--EstimatedCloseDate,
+--Industry,
+--ItemCode,
+--MonthstartDate,
+--Negotiationdate,
+--opportunityid,
+--ownerid,
+--OwnerName,
+--pincode,
+--priceperunit,
+--Probability,
+--Product,
+--ProductCategory,
+--quantity,
+--Quotedate,
+--Region,
+--SalesOffice,
+--StateName,
+--VisitDate,
+--VisitStatus)
+
+--SELECT Account_ID,
+--ActualCloseDate,
+--baseamount,
+--CityName,
+--Createdon,
+--Customer_Classification,
+--Customer_Cluster,
+--CustomerName,
+--CustomerVisitID,
+--Dealer,
+--Dealer_Engineer,
+--elgi_businessverticalname,
+--elgi_customertypesalesname,
+--elgi_dealeroffername,
+--elgi_losttoname,
+--elgi_model,
+--elgi_numbers,
+--elgi_pricewelosttheorderat,
+--elgi_reasonname,
+--elgi_remarks,
+--EnquiryID,
+--EnquiryStage,
+--EnquiryStatus,
+--EstimatedCloseDate,
+--Industry,
+--ItemCode,
+--MonthstartDate,
+--Negotiationdate,
+--opportunityid,
+--ownerid,
+--OwnerName,
+--pincode,
+--priceperunit,
+--Probability,
+--Product,
+--ProductCategory,
+--quantity,
+--Quotedate,
+--Region,
+--SalesOffice,
+--StateName,
+--VisitDate,
+--VisitStatus
+-- fROM HF_ENQ_bckup
+	
+----------------------
+
+--INSERT INTO HF_WON(Account_ID,
+--ActualCloseDate,
+--baseamount,
+--CityName,
+--Createdon,
+--Customer_Classification,
+--Customer_Cluster,
+--CustomerName,
+--CustomerVisitID,
+--Dealer,
+--Dealer_Engineer,
+--elgi_businessverticalname,
+--elgi_customertypesalesname,
+--elgi_dealeroffername,
+--elgi_losttoname,
+--elgi_model,
+--elgi_numbers,
+--elgi_pricewelosttheorderat,
+--elgi_reasonname,
+--elgi_remarks,
+--EnquiryID,
+--EnquiryStage,
+--EnquiryStatus,
+--EstimatedCloseDate,
+--Industry,
+--ItemCode,
+--MonthstartDate,
+--Negotiationdate,
+--opportunityid,
+--ownerid,
+--OwnerName,
+--pincode,
+--priceperunit,
+--Probability,
+--Product,
+--ProductCategory,
+--quantity,
+--Quotedate,
+--Region,
+--SalesOffice,
+--StateName,
+--VisitDate,
+--VisitStatus)
+
+--SELECT Account_ID,
+--ActualCloseDate,
+--baseamount,
+--CityName,
+--Createdon,
+--Customer_Classification,
+--Customer_Cluster,
+--CustomerName,
+--CustomerVisitID,
+--Dealer,
+--Dealer_Engineer,
+--elgi_businessverticalname,
+--elgi_customertypesalesname,
+--elgi_dealeroffername,
+--elgi_losttoname,
+--elgi_model,
+--elgi_numbers,
+--elgi_pricewelosttheorderat,
+--elgi_reasonname,
+--elgi_remarks,
+--EnquiryID,
+--EnquiryStage,
+--EnquiryStatus,
+--EstimatedCloseDate,
+--Industry,
+--ItemCode,
+--MonthstartDate,
+--Negotiationdate,
+--opportunityid,
+--ownerid,
+--OwnerName,
+--pincode,
+--priceperunit,
+--Probability,
+--Product,
+--ProductCategory,
+--quantity,
+--Quotedate,
+--Region,
+--SalesOffice,
+--StateName,
+--VisitDate,
+--VisitStatus
+-- fROM HF_WON_bckup
+
+--delete from HF_VISITS where Account_ID is null
+--delete from HF_ENQ where Account_ID is null
+--delete from HF_WON where Account_ID is nuLL
+
+
+
+--insert into drop table CRM_HF_FINAL_ver1
+--select *  From (
+--select 'Total Visits' as Name,1 as Lines,0 Customers,0.0 as LinePercent,0.0 CustPercent,0 as ordr,* From hf_visits union all
+
+--select 'Productive Visits' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,1 as ordr,*
+--From hf_visits where type='Productive visit' union all
+
+--select 'Productive Visits – resulted in enquiries' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,2 as ordr,* 
+--From HF_VISITS  -- how many visits done to get 1191 customers through visits (link with 2.1)
+--where Account_ID in (
+--select distinct Account_ID From HF_ENQ
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+--and  convert(date,VisitDate)<=convert(date,Createdon)) union all
+
+
+--select 'Productive Visits for Direct Enquiries' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,3 as ordr,* 
+-- From HF_VISITS  -- how many visits done to get 2922 customers through direct (link with 2.2)
+--where Account_ID in (
+--select distinct Account_ID from (
+--select distinct Account_ID From HF_ENQ
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon)
+
+--	union all
+	
+--select distinct Account_ID From HF_ENQ
+--where Account_ID not in (select distinct Account_ID from HF_VISITS))a) union all
+
+
+--select 'Visits which were not productive' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,4 as ordr,*
+--From hf_visits where type='UnProductive visit' union all
+
+
+--select 'Productive Visits - requirement with in 12 months' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,5 as ordr,* 
+--From hf_visits 
+--where VisitStatus in ('Visited - Enquiry Received (maturing within 3 months)',
+--'Visited - Positive conversation',
+--'Visited - Positive Conversations, Potential Demand Identified',
+--'Visited - Positive conversations Customer',
+--'Visited - Positive conversations Units',
+--'Visited - Initial discussions positive, follow up required')
+--and (Account_ID not in (select distinct Account_ID from Productive_Visits_through_visits)
+--and  Account_ID not in (select distinct Account_ID from Productive_Visits_Direct_Enquiries)) union all
+
+----select 'Other productive visits(Courtesy, competition, reference, OEM,Payment etc.)' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,6 as ordr union all
+
+--select 'Planned – Not Visited' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,7 as ordr,* 
+--From hf_visits where type='Not visited' union all
+
+--select 'Total Enquiries' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,8 as ordr,* From HF_ENQ union all
+
+--select 'Enquiries through visits(VE)' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,9 as ordr,* 
+--From HF_ENQ  ----2.1 total enq throuth visits (visit<=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon) union all
+
+--select 'Direct Enquiries(DE)' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,10 as ordr,*
+-- From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon)
+	
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS))a union all
+
+--select 'Total Orders' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,11 as ordr,* From HF_ENQ where EnquiryStatus='won'
+-- union all
+--select 'Orders generated through Visits' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,12 as ordr,*
+--From HF_ENQ where EnquiryStatus='won' and 
+--Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)<=convert(date,Createdon) union all
+
+
+--select 'Orders generated from direct enquiries' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,13 as ordr,*
+-- From (
+--select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+--where Account_ID in (select distinct Account_ID from HF_VISITS)
+-- and  convert(date,VisitDate)>convert(date,Createdon) and EnquiryStatus='won'
+
+--	union all
+--select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+--where Account_ID not in (select distinct Account_ID from HF_VISITS) and EnquiryStatus='won')a
+-- union all
+
+--select 'Total units sold' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,14 as ordr,*
+--from HF_ENQ where EnquiryStatus='won' union all
+
+--select 'Enquiries lost' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,15 as ordr,*
+--From HF_ENQ where EnquiryStatus='lost' union all
+
+--select 'Enquiries open' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,16 as ordr,*
+--From HF_ENQ where EnquiryStatus='open' 
+
+--select 'Visit per enquiry' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,17 as ordr union all 
+--select 'Visit per customer of enquiry gen&conv - VE' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,18 as ordr union all 
+--select 'Visit per customer of enquiry gen&conv-DE' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,19 as ordr union all 
+--select 'Conversion based on enquiry generated' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,20 as ordr union all 
+--select 'Conversion based on enquiry Closed' as Name,1 as Lines,0 Customers,0 as LinePercent,0 CustPercent,21 as ordr 
+
+insert into CRM_HF_FINAL_ver1 
+select *,'Dealer' as new From (
+select 'Total Visits' as Name,count(account_id) as Lines,sum(distcust) Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,0 as ordr
+,visitdate From hf_visits where new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --1
+
+select 'Productive Visits' as Name,count(account_id) as Lines,sum(distcust) Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,1 as ordr
+,visitdate From hf_visits where type='Productive visit' and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --2
+
+select 'Productive Visits – resulted in enquiries' as Name,count(account_id) as Lines,sum(distcust12)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,2 as ordr
+,visitdate from(
+select *,case when distcust1>1 then 0 else 1 end as distcust12 from(
+select *,row_number()over(partition by account_id order by account_id) as distcust1 From hf_visits
+where Account_ID in (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+and  convert(date,VisitDate)<=convert(date,Createdon)and new='Dealer')and new='Dealer')a)a
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --3
+
+select 'Productive Visits for Direct Enquiries' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,3 as ordr
+,visitdate  From HF_VISITS  -- how many visits done to get 2922 customers through direct (link with 2.2)
+where Account_ID in (
+select distinct Account_ID from (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+ and  convert(date,VisitDate)>convert(date,Createdon) and new='Dealer'
+
+	union all
+	
+select distinct Account_ID From HF_ENQ
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Dealer')and new='Dealer')a)and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all -- 4
+
+
+select 'Visits which were not productive' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,4 as ordr
+,visitdate From hf_visits where type='UnProductive visit' and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --5
+
+select 'Productive Visits - requirement with in 12 months' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,5 as ordr
+,visitdate From hf_visits 
+where VisitStatus in ('Visited - Enquiry Received (maturing within 3 months)',
+'Visited - Positive conversation',
+'Visited - Positive Conversations, Potential Demand Identified',
+'Visited - Positive conversations Customer',
+'Visited - Positive conversations Units',
+'Visited - Initial discussions positive, follow up required',
+'Visited - Visit Successful, Potential Found') and new='Dealer'
+and (Account_ID not in (select distinct Account_ID from Productive_Visits_through_visits)
+and  Account_ID not in (select distinct Account_ID from Productive_Visits_Direct_Enquiries))
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all --7
+
+select 'Planned – Not Visited' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,7 as ordr
+,visitdate From hf_visits where type='Not visited' and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all  --8
+
+select 'Total Enquiries' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,8 as ordr
+,visitdate From HF_ENQ where new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --9
+
+select 'Enquiries through visits(VE)' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,9 as ordr
+,visitdate From HF_ENQ  ----2.1 total enq throuth visits (visit<=enq)
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+and  convert(date,VisitDate)<=convert(date,Createdon) and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+	
+union all --10
+
+select 'Direct Enquiries(DE)' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,10 as ordr
+,visitdate  From (
+select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+ and  convert(date,VisitDate)>convert(date,Createdon) and new='Dealer'
+	
+	union all
+select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Dealer')and new='Dealer')a
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --11
+
+select 'Total Orders' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,11 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='won' and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --12
+
+select 'Orders generated through Visits' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,12 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='won' and 
+Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+and  convert(date,VisitDate)<=convert(date,Createdon) and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --13
+
+select 'Orders generated from direct enquiries' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,13 as ordr
+,visitdate  From (
+select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Dealer')
+ and  convert(date,VisitDate)>convert(date,Createdon) and EnquiryStatus='won' and new='Dealer'
+
+	union all
+select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Dealer') and EnquiryStatus='won' and new='Dealer')a
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all  --14
+
+select 'Total units sold' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,14	 as ordr
+,visitdate from HF_ENQ where EnquiryStatus='won' and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --15
+
+select 'Enquiries lost' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,15	 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='lost' and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --16
+
+select 'Enquiries open' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,16	 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='open' and new='Dealer'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+)a
+
+---------------- end Dealer
+
+-------------------------- start engineer
+
+insert into CRM_HF_FINAL_ver1 
+select *,'Eng' as new From (
+select 'Total Visits' as Name,count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,0 as ordr
+,visitdate From hf_visits where new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --1
+
+select 'Productive Visits' as Name,count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,1 as ordr
+,visitdate From hf_visits where type='Productive visit' and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --2
+
+select 'Productive Visits – resulted in enquiries' as Name,count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,2 as ordr
+,visitdate From hf_visits
+where Account_ID in (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+and  convert(date,VisitDate)<=convert(date,Createdon)and new='Eng')and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --3
+
+select 'Productive Visits for Direct Enquiries' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,3 as ordr
+,visitdate  From HF_VISITS  -- how many visits done to get 2922 customers through direct (link with 2.2)
+where Account_ID in (
+select distinct Account_ID from (
+select distinct Account_ID From HF_ENQ
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+ and  convert(date,VisitDate)>convert(date,Createdon) and new='Eng'
+
+	union all
+	
+select distinct Account_ID From HF_ENQ
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Eng')and new='Eng')a)and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all -- 4
+
+
+select 'Visits which were not productive' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,4 as ordr
+,visitdate From hf_visits where type='UnProductive visit' and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --5
+
+select 'Productive Visits - requirement with in 12 months' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,5 as ordr
+,visitdate From hf_visits 
+where VisitStatus in ('Visited - Enquiry Received (maturing within 3 months)',
+'Visited - Positive conversation',
+'Visited - Positive Conversations, Potential Demand Identified',
+'Visited - Positive conversations Customer',
+'Visited - Positive conversations Units',
+'Visited - Initial discussions positive, follow up required',
+'Visited - Visit Successful, Potential Found') and new='Eng'
+and (Account_ID not in (select distinct Account_ID from Productive_Visits_through_visits)
+and  Account_ID not in (select distinct Account_ID from Productive_Visits_Direct_Enquiries))
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all --7
+
+select 'Planned – Not Visited' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,7 as ordr
+,visitdate From hf_visits where type='Not visited' and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all  --8
+
+select 'Total Enquiries' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,8 as ordr
+,visitdate From HF_ENQ where new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all --9
+
+select 'Enquiries through visits(VE)' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,9 as ordr
+,visitdate From HF_ENQ  ----2.1 total enq throuth visits (visit<=enq)
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+and  convert(date,VisitDate)<=convert(date,Createdon) and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+	
+union all --10
+
+select 'Direct Enquiries(DE)' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,10 as ordr
+,visitdate  From (
+select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+ and  convert(date,VisitDate)>convert(date,Createdon) and new='Eng'
+	
+	union all
+select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Eng')and new='Eng')a
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --11
+
+select 'Total Orders' as Name,
+count(account_id) as Lines,sum(distcust)Customers,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,11 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='won' and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --12
+
+select 'Orders generated through Visits' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,12 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='won' and 
+Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+and  convert(date,VisitDate)<=convert(date,Createdon) and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --13
+
+select 'Orders generated from direct enquiries' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,13 as ordr
+,visitdate  From (
+select * From HF_ENQ   ----2.2 total direct enq throuth visits (visit>=enq)
+where Account_ID in (select distinct Account_ID from HF_VISITS where new='Eng')
+ and  convert(date,VisitDate)>convert(date,Createdon) and EnquiryStatus='won' and new='Eng'
+
+	union all
+select * From HF_ENQ  ----2.2.1 total direct enq not throuth visits
+where Account_ID not in (select distinct Account_ID from HF_VISITS where new='Eng') and EnquiryStatus='won' and new='Eng')a
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+
+union all  --14
+
+select 'Total units sold' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,14	 as ordr
+,visitdate from HF_ENQ where EnquiryStatus='won' and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --15
+
+select 'Enquiries lost' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,15	 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='lost' and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+
+union all  --16
+
+select 'Enquiries open' as Name,count(account_id) as Lines,sum(distcust)Customers
+,0 as LinePercent,0 CustPercent,
+elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,16	 as ordr
+,visitdate From HF_ENQ where EnquiryStatus='open' and new='Eng'
+group by elgi_businessverticalname,Region,Dealer,Dealer_Engineer,Customer_Classification,Industry,ProductCategory,StateName,CityName,visitdate 
+)a
+
+
+------------------------ end engineer
+
+insert into CRM_HF_FINAL_ver1  -- Dealer
+select *,'Dealer' From (
+select 'Other productive visits(Courtesy, competition, reference, OEM,Payment etc.)' as Name,
+sum(lines)lines,sum(customers)as customers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,6 as ordr,visitdate From (
+select lines,customers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate from CRM_HF_FINAL_ver1 where ordr=1 and new='Dealer' union all
+
+select -(lines)lines,-(customers)customers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate from CRM_HF_FINAL_ver1 where ordr=2 and new='Dealer'union all
+
+select -(lines)lines,-(customers)ustomers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate from CRM_HF_FINAL_ver1 where ordr=5 and new='Dealer')a
+group by 
+LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate 
+)a
+
+
+insert into CRM_HF_FINAL_ver1  -- Eng
+select *,'Eng' From (
+select 'Other productive visits(Courtesy, competition, reference, OEM,Payment etc.)' as Name,
+sum(lines)lines,sum(customers)as customers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,6 as ordr,visitdate From (
+select lines,customers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate from CRM_HF_FINAL_ver1 where ordr=1 and new='Eng' union all
+
+select -(lines)lines,-(customers)customers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate from CRM_HF_FINAL_ver1 where ordr=2 and new='Eng'union all
+
+select -(lines)lines,-(customers)ustomers,LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate from CRM_HF_FINAL_ver1 where ordr=5 and new='Eng')a
+group by 
+LinePercent,CustPercent,elgi_businessverticalname,region,dealer,Dealer_Engineer,Customer_Classification,
+Industry,ProductCategory,StateName,cityname,visitdate 
+)a
+
+
+update CRM_HF_FINAL_ver1 set elgi_businessverticalname='Blank' where (elgi_businessverticalname is null or 
+len(elgi_businessverticalname)<2)
+update CRM_HF_FINAL_ver1 set Region='Blank' where (Region is null or len(Region)<2)
+--update CRM_HF_FINAL_ver1 set pincode='Blank' where pincode is null or len(pincode)<5
+update CRM_HF_FINAL_ver1 set Dealer='Blank' where (Dealer is null or len(Dealer)<2)
+update CRM_HF_FINAL_ver1 set Dealer_Engineer='Blank' where (Dealer_Engineer is null or len(Dealer_Engineer)<2)
+update CRM_HF_FINAL_ver1 set Customer_Classification='Blank'  where (Customer_Classification is null or len(Customer_Classification)<2)
+
+update CRM_HF_FINAL_ver1 set Industry='Blank' where (Industry is null or len(Industry)<2)
+update CRM_HF_FINAL_ver1 set ProductCategory='Blank' where (ProductCategory is null or len(ProductCategory)<2)
+update CRM_HF_FINAL_ver1 set StateName='Blank' where (StateName is null or len(StateName)<2)
+update CRM_HF_FINAL_ver1 set CityName='Blank' where (CityName is null or len(CityName)<2)
+
+
+
+
+SELECT * fROM CRM_HF_FINAL
+select name,sum(lines)lines,sum(customers)as cust,ordr,new from CRM_HF_FINAL_ver1 where new='Dealer'
+group by name,ordr,new order by ordr
+
+end
+
+
+
+
+Completion time: 2025-11-19T09:22:06.3411873+05:30

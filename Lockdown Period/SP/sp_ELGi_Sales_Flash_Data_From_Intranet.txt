@@ -1,0 +1,209 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_Sales_Flash_Data_From_Intranet
+--select * from ELGi_Sales_Flash_data where organ in ('BELAIR','BRAZIL','PATTONS','ROTAIR','USA') order by FinYear,FinMonthnum,organ
+
+CREATE proc [dbo].[sp_ELGi_Sales_Flash_Data_From_Intranet]
+
+as
+
+begin
+
+Delete from ELGi_Sales_Flash_data
+where organ in ('BELAIR','BRAZIL','PATTONS','ROTAIR','USA','ATS')
+
+
+insert into ELGi_Sales_Flash_data(organ,user_names,Division,month_budget,month_actuals,
+last_month_actuals,ytd_budget,ytd_actuals,ly_ytd_actuals,ly_month_actuals,FinYear,FinMonthnum)
+select organ,user_names,Division,
+sum(month_budget) as month_budget,
+sum(month_actuals) as month_actuals,
+sum(last_month_actuals) as last_month_actuals,
+sum(ytd_budget) as ytd_budget,
+sum(ytd_actuals) as ytd_actuals,
+sum(ly_ytd_actuals) as ly_ytd_actuals,
+sum(ly_month_actuals) as ly_month_actuals,
+FinYear,FinMonthnum
+from (
+
+
+--Current Data
+select organ,user_names,Division,
+month_budget,month_actuals,last_month_actuals,
+ytd_budget,ytd_actuals,ly_ytd_actuals,ly_month_actuals,
+case when monthno between 1 and 3 then yyyy-1 else yyyy end as FinYear,
+case when monthno between 1 and 3 then monthno+9 else monthno-3 end as FinMonthnum
+from(
+select region as organ,
+'' as user_names,
+'' as division,
+curr2_ftmbudget as month_budget,
+curr2_ftmactual as month_actuals,
+0 as last_month_actuals,
+curr2_ytdbudget as ytd_budget,
+curr2_ytdactual as ytd_actuals,
+curr2_ytdyractual as ly_ytd_actuals,
+curr2_ftmyractual as ly_month_actuals,
+case 
+when month like '%Jan%' then 1
+when month like '%feb%' then 2 
+when month like '%mar%' then 3
+when month like '%apr%' then 4
+when month like '%may%' then 5
+when month like '%jun%' then 6 
+when month like '%jul%' then 7
+when month like '%aug%' then 8
+when month like '%sep%' then 9
+when month like '%oct%' then 10
+when month like '%nov%' then 11
+when month like '%dec%' then 12
+end as monthno,yyyy
+from sms_sales_entry
+)a
+where organ not in ('COSEA','ID','INDIA','SAAME')
+
+union all
+
+--History Data
+select organ,'','',month_budget,month_actuals,
+last_month_actuals,ytd_budget,ytd_actuals,ly_ytd_actuals,ly_month_actuals,
+FinYear,FinMonthnum 
+from(
+select * ,
+case when monthno between 1 and 3 then monthno+9 else monthno-3 end as FinMonthnum,
+case when monthno between 1 and 3 then yyyy-1 else yyyy end as FinYear
+from (
+select region as organ,
+curr2_ftmbudget as month_budget,
+curr2_ftmactual as month_actuals,
+0 as last_month_actuals,
+curr2_ytdbudget as ytd_budget,
+curr2_ytdactual as ytd_actuals,
+curr2_ytdyractual as ly_ytd_actuals,
+curr2_ftmyractual as ly_month_actuals,
+yyyy,month,case 
+when month like '%Jan%' then 1
+when month like '%feb%' then 2 
+when month like '%mar%' then 3
+when month like '%apr%' then 4
+when month like '%may%' then 5
+when month like '%jun%' then 6 
+when month like '%jul%' then 7
+when month like '%aug%' then 8
+when month like '%sep%' then 9
+when month like '%oct%' then 10
+when month like '%nov%' then 11
+when month like '%dec%' then 12
+end as monthno from sms_sales_entry_history
+--where month not in (select distinct month from sms_sales_entry )
+--and yyyy not in (select distinct yyyy from sms_sales_entry )
+)a
+)b
+where organ not in ('COSEA','ID','INDIA','SAAME')
+
+)ab
+group by organ,user_names,division,FinYear,FinMonthnum
+
+
+
+--Updating Last_month_Actuals Column for each organ
+
+
+declare @organ varchar(25)
+declare @FinMonthnum int
+declare @FinYear int
+declare @organCount int
+declare @FinYearCount int
+declare @FinMonthnumCount int
+declare @count1 int
+declare @count2 int
+declare @count3 int
+
+
+set @count1 =1
+set @count2 =1
+set @count3 =1
+
+set @organCount=(select count (distinct organ) from elgi_sales_flash_data
+where organ in ('belair','brazil','pattons','rotair','usa'))
+
+set @FinYearCount=(select count (distinct FinYear) from elgi_sales_flash_data
+where organ in ('belair','brazil','pattons','rotair','usa'))
+
+
+while (@count1<=@organCount)
+
+Begin
+
+set @organ=(select organ from (
+select organ,row_number() over (order by organ) OrganRank from (
+select distinct organ from elgi_sales_flash_data
+where organ in ('belair','brazil','pattons','rotair','usa'))a)b
+where OrganRank=@count1)
+
+set @count2=1
+
+while (@count2<=@FinYearCount)
+
+Begin
+
+set @FinYear=(select FinYear from (
+select FinYear,row_number() over (order by FinYear) FinYearRank from (
+select distinct FinYear from elgi_sales_flash_data
+where organ in ('belair','brazil','pattons','rotair','usa'))a)b
+where FinYearRank=@count2)
+
+set @count3=1
+set @FinMonthnumCount=(select count (distinct FinMonthnum) from elgi_sales_flash_data
+where organ in ('belair','brazil','pattons','rotair','usa')
+and FinYear=@FinYear)
+
+
+while (@count3<=@FinMonthnumCount)
+
+Begin
+
+set @FinMonthnum=(select finmonthnum from (
+select finmonthnum,row_number() over (order by finmonthnum) finmonthnumrank from (
+select distinct finmonthnum from elgi_sales_flash_data
+where organ in ('belair','brazil','pattons','rotair','usa')
+and FinYear=@FinYear)a)b
+where finmonthnumrank=@count3)
+
+
+update   elgi_sales_flash_data set last_month_actuals=a.month_actuals
+from 
+(
+select month_actuals from 
+elgi_sales_flash_data
+where organ =@organ
+and finmonthnum=(case when @FinMonthnum-1=0 then 12 else @FinMonthnum-1 end)
+and FinYear=(case when @FinMonthnum-1=0 then @FinYear-1 else @FinYear end)
+)a
+where organ =@organ
+and finmonthnum=@FinMonthnum
+and FinYear=@FinYear
+
+
+
+set @count3 =@count3+1
+
+end
+
+set @count2 =@count2+1
+
+end
+
+set @count1 =@count1+1
+
+end
+
+
+
+
+
+end
+
+
+
+Completion time: 2025-11-19T09:53:59.7530356+05:30

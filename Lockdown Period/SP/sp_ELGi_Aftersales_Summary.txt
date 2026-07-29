@@ -1,0 +1,153 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_Aftersales_Summary
+
+CREATE proc [sp_ELGi_Aftersales_Summary] as 
+begin
+
+
+Declare @FromDate date = case when month(getdate()-1)<4 then convert(varchar,year(getdate()-1)-1)+'-04-01' else convert(varchar,year(getdate()-1))+'-04-01' end
+--select @FromDate
+Declare @ToDate date =convert(date,getdate()-1)
+
+Truncate Table ELGi_Aftersales_Summary
+
+--Alter Table ELGi_Aftersales_Summary alter column YTDFlag varchar(10)
+
+Insert into ELGi_Aftersales_Summary(Organ,Vertical1,zone,areacode,areaname,dpst,dpstname,
+year,Month,Monthname,MonthName1,AssesValue,Rnk1,YTDFlag)
+select Case When areaname = 'AUSTRALIA' Then 'AUSTRALIA' else Organ End as Organ,Vertical1,zone,areacode,areaname,dpst,dpstname,
+year(Date) year,Month,Monthaname,
+substring(Monthaname,1,3)+'-'+substring(convert(varchar,year(Date)),3,2) as MonthName1,
+sum(AssesValue) AssesValue,
+row_number() over(partition by Organ,dpst,areacode,year(Date),Month 
+order by Organ,dpst,areacode,year(Date),Month) as Rnk1,
+YTDFlag
+from (select *,case when date between @FromDate and eomonth(getdate()-1) then 'True' else 'False' end as YTDFlag
+From sales_report_LN) a
+where Dpst in (select dpstcode from vw_AfterSales_to_Cust_DPST)
+and vertical1<>'OSEA UNITS'
+and convert(date,a.[Date]) between @FromDate and @ToDate
+group by Organ,Vertical1,zone,areacode,areaname,dpst,dpstname,
+year(Date),Month,Monthaname,YTDFlag
+
+insert into ELGi_Aftersales_Summary(dpst,areacode,year,Month,Budget,YTDFlag)
+select Dpst,Area,year(date) as year,month(date) as month,
+Target as Budget,YTDFlag
+from
+(select *,case when date<=eomonth(getdate()-1) then 'True' else 'False' end as YTDFlag from sales_budget
+where Dpst in (select dpstcode from vw_AfterSales_to_Cust_DPST)
+--and convert(date,a.[Date]) BETWEEN @FromDate AND @ToDate
+and convert(date,[Date])>=@FromDate
+)a
+
+
+--insert into ELGi_Aftersales_Summary(dpst,areacode,year,Month,Budget,YTDFlag)
+--select DPST,AREACODE,FinYear,'4', from Australia_Budget_Master
+
+
+
+
+
+update ELGi_Aftersales_Summary set organ=a.organ,
+Vertical1=a.Vertical1,zone=a.zone,areaname=a.areaname,dpstname=a.dpstname
+from (select distinct dpst,areacode,organ,Vertical1,zone,areaname,dpstname from ELGi_Aftersales_Summary
+where organ is not null
+)a
+where ELGi_Aftersales_Summary.dpst=a.dpst
+and ELGi_Aftersales_Summary.areacode=a.areacode
+and ELGi_Aftersales_Summary.organ is null
+
+
+update ELGi_Aftersales_Summary set organ=a.organ,
+Vertical1=a.Vertical1,zone=a.zone,areaname=a.areaname,dpstname=a.dpstname
+from (select distinct dpstcode,areacode,organ,Vertical1,zone,areaname,dpstname from vw_salesmapping_master
+where organ is not null
+)a
+where ELGi_Aftersales_Summary.dpst=a.dpstcode
+and ELGi_Aftersales_Summary.areacode=a.areacode
+and ELGi_Aftersales_Summary.organ is null
+
+
+
+--Alter table ELGi_Aftersales_Summary add OrganOrder int
+
+
+--delete from ELGi_Aftersales_Summary where vertical1='OSEA UNITS'
+
+--select * from ELGi_Aftersales_Summary
+----insert into ELGi_Aftersales_Summary(Organ,Vertical1,zone,
+----areacode,areaname,dpst,dpstname,year,Month,Monthname,MonthName1,
+----AssesValue,Rnk1,Budget,YTDFlag,OrganOrder)
+--select a.Region,b.Item_Category,
+--year(a.InvDate) as CalYear,
+--month(a.InvDate) as CalMonth,
+--a.Amount,
+--case when a.InvDate between @FromDate and eomonth(getdate()-1) then 'True' else 'False' end as YTDFlag
+--from [ELGI_US].dbo.vw_Sales_data_US a
+--left outer join (select distinct Region,Item,Item_Category from [ELGi_SOP].dbo.TPL_Master_REF
+--where Item_Category in ('Aftermarket','Accessories')
+--) b
+--on a.Region=b.Region
+--and ltrim(rtrim(a.ItemCode))=ltrim(rtrim(b.Item))
+--left outer join (select * from [ELGI_US].dbo.LN_tcibd001
+
+--where a.Region in ('USA','Europe','Brazil')
+--and convert(date,a.[InvDate]) between @FromDate and @ToDate
+
+
+update ELGi_Aftersales_Summary set Monthname=Datename(mm,dateadd(mm,Month,-1)) where Monthname is null
+update ELGi_Aftersales_Summary set Monthname1=substring(Monthname,1,3)+'-'+substring(convert(varchar,year),3,2) where Monthname1 is null
+
+
+
+update ELGi_Aftersales_Summary set OrganOrder=1 where Organ='India'
+update ELGi_Aftersales_Summary set OrganOrder=2 where Organ='SAAME'
+update ELGi_Aftersales_Summary set OrganOrder=3 where Organ='COSEA'
+update ELGi_Aftersales_Summary set OrganOrder=4 where Organ='ID'
+update ELGi_Aftersales_Summary set OrganOrder=5 where Organ='AUSTRALIA'
+update ELGi_Aftersales_Summary set OrganOrder=6 where Organ='USA'
+update ELGi_Aftersales_Summary set OrganOrder=7 where Organ='Europe'
+update ELGi_Aftersales_Summary set OrganOrder=8 where Organ='Brazil'
+
+
+--select * into ELGi_Aftersales_Summary from (
+--select a.*,b.Budget from 
+--(select Organ,Vertical1,zone,areacode,areaname,dpst,dpstname,
+--year(Date) year,Month,Monthaname,
+--substring(Monthaname,1,3)+'-'+substring(convert(varchar,year(Date)),3,2) as MonthName1,
+--sum(AssesValue) AssesValue,
+--row_number() over(partition by Organ,dpst,areacode,year(Date),Month 
+--order by Organ,dpst,areacode,year(Date),Month) as Rnk1
+--From sales_report_LN a
+--where --Dpst in (@DPST1) 
+----and 
+--convert(date,a.[Date]) BETWEEN @FromDate AND @ToDate
+----and dpst in ('90010') and areacode in ('031')
+--group by Organ,Vertical1,zone,areacode,areaname,dpst,dpstname,
+--year(Date),Month,Monthaname)a
+--left outer join (
+--select Organ,Dpst,Area,year(date) as year,month(date) as month,
+--Target as Budget
+--from sales_budget
+--where --Dpst in (@DPST1) 
+----and 
+--convert(date,[Date]) BETWEEN @FromDate AND @ToDate
+
+--)b
+--on a.dpst=b.dpst
+--and a.areacode=b.area
+--and a.year=b.year
+--and a.month=b.month
+--)a
+
+end
+
+Select * from ELGi_Aftersales_Summary
+--where organ is null
+
+
+
+
+
+Completion time: 2025-11-19T09:44:44.9220044+05:30

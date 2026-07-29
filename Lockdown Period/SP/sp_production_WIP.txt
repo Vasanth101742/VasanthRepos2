@@ -1,0 +1,65 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_production_WIP
+CREATE proc sp_production_WIP as
+begin
+
+Truncate table production_WIP
+
+--select * into production_WIP from [bisdb].elgi_ln.dbo.production_WIP
+--select * into production_WIP_History from [bisdb].elgi_ln.dbo.production_WIP_History
+
+
+--Alter table production_WIP add EntryDate date
+--Alter table production_WIP add Rnk1 int
+
+insert into production_WIP(company,PDNO,ITEM,ItemDescr,--Qty,
+Value,EntryDate,Rnk1)
+--select * into production_WIP from (
+select company,PDNO,ITEM,ItemDescr,--CITM,CDSCA,
+--sum(QSKT) Qty,
+sum(Amnt4)/1000000 as Value,
+convert(date,getdate()-1) as EntryDate,
+row_number() over (partition by company,PDNO order by company,PDNO) as Rnk1
+from InventoryDetails
+where INVType='WIP'
+and PDNO is not null
+and company=401
+group by company,PDNO,ITEM,ItemDescr--,CITM,CDSCA
+--)a
+
+
+update production_WIP set Qty=a.Planned_qty
+from (select company,Prodorderno,sum(Planned_qty) as Planned_qty
+from ELGi_production_details where Planned_qty<>0 and company=401
+group by company,Prodorderno)a
+where production_WIP.company=a.company
+and production_WIP.PDNO=a.Prodorderno
+
+update production_WIP set Qty=null where rnk1>1
+
+if exists(select * from production_WIP where entrydate=convert(date,getdate()-1))
+begin
+Delete from production_WIP_History  where entrydate=convert(date,getdate()-1)
+end
+
+insert into production_WIP_History(company,PDNO,ITEM,ItemDescr,Qty,Value,EntryDate)
+select company,PDNO,ITEM,ItemDescr,Qty,Value,EntryDate from production_WIP
+
+
+end 
+
+select EntryDate,sum(value) value from production_WIP_History
+group by EntryDate
+order by EntryDate
+--select * into production_WIP_History from production_WIP
+
+--select * from ELGi_production_details
+--where Prodorderno='U50004634'
+
+
+
+
+
+
+Completion time: 2025-11-19T11:48:44.7437996+05:30

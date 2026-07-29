@@ -1,0 +1,244 @@
+--exec sp_AnticipatedTriggers
+--select * from anticipatedtriggers where ltrim(rtrim(item))='b012805340024'
+
+CREATE proc sp_AnticipatedTriggers
+
+as 
+
+Begin
+
+truncate table AnticipatedTriggers
+
+insert into AnticipatedTriggers(COMPANY,ITEM,Description,StockQty,BinQty,ANTICIPATED_IND,SLOQ,
+SUPPCODE,SUPP_NAME,BUYRCODE,BUYER_NAME,CATEGORY,SUP_PRIORITY,RPLT)
+
+select COMPANY,ITEM,Description,StockQty,BinQty,ANTICIPATED_IND,SLOQ,
+SUPPCODE,SUPP_NAME,BUYRCODE,BUYER_NAME,CATEGORY,
+DENSE_RANK() over(partition by SUPPCODE ORDER BY ANTICIPATED_IND) AS SUP_PRIORITY,
+RPLT
+from
+(
+	SELECT 	
+	 COMPANY,
+	 --DIVISION_NAME,
+		--Dept_Name,
+		ITEM,Description,SUM(STOCKQTY) StockQty,SUM(BINQTY) BinQty,
+		ROUND((case when CATEGORY='MULTI BIN' then SUM(STOCKQTY)/SUM(BINQTY*sloq+0.000001) 
+		else SUM(STOCKQTY)/SUM(BINQTY+0.000001) end ),3) AS ANTICIPATED_IND,
+		SLOQ,SUPPCODE,SUPP_NAME,BUYRCODE,	BUYER_NAME,CATEGORY,RPLT
+	
+	FROM(SELECT  COMPANY,DIVI,DIVISION_NAME,DEPT,Dept_Name,ITEM,Description,Rank,DEPT_Rank,
+		--Warehouse,
+		sum(STOCKQTY) STOCKQTY,BINQTY,SLOQ,CATEGORY,SUPPCODE,SUPP_NAME,SUP_CNT_PERSON,BUYRCODE,BUYER_NAME,RPLT
+		FROM
+			(
+			select 	distinct A.COMPANY,A.DIVI,MD.DIVISION_NAME,A.DEPT,MDEPT.DEPT_NAME,A.ITEM,
+				null as Description, --C.t_dsca,
+				DENSE_RANK() over(partition by MDEPT.DEPT_NAME,A.ITEM order by a.item) Rank, --order by C.t_dsca
+				DENSE_RANK() over(partition by A.ITEM order by MDEPT.DEPT_NAME ) DEPT_Rank,
+				B.CWAR as WareHouse,B.QHND AS STOCKQTY,convert(int,A.SQTY) AS BINQTY,
+				case 	when A.SOPS = 1 then  'TWO BIN'
+					when A.SOPS = 2 then  'MULTI BIN'--'FORWARD COVER'
+					when A.SOPS = 3 then  'MILK RUN'
+					when A.SOPS = 4 then  'SLOT SYSTEM'
+					when A.SOPS = 5 then  'MILK RUN(1)' end  as CATEGORY,
+				A.SLOQ,A.SUNO1 AS SUPPCODE,
+				null  AS SUPP_NAME,--v.custname1
+				A.SCPR as SUP_CNT_PERSON,A.BUYR AS BUYRCODE,
+				null AS BUYER_NAME,--p.emp_name,
+				RPLT
+			from 	TZZPUR049ALL A
+				inner join TWHWMD215ALL_for_AntTriggers B
+				on ltrim(rtrim(A.ITEM))=ltrim(rtrim(B.Item)) and a.COMPANY=b.Company
+				inner JOIN MATERIALS_DEPT_MASTER MDEPT
+				ON A.DEPT=MDEPT.DEPT_CODE 
+				--and b.WareHouse=mdept.Warehouse
+				
+				--inner join 
+				--(select * from TTCIBD001400 
+				--union
+				--select * from TTCIBD001490 
+				--) c
+				--on ltrim(rtrim(A.ITEM))=ltrim(rtrim(C.t_item)) 
+						
+				--Left OUTER JOIN	vw_Business_Partner V
+				--ON ltrim(rtrim(V.custcode)) = ltrim(rtrim(A.SUNO1)) 
+				--LEFT OUTER JOIN [ELGi_Intranet].dbo.Employee_Detail P
+				--ON P.new_emp_code=A.BUYR
+				
+				LEFT OUTER JOIN Materials_Division_MASTER MD
+				ON A.DIVI=MD.DIVISION_CODE
+
+			where 
+				A.COMPANY in(401,450,490) 
+				and B.CWAR in('209','210','212','253','O53','L53','U53','353','453','553',
+				'211','246','346','L46','O46','251','102','DEL','CAL') 
+				--and B.QtyOnHand<>0
+				AND A.SOPS in(1,2)
+
+
+			)A
+		WHERE 
+		--ITEM IN (select distinct item from rpldata WHERE YEAR(ENTRY_DATE)<=YEAR(GETDATE()-1)
+		--and month(convert(date,ENTRY_DATE))<=month(convert(date,getdate()-1)))
+		
+		--AND MONTH(ENTRY_DATE)=12)
+		--<MONTH(GETDATE())-1) 
+		--and ltrim(rtrim(item))='000996058'--'000906084'--'22343136C'
+		--AND 
+		RANK=1
+		and Dept_Name<>'ROCD-FASTENERS'
+		and ltrim(rtrim(suppcode))  not in('SU1S01271','CU1S01271','SU1K00557','CU1K00557','SU1D00123','CU1D00123')
+
+
+--		and item like '%B000306040010%'
+
+		group by COMPANY,DIVI,DIVISION_NAME,DEPT,DEPT_NAME,ITEM,DEPT_Rank,Description,RANK,
+		--WareHouse,--STOCKQTY,
+		BINQTY,SLOQ,CATEGORY,SUPPCODE,SUPP_NAME,SUP_CNT_PERSON,BUYRCODE,BUYER_NAME,RPLT
+		
+		)B
+
+	GROUP BY company,ITEM,Description,
+	--DIVISION_NAME,Dept_Name,
+	SLOQ,SUPPCODE,SUPP_NAME,BUYRCODE,BUYER_NAME,CATEGORY,RPLT
+	)c
+
+where  ANTICIPATED_IND >= 0 and ANTICIPATED_IND < 2
+ORDER BY ANTICIPATED_IND
+
+
+
+
+
+update AnticipatedTriggers set SUPP_NAME=v.custname1
+from	vw_Business_Partner V
+where ltrim(rtrim(V.custcode)) = ltrim(rtrim(AnticipatedTriggers.SUPPCODE)) 
+
+
+update AnticipatedTriggers set BUYER_NAME=p.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail P
+where convert(varchar,P.new_emp_code)=AnticipatedTriggers.BUYRCODE
+
+update AnticipatedTriggers set Description=a.t_dsca
+from TTCIBD001400 a
+where COMPANY<>490
+and ltrim(rtrim(AnticipatedTriggers.ITEM))=ltrim(rtrim(a.t_item))
+
+update AnticipatedTriggers set Description=a.dsca
+from TTCIBD001490 a
+where COMPANY=490
+and ltrim(rtrim(AnticipatedTriggers.ITEM))=ltrim(rtrim(a.ITEM))
+
+update AnticipatedTriggers set 
+Consumed_quan= b.Consumed_quan,
+Consumed_days=b.Consumed_days,
+AvgConsumption=b.AvgConsumption,
+StkAvlDays=(convert(float,stockqty/b.AvgConsumption))
+from
+(select company,item,sum(QSTK) Consumed_quan,count(distinct TRDT) Consumed_days,
+case when sum(QSTK)/count(distinct TRDT) is null then 1
+when sum(QSTK)/count(distinct TRDT) =0 then 1
+else sum(QSTK)/count(distinct TRDT)
+end as AvgConsumption 
+--sum(isnull(QSTK,0.01))/(3+0.0001) as AvgConsumption 
+from (select convert(date,TRDT) TRDT,COMPANY,ITEM,QSTK  from TWHINR110ALL 
+where kost=5 and koor=3 and convert(date,TRDT)>=convert(date,dateadd(dd,-120,getdate())) )a
+group by company,item
+--having sum(quan)/count(TRDT)>2
+)b
+where AnticipatedTriggers.COMPANY=b.COMPANY
+and AnticipatedTriggers.ITEM=b.ITEM
+
+--alter table TWHINR110ALL alter column QSTK float
+
+
+update AnticipatedTriggers set Consumed_quan= b.Consumed_quan,
+Consumed_days=b.Consumed_days,
+AvgConsumption=b.AvgConsumption,
+StkAvlDays=convert(float,stockqty/b.AvgConsumption)
+from
+(select company,item,sum(QSTK) Consumed_quan,count(distinct TRDT) Consumed_days,
+case when sum(QSTK)/count(distinct TRDT) is null then 1
+when sum(QSTK)/count(distinct TRDT) =0 then 1
+else sum(QSTK)/count(distinct TRDT)
+end as AvgConsumption 
+--sum(isnull(QSTK,0.01))/(3+0.0001) as AvgConsumption 
+from (select convert(date,TRDT) TRDT,COMPANY,ITEM,QSTK  from TWHINR110ALL
+where kost=5 and koor=1 and convert(date,TRDT)>=convert(date,dateadd(dd,-120,getdate())) )a
+group by company,item
+--having sum(quan)/count(TRDT)>2
+)b
+where AnticipatedTriggers.COMPANY=b.COMPANY
+and AnticipatedTriggers.ITEM=b.ITEM
+
+
+
+update AnticipatedTriggers set 
+Sales_Consumption=b.Sales_Consumption,
+Production_Consumption=b.Production_Consumption
+from
+(select company,item,sum(Sales_Consumption) Sales_Consumption ,sum(Production_Consumption) Production_Consumption 
+from 
+(select company,item,sum(QSTK) Sales_Consumption,0 as Production_Consumption
+from (select  convert(date,TRDT) TRDT,COMPANY,ITEM,QSTK  from TWHINR110ALL where kost=5 and koor=3)a
+where month(TRDT)=month(getdate()-1)
+and year(TRDT)=year(getdate()-1)
+group by company,item
+union
+select company,item,0,sum(QSTK) Production_Consumption
+from (select  convert(date,TRDT) TRDT,COMPANY,ITEM,QSTK  from TWHINR110ALL where kost=5 and koor=1)a
+where month(TRDT)=month(getdate()-1)
+and year(TRDT)=year(getdate()-1)
+group by company,item)a
+group by company,item
+)b
+where AnticipatedTriggers.COMPANY=b.COMPANY
+and AnticipatedTriggers.ITEM=b.ITEM
+
+
+update AnticipatedTriggers set StkAvlDays=100000 where StkAvlDays is null
+
+
+
+--select  company,T$ITEM,sum(T$QANA) as Prod_Alloc from twhinp100ALL
+--where T$KOOR=1 and T$KOTR=2
+--group by company,T$ITEM
+
+--select  company,T$ITEM,sum(T$QANA) as Sales_Alloc from twhinp100ALL
+--where T$KOOR=3 and T$KOTR=2
+--group by company,T$ITEM
+
+
+
+end
+
+
+
+
+
+
+
+
+--Analysis
+
+--select company,
+----Warehouse,
+--item,sum(QtyOnHand) QtyOnHand from ItemByWarehouse where ltrim(rtrim(item))='000959387' and company=150
+--group by company,
+----Warehouse,
+--item
+
+
+--select a.company,a.item,sum(QtyOnHand) QtyOnHand
+--from 	LEAN_MASTER A
+--				inner join ItemByWarehouse B
+--				on ltrim(rtrim(A.ITEM))=ltrim(rtrim(B.Item)) and a.COMPANY=b.Company
+--				where ltrim(rtrim(a.item))='000959387' and a.COMPANY=150
+--				group by a.COMPANY,a.ITEM
+				
+--select * from LEAN_MASTER a  where ltrim(rtrim(a.item))='000959387' and a.COMPANY=150
+
+--select * from AnticipatedTriggers where ltrim(rtrim(ITEM))= '000329170'
+--'00040255a'
+

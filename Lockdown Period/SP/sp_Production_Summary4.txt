@@ -1,0 +1,1076 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Production_Summary4
+
+CREATE proc sp_Production_Summary4 as
+begin
+
+--Declare @OpeningDate date='2023-10-01'
+Declare @OpeningDate date=getdate()
+
+
+if(datepart(dd,@OpeningDate)=1)
+begin
+
+delete from  Production_Summary3 where entrydate<=@OpeningDate
+
+
+insert into Production_Summary3 (Remarks,company,cwar,item,itemdescr,Prodorderno,qskt,EntryDate,Description,TransactionDate)
+select 'Opening_Plan' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(Planned_qty) Planned_qty,
+--convert(date,GETDATE()-1) as EntryDate,
+@OpeningDate  as EntryDate,
+Description,date1 from ELGi_production_details
+where Planned_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+and date1<@OpeningDate
+--and description in ('DPSAC')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+insert into Production_Summary3 (Remarks,company,cwar,item,itemdescr,Prodorderno,qskt,EntryDate,Description,TransactionDate)
+select 'Opening_Release' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(Released_qty) Released_qty,
+--convert(date,GETDATE()-1) as EntryDate,
+@OpeningDate  as EntryDate,
+Description,date1 from ELGi_production_details
+where Released_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta in (4,5))
+and date1<@OpeningDate
+--and description in ('DPSAC')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+insert into Production_Summary3 (Remarks,company,cwar,item,itemdescr,Prodorderno,qskt,EntryDate,Description,TransactionDate)
+select 'Opening_WIP' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(WIP_qty) WIP_qty,
+--convert(date,GETDATE()-1) as EntryDate,
+@OpeningDate  as EntryDate
+,Description,date1 from ELGi_production_details
+where WIP_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=6)
+and date1<@OpeningDate
+--and description in ('DPSAC')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+--Method 1: commented as users are updating the Production order status to 'Closed' at later point of time.
+--when the production order status is marked as 'To be completed', it can be considered under FG 
+insert into Production_Summary3 (Remarks,company,cwar,item,itemdescr,qskt,Amnt,EntryDate,Description,TransactionDate)
+Select 'Opening_FG' as Remarks,a.company,a.CWAR,a.ITEM,itemdescr,
+sum(qskt) qskt,sum(Amnt) Amnt,
+--convert(date,GETDATE()-1) as EntryDate,
+@OpeningDate  as EntryDate,
+--'FG',
+b.Description,
+trdt from FG_Inventory a
+left outer join (select distinct company,CWAR,item,Description from FG_Inventory_Details) b
+on a.company=b.company
+and a.cwar=b.CWAR
+and ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+group by a.company,a.CWAR,a.item,itemdescr,trdt,b.Description
+
+
+----Method 2:
+--insert into Production_Summary3 (Remarks,company,cwar,item,itemdescr,qskt,--Amnt,
+--EntryDate,Description,TransactionDate)
+--Select 'Opening_FG' as Remarks,a.Company,a.CWAR,a.MITM,itemdescr,
+--sum(a.QDLV) QDLV,--sum(Amnt) Amnt,
+----@OpeningDate  as EntryDate,
+--b.Description,
+--a.ADLD from (select Company,CWAR,MITM,PDNO,QDLV,ADLD from TTISFC001ALL 
+--where OSTA >=7 and QDLV>0
+----and pdno='230021591'
+--) a
+--inner join (select distinct from Elgi_production_details) b
+--on a.company=b.company
+--and a.pdno=b.prodorderno
+--group by a.company,a.CWAR,a.item,itemdescr,trdt,b.Description
+
+
+
+
+--update Production_Summary3 set Description=a.Description
+--from (select distinct company,warehouse,item,Description from ELGi_production_details)a
+--where Production_Summary3.company=a.company
+--and Production_Summary3.cwar=a.warehouse
+--and ltrim(rtrim(Production_Summary3.item))=ltrim(rtrim(a.item))
+--and Production_Summary3.Description='FG'
+
+
+
+
+--Breakup Data: Part1-------------------------------------------
+Truncate table Production_Summary4_breakup_Stage1
+
+
+insert into Production_Summary4_breakup_Stage1(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'Opening_Plan' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(Planned_qty) Planned_qty,
+@OpeningDate  as OpeningDate,
+@OpeningDate as EntryDate,
+Description,date1 from ELGi_production_details
+where Planned_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+and date1<@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+insert into Production_Summary4_breakup_Stage1(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'Opening_Release' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(Released_qty) Released_qty,
+@OpeningDate  as OpeningDate,
+@OpeningDate as EntryDate,
+Description,date1 from ELGi_production_details
+where Released_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta in (4,5))
+and date1<@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+insert into Production_Summary4_breakup_Stage1(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'Opening_WIP' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(WIP_qty) WIP_qty,
+@OpeningDate  as OpeningDate,
+@OpeningDate as EntryDate,
+Description,date1 from ELGi_production_details
+where WIP_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=6)
+and date1<@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+--Alter table Production_Summary4_breakup add Amnt float
+insert into Production_Summary4_breakup_Stage1(Remarks,company,warehouse,item,itemdescr,--Prodorderno,
+Qty,Amnt,OpeningDate,EntryDate,Description,date1)
+Select 'Opening_FG' as Remarks,a.COMPANY,a.CWAR,a.ITEM,itemdescr,
+sum(qskt) qskt,sum(Amnt) Amnt,
+@OpeningDate  as OpeningDate,
+@OpeningDate as EntryDate,
+b.Description,trdt from FG_Inventory a
+left outer join (select distinct company,cwar,item,Description from FG_Inventory_Details) b
+on a.company=b.company
+and a.cwar=b.CWAR
+and ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+where description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by a.company,a.CWAR,a.item,itemdescr,trdt,b.Description
+
+
+--update Production_Summary4_breakup set Description=a.Description
+--from (select distinct company,warehouse,item,Description from ELGi_production_details)a
+--where Production_Summary4_breakup.company=a.company
+--and Production_Summary4_breakup.warehouse=a.warehouse
+--and ltrim(rtrim(Production_Summary4_breakup.item))=ltrim(rtrim(a.item))
+--and Production_Summary4_breakup.Description='FG'
+
+
+
+
+--End: Breakup Data: Part1--------------------------------------
+
+
+end 
+
+
+
+if(datepart(dd,@OpeningDate)=2)
+begin
+
+--set @OpeningDate=dateadd(dd,-1,@OpeningDate)
+
+delete from  Production_Summary4 where entrydate<=@OpeningDate
+
+Insert into Production_Summary4(company,warehouse,item,itemdescr,Description,EntryDate)
+select distinct company,warehouse,item,itemdescr,Description,
+dateadd(dd,-1,@OpeningDate) as EntryDate from ELGi_production_details
+
+
+update Production_Summary4 set Opening_Plan=a.qskt
+from (
+select company,cwar,item,EntryDate,Description,sum(qskt) qskt from Production_Summary3
+where Remarks='Opening_Plan'
+and Entrydate=dateadd(dd,-1,@OpeningDate)
+--and Entrydate='2023-12-01'
+--and Entrydate=(select DATEADD(mm, DATEDIFF(m,0,GETDATE()),0))
+group by company,cwar,item,EntryDate,Description
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.cwar
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.EntryDate=a.EntryDate
+and Production_Summary4.Description=a.Description
+
+
+update Production_Summary4 set Opening_Release=a.qskt
+from (select company,cwar,item,EntryDate,Description,sum(qskt) qskt from Production_Summary3
+where Remarks='Opening_Release'
+and Entrydate=dateadd(dd,-1,@OpeningDate)
+--and Entrydate=(select DATEADD(mm, DATEDIFF(m,0,GETDATE()),0))
+group by company,cwar,item,EntryDate,Description
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.cwar
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.EntryDate=a.EntryDate
+and Production_Summary4.Description=a.Description
+
+update Production_Summary4 set Opening_WIP=a.qskt
+from (select company,cwar,item,EntryDate,Description,sum(qskt) qskt from Production_Summary3
+where Remarks='Opening_WIP'
+and Entrydate=dateadd(dd,-1,@OpeningDate)
+--and Entrydate=(select DATEADD(mm, DATEDIFF(m,0,GETDATE()),0))
+group by company,cwar,item,EntryDate,Description
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.cwar
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.EntryDate=a.EntryDate
+and Production_Summary4.Description=a.Description
+
+
+update Production_Summary4 set Opening_FG=a.qskt
+from (select company,cwar,item,EntryDate,Description,sum(qskt) qskt from Production_Summary3
+where Remarks='Opening_FG'
+and Entrydate=dateadd(dd,-1,@OpeningDate)
+--and Entrydate=(select DATEADD(mm, DATEDIFF(m,0,GETDATE()),0))
+group by company,cwar,item,EntryDate,Description
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.cwar
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.EntryDate=a.EntryDate
+and Production_Summary4.Description=a.Description
+
+
+----Data Reconciliation
+--update Production_Summary4 set Opening_FG=null
+--update Production_Summary4 set Opening_FG=a.qskt
+--from (
+
+--)a
+--where Production_Summary4.company=a.company
+--and Production_Summary4.warehouse=a.cwar
+--and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+--and Production_Summary4.EntryDate=a.EntryDate
+--and Production_Summary4.Description=a.Description
+
+
+--Breakup Data: Part1-------------------------------------------
+Truncate table Production_Summary4_breakup
+
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Qty) Qty,OpeningDate,EntryDate,Description,date1
+from Production_Summary4_breakup_Stage1
+group by Remarks,company,warehouse,item,itemdescr,Prodorderno,
+OpeningDate,EntryDate,Description,date1
+
+--select 'Opening_Plan' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(Planned_qty) Planned_qty,
+--@OpeningDate  as OpeningDate,
+--@OpeningDate as EntryDate,
+--Description,date1 from ELGi_production_details
+--where Planned_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and date1<@OpeningDate
+--and description in ('DPSAC','Lepsac','OFSAC','Railways')
+--group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+--insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+--Qty,OpeningDate,EntryDate,Description,date1)
+--select 'Opening_Release' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(Released_qty) Released_qty,
+--@OpeningDate  as OpeningDate,
+--@OpeningDate as EntryDate,
+--Description,date1 from ELGi_production_details
+--where Released_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta in (4,5))
+--and date1<@OpeningDate
+--and description in ('DPSAC','Lepsac','OFSAC','Railways')
+--group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+--insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+--Qty,OpeningDate,EntryDate,Description,date1)
+--select 'Opening_WIP' as Remarks,company,warehouse,item,itemdescr,Prodorderno,sum(WIP_qty) WIP_qty,
+--@OpeningDate  as OpeningDate,
+--@OpeningDate as EntryDate,
+--Description,date1 from ELGi_production_details
+--where WIP_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=6)
+--and date1<@OpeningDate
+--and description in ('DPSAC','Lepsac','OFSAC','Railways')
+--group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+----Alter table Production_Summary4_breakup add Amnt float
+--insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,--Prodorderno,
+--Qty,Amnt,OpeningDate,EntryDate,Description,date1)
+--Select 'Opening_FG' as Remarks,a.COMPANY,a.CWAR,a.ITEM,itemdescr,
+--sum(qskt) qskt,sum(Amnt) Amnt,
+--@OpeningDate  as OpeningDate,
+--@OpeningDate as EntryDate,
+--b.Description,trdt from FG_Inventory a
+--left outer join (select distinct company,cwar,item,Description from FG_Inventory_Details) b
+--on a.company=b.company
+--and a.cwar=b.CWAR
+--and ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+--where description in ('DPSAC','Lepsac','OFSAC','Railways')
+--group by a.company,a.CWAR,a.item,itemdescr,trdt,b.Description
+
+
+----update Production_Summary4_breakup set Description=a.Description
+----from (select distinct company,warehouse,item,Description from ELGi_production_details)a
+----where Production_Summary4_breakup.company=a.company
+----and Production_Summary4_breakup.warehouse=a.warehouse
+----and ltrim(rtrim(Production_Summary4_breakup.item))=ltrim(rtrim(a.item))
+----and Production_Summary4_breakup.Description='FG'
+
+
+
+
+--End: Breakup Data: Part1--------------------------------------
+
+end
+
+
+
+if(datepart(dd,@OpeningDate)>=2)
+begin
+
+insert into Production_Summary4(company,warehouse,item,itemdescr,Description,EntryDate)
+select company,warehouse,item,itemdescr,Description,EntryDate
+from 
+(select distinct a.company,a.warehouse,a.item,itemdescr,Description,
+convert(date,GETDATE()) as EntryDate--,'prod' as descr 
+from ELGi_production_details a
+left outer join 
+(select company,warehouse,ltrim(rtrim(item)) item from Production_Summary4)b
+on a.company =b.company
+and a.warehouse=b.warehouse
+and ltrim(rtrim(a.item)) =ltrim(rtrim(b.item))
+where b.item is null
+
+
+--Added on 24-Jan-2025 since FG warehouse is different from Production Warehouse
+--union
+--select a.COMPANY,a.CWAR,a.ITEM,a.ItemDescr,b.Description,
+--convert(date,GETDATE()) as EntryDate,--'FG' as descr 
+--from FG_Inventory a
+--left outer join (select distinct company,cwar,item,Description from FG_Inventory_Details
+--where Description is not null
+--) b
+--on a.company=b.company
+--and a.cwar=b.CWAR
+--and ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+--where convert(date,TRDT)<=convert(date,GETDATE()-1)
+--group by a.COMPANY,a.CWAR,a.ITEM,a.ItemDescr,b.Description
+
+)a
+--where warehouse in ('U57','561')-- For Testing
+
+
+--Backlog Update on daily basis----------------------------------------------------------------------------------
+Truncate table Production_summary4_Temp1
+
+Insert into Production_summary4_Temp1
+select distinct Prodorderno from (
+select a.Description,a.Prodorderno,
+case when b.OSTA>3 then 'Valid_Backlog'
+when b.Prodorderno is null then 'Not_a_Backlog'
+when b.OSTA<=3 and datediff(dd,a.TransactionDate,b.date1)>0 and b.date1>convert(date,getdate()-1) then 'Not_a_Backlog' 
+when b.OSTA<=3 and datediff(dd,a.TransactionDate,b.date1)=0 then 'Valid_Backlog' 
+end as BacklogStatus
+from 
+(SELECT distinct Description,Prodorderno,TransactionDate from  production_summary3 where remarks='Opening_Plan')a
+left outer join 
+(select Description,Prodorderno,OSTA,max(date1) date1 from elgi_production_details
+group by Description,Prodorderno,OSTA
+)b
+on a.Description=b.Description
+and a.Prodorderno=b.Prodorderno
+--where a.Description='DPSAC'
+)a
+where BacklogStatus='Not_a_Backlog'
+
+delete from Production_Summary3
+where Prodorderno in (select distinct Prodorderno from Production_summary4_Temp1)
+
+delete from Production_Summary4_breakup 
+where Remarks='Opening_Plan'
+and Prodorderno not in (select distinct Prodorderno from Production_Summary3
+where Remarks='Opening_Plan'
+)
+
+update Production_Summary4 set Opening_Plan=null
+update Production_Summary4 set Opening_Plan=a.qskt
+from (select company,cwar,item,Description,EntryDate,sum(qskt) qskt from Production_Summary3
+where Remarks='Opening_Plan'
+--and Entrydate=@OpeningDate
+--and Entrydate=(select DATEADD(mm, DATEDIFF(m,0,GETDATE()),0))
+--and description in ('DPSAC')
+group by company,cwar,item,Description,EntryDate
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.cwar
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.EntryDate=a.EntryDate
+and Production_Summary4.Description=a.Description
+
+
+--End: Backlog Update on daily basis------------------------------------------------------------------------------
+--Remove Orders that are planned for current Month but already relased in Previous Month--------------------------
+Truncate Table Production_summary4_Temp2
+
+
+Insert into Production_summary4_Temp2
+select Prodorderno from 
+(select company,warehouse,item,Prodorderno,
+max(case when Planned_qty<>0 then date1 end) as PlannedDate,
+max(case when Released_qty<>0 then date1 end) as ReleasedDate
+from ELGi_production_details
+--where Prodorderno in ('500012539','500012540')
+group by company,warehouse,item,Prodorderno)a
+where ReleasedDate<PlannedDate
+and month(ReleasedDate)<>month(PlannedDate)
+and year(PlannedDate)=year(getdate()-1)
+and month(PlannedDate)=month(getdate()-1)
+
+
+delete from Production_Summary3
+where Prodorderno in (select distinct Prodorderno from Production_summary4_Temp2)
+
+delete from Production_Summary4_breakup 
+where Prodorderno in (select distinct Prodorderno from Production_summary4_Temp2)
+
+
+
+--End: Remove Orders that are planned for current Month but already relased in Previous Month----------------------
+
+Update Production_Summary4 set MTD_Plan=null
+
+Update Production_Summary4 set MTD_Plan=a.Planned_qty
+from(
+
+select company,warehouse,item,description, sum(Planned_qty) Planned_qty from (
+select 'MTD_Plan' as Remarks,company,warehouse,item,itemdescr,Description,--date1 ,
+--Prodorderno,
+sum(Planned_qty) Planned_qty,
+getdate()-1 as EntryDate
+from ELGi_production_details
+where --Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3) and 
+Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+--and description in ('DPSAC')
+--and ltrim(rtrim(item))='S07113'
+group by company,warehouse,item,itemdescr,Description--,date1--,Prodorderno
+having sum(Planned_qty)<>0
+
+union all
+
+select 'MTD_Plan' as Remarks,company,warehouse,item,itemdescr,Description,--date1 ,
+--Prodorderno,
+sum(Planned_qty) Planned_qty,
+getdate()-1 as EntryDate
+from ELGi_production_details
+where --Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3) and 
+Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and Prodorderno in (select distinct Prodorderno from Production_Summary3 where Remarks='Opening_Plan')
+--and description in ('DPSAC')
+--and ltrim(rtrim(item))='S07113'
+group by company,warehouse,item,itemdescr,Description--,date1--,Prodorderno
+having sum(Planned_qty)<>0
+)a
+group by company,warehouse,item,description
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.description=a.Description
+
+
+
+end
+
+
+
+Update Production_Summary4 set FTM_Plan=null
+Update Production_Summary4 set MTD_Release=null
+Update Production_Summary4 set MTD_WIP=null
+Update Production_Summary4 set MTD_Closing=null
+Update Production_Summary4 set MTD_Sales=null
+Update Production_Summary4 set Current_FG=null
+Update Production_Summary4 set MTD_Backlog=null
+Update Production_Summary4 set Avg_Sales_amt=null
+Update Production_Summary4 set Future_Plan=null
+Update Production_Summary4 set Prod_Allocation=null
+Update Production_Summary4 set Sales_Allocation=null
+
+
+Update Production_Summary4 set FTM_Plan=a.Planned_qty
+from(
+select 'FTM_Plan' as Remarks,company,warehouse,item,itemdescr,Description,--date1 ,
+sum(Planned_qty) Planned_qty,
+getdate()-1 as EntryDate
+from ELGi_production_details
+where --Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3) and 
+year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+--and date1>=@OpeningDate
+--and description in ('DPSAC')
+--and warehouse='157'
+--and ltrim(rtrim(item))='S03228'
+group by company,warehouse,item,itemdescr,Description--,date1
+having sum(Planned_qty)<>0
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.description=a.Description
+
+
+
+Update Production_Summary4 set FTM_Balance_Plan=a.Planned_qty
+from(select 'FTM_Balance_Plan' as Remarks,company,warehouse,item,itemdescr,Description,--date1 ,
+--Prodorderno,
+sum(Planned_qty) Planned_qty,
+getdate()-1 as EntryDate
+from ELGi_production_details
+where Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1>getdate()-1
+--and date1>=@OpeningDate
+--and description in ('DPSAC')
+--and ltrim(rtrim(item))='S07113'
+group by company,warehouse,item,itemdescr,Description--,date1--,Prodorderno
+having sum(Planned_qty)<>0
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.description=a.Description
+
+
+
+Update Production_Summary4 set MTD_Backlog=a.Planned_qty
+from(
+select Remarks,company,warehouse,item,itemdescr,Description,sum(Planned_qty)  Planned_qty from (
+select 'MTD_Backlog' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Planned_qty) Planned_qty,
+convert(date,GETDATE()-1)  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where Planned_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and date1<=convert(date,getdate()-1)
+--and year(date1)=year(getdate()-1)
+--and month(date1)=month(getdate()-1)
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+--union all
+
+--select 'MTD_Backlog' as Remarks,company,cwar,item,itemdescr,Description,--date1 ,
+--sum(qskt) Planned_qty
+--from Production_Summary3
+--where Remarks='Opening_Plan'
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+----and Description='DPSAC'
+--group by Remarks,company,cwar,item,itemdescr,Description--,date1
+)a
+group by Remarks,company,warehouse,item,itemdescr,Description
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.description=a.Description
+
+
+Update Production_Summary4 set MTD_Release=a.Released_qty
+from(select 'MTD_Release' as Remarks,company,warehouse,item,itemdescr,Description,--date1 ,
+sum(Released_qty) Released_qty,
+getdate()-1 as EntryDate
+from ELGi_production_details
+where --Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=1)
+year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+--and description in ('DPSAC')
+group by company,warehouse,item,itemdescr,Description--,date1
+having sum(Released_qty)<>0
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.description=a.Description
+
+Update Production_Summary4 set MTD_WIP=a.WIP_qty
+from(select 'MTD_WIP' as Remarks,company,warehouse,item,itemdescr,Description,--date1 ,
+sum(WIP_qty) WIP_qty,
+getdate()-1 as EntryDate
+from ELGi_production_details
+where WIP_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=6)
+--and year(date1)=year(GETDATE()-1)
+--and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+--and description in ('DPSAC')
+group by company,warehouse,item,itemdescr,Description--,date1
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.description=a.Description
+
+Update Production_Summary4 set MTD_Closing=a.Actual_qty
+from(select 'MTD_Closing' as Remarks,company,warehouse,item,itemdescr,Description,--date1 ,
+sum(Actual_qty) Actual_qty,
+getdate()-1 as EntryDate
+from ELGi_production_details
+where Actual_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=1)
+and year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+--and description in ('DPSAC')
+group by company,warehouse,item,itemdescr,Description--,date1
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+and Production_Summary4.description=a.Description
+
+
+
+update Production_Summary4 set MTD_Sales=a.DeliveryQty,Avg_Sales_Amt=a.Avg_Sales_amount
+from (
+select a.company,a.warehouse,a.Item,b.Description,sum(DeliveryQty) DeliveryQty ,
+sum(Sales_amount)/(sum(DeliveryQty)+0.01) Avg_Sales_amount 
+from ELGi_Sales_Details a
+left outer join (select distinct company,warehouse,item,Description from ELGi_production_details) b
+on a.company=b.company
+and a.warehouse=b.warehouse
+and ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+where year(Invoice_Date)=year(getdate()-1)
+and month(Invoice_Date)=month(getdate()-1)
+group by a.company,a.warehouse,a.Item,Description
+)a
+where Production_Summary4.company=a.COMPANY
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.Item))
+
+
+
+Update Production_Summary4 set Current_FG=a.QSKT
+from(select a.COMPANY,a.CWAR,a.ITEM,b.Description,sum(QSKT) QSKT from FG_Inventory a
+left outer join (select distinct company,cwar,item,Description from FG_Inventory_Details
+where Description is not null
+) b
+on a.company=b.company
+and a.cwar=b.CWAR
+and ltrim(rtrim(a.item))=ltrim(rtrim(b.item))
+where convert(date,TRDT)<=convert(date,GETDATE()-1)
+group by a.COMPANY,a.CWAR,a.ITEM,b.Description
+
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.CWAR
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+--and ltrim(rtrim(Production_Summary4.Description))=ltrim(rtrim(a.Description)) --Commented on 17Jul2024
+
+
+--Alter Table Production_Summary4 add Prod_Allocation float
+--Alter Table Production_Summary4 add Future_Plan float
+
+Update Production_Summary4 set Prod_Allocation=a.AllocatedQty
+from(select COMPANY,T$CWAR,T$ITEM as ITEM,null as Category,'Production Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (401,450,490) and T$KOOR=1 and T$KOTR=2
+group by COMPANY,T$CWAR,T$ITEM
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.T$CWAR
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+
+
+
+Update Production_Summary4 set Sales_Allocation=a.AllocatedQty
+from(select COMPANY,T$CWAR,T$ITEM as ITEM,null as Category,'Sales Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (401,450,490) 
+and T$KOOR=3 and T$KOTR=2
+--and T$CWAR ='102'
+group by COMPANY,T$CWAR,T$ITEM
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.T$CWAR
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+
+
+
+Update Production_Summary4 set Future_Plan=a.Planned_qty
+from(select company,warehouse,item,itemdescr,Description,
+sum(Planned_qty) Planned_qty
+from ELGi_production_details
+where date1> (select eomonth(getdate()-1))
+group by company,warehouse,item,itemdescr,Description
+)a
+where Production_Summary4.company=a.company
+and Production_Summary4.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary4.item))=ltrim(rtrim(a.item))
+
+
+Delete from Production_Summary4 where 
+isnull(Opening_Plan,0) +
+isnull(Opening_Release,0) +
+isnull(Opening_WIP,0) +
+isnull(Opening_FG,0) +
+isnull(FTM_Plan,0) +
+isnull(MTD_Plan,0) +
+isnull(MTD_Backlog,0) +
+isnull(MTD_Release,0) +
+isnull(MTD_WIP,0) +
+isnull(MTD_Closing,0) +
+isnull(MTD_Sales,0) +
+isnull(Current_FG,0)+
+isnull(Prod_Allocation,0)+
+isnull(Sales_Allocation,0)+
+isnull(Future_Plan,0)=0
+
+
+Update Production_Summary4 set EntryYear=year(EntryDate)
+Update Production_Summary4 set EntryMonth=month(EntryDate)
+
+--Alter table Production_Summary4 add Rno_WH int
+--Alter table Production_Summary4 add Rno_Item2 int
+--Alter table Production_Summary4 add LastUpdatedDate Date
+
+update Production_Summary4 set Rno_WH=a.Rno_WH,Rno_Item=a.Rno_Item,Rno_Item2=a.Rno_Item2
+from (select distinct company,warehouse,item,description,
+dense_rank() over(partition by description order by warehouse) as Rno_WH,
+Row_number() over(partition by description order by Item) as Rno_Item,
+dense_rank() over(partition by description order by Item) as Rno_Item2
+from Production_Summary4
+--where description='DPSAC'
+)a
+where Production_Summary4.Description=a.Description
+and Production_Summary4.warehouse=a.warehouse
+and Production_Summary4.item=a.item
+
+--update Production_Summary4 set Rno_Item2=a.Rno_Item2
+--from (select distinct company,item,description,
+--Row_number() over(order by Item) as Rno_Item2
+--from Production_Summary4
+----where description='DPSAC'
+--)a
+--where Production_Summary4.Description=a.Description
+----and Production_Summary4.warehouse=a.warehouse
+--and Production_Summary4.item=a.item
+
+Update Production_Summary4 set LastUpdatedDate=convert(date,getdate()-1)
+
+
+
+-----Production_Summary4_Backlogs-------------------------------------------------------------------
+
+Declare @Date1 date= DATEADD(mm, DATEDIFF(m,0,GETDATE()),0)
+Truncate table Production_Summary4_Backlogs
+
+
+Insert into Production_Summary4_Backlogs(Remarks,company,warehouse,item,itemdescr,Description,
+date1,Planned_qty)
+select 'MTD_Backlog' as Remarks,company,warehouse,item,itemdescr,Description,date1,
+sum(Planned_qty) Planned_qty
+from ELGi_production_details
+where Planned_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and date1<=convert(date,getdate()-1)
+--and year(date1)=year(getdate()-1)
+--and month(date1)=month(getdate()-1)
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Description,date1
+
+----select * into Production_Summary4_Backlogs from (
+--select 'MTD_Backlog' as Remarks,company,warehouse,item,itemdescr,Description,date1,
+--sum(Planned_qty) Planned_qty
+--from ELGi_production_details
+--where Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+--and date1<=convert(date,getdate()-1)
+----and date1<@Date1--(select DATEADD(mm, DATEDIFF(m,0,GETDATE()),0)) --Old Method
+----and description in (@AssemblyLine)
+--group by company,warehouse,item,itemdescr,Description,date1
+--having sum(Planned_qty)<>0
+----)a
+
+--union
+
+--select 'MTD_Backlog' as Remarks,company,cwar,item,itemdescr,Description,TransactionDate ,
+--sum(qskt) Planned_qty
+--from Production_Summary3
+--where Remarks='Opening_Plan'
+--and Prodorderno in (select distinct prodorderno from ELGi_production_details where osta<=3)
+----and Description='DPSAC'
+--group by Remarks,company,cwar,item,itemdescr,Description,TransactionDate
+
+
+Insert into Production_Summary4_Backlogs
+select 'MTD_WIP' as Remarks,company,warehouse,item,itemdescr,Description,date1 ,
+sum(WIP_qty) WIP_qty
+from ELGi_production_details
+where date1<=getdate()-1
+--and year(date1)=year(GETDATE()-1)
+--and month(date1)=month(GETDATE()-1)
+--and description in (@AssemblyLine)
+group by company,warehouse,item,itemdescr,Description,date1
+Having sum(WIP_qty)<>0
+
+
+
+--Insert into Production_Summary4_Backlogs
+--select 'MTD_Plan' as Remarks,company,warehouse,item,itemdescr,Description,date1,
+--sum(Planned_qty) Planned_qty
+--from ELGi_production_details
+--where Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+--and year(date1)=year(getdate()-1)
+--and month(date1)=month(getdate()-1)
+--and date1<=getdate()-1
+----and description in (@AssemblyLine)
+--group by company,warehouse,item,itemdescr,Description,date1
+--having sum(Planned_qty)<>0
+
+--Alter table Production_Summary4_Backlogs alter column Remarks varchar(50)
+
+Insert into Production_Summary4_Backlogs
+select 'FTM_Balance_Plan' as Remarks,company,warehouse,item,itemdescr,Description,date1,
+sum(Planned_qty) Planned_qty
+from ELGi_production_details
+where Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and year(date1)=year(getdate()-1)
+and month(date1)=month(getdate()-1)
+and date1>getdate()-1
+--and description in (@AssemblyLine)
+group by company,warehouse,item,itemdescr,Description,date1
+having sum(Planned_qty)<>0
+
+
+-----End: Production_Summary4_Backlogs----------------------------------------------------------------
+---Breakup Data: Part2---------------------------------------------------------------------
+delete from Production_Summary4_breakup where remarks in 
+('MTD_WIP','FTM_Plan','FTM_Balance_Plan','MTD_Backlog','MTD_Plan','MTD_Release','MTD_Closing')
+
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'FTM_Plan' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Planned_qty) Planned_qty,
+@OpeningDate  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where --Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3) and 
+year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+--and date1>=@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+having sum(Planned_qty)<>0
+
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'MTD_Plan' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Planned_qty) Planned_qty,
+@OpeningDate  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where Planned_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+union all
+
+select 'MTD_Plan' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Planned_qty) Planned_qty,
+@OpeningDate  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where Planned_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and Prodorderno in (select distinct Prodorderno from Production_Summary3 where Remarks='Opening_Plan')
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+
+
+
+--Alter table Production_Summary4_Backlogs add FTM_Balance_Plan float
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'FTM_Balance_Plan' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Planned_qty) Planned_qty,
+@OpeningDate  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where Planned_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1>getdate()-1
+--and date1>=@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+
+select 'MTD_Backlog' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Planned_qty) Planned_qty,
+convert(date,GETDATE()-1)  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where Planned_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta<=3)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp1)
+--and Prodorderno not in  (select distinct Prodorderno from Production_summary4_Temp2)
+and date1<=convert(date,getdate()-1)
+--and year(date1)=year(getdate()-1)
+--and month(date1)=month(getdate()-1)
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+--union all
+
+--select 'MTD_Backlog' as Remarks,company,cwar,item,itemdescr,Prodorderno,
+--sum(qskt) Planned_qty,
+--convert(date,GETDATE()-1)  as OpeningDate,
+--convert(date,GETDATE()-1) as EntryDate,
+--Description,TransactionDate
+--from Production_Summary3
+--where Remarks='Opening_Plan'
+--and Prodorderno in (select distinct prodorderno from ELGi_production_details where osta<=3)
+--and description in ('DPSAC','Lepsac','OFSAC','Railways')
+--group by Remarks,company,cwar,item,itemdescr,Prodorderno,
+--Description,TransactionDate
+
+
+
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'MTD_Release' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Released_qty) Released_qty,
+@OpeningDate  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where Released_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=1)
+and year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'MTD_WIP' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(WIP_qty) WIP_qty,
+@OpeningDate  as OpeningDate,
+convert(date,GETDATE()-1) as EntryDate,
+Description,date1
+from ELGi_production_details
+where WIP_qty<>0
+and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=6)
+--and year(date1)=year(GETDATE()-1)
+--and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+insert into Production_Summary4_breakup(Remarks,company,warehouse,item,itemdescr,Prodorderno,
+Qty,OpeningDate,EntryDate,Description,date1)
+select 'MTD_Closing' as Remarks,company,warehouse,item,itemdescr,Prodorderno,
+sum(Actual_qty) Actual_qty,
+@OpeningDate  as OpeningDate,
+getdate()-1 as EntryDate,
+Description,date1
+from ELGi_production_details
+where Actual_qty<>0
+--and Prodorderno in (select distinct pdno from TTISFC001ALL a where osta=1)
+and year(date1)=year(GETDATE()-1)
+and month(date1)=month(GETDATE()-1)
+and date1<=getdate()-1
+--and date1>=@OpeningDate
+and description in ('DPSAC','Lepsac','OFSAC','Railways','Dryers','Accessories','Kit  Accessories',
+'OE Assy','RCD BoreWell','Encap','Sepsac','RCD Unit Assy','ENGC ','Vacuum')
+group by company,warehouse,item,itemdescr,Prodorderno,Description,date1
+
+
+---End: Breakup Data: Part2------------------------------------------------------------------
+
+--Data Reconciliation
+--delete from Production_Summary4_breakup
+--where Remarks='Opening_Plan'
+--and OpeningDate<>'2024-01-01'
+
+end
+
+
+
+Completion time: 2025-11-19T11:47:52.1376292+05:30

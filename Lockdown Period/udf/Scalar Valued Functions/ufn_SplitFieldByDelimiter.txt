@@ -1,0 +1,52 @@
+
+CREATE FUNCTION [dbo].[ufn_SplitFieldByDelimiter] 
+(
+    @fieldname varchar(max)
+    ,@delimiter varchar(max)
+    ,@delimiter_count int
+)
+RETURNS varchar(max)
+AS
+BEGIN
+ 
+    declare @first_index varchar(max)
+    ,@next_index varchar(max)
+    ,@sql_statement varchar(max)
+    ,@term_statement varchar(max)
+    ,@length varchar(max)
+    ,@iterator int
+
+ 
+    set @next_index=-1
+    set @iterator=1
+    set @sql_statement=' '
+
+ 
+    while(@iterator<=@delimiter_count)
+    begin
+        set @first_index=@next_index+'+1'
+        set @next_index='CHARINDEX('+@delimiter+','+@fieldname+','+@first_index+')'
+        if (@iterator=@delimiter_count)
+        begin
+        set @next_index='LEN('+@fieldname+')+1'
+        end
+        set @length=@next_index+'-('+@first_index+')'
+        set @term_statement='SubString('+@fieldname+','+@first_index+','+@length+')'
+        set @term_statement='case when '+@next_index+'>0 then '+@term_statement+' else "nothing" end as Column'+CONVERT(varchar(max),@iterator) 
+        if (@iterator=1) 
+        begin
+            set @sql_statement=@term_statement
+        end
+        else
+        begin
+            set @sql_statement=@sql_statement+', '+@term_statement
+        end
+
+        set @iterator=@iterator+1
+    end
+
+
+    
+    RETURN @sql_statement
+
+END

@@ -1,0 +1,222 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_UnlinkedDebits
+CREATE proc sp_UnlinkedDebits as
+
+begin
+
+Truncate table ACR_Debtors_complete_Advances
+Truncate table ARUnlinkedvalidationTmp
+
+--select * into ACR_Debtors_complete_Advances from ACP_Creditors_complete_Advances
+
+--sp_rename 'ACR_Debtors_complete_Advances.Trantype','Trantyp'
+
+Insert into ACR_Debtors_complete_Advances(Company,Trantyp,InvNo,CustNo,
+InvDate,InvAmt,paidamt,balanceAmt,DateRnk)
+select Company,Trantyp,InvNo,CustNo,InvDate,InvAmt,PaidAmt,BalanceAmt,
+row_number() over(partition by CustNo order by InvDate) as DateRnk
+--select * 
+from ACR_Debtors_complete
+where Credits_Debits='Credits'
+and company like '4%'
+--and SuppCode in ('CU1B01338')
+--('CRA000754','CRA000760')
+and BalanceAmt<>0
+order by CustNo
+
+
+
+update ACR_Debtors_complete_Advances set PendingBalance=a.BalanceAmt
+from (
+select CustNo,sum(BalanceAmt) BalanceAmt
+from ACR_Debtors_complete
+where Credits_Debits='Credits'
+and company like '4%'
+and BalanceAmt<>0
+--and SuppCode in ('CU1B01338')
+--('CRA000754','CRA000760')
+--'CRE000036'
+group by CustNo
+)a
+where ACR_Debtors_complete_Advances.CustNo=a.CustNo
+and ACR_Debtors_complete_Advances.DateRnk=1
+--and ACP_Creditors_complete_Advances.balanceamt<0
+
+
+
+update ACR_Debtors_complete_Advances set NetAdvance=a.BalanceAmt
+from (
+select CustNo,sum(BalanceAmt) BalanceAmt
+from ACR_Debtors_complete
+where Credits_Debits='Credits'
+and company like '4%'
+and BalanceAmt>0
+--and SuppCode in ('CU1B01338')
+--('CRA000754','CRA000760')
+--'CRE000036'
+group by CustNo
+)a
+where ACR_Debtors_complete_Advances.CustNo=a.CustNo
+and ACR_Debtors_complete_Advances.DateRnk=1
+--and ACP_Creditors_complete_Advances.balanceamt<0
+
+
+
+update ACR_Debtors_complete_Advances set TempBalance=NetAdvance+(case when balanceamt>0 then 0 else balanceamt end)
+where Netadvance is not null
+update ACR_Debtors_complete_Advances set TempBalance=(case when balanceamt>0 then 0 else balanceamt end) 
+where Netadvance is null
+
+
+update ACR_Debtors_complete_Advances set Cumulative_Balance=a.Cumulative_Balance
+from (select Custno,InvDate,Company,Trantyp,invno,InvAmt,paidamt,balanceamt,Tempbalance,
+sum(Tempbalance) over(partition by CustNo order by Invdate
+rows UNBOUNDED PRECEDING) as Cumulative_Balance
+from ACR_Debtors_complete_Advances 
+group by CustNo,InvDate,--SuppCode,DocDt,
+Company,Trantyp,invno,InvAmt,paidamt,balanceamt,Tempbalance
+)a
+where ACR_Debtors_complete_Advances.company=a.company
+and ACR_Debtors_complete_Advances.Trantyp=a.Trantyp
+and ACR_Debtors_complete_Advances.invno=a.invno
+
+
+Truncate table ACR_Customerlist_Tmp
+
+insert into ACR_Customerlist_Tmp
+--select * into ACP_Supplierlist_Tmp from (
+select CustNo, row_number() over(order by CustNo) SuppRnk from (
+select distinct CustNo from ACR_Debtors_complete_Advances where
+CustNo in
+(select  distinct CustNo  from ACR_Debtors_complete_Advances)
+--(select a.SuppCode from 
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt>0)a
+--inner join
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt<0)b
+--on a.SuppCode=b.SuppCode)
+
+group by CustNo
+)a
+--where suppcode=
+--'CU1S00014'
+--'SU1EL0003' --*
+--'CU1S05882'
+--'SU1N00339'
+--)b
+
+
+
+-----Begin------------------------------------------------------------
+
+Declare @CustCounts int
+Declare @CustNo varchar(20)
+Declare @DateCounts int
+Declare @Count1 int
+Declare @Count2 int
+Declare @TmpBalance float
+
+set @CustCounts=(select count(distinct CustNo)
+from ACR_Customerlist_Tmp)
+
+
+Set @Count1=1
+
+while (@Count1<=@CustCounts)
+begin
+
+set @CustNo=(select CustNo from ACR_Customerlist_Tmp where CustRnk =@Count1)
+set @Count2=1
+set @DateCounts=(select count(distinct DateRnk) from ACR_Debtors_complete_Advances
+where CustNo=@CustNo)
+
+set @TmpBalance=0.0000001
+
+
+insert into ARUnlinkedvalidationTmp ([Count],StartTime)
+select @Count1 ,getdate()
+
+
+
+set @Count2=1
+while (@Count2<=@DateCounts)
+begin
+
+if(@TmpBalance<>0)
+begin
+update ACR_Debtors_complete_Advances set TempBalance=TempBalance + @TmpBalance
+where CustNo=@CustNo and DateRnk=@Count2
+
+set @TmpBalance= (select TempBalance from ACR_Debtors_complete_Advances where CustNo=@CustNo and DateRnk=@Count2)
+
+if(@TmpBalance<0)
+break
+
+end
+
+
+set @Count2=@Count2+1
+end
+
+update ARUnlinkedvalidationTmp set EndTime=getdate()
+where Count=@Count1 
+
+set @Count1=@Count1+1
+end
+
+
+-----End------------------------------------------------------------
+
+update ACR_Debtors_complete_Advances set TempBalance=0 where TempBalance>0 
+
+
+update ACR_Debtors_Details set UnlinkedCredits=a.TempBalance
+from (select * from ACR_Debtors_complete_Advances)a
+where ACR_Debtors_Details.COMPANY=a.Company
+and ACR_Debtors_Details.TranTyp=a.Trantyp
+and ACR_Debtors_Details.InvNo=a.InvNo
+and ACR_Debtors_Details.CustNo=a.CustNo
+and ACR_Debtors_Details.InvDate=a.InvDate
+
+update ACR_Debtors_complete set UnlinkedCredits=a.TempBalance
+from (select * from ACR_Debtors_complete_Advances)a
+where ACR_Debtors_complete.COMPANY=a.Company
+and ACR_Debtors_complete.TranTyp=a.Trantyp
+and ACR_Debtors_complete.InvNo=a.InvNo
+and ACR_Debtors_complete.CustNo=a.CustNo
+and ACR_Debtors_complete.InvDate=a.InvDate
+
+
+
+end
+
+--select SuppCode,count(*) from ACP_Creditors_complete_Advances where
+--SuppCode in
+--(select a.SuppCode from 
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt>0)a
+--inner join
+--(select  distinct SuppCode  from ACP_Creditors_complete_Advances where balanceamt<0)b
+--on a.SuppCode=b.SuppCode)
+--group by SuppCode
+
+
+--select * from ACR_Debtors_complete_Advances 
+--where --netadvance>1000
+--custno=--'CRG000110'
+----'CU1A03974'
+----'CU1S09099'
+--'CU1H00605'
+
+
+--select sum(TempBalance)/1000000 from ACR_Debtors_complete_Advances 
+
+
+
+
+
+
+
+
+
+
+Completion time: 2025-11-19T12:41:33.5791645+05:30

@@ -1,0 +1,118 @@
+--exec sp_ATS_OntimeSales_Details
+
+CREATE proc sp_ATS_OntimeSales_Details as
+
+begin
+
+
+Truncate table ATS_OntimeSales_Details
+Truncate table ATS_OntimeSales_temp
+
+
+Insert into ATS_OntimeSales_Details(company,OrderDate,SaleOrderType,OrderNo,PositionNo,
+Invoice_Date,trantype,Invoice,DeliveryQty,warehouse,custcode,custname,Item,Item_desc,CalYear,CalMonth)
+select company,OrderDate,SaleOrderType,OrderNo,PositionNo,Invoice_Date,trantype,Invoice,DeliveryQty,warehouse,
+custcode,custname,Item,Item_desc,cal_year,cal_Month
+--,dpst,dpstname,areacode,areaname
+from ATS_Sales_Details
+where sales_category not in (1)
+
+--Alter table ATS_OntimeSales add Reference nvarchar(64)
+
+delete from ATS_OntimeSales_Details where warehouse<>'657'
+
+
+
+update ATS_OntimeSales_Details set Reference=a.Reference
+from (select Company,Trantyp,InvNo,Reference from ACR_Debtors_Details where 
+Company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and len(ltrim(rtrim(Reference)))>2
+)a
+where ATS_OntimeSales_Details.company=a.Company
+and ATS_OntimeSales_Details.trantype=a.Trantyp
+and ATS_OntimeSales_Details.Invoice=a.InvNo
+
+
+
+
+Update ATS_OntimeSales_Details set ProductGroup_MRP=a.[Group],LeadTime=a.LeadTime
+from ATS_MRP_Itemwise_LeadTime a
+where ltrim(rtrim(ATS_OntimeSales_Details.ITEM))=ltrim(rtrim(a.TPL))
+
+
+
+insert into ATS_OntimeSales_temp(company,OrderDate,SaleOrderType,OrderNo,PositionNo,Invoice_Date,trantype,Invoice,DeliveryQty,
+warehouse,custcode,custname,Item,Item_desc,Reference,ClearAODate,ProductGroup_MRP,LeadTime,LeadTime_Prdgrp,DeliveryDays,Failure,
+CalYear,CalMonth,Prdgrp_rnk)  
+select company,OrderDate,SaleOrderType,OrderNo,PositionNo,Invoice_Date,trantype,Invoice,DeliveryQty,
+warehouse,custcode,custname,Item,Item_desc,Reference,ClearAODate,ProductGroup_MRP,LeadTime,LeadTime_Prdgrp,DeliveryDays,Failure,
+CalYear,CalMonth,Prdgrp_rnk from ATS_OntimeSales_Details
+
+
+Truncate table ATS_OntimeSales_Details
+
+insert into ATS_OntimeSales_Details (company,OrderDate,SaleOrderType,OrderNo,PositionNo,Invoice_Date,trantype,Invoice,DeliveryQty,
+warehouse,custcode,custname,Item,Item_desc,Reference,ClearAODate,ProductGroup_MRP,LeadTime,LeadTime_Prdgrp,DeliveryDays,Failure,
+CalYear,CalMonth,Prdgrp_rnk)
+select company,OrderDate,SaleOrderType,OrderNo,PositionNo,Invoice_Date,trantype,Invoice,DeliveryQty,
+warehouse,custcode,custname,Item,Item_desc,Reference,ClearAODate,ProductGroup_MRP,LeadTime,LeadTime_Prdgrp,DeliveryDays,Failure,
+CalYear,CalMonth,
+ROW_NUMBER() over (partition by CalYear,CalMonth,ProductGroup_MRP order by CalYear,CalMonth,ProductGroup_MRP) as Prdgrp_rnk
+from ATS_OntimeSales_temp
+
+
+
+Update ATS_OntimeSales_Details set LeadTime_Prdgrp=a.LeadTarget
+from ATS_MRP_Groupwise_LeadTime a
+where ltrim(rtrim(ATS_OntimeSales_Details.ProductGroup_MRP))=ltrim(rtrim(a.[Group]))
+and ATS_OntimeSales_Details.Prdgrp_rnk=1
+
+Update ATS_OntimeSales_Details set ClearAODate=a.T$CLDT
+from (select * from tzzsls331600 where T$CLDT<>'1970-01-01') a
+where ltrim(rtrim(ATS_OntimeSales_Details.OrderNo))=ltrim(rtrim(a.T$ORNO))
+and ltrim(rtrim(ATS_OntimeSales_Details.PositionNo))=ltrim(rtrim(a.T$PONO))
+and ltrim(rtrim(ATS_OntimeSales_Details.ITEM))=ltrim(rtrim(a.T$ITEM))
+
+
+Update ATS_OntimeSales_Details set DeliveryDays=DATEDIFF(dd,isnull(ClearAODate,convert(date,OrderDate)),Invoice_Date)
+
+Update ATS_OntimeSales_Details set DeliveryDays=
+(
+SELECT
+   (DATEDIFF(dd, isnull(ClearAODate,convert(date,OrderDate)), Invoice_Date) + 1)
+  -(DATEDIFF(wk, isnull(ClearAODate,convert(date,OrderDate)), Invoice_Date) * 2)
+  -(CASE WHEN DATENAME(dw, isnull(ClearAODate,convert(date,OrderDate))) = 'Sunday' THEN 1 ELSE 0 END)
+  -(CASE WHEN DATENAME(dw, Invoice_Date) = 'Saturday' THEN 1 ELSE 0 END)
+-
+(select count(distinct DATE) from TTCCCP020400
+where date between isnull(ClearAODate,convert(date,OrderDate)) and Invoice_Date
+and DFCA=4)
+)
+
+
+Update ATS_OntimeSales_Details set Failure=DeliveryDays-LeadTime
+Update ATS_OntimeSales_Details set LeadTime_Delivery=DeliveryQty where Failure<=0
+
+
+end
+
+select * from ATS_OntimeSales_Details 
+where Invoice_Date>='2024-04-01'
+and ClearAODate is null
+
+
+
+--Truncate table tzzsls331600
+--select * from tzzsls331600
+
+
+--Declare @CalYear int=2019
+--SELECT DISTINCT CalMonth,substring(datename(mm,dateadd(mm,CalMonth,-1)),1,3) as Month_Name FROM ATS_OntimeSales_Details
+--where CalYear=@CalYear
+--order by CalMonth desc
+
+
+
+--select * from ATS_OntimeSales_Details
+--where CalYear=@CalYear
+--and CalMonth=@CalMonth

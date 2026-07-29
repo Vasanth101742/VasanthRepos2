@@ -1,0 +1,71 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Rly_sales_2014_18_Tmp
+CREATE proc [dbo].[sp_Rly_sales_2014_18_Tmp] as
+
+Begin
+
+--LN Data
+Truncate table Rly_sales_2014_18_Tmp
+
+Insert into Rly_sales_2014_18_Tmp
+--select * into Rly_sales_2014_18_Tmp from (
+select CalYear,calMonth,company,dpst,custcode,custname,ItemCode,Item_desc,sum(Sales_amount) Sales_amount from 
+(select year(Invoice_Date) as CalYear,month(Invoice_Date) as calMonth,company,dpst,custcode,custname,Item as ItemCode,Item_desc,Sales_amount 
+from ELGi_Sales_Details where dpst in ('90073','90091','90092')
+and Invoice_Date>='2017-04-01'
+)a
+group by CalYear,calMonth,company,dpst,custcode,custname,ItemCode,Item_desc
+--order by CalYear,calMonth
+--)a
+
+--BAAN Data
+Insert into Rly_sales_2014_18_Tmp
+select CalYear,calMonth,company,dpst,custcode,custname,ItemCode,Item_desc,sum(AssesValue) Sales_amount from (
+select year(Date) as CalYear, month(Date) as calMonth,company,dpst,CustCode,null as custname,ItemCode,null as Item_desc,AssesValue 
+from TmpSlsDespData_baan
+where dpst in ('90073','90091','90092')
+and date between '2014-04-01' and '2017-03-31'
+)a
+where company not like '1%'
+and company not like '6%'
+group by CalYear,calMonth,company,dpst,custcode,custname,ItemCode,Item_desc
+order by CalYear,calMonth
+
+update Rly_sales_2014_18_Tmp set custname=custname1
+from (select distinct CustCode,CustName1 from [ELGI-DW].dbo.tmpcustomer)a
+where Rly_sales_2014_18_Tmp.custcode=a.custcode
+and Rly_sales_2014_18_Tmp.custname is null
+
+
+update Rly_sales_2014_18_Tmp set Item_desc=a.t_dsca
+from (select distinct t_item,t_dsca from TTCIBD001400)a
+where ltrim(rtrim(Rly_sales_2014_18_Tmp.ItemCode))=ltrim(rtrim(a.t_item))
+and Rly_sales_2014_18_Tmp.company like '4%'
+and Rly_sales_2014_18_Tmp.company<>490
+and Rly_sales_2014_18_Tmp.Item_desc is null
+
+
+
+update Rly_sales_2014_18_Tmp set Item_desc=a.dsca
+from (select distinct item,dsca from TTCIBD001490)a
+where ltrim(rtrim(Rly_sales_2014_18_Tmp.ItemCode))=ltrim(rtrim(a.item))
+and Rly_sales_2014_18_Tmp.company like '4%'
+and Rly_sales_2014_18_Tmp.company=490
+and Rly_sales_2014_18_Tmp.Item_desc is null
+
+update Rly_sales_2014_18_Tmp set ItemCode=ltrim(rtrim(ItemCode))
+
+end
+
+
+select CalYear,calMonth,dpst,custcode,custname,ItemCode,Item_desc,sum(Sales_amount) Sales_amount 
+from Rly_sales_2014_18_Tmp 
+group by CalYear,calMonth,dpst,custcode,custname,ItemCode,Item_desc
+order by CalYear,calMonth
+
+
+
+
+
+Completion time: 2025-11-19T12:10:11.1573816+05:30

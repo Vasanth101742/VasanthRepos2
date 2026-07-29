@@ -1,0 +1,142 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--declare @CalYear int =2019
+--declare @CalMonth int=10
+
+--exec sp_Regionwise_Collection
+
+CREATE proc sp_Regionwise_Collection as
+
+begin
+
+--Alter table Regionwise_Collection add  
+
+Truncate table Regionwise_Collection_Plan
+Truncate table Regionwise_Collection
+
+
+
+
+Insert into Regionwise_Collection_Plan
+--select * into Regionwise_Collection_Plan from (
+select industype,region,custype,Category1,AR,Coll_Plan,CalYear,CalMonth from (
+select distinct industype,region,custype,
+case when column_name1 ='od_ar' then 'OD'
+when column_name1 ='ftm_ar' then 'FTM'
+when column_name1 ='nd_ar' then 'ND' end as Category1,
+AR,
+case when column_name2='od_pl' then 'OD'
+when column_name2='ftm_pl'  then 'FTM'
+when column_name2='nd_pl' then 'ND'
+end as Category2
+,Coll_Plan,CalYear,CalMonth,status
+From(
+SELECT distinct industype,region,custype,od_ar,od_pl,ftm_ar,ftm_pl,nd_ar,nd_pl
+,frmdt,todt,status,year(frmdt) CalYear,month(frmdt) as CalMonth
+from [ELGi_Intranet].dbo.Regionwise_Collection_Plan
+where status='YES'
+)a
+unpivot
+(
+AR for column_name1 in (od_ar,ftm_ar,nd_ar)
+)as k
+unpivot
+(
+Coll_Plan for column_name2 in (od_pl,ftm_pl,nd_pl)
+) as K1
+
+)a
+where Category1=Category2
+--)a
+
+order by industype,region,custype
+
+
+
+update Regionwise_Collection_Plan set industype='Industrials' where industype='indus'
+update Regionwise_Collection_Plan set industype='Portables' where industype like 'por%'
+
+update Regionwise_Collection_Plan set custype='Dealers' where custype='dealer'
+
+
+Insert into Regionwise_Collection
+--select * into Regionwise_Collection from (
+select *,
+row_number() over (partition by BusinessVertical,CustType,Category,calyear,calmonth order by BusinessVertical,CustType,Category) as Rnk1,
+null as AR,null  as Coll_plan,null as CategoryOrdr
+ from (
+select a.Company,TranType,InvNo,
+CustCode,CustName,
+SalesOffice,SalesOfficeName,a.AreaCode,a.AreaName,b.Zone,
+EntryDate,
+DueDate,
+case when CustCode in (select distinct CustCode from vw_AM_Dealers) then 'Dealers'
+else 'Others' end as CustType,
+case when EntryDate <= DueDate  and DueDate <=EOMONTH(getdate()-1) then 'FTM'
+when EntryDate < DueDate  and DueDate >EOMONTH(getdate()-1) then 'ND'
+when EntryDate > DueDate  and year(duedate)=year(getdate()-1) and month(duedate)<>month(getdate()-1) then 'OD' 
+when EntryDate > DueDate  and year(duedate)=year(getdate()-1) and month(duedate)=month(getdate()-1) then 'FTM' 
+else 'OD' end as Category,
+case when b.Zone ='North' then 1
+when b.Zone ='East' then 2
+when b.Zone ='West' then 3
+when b.Zone ='South' then 4
+end as ZoneOrdr,
+Case when SalesOffice in ('90013','90015','90025','90026','90028','90029',
+'90031','90034','90038','90063','90075','90079','90082','90083','90084','90085')
+then 'Industrials'
+when SalesOffice in ('90039','90076','90077','90078','90302') then 'Portables' end as BusinessVertical,
+sum(RecvAmth)*(-1) RecvAmth,VerticalOrdr,Vertical,CalYear,CalMonth
+from ACR_As_of_Date_Details a
+left outer join vw_AREA_MASTER b
+on a.AreaCode=b.Areacode
+where RecptType='Collection'
+and a.company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+--and CalYear=@CalYear
+--and CalMonth =@CalMonth 
+--and Vertical in (@Vertical)
+--and AreaCode in (@Area)
+
+group by a.Company,TranType,InvNo,CustCode,CustName,SalesOffice,SalesOfficeName,a.AreaCode,a.AreaName,b.Zone,EntryDate,DueDate,
+VerticalOrdr,Vertical,CalYear,CalMonth 
+)a
+where recvamth not between -1 and 1
+and len(areaname)>2
+and Zone in ('North','East','West','South')
+and BusinessVertical in ('Industrials','Portables')
+--)a
+--order by EntryDate
+
+Insert into Regionwise_Collection(BusinessVertical,Zone,CustType,Category,AR,Coll_Plan,CalYear,CalMonth)
+select * from Regionwise_Collection_Plan
+
+
+update Regionwise_Collection set CategoryOrdr=1 where Category='OD'
+update Regionwise_Collection set CategoryOrdr=2 where Category='FTM'
+update Regionwise_Collection set CategoryOrdr=3 where Category='ND'
+
+
+end
+
+
+--select * from subscription_log_Status
+
+--select * from Regionwise_Collection_Plan a
+--full outer join Regionwise_Collection b
+--on SUBSTRING(a.industype,1,3)=SUBSTRING(b.BusinessVertical,1,3)
+--and SUBSTRING(a.custype,1,3)=SUBSTRING(b.CustType,1,3)
+--and a.region=b.Zone
+--and a.Category1=b.Category
+--and a.CalYear=b.CalYear
+--and a.CalMonth=b.CalMonth
+--where isnull(a.CalYear,b.CalYear)=2019
+--and isnull(a.CalMonth,b.CalMonth)=10
+
+--select * from Regionwise_Collection where SalesOffice in ('90025','90063')
+
+--Alter table Regionwise_Collection add CategoryOrdr int
+
+
+
+
+Completion time: 2025-11-19T11:50:48.5345947+05:30

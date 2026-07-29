@@ -1,0 +1,223 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_Sales_Flash_data
+--select * from ELGi_Sales_Flash_data where organ='COSEA'
+
+CREATE proc [dbo].[sp_ELGi_Sales_Flash_data] as 
+
+begin
+
+
+declare @Finyear int;
+declare @Finmonthnum int;
+declare @Calyear varchar(5);
+declare @Calmonthnum int;
+declare @monthcount int
+declare @count1 int;
+declare @count2 int;
+
+
+--------PART 1:    LOADING LAST 5 YEARS HISTORY DATA ---------------------------------------------
+------Note : 
+
+----------1. execute the below truncate statement Manually once and comment it
+----truncate table ELGi_Sales_Flash_data
+--------2.It will take some more time hours to complete
+
+
+
+--set @count1 =1
+
+
+--while (@count1<=2)
+
+--Begin
+
+--set @Finyear=
+--(select Fin_year from(
+--select Fin_year,row_number() over(order by Fin_year) year_rank from
+--(
+--select distinct Fin_year from ELGi_Sales_Details 
+--where Fin_year>=(select max(Fin_year)-1 from ELGi_Sales_Details )
+--)a)b
+--where year_rank=@count1)
+
+--set @monthcount=(select count(distinct Fin_month) from  ELGi_Sales_Details 
+--where Fin_year=@Finyear)
+
+--set @Finmonthnum=1
+
+--while (@Finmonthnum<=@monthcount)
+
+--begin
+
+--set @Calmonthnum=case when @Finmonthnum<=9 then @Finmonthnum+3 else @Finmonthnum-9 end
+--set @Calyear=case when @Finmonthnum<=9 then @Finyear else @Finyear+1 end
+
+
+--Insert into ELGi_Sales_Flash_data
+
+
+--select * from (
+
+--SELECT 
+--'India' as organ,isnull(bud.Description,sls.Description) as  user_names,null as  Division,
+--isnull(bud.Dpst,sls.Dpstcode) Dpstcode,isnull(bud.dpstname,sls.dpstname) dpstname,
+--bud.this_month_budget,sls.this_month_sale,sls.last_month_sale,
+--bud.ytd_budget,sls.this_year_sale,
+--case when sls.last_year_ytd = 0 then  0.01 else sls.last_year_ytd end as last_year_ytd,
+--sls.last_year_this_month_sale,@Finyear as FinYear,@Finmonthnum as FinMonth,'001' as AreaCode
+--from ufn_bud_Domestic_DPSTwise(@Calmonthnum,@Calyear) bud
+--full join ufn_sls_Domestic_DPSTwise(@Calmonthnum,@Calyear) sls
+--on bud.dpst=sls.dpstcode
+
+--union all
+
+--select organ,user_names,Division,Dpstcode,dpstname,
+--case when rnk=1 then this_month_budget else 0 end as this_month_budget,
+--this_month_sale,last_month_sale,
+--case when rnk=1 then ytd_budget else 0 end as ytd_budget,
+--this_year_sale,last_year_ytd,last_year_this_month_sale,FinYear,FinMonth,Areacode
+--from
+--(SELECT
+--isnull(bud.organ,sls.organ) organ,isnull(bud.user_names,sls.user_names) user_names,
+--isnull(bud.Division,sls.Division) Division,
+--isnull(bud.Dpst,sls.Dpstcode) Dpstcode,isnull(bud.dpstname,sls.dpstname) dpstname,
+--row_number() over (partition by isnull(bud.Dpst,sls.Dpstcode),isnull(bud.Area,sls.Areacode) 
+--order by isnull(bud.Dpst,sls.Dpstcode),isnull(bud.Area,sls.Areacode)) as rnk,
+--bud.this_month_budget
+--,sls.this_month_sale,sls.last_month_sale,
+--bud.ytd_budget,sls.this_year_sale,case when sls.last_year_ytd = 0 then  0.01 else sls.last_year_ytd end as last_year_ytd,
+--sls.last_year_this_month_sale,@Finyear as FinYear,@Finmonthnum as FinMonth,isnull(bud.Area,sls.Areacode) as Areacode
+--FROM ufn_bud_global(@Calmonthnum,@Calyear) bud
+--full JOIN
+--ufn_sls_global(@Calmonthnum,@Calyear) sls 
+--ON isnull(bud.Dpst,'0')=isnull(sls.Dpstcode,'0')
+--and isnull(bud.Area,'0')=isnull(sls.Areacode,'0')
+--where isnull(bud.organ,sls.organ)<>'India'
+--)a
+
+--)a
+
+----select @Calmonthnum,@Calyear,@Finmonthnum,@Finyear
+
+--set @Finmonthnum=@Finmonthnum+1
+--end
+
+--set @count1=@count1+1
+--end
+
+
+------Deleting the obsolete data (i.e Actuals :zero or incorrect data ) for financial months >= the current financial month of current year
+----select * 
+--delete
+--from ELGi_Sales_Flash_data 
+--where FinMonthnum>=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end as FinMonth)
+--and FinYear=(select max(FinYear) from ELGi_Sales_Flash_data)
+
+
+
+------------------END OF PART 1: END OF LOADING LAST 5 YEARS HISTORY DATA-------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+------PART 2: DELETING AND LOADING CURRENT FINMONTH DATA ON DALY BASIS------------------------------------------------------
+
+
+set @Finyear =(select max(Fin_year) from ELGi_Sales_Details)
+set @Finmonthnum=(select max(Fin_month) from ELGi_Sales_Details where Fin_year=(select max(Fin_year) from ELGi_Sales_Details))
+
+
+set @Calmonthnum=case when @Finmonthnum<=9 then @Finmonthnum+3 else @Finmonthnum-9 end
+set @Calyear=case when @Finmonthnum<=9 then @Finyear else @Finyear+1 end
+
+
+
+--select *
+Delete 
+from ELGi_Sales_Flash_data 
+where 
+FinMonthnum>=@Finmonthnum
+and FinYear=@Finyear
+
+
+
+Insert into ELGi_Sales_Flash_data
+
+select * from (
+
+SELECT 
+'India' as organ,isnull(bud.Description,sls.Description) as  user_names,null as  Division,
+isnull(bud.Dpst,sls.Dpstcode) Dpstcode,isnull(bud.dpstname,sls.dpstname) dpstname,
+bud.this_month_budget,sls.this_month_sale,sls.last_month_sale,
+bud.ytd_budget,sls.this_year_sale,
+case when sls.last_year_ytd = 0 then  0.01 else sls.last_year_ytd end as last_year_ytd,
+sls.last_year_this_month_sale,@Finyear as FinYear,@Finmonthnum as FinMonth,'001' as AreaCode
+from ufn_bud_Domestic_DPSTwise(@Calmonthnum,@Calyear) bud
+full join ufn_sls_Domestic_DPSTwise(@Calmonthnum,@Calyear) sls
+on bud.dpst=sls.dpstcode
+
+union
+
+SELECT isnull(bud.organ,sls.organ) organ,isnull(bud.user_names,sls.user_names) user_names,
+isnull(bud.Division,sls.Division) Division,
+isnull(bud.Dpst,sls.Dpstcode) Dpstcode,isnull(bud.dpstname,sls.dpstname) dpstname,
+bud.this_month_budget,sls.this_month_sale,sls.last_month_sale,
+bud.ytd_budget,sls.this_year_sale,case when sls.last_year_ytd = 0 then  0.01 else sls.last_year_ytd end as last_year_ytd,
+sls.last_year_this_month_sale,@Finyear as FinYear,@Finmonthnum as FinMonth,isnull(bud.Area,sls.Areacode) as Areacode
+FROM (
+select organ,user_names,Division,dpst,dpstname,Area,
+sum(this_month_budget) this_month_budget,sum(ytd_budget) ytd_budget
+from ufn_bud_global(@Calmonthnum,@Calyear) 
+group by organ,user_names,Division,dpst,dpstname,Area
+) bud
+
+full JOIN
+(select organ,user_names,Division,Dpstcode,dpstname,Areacode,sum(this_month_sale) this_month_sale,
+sum(last_month_sale) last_month_sale, sum(this_year_sale) this_year_sale,
+sum(last_year_ytd) last_year_ytd,sum(last_year_this_month_sale) last_year_this_month_sale from 
+ufn_sls_global(@Calmonthnum,@Calyear)
+group by organ,user_names,Division,Dpstcode,dpstname,Areacode
+) sls 
+ON isnull(bud.Dpst,'0')=isnull(sls.Dpstcode,'0')
+and isnull(bud.Area,'0')=isnull(sls.Areacode,'0')
+where isnull(bud.organ,sls.organ)<>'India'
+
+
+)a
+
+------END OF PART 2: LOADING CURRENT FINMONTH DATA ON DALY BASIS-------------------------------------------------
+
+
+
+
+end
+
+
+
+--select dpstcode,sum(month_actuals) from ELGi_Sales_Flash_data where FinMonthnum=11 and finyear=2017
+--and organ='india' --and dpstcode='90013'
+--group by dpstcode
+
+--select * from Sales_Budget where date between '2017-04-01 00:00:00.000' and '2018-03-01 00:00:00.000'
+--(select * from Sales_Budget where date between '2016-04-01 00:00:00.000' and '2017-03-01 00:00:00.000')a
+
+--update Sales_Budget set productgrp=a.productgrp
+--from (select * from Sales_Budget where date between '2016-04-01 00:00:00.000' and '2017-03-01 00:00:00.000')a
+--where Sales_Budget.Area=a.Area
+--and Sales_Budget.Dpst=a.Dpst
+--and Sales_Budget.organ=a.organ
+
+
+
+
+
+
+Completion time: 2025-11-19T09:52:06.3224203+05:30

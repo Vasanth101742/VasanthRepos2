@@ -1,0 +1,8 @@
+iif(month(Fields!CalMonth.Value)=month(today-1)day(today)
+
+iif(month(Fields!CalMonth.Value)=month(today),cint(day(dateadd("d",-1,today))),30)
+
+
+=iif(Fields!PaidDate.Value=nothing,"White",iif(Fields!PaidDate.Value<="2019-12-31","Khaki","White"))
+
+=left(monthname(Fields!Cal_month.Value), 3) & "-"& right(Fields!Cal_year.Value,2)

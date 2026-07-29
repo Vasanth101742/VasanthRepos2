@@ -1,0 +1,32 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- exec sp_sms4md_china_osea
+CREATE proc [dbo].[sp_sms4md_china_osea]
+as 
+begin
+
+truncate table sms4md_china_osea
+insert into sms4md_china_osea
+select 
+CASE WHEN Division ='CHINA' THEN 'CHINA'
+ELSE 'OSEA' END AS Division,
+sum(mbud)mbud,sum(msal)msal,sum(ybud)ybud,sum(ysal)ysal,sum(lmsal)lmsal,sum(lysal)lysal from 
+ (
+	select ltrim(rtrim(isnull(b.division,a.Division))) as Division ,Mbud,Msal,Ybud,Ysal,LMSal,LYSal  from (
+	(select Dpstcode ,Areacode ,organ,division,this_month_sale as Msal,this_year_sale as Ysal,last_month_sale as LMSal,last_year_sale as LYSal  from vw_sls_Global
+	 where global ='International' and organ='COSEA'
+	)a
+	full join (select dpst,area,organ,Division,this_month_budget as Mbud,ytd_budget as Ybud from  vw_bud_Global where global ='International'  and organ='COSEA')b
+on ltrim(rtrim(a.Dpstcode ))=ltrim(rtrim(b.dpst))
+and ltrim(rtrim(A.areacode))=ltrim(rtrim(b.area))
+)
+)
+a
+group by CASE WHEN Division ='CHINA' THEN 'CHINA'
+ELSE 'OSEA' END 
+end
+
+
+
+
+Completion time: 2025-11-19T12:18:26.7220610+05:30

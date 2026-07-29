@@ -1,0 +1,168 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE Procedure [dbo].[SP_OTIF] 
+As 
+Begin
+SET NOCOUNT ON
+
+--Declare @fromdate  date = '2024-11-01'
+--Declare @todate  date =convert(date,getdate())
+
+
+
+Truncate Table OTIF
+
+Insert into OTIF 
+
+Select *,
+case when isnull([Status],'0%')='100%' and Region='Domestic' then 'On-Time Dispatch'
+
+when isnull([Exp_Status],'0%')='100%' and Region not in ('Domestic') then 'On-Time Dispatch'
+
+when Orde_Qty>isnull(b.Qty,100000) then 'Excess Inflow'
+
+when ReleaseDate>a.OrderDate and datediff(DAY,ReleaseDate,Hpkcompldate)>2 then 'Packing Delay'
+
+when region not in ('Subsidaries','DIRECT EXPORT') and DATEDIFF(day,convert(date,Hpkcompldate),convert(date,inv_date))>1 then 'Commercial Delay'
+
+when (case when Region='Domestic' then isnull([Status],'0%') else isnull([Exp_Status],'0%') end)='0%'
+		and replace(buyer,' ','') in ('RAVIKUMAR')and  SUPPLIER='ELGI EQUIP'   then 'Supply Delay - HO Manf Parts'
+
+when (case when Region='Domestic' then isnull([Status],'0%') else isnull([Exp_Status],'0%') end)='0%'
+		and replace(buyer,' ','') in ('VEERASAMY') and  SUPPLIER='ELGI EQUIP'   then 'Supply Delay - ACP Manf Parts'
+
+when (case when Region='Domestic' then isnull([Status],'0%') else isnull([Exp_Status],'0%') end)='0%'
+		and replace(buyer,' ','') in ('SATHISHN','PRAKASHM')   then 'Supply Delay - Import Items'
+		
+
+when (case when Region='Domestic' then isnull([Status],'0%') else isnull([Exp_Status],'0%') end)='0%' 
+		  and itemtype='P' and a.ItemCode in (SELECT distinct a.Item fROM (
+					select 'RECEIPT' as name,datediff(dd,convert(date,adddate),convert(date,getdate())) as age,getdate() as today,
+					RECEIPTKEY,POKEY,ltrim(rtrim(sku)) as Item,(qtyexpected-QTYRECEIVED) as Qty,ADDDATE,wmsdoctype,
+					SUPPLIERNAME,SUPPLIERCODE,PACKINGSLIPNUMBER,SHIPFROMCITY,SHIPFROMSTATE,REFERENCETYPE,REFERENCEDOCUMENT,PURCHASEORDERDOCUMENT,
+					PURCHASEORDERLINE,TOLOC,toid
+					From wms.dbo.Inward 
+					where wmsreceiptheaderstatus='open'
+					and wmsreceiptstatus='Pending'
+					and wmsdoctype in ('customer return','advance shipment notice','production order','transfer')
+
+					union all
+
+					select 'QC' as name,datediff(dd,convert(date,a.ADDDATE),convert(date,getdate())) as age,getdate() as today,
+					RECEIPTKEY,POKEY,ltrim(rtrim(a.SKU)) as Item,qcpend_qty as Qty,a.ADDDATE,wmsdoctype,
+					SUPPLIERNAME,SUPPLIERCODE,PACKINGSLIPNUMBER,SHIPFROMCITY,SHIPFROMSTATE,REFERENCETYPE,REFERENCEDOCUMENT,PURCHASEORDERDOCUMENT,
+					PURCHASEORDERLINE,TOLOC,toid
+					From wms.dbo.Inward a
+					inner join wms.dbo.wmwhse1_LOTXLOCXID b on ltrim(rtrim(b.sku))=ltrim(rtrim(a.sku)) and b.ID=a.TOID and b.LOC=a.TOLOC and b.status='hold' and QTY>0
+					where wmsqcstatus ='pending'
+
+					union all
+
+					select 'PREPACK' as name,datediff(dd,convert(date,a.ADDDATE),convert(date,getdate())) as age,getdate() as today,
+					RECEIPTKEY,POKEY,ltrim(rtrim(a.SKU)) as Item,prepackpend_qty as Qty,a.ADDDATE,wmsdoctype,
+					SUPPLIERNAME,SUPPLIERCODE,PACKINGSLIPNUMBER,SHIPFROMCITY,SHIPFROMSTATE,REFERENCETYPE,REFERENCEDOCUMENT,PURCHASEORDERDOCUMENT,
+					PURCHASEORDERLINE,TOLOC,toid
+					From wms.dbo.Inward a 
+					inner join wms.dbo.wmwhse1_LOTXLOCXID b on ltrim(rtrim(b.sku))=ltrim(rtrim(a.sku)) and b.ID=a.TOID and b.LOC=a.TOLOC and b.status='hold' and QTY>0
+					where wmsprepackstatus ='pending' and audit_tbl_status='No'
+					and wmsdoctype not in ('production order') and qcpend_qty=0
+
+					union all
+					select 'Putaway'as name,datediff(dd,convert(date,date),convert(date,getdate())) as age,getdate() as today,
+					RECEIPTKEY,'' pokey,ltrim(rtrim(sku)) as Item,qty as putawayqty,date,referencetype,
+					SUPPLIERNAME,SUPPLIERCODE,''PACKINGSLIPNUMBER,''SHIPFROMCITY,''SHIPFROMSTATE,
+					''REFERENCETYPE,''REFERENCEDOCUMENT,''PURCHASEORDERDOCUMENT,''PURCHASEORDERLINE,TOLOC,toid
+					From(
+					select wmwhse1_elgipendingputaway.*,a.SUPPLIERCODE,a.suppliername From wms.dbo.wmwhse1_elgipendingputaway 
+					left join (select distinct RECEIPTKEY,SUPPLIERCODE,suppliername From wms.dbo.wmwhse1_RECEIPT)a
+					on wmwhse1_elgipendingputaway.RECEIPTKEY =a.RECEIPTKEY)a)a
+					LEFT JOIN (SELECT*  fROM [ELGi_LN].DBO.VW_ITEM_MASTER WHERE COMPANY='490')B
+					on ltrim(rtrim(a.item))=ltrim(rtrim(b.Item))) then 'Inward Delay'
+
+
+when (case when Region='Domestic' then isnull([Status],'0%') else isnull([Exp_Status],'0%') end)='0%' 
+		  and itemtype='P'  then  'Supplier Delay'
+when (case when Region='Domestic' then isnull([Status],'0%') else isnull([Exp_Status],'0%') end)='0%' 
+		and itemtype='M' then 'Kits Delay' 
+
+
+end 'Reason'
+fROM (
+select *,
+round((ordqty*Pric*case when t_rats_1<1 then 1 else t_rats_1 end),2) as Ord_Value,
+round((DelQty*Pric*case when t_rats_1<1 then 1 else t_rats_1 end),2) as Del_Value,
+round((Pend_qty*Pric*case when t_rats_1<1 then 1 else t_rats_1 end),2) as Pnd_Value,
+
+case 
+when inv_date is not null and ordqty =DelQty and Pend_qty =0 and (convert(date,estimated_date)>=(convert(date,inv_date))) then '100%' 
+when inv_date is not null and ordqty =DelQty and Pend_qty =0 and (convert(date,estimated_date)<(convert(date,inv_date))) then '0%' 
+when inv_date is null and ordqty =DelQty and Pend_qty =0 and (convert(date,estimated_date)>=(convert(date,isnull(inv_date,getdate())))) then '' 
+when inv_date is null and ordqty =DelQty and Pend_qty =0 and (convert(date,estimated_date)<(convert(date,isnull(inv_date,getdate())))) then '0%' 
+when ordqty<>DelQty and Pend_qty>0 and (convert(date,estimated_date)>=(convert(date,getdate()))) then '' 
+when ordqty <>DelQty and Pend_qty>0 and (convert(date,estimated_date)<(convert(date,getdate()))) then '0%' 
+end as Status,
+
+case 
+when Hpkcompldate  is not null and ordqty =SHIPPEDQTY  and (convert(date,estimated_date)>=(convert(date,Hpkcompldate))) then '100%' 
+when Hpkcompldate is not null and ordqty =SHIPPEDQTY  and (convert(date,estimated_date)<(convert(date,Hpkcompldate))) then '0%' 
+when Hpkcompldate is null and ordqty =SHIPPEDQTY and (convert(date,estimated_date)>=(convert(date,isnull(Hpkcompldate,getdate())))) then '' 
+when Hpkcompldate is null and ordqty =SHIPPEDQTY and (convert(date,estimated_date)<(convert(date,isnull(Hpkcompldate,getdate())))) then '0%' 
+when ordqty<>SHIPPEDQTY and (convert(date,estimated_date)>=(convert(date,getdate()))) then '' 
+when ordqty <>SHIPPEDQTY  and (convert(date,estimated_date)<(convert(date,getdate()))) then '0%' 
+end as Exp_Status from ( select ordertype,OrderNum,dpst,Dpstname,ItemCode,
+		Item_desc,CustCode,Custname,itemclass,itemtype,lead_days,
+		ordqty,DelQty,Pend_qty
+		,NATIONAL_HOLIDAYS,delay_days,
+		wh_orderdate,OrderDate
+		,wh_orderdate+(case when a.ABPQty <a.Orde_Qty then (case when isnull(rplt,0)<lead_days then lead_days else RPLT end) else lead_days end) as 'estimated_date'  
+		,inv_date,trantype,Pric,t_rats_1,
+		SHIPPEDQTY,Hpkcompldate,region,buyer,supplier,[NAME], ReleaseDate,
+		[Orde_Qty] ,[ABPQty],RPLT,case when a.ABPQty <a.Orde_Qty then 'Greater' else 'Lesser' end'ABPComment'
+
+
+
+From (
+
+		select  ordertype,OrderNum,dpst,SUBSTRING(Dpstname,1,10)Dpstname,LTRIM(RTRIM(a.ItemCode))ItemCode,
+		SUBSTRING(Item_desc,1,10)Item_desc,CustCode,SUBSTRING(Custname,1,10)Custname,itemclass,itemtype,lead_days,
+		sum(ord_qty-isnull(Cancel_Qty,0))as ordqty,round(sum(DelQty),0)DelQty,sum((ord_qty-isnull(Cancel_Qty,0))-round(DelQty,0)) as Pend_qty
+		,sum(NATIONAL_HOLIDAYS)NATIONAL_HOLIDAYS,sum(delay_days)delay_days,
+		wh_orderdate,OrderDate
+		,convert(date,estimated_date) estimated_date 
+		,max(inv_date)inv_date,trantype,(t_oamt/ord_qty) as Pric,t_rats_1,
+		c.SHIPPEDQTY,c.Hpkcompldate,region,buyer,supplier,[zone]  AS NAME,Next_due_date1 as ReleaseDate,
+		sum(ord_qty) over (partition by LTRIM(RTRIM(a.ItemCode)) order by OrderDate) 'Orde_Qty' ,max(b.Qty)'ABPQty',max(c1.T$SUTI)'RPLT'
+		from Pending_orders_wms  a
+		left outer join (select * from [WMS].dbo.WMS_PackStatus_Orderline where Hpkcompldate>'20230401') c --Newly added
+		on a.OrderNum=c.SALESORDERDOCUMENT
+		and a.PositionNum=c.SALESORDERLINE
+		and ltrim(rtrim(a.ItemCode))=ltrim(rtrim(c.SKU))
+
+		left join GSC_ABP b on b.itemcode=a.itemcode and b.MontyYear=left(DateName(month,wh_orderdate),3)+'-'+convert(nvarchar,right(year(wh_orderdate),2))
+
+		left join (select distinct * from TZZPUR622490 where COMPANY='490') c1 on Replace(c1.T$ITEM,' ','')=a.ItemCode and c1.COMPANY='490'
+		
+
+
+		where a.Company in (490) and convert(date,wh_orderdate)>='2018-04-01' 
+		and dpst not in ('90092') and a.Region='Domestic' 
+		and convert(date,estimated_date) between DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1) and Convert(date,Getdate())
+		and WareHouse in ('102')
+		and ordertype not in (select distinct saleordertype From saletype_master where company =490 and Remarks ='Not Considerd')
+		group by OrderNum,dpst,SUBSTRING(Dpstname,1,10),LTRIM(RTRIM(a.ItemCode)),SUBSTRING(Item_desc,1,10),
+		CustCode,SUBSTRING(Custname,1,10),itemclass,itemtype,lead_days,trantype,wh_orderdate,estimated_date,(t_oamt/ord_qty)
+		,t_rats_1,ordertype,OrderDate,c.SHIPPEDQTY,c.Hpkcompldate,region,buyer,supplier,[zone],Next_due_date1,ord_qty
+
+)a
+)a
+WHERE convert(date,ESTIMATED_DATE) between DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1) and Convert(date,Getdate())) a 
+
+left join (Select Distinct itemcode'item_code',Sum(Qty)'Qty' from [GSC_DEM] Group BY itemcode) b on replace(b.item_code,' ','')=replace(a.ItemCode,' ','')
+End 
+
+
+--Select * from OTIF
+--Where Convert(date,estimated_date) = '2024-09-01'
+
+
+Completion time: 2025-11-19T11:39:13.3305188+05:30

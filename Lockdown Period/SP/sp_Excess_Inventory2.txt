@@ -1,0 +1,621 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Excess_Inventory2
+CREATE proc sp_Excess_Inventory2 as
+
+begin
+
+Truncate table Excess_Inventory2
+Truncate table Lean_Allocation_Tmp
+Truncate table Excess_Inventory2_Temp
+
+Insert into Excess_Inventory2(COMPANY,ITEM,StockQty)
+--select * into Excess_Inventory2 from (
+select COMPANY,ltrim(rtrim(ITEM)) ITEM,sum(QHND) QHND from
+(select * from TWHWMD215ALL
+where concat(COMPANY,CWAR) in (select concat(Comp,WH) from Inventory_Master where RecptType='Purchase receipts')
+and CWAR not in ('MK2')
+)a
+group by COMPANY,ITEM
+having sum(QHND)<>0
+--)a
+
+
+Insert into Excess_Inventory2(COMPANY,ITEM,StockQty)
+--select * into Excess_Inventory2 from (
+select COMPANY,ltrim(rtrim(ITEM)) ITEM,sum(QHND) QHND from
+(select * from TWHWMD215ALL
+where concat(COMPANY,CWAR) not in (select concat(Comp,WH) from Inventory_Master where RecptType='Purchase receipts')
+and company in (470,490)
+and CWAR not in ('MK2')
+)a
+group by COMPANY,ITEM
+having sum(QHND)<>0
+--)a
+
+--Commented on 19-Sep-2024
+----BTS Items
+--Insert into Excess_Inventory2(COMPANY,ITEM,StockQty)
+----select * into Excess_Inventory2 from (
+--select COMPANY,ltrim(rtrim(ITEM)) ITEM,sum(QHND) QHND from
+--(select * from TWHWMD215ALL
+--where concat(company,ltrim(rtrim(item))) in (select distinct concat(company,ltrim(rtrim(item))) from tzzsfc211all where fgtm=1)
+--and company like '4%'
+--)a
+--group by COMPANY,ITEM
+--having sum(QHND)<>0
+----)a
+
+
+
+Insert into Lean_Allocation_Tmp
+--select * into Lean_Allocation_Tmp from (
+select A.COMPANY,A.DIVI,A.DEPT,
+'LEAN' as LeanType,
+case when LGSC=1 then 'ALLOCATION'
+when LGSC=2 then 'STOCK' else null end as AllocationType,
+A.ITEM,
+case 	
+when A.SOPS = 1 then  'TWO BIN'
+when A.SOPS = 2 then  'MULTI BIN'
+when A.SOPS = 3 then  'MILK RUN'
+when A.SOPS = 4 then  'MR-MOTORS'
+when A.SOPS = 5 then  'FORWARD COVER'
+when A.SOPS = 6 then  'SINGLE BIN'
+end  as CATEGORY,
+A.SLOQ,convert(float,A.SQTY) AS BINQTY,
+0 as ProdAllocation,
+0 as SalesAllocation,
+0 as BinAllocation,
+0 as RegAllocation,
+0 as StockAllocation,
+A.SUNO1 AS SUPPCODE,A.BUYR AS BUYRCODE
+from 	TZZPUR049ALL A
+where company in (401,450,470,490)
+--)a
+
+
+update Lean_Allocation_Tmp set BINQTY=SQTY,SLOQ=a.SLOQ
+from(
+select distinct COMPANY,DIVI,DEPT,ITEM,SQTY,SLOQ
+from TZZPUR511ALL a
+where COMPANY like '4%'
+and SQTY =(
+select max(SQTY) SQTY from TZZPUR511ALL b
+where a.COMPANY=b.COMPANY
+and a.DIVI=b.DIVI
+and a.DEPT=b.DEPT
+and a.ITEM=b.ITEM
+--and item='         410431001'
+group by COMPANY,DIVI,DEPT,ITEM)
+)a
+where Lean_Allocation_Tmp.COMPANY=a.COMPANY
+and Lean_Allocation_Tmp.DIVI=a.DIVI
+and Lean_Allocation_Tmp.DEPT=a.DEPT
+and ltrim(rtrim(Lean_Allocation_Tmp.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+
+update Lean_Allocation_Tmp set ProdAllocation=a.AllocatedQty
+from(
+select COMPANY,T$ITEM as ITEM,null as Category,'Production Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (490) and T$KOOR=1 and T$KOTR=2
+group by COMPANY,T$ITEM
+)a
+where Lean_Allocation_Tmp.COMPANY=a.COMPANY
+and ltrim(rtrim(Lean_Allocation_Tmp.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update Lean_Allocation_Tmp set SalesAllocation=a.AllocatedQty
+from(select COMPANY,T$ITEM as ITEM,null as Category,'Sales Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (490) and T$KOOR=3 and T$KOTR=2
+and T$CWAR ='102'
+group by COMPANY,T$ITEM)a
+where Lean_Allocation_Tmp.COMPANY=a.COMPANY
+and ltrim(rtrim(Lean_Allocation_Tmp.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update Lean_Allocation_Tmp set BinAllocation=BINQTY where category in ('SINGLE BIN') and AllocationType is null
+update Lean_Allocation_Tmp set BinAllocation=2*BINQTY where category in ('TWO BIN','MILK RUN','MR-MOTORS') and AllocationType is null
+update Lean_Allocation_Tmp set BinAllocation=SLOQ*BINQTY where category in ('MULTI BIN') and AllocationType is null
+
+
+update Lean_Allocation_Tmp set RegAllocation=BINQTY 
+where category in ('SINGLE BIN') and AllocationType='ALLOCATION'
+update Lean_Allocation_Tmp set RegAllocation=2*BINQTY+ProdAllocation+SalesAllocation 
+where category in ('MR-MOTORS') and AllocationType='ALLOCATION'
+update Lean_Allocation_Tmp set RegAllocation=ProdAllocation+SalesAllocation 
+where category in ('MILK RUN') and AllocationType='ALLOCATION'
+update Lean_Allocation_Tmp set RegAllocation=BINQTY
+where category in ('TWO BIN') and AllocationType='ALLOCATION' and BINQTY>(ProdAllocation+SalesAllocation)
+update Lean_Allocation_Tmp set RegAllocation=ceiling((ProdAllocation+SalesAllocation)/BINQTY)*BINQTY
+where category in ('TWO BIN') and AllocationType='ALLOCATION' and BINQTY<(ProdAllocation+SalesAllocation)
+update Lean_Allocation_Tmp set RegAllocation=ceiling((sloq*BINQTY+ProdAllocation+SalesAllocation)/BINQTY)*BINQTY
+where category in ('MULTI BIN') and AllocationType='ALLOCATION' 
+
+
+update Lean_Allocation_Tmp set StockAllocation=BINQTY where category in ('SINGLE BIN') and AllocationType='STOCK'
+update Lean_Allocation_Tmp set StockAllocation=2*BINQTY+ProdAllocation+SalesAllocation where category in ('MR-MOTORS') and AllocationType='STOCK'
+update Lean_Allocation_Tmp set StockAllocation=BINQTY+ProdAllocation+SalesAllocation where category in ('MILK RUN') and AllocationType='STOCK'
+update Lean_Allocation_Tmp set StockAllocation=ceiling((BINQTY+ProdAllocation+SalesAllocation)/BINQTY)*BINQTY
+where category in ('TWO BIN') and AllocationType='STOCK'
+update Lean_Allocation_Tmp set StockAllocation=SLOQ*BINQTY where category in ('MULTI BIN') and AllocationType='STOCK'
+
+--Alter table Lean_Allocation_Tmp alter column SLOQ float
+
+--Old Method
+--update Excess_Inventory2 set LeanType=a.LeanType,CATEGORY=a.CATEGORY,
+--AllocationType=a.AllocationType,SUPPCODE=a.SUPPCODE,BUYRCODE=a.BUYRCODE,
+--sloq=a.sloq,BINQTY=a.BINQTY,ProdAllocation=a.ProdAllocation,
+--SalesAllocation=a.SalesAllocation,BinAllocation=a.BinAllocation,
+--RegAllocation=a.RegAllocation,StockAllocation=a.StockAllocation
+--from(
+--select company,ITEM,LeanType,CATEGORY,AllocationType,SUPPCODE,BUYRCODE,
+--sum(sloq) sloq,sum(BINQTY) BINQTY,
+--sum(ProdAllocation) ProdAllocation,sum(SalesAllocation) SalesAllocation,
+--sum(BinAllocation) BinAllocation,sum(RegAllocation) RegAllocation,sum(StockAllocation) StockAllocation
+--from Lean_Allocation_Tmp
+--group by company,ITEM,LeanType,CATEGORY,AllocationType,SUPPCODE,BUYRCODE
+--)a
+--where Excess_Inventory2.COMPANY=a.COMPANY
+--and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+Insert into Excess_Inventory2_Temp(COMPANY,ITEM,Itemdesc,LeanType,CATEGORY,AllocationType,
+sloq,BINQTY,ProdAllocation,SalesAllocation,BinAllocation,RegAllocation,StockAllocation,
+TotalAllocation,StockQty,StockValue,ExcessQty,ExcessValue,LatestRecptDate,SUPPCODE,
+SuppName,BUYRCODE,BuyerName,EntryDate,ExcessType)
+select COMPANY,ITEM,Itemdesc,LeanType,CATEGORY,AllocationType,
+sloq,BINQTY,ProdAllocation,SalesAllocation,BinAllocation,RegAllocation,StockAllocation,
+TotalAllocation,StockQty,StockValue,ExcessQty,ExcessValue,LatestRecptDate,SUPPCODE,
+SuppName,BUYRCODE,BuyerName,EntryDate,ExcessType from Excess_Inventory2
+
+Truncate table Excess_Inventory2
+
+Insert into Excess_Inventory2(COMPANY,ITEM,StockQty,LeanType,CATEGORY,AllocationType,SUPPCODE,BUYRCODE,sloq,
+BINQTY,ProdAllocation,SalesAllocation,BinAllocation,RegAllocation,StockAllocation)
+
+select COMPANY,ITEM,case when Rnk=1 then StockQty else null end as StockQty,LeanType,CATEGORY,AllocationType,SUPPCODE,BUYRCODE,sloq,
+BINQTY,ProdAllocation,SalesAllocation,BinAllocation,RegAllocation,StockAllocation
+from (
+select * ,row_number() over(partition by COMPANY,ITEM,BUYRCODE order by COMPANY,ITEM,BUYRCODE) as Rnk
+from (
+select isnull(a.COMPANY,b.COMPANY) COMPANY,
+isnull(a.ITEM,b.ITEM) ITEM,b.StockQty,LeanType,CATEGORY,AllocationType,SUPPCODE,BUYRCODE,sloq,
+BINQTY,ProdAllocation,SalesAllocation,BinAllocation,RegAllocation,StockAllocation
+from 
+(
+select company,ITEM,LeanType,CATEGORY,AllocationType,SUPPCODE,BUYRCODE,
+sum(sloq) sloq,sum(BINQTY) BINQTY,
+sum(ProdAllocation) ProdAllocation,sum(SalesAllocation) SalesAllocation,
+sum(BinAllocation) BinAllocation,sum(RegAllocation) RegAllocation,sum(StockAllocation) StockAllocation
+from Lean_Allocation_Tmp
+group by company,ITEM,LeanType,CATEGORY,AllocationType,SUPPCODE,BUYRCODE
+)a
+full outer join 
+(select COMPANY,ITEM,StockQty from Excess_Inventory2_Temp)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+)a1
+--where ltrim(rtrim(ITEM))='000906217'
+)a2
+
+
+--Commented on 12-Mar-2025
+--update Excess_Inventory2 set BINQTY=a.BQTY,BinAllocation=a.BQTY*2
+--from TZZSFC211ALL a
+--where Excess_Inventory2.company=a.company
+--and ltrim(rtrim(Excess_Inventory2.item))=ltrim(rtrim(a.item))
+
+
+
+update Excess_Inventory2 set ProdAllocation=a.AllocatedQty,LeanType='NON LEAN'
+from (select COMPANY,T$ITEM as ITEM,null as Category,'Production Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (490) and T$KOOR=1 and T$KOTR=2
+group by COMPANY,T$ITEM)a
+where Excess_Inventory2.COMPANY=a.COMPANY
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+and Excess_Inventory2.LeanType is null
+
+
+update Excess_Inventory2 set SalesAllocation=a.AllocatedQty,LeanType='NON LEAN'
+from (select COMPANY,T$ITEM as ITEM,null as Category,'Sales Allocation' as AllocationType,
+sum(T$QANA) as AllocatedQty--,sum(T$PRIC) as PRIC, sum(T$PRIC*T$QANA) as Amnt 
+from TWHINP100ALL
+where company in (490) and T$KOOR=3 and T$KOTR=2
+and T$CWAR ='102'
+group by COMPANY,T$ITEM)a
+where Excess_Inventory2.COMPANY=a.COMPANY
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+and (Excess_Inventory2.LeanType is null or Excess_Inventory2.LeanType<>'LEAN')
+
+
+
+--Alter table Excess_Inventory2 add QHND float
+--Alter table Excess_Inventory2 add QALS float
+--Alter table Excess_Inventory2 add QAVL float
+
+update Excess_Inventory2 set LeanType='NON LEAN' where LeanType is null
+
+
+update Excess_Inventory2 set QHND=a.QHND,QALS=a.QALS,QAVL=a.QAVL
+from (select company,--cwar,
+item,sum(QHND) QHND,
+sum(QALS) QALS,sum(QAVL) QAVL from twhinr150ALL
+where company in (401,450,470,490)
+--and ltrim(rtrim(item))='000998119' --Testing
+group by company,--cwar,
+item)a
+where Excess_Inventory2.COMPANY=a.COMPANY
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+and Excess_Inventory2.LeanType='NON LEAN'
+
+
+----Method1 :LastReceipt date is considered based on Company and Item and 
+----Corresponding Supplier in that Last Transaction is considered
+
+--update Excess_Inventory2 set LatestRecptDate=a.LatestRecptDate,
+--SUPPCODE=a.sfbp
+--from (
+--select a.company,a.item,a.LatestRecptDate,b.sfbp from(
+--select COMPANY,ITEM,
+--max(ARDT) as LatestRecptDate from TWHINH312ALL
+--where OORG=80 
+--and len(sfbp)>2
+----and ltrim(rtrim(item))='B003108020004'
+----'B005106400167' --Testing
+--group by COMPANY,ITEM)a
+--left outer join
+--(select COMPANY,ITEM,ARDT,SFBP
+--from TWHINH312ALL)b
+--on a.company=b.company
+--and a.ITEM=b.ITEM
+--and a.LatestRecptDate=b.ARDT
+--)a
+--where Excess_Inventory2.COMPANY=a.COMPANY
+--and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+----and len(suppcode)<=2
+--and Excess_Inventory2.LeanType='NON LEAN'
+---------- End : Method1 ---------------------------------------------------------
+
+
+----Method2 : SuppCode and BuyrCode is not updated frequently in TTDIPU001ALL
+update Excess_Inventory2 set --SUPPCODE=a.OTBP,
+BUYRCODE=a.BUYR
+from (select company,item,otbp,buyr from TTDIPU001ALL)a
+where Excess_Inventory2.COMPANY=a.COMPANY
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+--and Excess_Inventory2.SUPPCODE is null
+and Excess_Inventory2.LeanType='NON LEAN'
+
+----update Excess_Inventory2 set LatestRecptDate=a.LatestRecptDate
+----from (
+----select COMPANY,ITEM,SFBP,
+----max(ARDT) as LatestRecptDate from TWHINH312ALL
+----group by COMPANY,ITEM,SFBP
+----)a
+----where Excess_Inventory2.COMPANY=a.COMPANY
+----and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+----and ltrim(rtrim(Excess_Inventory2.SUPPCODE))=ltrim(rtrim(a.SFBP)) --Uncommented on 16-Oct-23 inorder to avoid 
+------internal transfer date consideration as latest receiptdate
+
+---------- End :Method2 ---------------------------------------------------------
+
+--Method 3:
+
+--Part 1:
+update Excess_Inventory2 set LatestRecptDate=a.TRDT
+from (select company,item,max(convert(date,TRDT)) TRDT from Inventorydetails
+group by company,item)a
+where Excess_Inventory2.company=a.company
+and ltrim(rtrim(Excess_Inventory2.item))=ltrim(rtrim(a.item))
+
+update Excess_Inventory2 set suppcode=a.suppcode
+from (select company,item,convert(date,TRDT) TRDT,suppcode from Inventorydetails)a
+where Excess_Inventory2.company=a.company
+and ltrim(rtrim(Excess_Inventory2.item))=ltrim(rtrim(a.item))
+and Excess_Inventory2.LatestRecptDate=a.TRDT
+
+
+
+update Excess_Inventory2 set LatestRecptDate=a.LatestRecptDate,
+SUPPCODE=a.sfbp
+from (
+select a.company,a.item,a.LatestRecptDate,b.sfbp from(
+select COMPANY,ITEM,
+max(ARDT) as LatestRecptDate from TWHINH312ALL
+where OORG=80 
+and len(sfbp)>2
+--and ltrim(rtrim(item))='411301515'
+--'B003108020004'
+--'B005106400167' --Testing
+group by COMPANY,ITEM)a
+left outer join
+(select COMPANY,ITEM,ARDT,SFBP
+from TWHINH312ALL)b
+on a.company=b.company
+and a.ITEM=b.ITEM
+and a.LatestRecptDate=b.ARDT
+)a
+where Excess_Inventory2.COMPANY=a.COMPANY
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+--and len(suppcode)<=2
+--and Excess_Inventory2.LeanType='NON LEAN'
+and (Excess_Inventory2.LatestRecptDate is null or len(suppcode)<=2)
+
+
+
+update Excess_Inventory2 set LatestRecptDate=a.TRDT
+from (select company,T$item,max(T$TRDT) TRDT from twhina112all 
+--where company=470 and ltrim(rtrim(T$item))='PMHSES0048'
+group by company,T$item
+)a
+where Excess_Inventory2.company=a.company
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.T$item))
+and Excess_Inventory2.LatestRecptDate is null
+
+
+-------- End : Method 3 ------------------------------------------------------------
+--Method 1:
+--update Excess_Inventory2 set TotalAllocation=isnull(Binallocation,0)+isnull(Regallocation,0)+
+--isnull(Stockallocation,0) + +isnull(salesallocation,0)
+--where LeanType= 'LEAN'
+--update Excess_Inventory2 set TotalAllocation=isnull(prodallocation,0)+isnull(salesallocation,0)+isnull(BinAllocation,0)
+--where LeanType= 'NON LEAN'
+
+--Method 2:
+update Excess_Inventory2 set TotalAllocation=isnull(Binallocation,0)+isnull(Regallocation,0)+
+isnull(Stockallocation,0)+isnull(salesallocation,0) +isnull(prodallocation,0)
+
+
+--Alter table Excess_Inventory2 add MIOQ float
+--Alter table Excess_Inventory2 add OQMF float
+
+update Excess_Inventory2 set StockQty=StockQty -isnull(a.MIOQ,0),
+MIOQ=a.MIOQ,OQMF=a.OQMF
+from (select COMPANY,ITEM,sum(MIOQ) MIOQ,sum(OQMF) OQMF
+from TTCIBD200ALL
+--where ltrim(rtrim(item))='07040511A'
+group by COMPANY,ITEM
+having sum(MIOQ)-sum(OQMF)>=0
+)a
+where Excess_Inventory2.COMPANY=a.Company
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.Item)) 
+
+
+
+update Excess_Inventory2 set StockQty=StockQty -isnull(a.OQMF,0),
+MIOQ=a.MIOQ,OQMF=a.OQMF
+from (select COMPANY,ITEM,sum(MIOQ) MIOQ,sum(OQMF) OQMF
+from TTCIBD200ALL
+--where ltrim(rtrim(item))='07040511A'
+group by COMPANY,ITEM
+having sum(OQMF)-sum(MIOQ)>0
+)a
+where Excess_Inventory2.COMPANY=a.Company
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.Item)) 
+
+
+
+
+update Excess_Inventory2 set ExcessQty=a.ExcessQty
+from (select COMPANY,ITEM,
+sum(isnull(StockQty,0)) StockQty,sum(isnull(TotalAllocation,0)) TotalAllocation,
+sum(isnull(StockQty,0))-sum(isnull(TotalAllocation,0)) as ExcessQty
+from Excess_Inventory2
+--where ltrim(rtrim(ITEM))='000906217'
+group by COMPANY,ITEM
+)a
+where Excess_Inventory2.COMPANY=a.COMPANY
+and Excess_Inventory2.ITEM=a.ITEM
+
+update Excess_Inventory2 set ExcessQty=null where StockQty is null
+
+
+update Excess_Inventory2 set ExcessType='Excess' 
+from (select distinct company,item,BUYRCODE from Excess_Inventory2 where ExcessQty>0)a
+where Excess_Inventory2.COMPANY=a.COMPANY
+and Excess_Inventory2.ITEM=a.ITEM
+and Excess_Inventory2.BUYRCODE=a.BUYRCODE
+
+delete from Excess_Inventory2 where ExcessType is null
+
+--below script moved to Line :213
+--update Excess_Inventory2 set LatestRecptDate=a.LatestRecptDate
+--from (
+--select COMPANY,ITEM,SFBP,
+--max(ARDT) as LatestRecptDate from TWHINH312ALL
+--group by COMPANY,ITEM,SFBP
+--)a
+--where Excess_Inventory2.COMPANY=a.COMPANY
+--and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+--and ltrim(rtrim(Excess_Inventory2.SUPPCODE))=ltrim(rtrim(a.SFBP)) --Uncommented on 16-Oct-23 inorder to avoid 
+----internal transfer date consideration as latest receiptdate
+
+
+--Method1: Before Stock Qty Adjustment based on Min OrderQty/PackSize
+--update Excess_Inventory2 set StockValue=a.Amnt3
+--from (select company,item,sum(QSKT) QSKT,sum(Amnt3) Amnt3 from Inventory 
+--where concat(COMPANY,CWAR) in (select concat(Comp,WH) from Inventory_Master where RecptType='Purchase receipts')
+----and ltrim(rtrim(ITEM))='000907302'
+--group by company,item)a
+--where Excess_Inventory2.company=a.company
+--and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+--and Excess_Inventory2.company in (401,450)
+--and Excess_Inventory2.StockQty is not null
+
+
+--update Excess_Inventory2 set StockValue=a.Amnt3
+--from (select company,item,sum(QSKT) QSKT,sum(Amnt3) Amnt3 from Inventory 
+----where ltrim(rtrim(ITEM))='000907302'
+--group by company,item)a
+--where Excess_Inventory2.company=a.company
+--and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+--and Excess_Inventory2.company in (470,490)
+--and Excess_Inventory2.StockQty is not null
+
+
+--Method 2: After Stock Qty Adjustment based on Min OrderQty/PackSize
+update Excess_Inventory2 set StockValue=(a.Amnt3/a.QSKT)*StockQty
+from (select company,item,sum(QSKT) QSKT,sum(Amnt3) Amnt3 from Inventory 
+where concat(COMPANY,CWAR) in (select concat(Comp,WH) from Inventory_Master where RecptType='Purchase receipts')
+--and ltrim(rtrim(ITEM))='000907302'
+group by company,item)a
+where Excess_Inventory2.company=a.company
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+and Excess_Inventory2.company in (401,450)
+and Excess_Inventory2.StockQty is not null
+
+
+update Excess_Inventory2 set StockValue=(a.Amnt3/a.QSKT)*StockQty
+from (select company,item,sum(QSKT) QSKT,sum(Amnt3) Amnt3 from Inventory 
+--where ltrim(rtrim(ITEM))='000907302'
+group by company,item)a
+where Excess_Inventory2.company=a.company
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.ITEM))
+and Excess_Inventory2.company in (470,490)
+and Excess_Inventory2.StockQty is not null
+
+
+
+
+update Excess_Inventory2 set ExcessValue=(StockValue/StockQty)*ExcessQty
+
+update Excess_Inventory2 set SuppName=v.custname1
+from	vw_Business_Partner V
+where ltrim(rtrim(V.custcode)) = ltrim(rtrim(Excess_Inventory2.SUPPCODE)) 
+
+
+update Excess_Inventory2 set BuyerName=p.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail P
+where convert(varchar,P.new_emp_code)=Excess_Inventory2.BUYRCODE
+
+
+update Excess_Inventory2 set BuyerName=p.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail P
+where convert(varchar,P.emp_code)=Excess_Inventory2.BUYRCODE
+and BuyerName is null
+
+update Excess_Inventory2 set Itemdesc=a.t_dsca
+from TTCIBD001400 a
+where Excess_Inventory2.COMPANY in (401,450)
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.t_item))
+
+update Excess_Inventory2 set Itemdesc=a.DSCA
+from ttcibd001470 a
+where Excess_Inventory2.COMPANY =470
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.item))
+
+
+update Excess_Inventory2 set Itemdesc=a.DSCA
+from TTCIBD001490 a
+where Excess_Inventory2.COMPANY =490
+and ltrim(rtrim(Excess_Inventory2.ITEM))=ltrim(rtrim(a.item))
+
+Update Excess_Inventory2 set EntryDate=getdate()-1
+update Excess_Inventory2 set BUYRCODE=null where ltrim(rtrim(BUYRCODE))= ''
+
+----Removal of All Manufacturing Items other than BTS Manufacturing Items
+--delete from Excess_Inventory2 where ltrim(rtrim(item)) in (select ltrim(rtrim(t_item)) from TTCIBD001400 where t_kitm=2)
+--and concat(company,ltrim(rtrim(item))) not in (select distinct concat(company,ltrim(rtrim(item))) from tzzsfc211all where fgtm=1)
+--delete from Excess_Inventory2 where ltrim(rtrim(item)) in (select ltrim(rtrim(item)) from ttcibd001470 where kitm=2)
+--and concat(company,ltrim(rtrim(item))) not in (select distinct concat(company,ltrim(rtrim(item))) from tzzsfc211all where fgtm=1)
+--delete from Excess_Inventory2 where ltrim(rtrim(item)) in (select ltrim(rtrim(item)) from TTCIBD001490 where kitm=2)
+--and concat(company,ltrim(rtrim(item))) not in (select distinct concat(company,ltrim(rtrim(item))) from tzzsfc211all where fgtm=1)
+
+
+
+Update Excess_Inventory2 set ItemType='Purchased'
+where ltrim(rtrim(item)) in (select ltrim(rtrim(t_item)) from TTCIBD001400 where t_kitm=1)
+and company like '4%'
+Update Excess_Inventory2 set ItemType='Purchased'
+where ltrim(rtrim(item)) in (select ltrim(rtrim(item)) from TTCIBD001470 where kitm=1)
+and company =470
+Update Excess_Inventory2 set ItemType='Purchased'
+where ltrim(rtrim(item)) in (select ltrim(rtrim(item)) from TTCIBD001490 where kitm=1)
+and company =490
+
+Update Excess_Inventory2 set ItemType='Manufactured'
+where ltrim(rtrim(item)) in (select ltrim(rtrim(t_item)) from TTCIBD001400 where t_kitm=2)
+and company like '4%'
+Update Excess_Inventory2 set ItemType='Manufactured'
+where ltrim(rtrim(item)) in (select ltrim(rtrim(item)) from TTCIBD001470 where kitm=2)
+and company =470
+Update Excess_Inventory2 set ItemType='Manufactured'
+where ltrim(rtrim(item)) in (select ltrim(rtrim(item)) from TTCIBD001490 where kitm=2)
+and company =490
+
+Update Excess_Inventory2 set ItemCategory='BTS'
+where concat(company,ltrim(rtrim(item))) in (select distinct concat(company,ltrim(rtrim(item))) from tzzsfc211all where fgtm=1)
+
+
+delete from Excess_Inventory2 where COMPANY=440
+
+
+if exists (select * from Excess_Inventory_History where entrydate=convert(date,getdate()-1))
+begin
+
+delete from Excess_Inventory_History where entrydate=convert(date,getdate()-1)
+
+end
+
+
+Insert into Excess_Inventory_History
+select * --Into Excess_Inventory_History 
+from 
+(select EntryDate,BUYRCODE,BuyerName,LeanType,sum(ExcessQty) ExcessQty,
+sum(ExcessValue) ExcessValue
+from Excess_Inventory2
+group by EntryDate,BUYRCODE,BuyerName,LeanType)a
+
+
+
+delete from Excess_Inventory_History
+where buyrcode in (
+select buyrcode--,buyername 
+from Excess_Inventory_History
+where entrydate>(select dateadd(month,-1,eomonth(getdate()-1)))
+group by buyrcode,buyername
+having sum(excessvalue) is null
+)
+and entrydate>(select dateadd(month,-1,eomonth(getdate()-1)))
+
+
+
+end
+
+select * from excess_inventory2
+
+--Select * from Excess_Inventory_History
+--where entrydate>='2024-07-01'
+----and excessvalue is null
+--and buyrcode='101210'
+
+--delete from Excess_Inventory_History
+--where buyrcode in (
+--select buyrcode--,buyername 
+--from Excess_Inventory_History
+--where entrydate>(select dateadd(month,-1,eomonth(getdate()-1)))
+--group by buyrcode,buyername
+--having sum(excessvalue) is null
+--)
+--and entrydate>(select dateadd(month,-1,eomonth(getdate()-1)))
+
+
+
+--and buyrcode in (select distinct buyrcode from excess_inventory )
+
+
+
+
+
+
+
+
+Completion time: 2025-11-19T10:11:14.5697731+05:30

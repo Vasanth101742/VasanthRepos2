@@ -1,0 +1,285 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--exec sp_stock_out
+
+CREATE proc [dbo].[sp_stock_out] as
+
+begin
+
+--drop table _Stock_Out
+Truncate table Lean_Stock_Out
+
+
+Insert into Lean_Stock_Out(company,DIVI,DEPT,ITEM,SUPP,Trig_Dt,DUDT,QTY,LOT_NO
+--Exp_DT,DUDT,RPLT,BUYR,ID,SUPERMARKET,DEPARTMENT,
+--group_leader,NAMA,Description,empname,Stock_DT
+)
+select COMPANY,DIVI,DEPT,ITEM,SUNO,DATE,DUDT,RQTY,LOTN from TZZPUR014ALL 
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and STAT='M'
+
+--Alter table Lean_Stock_Out alter column Stock_DT date
+
+
+update Lean_Stock_Out set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and BITM<>1
+)a
+where Lean_Stock_Out.DIVI=a.DIVI
+and Lean_Stock_Out.DEPT=a.DEPT
+and ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(Lean_Stock_Out.SUPP))=ltrim(rtrim(a.SUNO1))
+
+
+update Lean_Stock_Out set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and BITM<>1
+)a
+where Lean_Stock_Out.DIVI=a.DIVI
+and Lean_Stock_Out.DEPT=a.DEPT
+and ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(Lean_Stock_Out.SUPP))=ltrim(rtrim(a.SUNO2))
+
+
+update Lean_Stock_Out set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and BITM<>1
+)a
+where Lean_Stock_Out.DIVI=a.DIVI
+and Lean_Stock_Out.DEPT=a.DEPT
+and ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(Lean_Stock_Out.SUPP))=ltrim(rtrim(a.SUNO3))
+
+
+update Lean_Stock_Out set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and BITM<>1
+)a
+where Lean_Stock_Out.DIVI=a.DIVI
+and Lean_Stock_Out.DEPT=a.DEPT
+and ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(Lean_Stock_Out.SUPP))=ltrim(rtrim(a.SUNO4))
+
+
+update Lean_Stock_Out set RPLT=a.RPLT,BUYR=a.BUYR,SOPS=a.SOPS
+from (select COMPANY,DIVI,DEPT,ITEM,RPLT,BUYR,SOPS,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5
+from TZZPUR049ALL where 
+company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and BITM<>1
+)a
+where Lean_Stock_Out.DIVI=a.DIVI
+and Lean_Stock_Out.DEPT=a.DEPT
+and ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.ITEM))
+and ltrim(rtrim(Lean_Stock_Out.SUPP))=ltrim(rtrim(a.SUNO5))
+
+--Alter Table Lean_Stock_Out add SOPS_DESC varchar(50)
+update Lean_Stock_Out set SOPS_DESC='Two Bin' where SOPS='1'
+update Lean_Stock_Out set SOPS_DESC='Multi Bin' where SOPS='2'
+update Lean_Stock_Out set SOPS_DESC='Milk run' where SOPS='3'
+update Lean_Stock_Out set SOPS_DESC='MR-Motors' where SOPS='4'
+update Lean_Stock_Out set SOPS_DESC='Forward Cover' where SOPS='5'
+update Lean_Stock_Out set SOPS_DESC='Single Bin' where SOPS='6'
+update Lean_Stock_Out set SOPS_DESC='Fixed Stock' where SOPS='7'
+update Lean_Stock_Out set SOPS_DESC='Reorder Point' where SOPS='8'
+
+
+
+--Method 1:
+update Lean_Stock_Out set Exp_DT= 
+dateadd(dd,
+(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt)) - 2 +convert(int,RPLT)) %5 +
+((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt))-2+convert(int,RPLT))/5)*7 -
+(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt))-2),
+DATEADD(d,CASE DATEPART(dw,Trig_dt) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,Trig_dt))
+
+--update Lean_Stock_Out set Exp_DT=a.DUDT
+--from(select COMPANY,LOTN,ORNO,ITEM,TDAT,DUDT,RQTY,BPID,BUYR,'NON LEAN' as TriggerType,PQTY,REVI from TZZPUR302ALL
+--where company like '4%'
+--and stat<>'C')a
+--where Lean_Stock_Out.company=a.company
+--and Lean_Stock_Out.LOT_NO=a.LOTN
+
+
+
+update Lean_Stock_Out set SUPERMARKET=a.Dept_Name
+from Materials_Dept_MASTER a
+where Lean_Stock_Out.DEPT=a.Dept_code
+
+
+update Lean_Stock_Out set DEPARTMENT=a.DIVISION_NAME
+from Materials_Division_MASTER a
+where Lean_Stock_Out.DIVI=a.DIVISION_CODE
+
+update Lean_Stock_Out set NAMA=a.custname1
+from vw_Business_Partner a
+where ltrim(rtrim(SUPP)) = ltrim(rtrim(a.custcode))
+
+update Lean_Stock_Out set Trig_Flag='1'
+from (select distinct company,SUPERMARKET,DEPARTMENT,Item from elgi_overdue_triggers
+where TriggerType='LEAN'
+)a
+where Lean_Stock_Out.company=a.company
+and ltrim(rtrim(Lean_Stock_Out.SUPERMARKET))=ltrim(rtrim(a.DEPARTMENT))
+and ltrim(rtrim(Lean_Stock_Out.DEPARTMENT))=ltrim(rtrim(a.SUPERMARKET))
+and ltrim(rtrim(Lean_Stock_Out.item))=ltrim(rtrim(a.item))
+
+if exists(select * from Stockout_Temp)
+begin
+drop Table Stockout_Temp
+end
+
+select * into Stockout_Temp from(
+select a.id,a.company,a.Division,a.Department,b.war,c.item,d.qskt 
+from Lean_Stock_Check_Div_Dept_Master a
+left outer join Lean_Stock_Check_WH_Master b
+on a.id=b.id
+left outer join (select * from Lean_Stock_Out)c
+on a.company=c.company
+and a.Division=c.Department
+and a.Department=c.Supermarket
+left outer join (select company,cwar,ltrim(rtrim(item)) item,sum(qskt) qskt from inventorydetails
+group by company,cwar,ltrim(rtrim(item)))d
+on c.company=d.company
+and b.war=d.cwar
+and ltrim(rtrim(c.item))=ltrim(rtrim(d.item))
+where d.qskt is not null
+--and ltrim(rtrim(c.item))='970301310'
+)a
+
+update Lean_Stock_Out set Stock_Flag='1'
+from(select * from Stockout_Temp)a
+where Lean_Stock_Out.company=a.company
+and ltrim(rtrim(Lean_Stock_Out.SUPERMARKET))=ltrim(rtrim(a.DEPARTMENT))
+and ltrim(rtrim(Lean_Stock_Out.DEPARTMENT))=ltrim(rtrim(a.Division))
+and ltrim(rtrim(Lean_Stock_Out.item))=ltrim(rtrim(a.item))
+
+Delete from Lean_Stock_Out where Trig_Flag=1 and Stock_Flag=1
+
+
+update Lean_Stock_Out set Description=a.t_dsca
+from TTCIBD001600 a
+where ltrim(rtrim(Lean_Stock_Out.ITEM)) = ltrim(rtrim(a.t_item))
+
+update Lean_Stock_Out set empname=a.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail a
+where Lean_Stock_Out.BUYR =  a.emp_code 
+
+update Lean_Stock_Out set empname=a.emp_name
+from [ELGi_Intranet].dbo.Employee_Detail a
+where Lean_Stock_Out.BUYR =  a.new_emp_code 
+
+update Lean_Stock_Out set Stock_DT=GETDATE() - 1  
+
+--delete from Lean_Stock_Out where SOPS<>1
+
+
+
+update Lean_Stock_Out set Description=a.t_dsca
+from TTCIBD001400 a
+where ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.t_item))
+and Lean_Stock_Out.company not in (465,470,490,480)
+
+update Lean_Stock_Out set Description=a.dsca
+from ttcibd001470 a
+where ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.item))
+and Lean_Stock_Out.company  in (470)
+
+
+update Lean_Stock_Out set Description=a.dsca
+from TTCIBD001490 a
+where ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.item))
+and Lean_Stock_Out.company  in (490)
+
+
+--added on 19/6/2025
+update Lean_Stock_Out set Description=a.dsca
+from TTCIBD001480 a
+where ltrim(rtrim(Lean_Stock_Out.ITEM))=ltrim(rtrim(a.item))
+and Lean_Stock_Out.company  in (480)
+
+
+--delete from Lean_Stock_Out where
+--concat(DIVI,DEPT,ltrim(rtrim(Item))) not in 
+--(select concat(DIVI,DEPT,Item) from 
+--(select DIVI,DEPT,ltrim(rtrim(ITEM)) Item ,count(LOT_NO) lot_cnt from Lean_Stock_Out
+--group by DIVI,DEPT,ITEM
+--having count(LOT_NO)=2
+--)a)
+
+if exists (select * from Lean_Stock_Out_History where day(getdate())=2)
+begin
+delete from Lean_Stock_Out_History
+end
+
+if (datepart(hh,getdate())<17)
+begin
+
+if exists (select * from Lean_Stock_Out_History where convert(date,entrydate)=convert(date,getdate()-1) )
+begin
+delete from Lean_Stock_Out_History  where convert(date,entrydate)=convert(date,getdate()-1)
+end
+
+insert into Lean_Stock_Out_History
+select *, getdate()-1 from Lean_Stock_Out
+
+
+end
+
+--if not exists (select * from Lean_Stock_Out_History where convert(date,entrydate)=convert(date,getdate()-1) and datepart(hh,getdate())<=17)
+--begin
+--insert into Lean_Stock_Out_History
+--select *, getdate()-1 from Lean_Stock_Out
+--end
+
+--Addedd by Raviprasath as on 13/10/2025
+
+IF
+--CONVERT(DATE, GETDATE()) =  EOMONTH(GETDATE()) and
+GETDATE() < DATEADD(HOUR, 16, CAST(CAST(GETDATE() AS DATE) AS DATETIME))
+BEGIN
+DELETE FROM Lean_Stock_Out_History_Avg Where CurrentMonth =  FORMAT(GETDATE(), 'MMM-yyyy')
+Insert  Lean_Stock_Out_History_Avg
+Select Distinct empname'Buyer',company,0 as Average,Format(Getdate(),'MMM-yyyy')'CurrentMonth',
+Convert(date,EntryDate)'EntryDate',Count(Distinct ITEM)'Item_Count' from Lean_Stock_Out_History
+Group BY Convert(date,EntryDate),empname,company
+END
+
+
+--Addedd by Raviprasath as on 13/10/2025
+
+end
+
+
+--For Analysis
+
+--Alter table Lean_Stock_Out_History alter column entrydate datetime
+
+select * from Lean_Stock_Out_History 
+where convert(date,entrydate)=convert(date,getdate()-1)
+--where ltrim(rtrim(item))='020370480'
+--'X100185'
+--'B005106400060'
+--'B005100560564'--'970301310'
+
+--select datepart(hh,getdate()-1)
+
+
+
+
+
+
+Completion time: 2025-11-19T12:34:05.6566773+05:30

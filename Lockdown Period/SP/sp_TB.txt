@@ -1,0 +1,600 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_TB
+
+CREATE proc [dbo].[sp_TB] as
+Begin
+
+Truncate table TB_details_Temp
+Truncate table TB_details
+Truncate table TB_Temp1
+Truncate table TB_Temp2
+Truncate table TB_Temp3
+
+--sp_rename 'TB_details.Budget','YTD_Budget'
+--sp_rename 'TB_details.BudPlan','YTD_BudPlan'
+
+--sp_rename 'TB_details.Budget_BudRate','YTD_Budget_BudRate'
+--sp_rename 'TB_details.BudPlan_PlanRate','YTD_BudPlan_PlanRate'
+
+--Alter table TB_details add FTM_Budget float
+--Alter table TB_details add FTM_BudPlan float
+--Alter table TB_details add FTM_Budget_BudRate float
+--Alter table TB_details add FTM_BudPlan_PlanRate float
+
+
+--Opening Balance
+insert into TB_details_Temp(FinPeriod,FinYear,FinMonth,COMPANY,CONO,LEAC,FOBH1,NOBH1)
+select concat(convert(varchar,[YEAR]),'01') as Period,YEAR,'1' as FinMonth,COMPANY,CONO,LEAC,
+sum(convert(float,FOBH$1)) FOBH1,sum(convert(float,NOBH$1)) NOBH1 from TTFGLD203400
+--where LEAC = 'AA0103002'
+group by COMPANY,CONO,YEAR,LEAC
+
+
+--FTM Debits and Credits
+Insert into TB_details_Temp(FinPeriod,FinYear,FinMonth,COMPANY,CONO,LEAC,Debit,Credit)
+--select * into TB_details from (
+select concat(convert(varchar,[YEAR]),RIGHT('00'+CAST(PRNO AS VARCHAR(2)),2)) as Period,
+[YEAR] as FinYear,PRNO as FinMonth,
+COMPANY,CONO,LEAC,
+sum(convert(float,FDAH$1)) Debit,
+sum(convert(float,FCAH$1)) Credit
+from TTFGLD201400
+where PTYP=1
+--and LEAC = 'AA0103002'
+--and YEAR=2019
+--and PRNO<=11
+group by COMPANY,CONO,[YEAR],PRNO,LEAC
+--)a
+
+
+
+update TB_details_Temp set LEAC_DESC=a.T$DESC,SUBL=a.T$SUBL
+from (select distinct T$LEAC,T$DESC,T$SUBL from TTFGLD008ALL)a
+where TB_details_Temp.LEAC=a.T$LEAC
+
+delete from TB_details_Temp where SUBL<>0
+
+
+
+insert into TB_details(FinPeriod,FinYear,FinMonth,COMPANY,CONO,LEAC,FOBH1,NOBH1,Debit,Credit,LEAC_DESC,Entity) 
+select FinPeriod,FinYear,FinMonth,COMPANY,CONO,LEAC,FOBH1,NOBH1,Debit,Credit,LEAC_DESC,Entity from (
+select FinPeriod,FinYear,FinMonth,COMPANY,CONO,LEAC,
+sum(isnull(FOBH1,0)) FOBH1,sum(isnull(NOBH1,0)) NOBH1,sum(isnull(Debit,0)) Debit,sum(isnull(Credit,0)) Credit,LEAC_DESC,Entity
+from(
+select FinPeriod,FinYear,FinMonth,COMPANY,CONO,LEAC,FOBH1,NOBH1,Debit,Credit,LEAC_DESC,Entity
+--,row_number() over(partition by cono,leac,finperiod order by cono,leac,finperiod ) Rnk 
+from TB_details_Temp
+--where FinPeriod='202001'
+--and leac='AA0102002'
+--and cono=400
+)a
+group by FinPeriod,FinYear,FinMonth,COMPANY,CONO,LEAC,LEAC_DESC,Entity
+)b
+
+
+update TB_details  set Entity=a.ENTY,Currency=a.CURR
+from TZZGLD809400 a
+where TB_details.CONO=a.COMP 
+
+
+update TB_details set CONO=a.CMPN
+from (select distinct CPNM,CMPN from TZZGLD806400)a
+where TB_details.Entity=a.CPNM
+and TB_details.CONO is null
+
+update TB_details  set Entity=a.Entity,Currency=a.Currency
+from (select distinct CONO,Entity,Currency from TB_details where CONO like '4%' and Entity is not null)a
+where TB_details.CONO like '4%'
+
+
+
+
+---YTD Value Calculation considering the opening Balance-------------
+
+Declare @FinYear int
+Declare @Count1 int
+Declare @FinYearCnt int
+
+set @FinYearCnt=(select count(distinct FinYear) from TB_details)
+
+set @Count1=1
+while (@Count1<=@FinYearCnt)
+begin
+
+Set @FinYear =(select FinYear from (
+select FinYear,row_number() over (order by FinYear) as FinYearRnk from
+(select distinct FinYear from TB_details)a)b
+where FinYearRnk=@Count1)
+
+--Alter table TB_Temp1 add Entity varchar(100)
+
+insert into TB_Temp1(Entity,CONO,LEAC,Debit,Credit,FinYear,FinPeriod,FTM_Value,YTD_Value)
+--select * into TB_Temp1 from ( 
+select Entity,CONO,LEAC,Debit,Credit,FinYear,FinPeriod,
+sum(FTM_Value) FTM_Value,
+sum(FTM_Value) over (partition by Entity,cono,LEAC,FinYear order by Entity,CONO,LEAC,FinYear,FinPeriod) as YTD_Value
+from (
+select Entity,CONO,LEAC,FinYear,FinPeriod,
+sum(Debit) Debit,
+sum(Credit) Credit,
+sum(isnull(Debit,0)-isnull(Credit,0)) FTM_Value
+from (
+--Opening balance
+select Entity,CONO,LEAC,FOBH1 as Debit,0 as Credit,FinYear,FinPeriod
+from TB_details
+where LEAC  is not null 
+and FOBH1 is not null
+and FinYear=@FinYear
+--and leac='AA0102001'
+--order by CONO,LEAC,FinPeriod
+
+union
+--FTM Debits and Credits
+select Entity,CONO,LEAC,Debit,Credit,FinYear,FinPeriod
+from TB_details
+where LEAC  is not null 
+and isnull(Debit,0)+isnull(Credit,0)<>0
+and FinYear=@FinYear
+--and leac='AA0102001'
+)a
+group by Entity,CONO,LEAC,FinYear,FinPeriod
+--order by CONO,LEAC,FinPeriod
+)b
+group by Entity,CONO,LEAC,Debit,Credit,FinYear,FinPeriod,FTM_Value
+order by Entity,CONO,LEAC,FinPeriod
+--)c
+
+Set @Count1=@Count1+1
+
+end
+
+
+---End: YTD value Calculation----------------------------------------
+
+update TB_details set FTM_Value=a.FTM_Value,YTD_Value=a.YTD_Value
+from (select * from TB_Temp1)a
+where TB_details.CONO=a.CONO
+and TB_details.LEAC=a.LEAC
+and TB_details.FinPeriod=a.FinPeriod
+
+
+--Adjustment Entries from LN based on Entity ,Ledger and Ledger Description
+
+Insert into TB_details(CalPeriod,CalYear,CalMonth,Entity,CONO,LEAC,LEAC_DESC,YTD_Value)
+select concat(convert(varchar,[FYER]),RIGHT('00'+CAST(FMNT AS VARCHAR(2)),2)) as Period,
+FYER,FMNT,ENTY,'Adj',LEDG,LEDE,sum(AMNT) AMNT
+from TZZGLD804400
+where type='Actuals'
+and ENTY is not null
+and AMNT<>0
+group by FYER,FMNT,ENTY,LEDG,LEDE
+order by Period
+--and LEDG like '%Sales%' --for testing
+
+
+--Non LN Entities
+
+--Test case for more than one record
+
+--select enty,FYER,LEDG,LEDE,FMNT,count(*) from TZZGLD803400
+--group by enty,FYER,LEDG,LEDE,FMNT
+--having count(*)>2
+--order by enty,FYER,LEDG,LEDE,FMNT
+
+--select * from TZZGLD803400 where
+--enty='Michigan Air' and fyer='2020' and fmnt='11' and ledg='5410'
+
+Insert into TB_details(CalPeriod,CalYear,CalMonth,Entity,CONO,LEAC,LEAC_DESC,YTD_Value)
+select concat(convert(varchar,[FYER]),RIGHT('00'+CAST(FMNT AS VARCHAR(2)),2)) as Period,
+FYER,FMNT,ENTY,'NonLN',LEDG,LEDE,sum(AMNT) AMNT
+from TZZGLD803400
+where 
+ENTY is not null
+and AMNT<>0
+group by [FYER],FMNT,ENTY,LEDG,LEDE
+order by Period
+
+
+
+
+Insert into TB_details(Entity,PRD1,PRD2,PRD3,CONO,CalPeriod,CalYear,CalMonth,YTD_Budget)
+select ENTY,MR11,MR22,MR33,'Bud',
+concat(convert(varchar,FYER),RIGHT('00'+CAST(FMNT AS VARCHAR(2)),2)) as calPeriod,FYER,FMNT,sum(AMNT) AMNT
+from TZZGLD805400
+where [TYPE]='Budget'
+group by ENTY,MR11,MR22,MR33,FYER,FMNT
+
+
+Insert into TB_details(Entity,PRD1,PRD2,PRD3,CONO,CalPeriod,CalYear,CalMonth,YTD_BudPlan)
+select ENTY,MR11,MR22,MR33,'Plan',
+concat(convert(varchar,FYER),RIGHT('00'+CAST(FMNT AS VARCHAR(2)),2)) as CalPeriod,FYER,FMNT,sum(AMNT) AMNT 
+from TZZGLD805400
+where [TYPE]='Covid19 Plan'
+group by ENTY,MR11,MR22,MR33,FYER,FMNT
+
+
+update TB_details set CalMonth=FinMonth+3 where FinMonth<=9 and CalMonth is null
+update TB_details set CalMonth=FinMonth-9 where FinMonth>9 and CalMonth is null
+
+update TB_details set CalYear=FinYear where FinMonth<=9 and CalYear is null
+update TB_details set CalYear=FinYear+1 where FinMonth>9 and CalYear is null
+
+
+
+
+update TB_details set FinYear=CalYear-1 where CalMonth<4 and FinYear is null
+update TB_details set FinYear=CalYear where CalMonth>=4 and FinYear is null
+
+
+update TB_details set FinMonth=CalMonth+9 where CalMonth<4 and FinMonth is null
+update TB_details set FinMonth=CalMonth-3 where CalMonth>=4 and FinMonth is null
+
+update TB_details set FinMonth=1 where FinMonth=13 --Special case for few line item fron LN
+
+
+update TB_details set Month_Name=datename(mm,dateadd(mm,convert(int,CalMonth),-1))
+
+update TB_details set CalPeriod=concat(convert(varchar,CalYear),RIGHT('00'+CAST(CalMonth AS VARCHAR(2)),2)) where calperiod is null
+update TB_details set FinPeriod=concat(convert(varchar,FinYear),RIGHT('00'+CAST(FinMonth AS VARCHAR(2)),2)) where FinPeriod is null
+
+
+
+
+update TB_details set UniqueCode=a.MRCN
+from (select * from TZZGLD806400
+--where mrcn='BCAS001'
+)a
+where TB_details.COMPANY=a.CMPN
+and TB_details.LEAC=a.ACNT
+
+
+-- Updating Unique Code for Adjustment Entries
+update TB_details set UniqueCode=a.MRCN
+from (select * from TZZGLD806400
+--where mrcn='BCAS001'
+)a
+where TB_details.Entity=a.CPNM
+and TB_details.LEAC=a.ACNT
+and TB_details.CONO in ('Adj','Bud','Plan')
+--and TB_details.CONO is null
+
+
+update TB_details set PRD1=a.PRD1,PRD2=a.PRD2,PRD3=a.PROD3,Category=a.GRUP
+from (select * from TZZGLD801400)a
+where TB_details.UniqueCode=a.CODE
+
+
+update TB_details  set CurRate_BS=a.VALU
+from (select * from TZZGLD808400 where ltrim(rtrim(item))='BS')a
+where TB_details.Currency=a.CURR
+and TB_details.Calperiod=a.YRMN
+
+
+update TB_details  set CurRate_PL=a.VALU
+from (select * from TZZGLD808400 where ltrim(rtrim(item))='PL')a
+where TB_details.Currency=a.CURR
+and TB_details.Calperiod=a.YRMN
+
+
+update TB_details  set BudRate=a.VALU
+from (select * from TZZGLD808400 where ltrim(rtrim(item))='BUD')a
+where TB_details.Currency=a.CURR
+and TB_details.Calperiod=a.YRMN
+
+update TB_details  set PlanRate=a.VALU
+from (select * from TZZGLD808400 where ltrim(rtrim(item))='COVID19PL')a
+where TB_details.Currency=a.CURR
+and TB_details.Calperiod=a.YRMN
+
+
+
+update TB_details  set CurRate_BS=1 where CurRate_BS is null
+update TB_details  set CurRate_PL=1 where CurRate_PL is null
+update TB_details  set BudRate=1 where BudRate is null
+update TB_details  set PlanRate=1 where PlanRate is null
+
+
+update TB_details  set CurRate_BS=1 where CurRate_BS=''
+update TB_details  set CurRate_PL=1 where CurRate_PL=''
+update TB_details  set BudRate=1 where BudRate=''
+update TB_details  set PlanRate=1 where PlanRate=''
+
+
+update TB_details  set FTM_Value_INR=isnull(FTM_Value,0)*CurRate_BS where Category='BS'
+update TB_details  set FTM_Value_INR=isnull(FTM_Value,0)*CurRate_PL where Category='PL'
+update TB_details  set FTM_Value_INR=isnull(FTM_Value,0) where category is null
+update TB_details  set FTM_Value_INR=isnull(FTM_Value,0) where category=''
+
+
+update TB_details  set YTD_Value_INR=isnull(YTD_Value,0)*CurRate_BS where Category='BS'
+update TB_details  set YTD_Value_INR=isnull(YTD_Value,0)*CurRate_PL where Category='PL'
+update TB_details  set YTD_Value_INR=isnull(YTD_Value,0) where category is null
+update TB_details  set YTD_Value_INR=isnull(YTD_Value,0) where category=''
+
+
+update TB_details  set FTM_Value_BudRate=isnull(FTM_Value,0)*isnull(BudRate,1)
+update TB_details  set YTD_Value_BudRate=isnull(YTD_Value,0)*isnull(BudRate,1) 
+
+
+update TB_details  set 
+CurRate_BS_LYCM=a.CurRate_BS,
+CurRate_PL_LYCM=a.CurRate_PL,
+Debit_LYCM=a.Debit,
+Credit_LYCM=a.Credit,
+FTM_Value_LYCM=a.FTM_Value,
+FTM_Value_LYCM_INR=a.FTM_Value_INR,
+YTD_Value_LYCM=a.YTD_Value,
+YTD_Value_LYCM_INR=a.YTD_Value_INR,
+FTM_Value_LYCM_BudRate=a.FTM_Value_BudRate,
+YTD_Value_LYCM_BudRate=a.YTD_Value_BudRate
+from (select CONO,LEAC,LEAC_DESC,CalYear+1 as CalYear,CalMonth,CurRate_BS,CurRate_PL,
+FTM_Value,FTM_Value_INR,
+YTD_Value,YTD_Value_INR,Debit,Credit,
+FTM_Value_BudRate,YTD_Value_BudRate
+from TB_details)a
+where TB_details.CONO=a.CONO
+and TB_details.LEAC=a.LEAC
+and TB_details.LEAC_DESC=a.LEAC_DESC
+and TB_details.CalYear=a.CalYear
+and TB_details.CalMonth=a.CalMonth
+--and concat(TB_details.CONO,TB_details.LEAC)='500EC2101001'
+
+
+
+update TB_details  set FTM_Value_PrevYrRate=isnull(FTM_Value,0)*CurRate_BS_LYCM where Category='BS'
+update TB_details  set FTM_Value_PrevYrRate=isnull(FTM_Value,0)*CurRate_PL_LYCM where Category='PL'
+update TB_details  set FTM_Value_PrevYrRate=isnull(FTM_Value,0) where category is null
+update TB_details  set FTM_Value_PrevYrRate=isnull(FTM_Value,0) where category=''
+
+
+update TB_details  set YTD_Value_PrevYrRate=isnull(YTD_Value,0)*isnull(CurRate_BS_LYCM,1) where Category='BS'
+update TB_details  set YTD_Value_PrevYrRate=isnull(YTD_Value,0)*isnull(CurRate_PL_LYCM,1) where Category='PL'
+update TB_details  set YTD_Value_PrevYrRate=isnull(YTD_Value,0) where category is null
+update TB_details  set YTD_Value_PrevYrRate=isnull(YTD_Value,0) where category=''
+
+
+update TB_details  set FTM_Value_LYCM_BudRate=isnull(FTM_Value_LYCM,0)*isnull(BudRate,1)
+update TB_details  set YTD_Value_LYCM_BudRate=isnull(YTD_Value_LYCM,0)*isnull(BudRate,1)
+
+
+update TB_details  set YTD_Budget_BudRate=isnull(YTD_Budget,0)*isnull(BudRate,1)
+update TB_details  set YTD_BudPlan_PlanRate=isnull(YTD_BudPlan,0)*isnull(PlanRate ,1)
+
+
+
+----FTM Deriving from YTD Value----------------------------------------------------------------
+
+--Part 1 : Actuals
+
+
+
+Insert into TB_Temp2(Entity,CONO,LEAC,LEAC_DESC,FinPeriod,YTD_Value,FTM_Value,YTD_Value_LYCM,FTM_Value_LYCM,
+YTD_Value_INR,FTM_Value_INR,YTD_Value_LYCM_INR,FTM_Value_LYCM_INR,YTD_Value_PrevYrRate,FTM_Value_PrevYrRate,
+YTD_Value_BudRate,FTM_Value_BudRate,YTD_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate)
+--select * into TB_Temp2 from (
+select Entity,CONO,LEAC,LEAC_DESC,FinPeriod,
+YTD_Value,
+isnull(YTD_Value,0) - isnull(lag(YTD_Value) 
+over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value,
+YTD_Value_LYCM,
+isnull(YTD_Value_LYCM,0) - isnull(lag(YTD_Value_LYCM) 
+over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_LYCM,
+YTD_Value_INR,
+isnull(YTD_Value_INR,0) - isnull(lag(YTD_Value_INR) 
+over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_INR,
+YTD_Value_LYCM_INR,
+isnull(YTD_Value_LYCM_INR,0) - isnull(lag(YTD_Value_LYCM_INR) 
+over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_LYCM_INR,
+YTD_Value_PrevYrRate,
+isnull(YTD_Value_PrevYrRate,0) - isnull(lag(YTD_Value_PrevYrRate) 
+over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_PrevYrRate,
+YTD_Value_BudRate,
+isnull(YTD_Value_BudRate,0) - isnull(lag(YTD_Value_BudRate) 
+over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_BudRate,
+YTD_Value_LYCM_BudRate,
+isnull(YTD_Value_LYCM_BudRate,0) - isnull(lag(YTD_Value_LYCM_BudRate) 
+over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_LYCM_BudRate
+from TB_details
+where leac is not null
+--and CONO<>'Adj'
+--and concat(cono,leac)='416DB0501006' for testing
+--and PRD1='Income Tax'
+order by Entity,cono,LEAC,LEAC_DESC,FinPeriod
+--)a
+
+
+update TB_details set 
+FTM_Value=a.FTM_Value,
+FTM_Value_LYCM=a.FTM_Value_LYCM,
+FTM_Value_INR=a.FTM_Value_INR,
+FTM_Value_LYCM_INR=a.FTM_Value_LYCM_INR,
+FTM_Value_PrevYrRate=a.FTM_Value_PrevYrRate,
+FTM_Value_BudRate=a.FTM_Value_BudRate,
+FTM_Value_LYCM_BudRate=a.FTM_Value_LYCM_BudRate
+from (select * from TB_Temp2)a
+where TB_details.Entity=a.Entity
+and TB_details.CONO=a.CONO
+and TB_details.LEAC=a.LEAC
+and TB_details.LEAC_DESC=a.LEAC_DESC
+and TB_details.FinPeriod=a.FinPeriod
+
+
+
+update TB_details set 
+FTM_Value_LYCM=YTD_Value_LYCM,
+FTM_Value_INR=YTD_Value_INR,
+FTM_Value_LYCM_INR=YTD_Value_LYCM_INR,
+FTM_Value_PrevYrRate=YTD_Value_PrevYrRate,
+FTM_Value_BudRate=YTD_Value_BudRate,
+FTM_Value_LYCM_BudRate=YTD_Value_LYCM_BudRate
+where FinMonth=1
+
+
+----Part 2 : Adj Entries (As these data are available against Entity, LEAC and LEAC_DESC)
+
+--Insert into TB_Temp2(CONO,LEAC,FinPeriod,YTD_Value,FTM_Value,YTD_Value_LYCM,FTM_Value_LYCM,
+--YTD_Value_INR,FTM_Value_INR,YTD_Value_LYCM_INR,FTM_Value_LYCM_INR,YTD_Value_PrevYrRate,FTM_Value_PrevYrRate,
+--YTD_Value_BudRate,FTM_Value_BudRate,YTD_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate)
+----select * into TB_Temp2 from (
+--select CONO,LEAC,FinPeriod,
+--YTD_Value,
+--isnull(YTD_Value,0) - isnull(lag(YTD_Value) 
+--over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value,
+--YTD_Value_LYCM,
+--isnull(YTD_Value_LYCM,0) - isnull(lag(YTD_Value_LYCM) 
+--over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_LYCM,
+--YTD_Value_INR,
+--isnull(YTD_Value_INR,0) - isnull(lag(YTD_Value_INR) 
+--over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_INR,
+--YTD_Value_LYCM_INR,
+--isnull(YTD_Value_LYCM_INR,0) - isnull(lag(YTD_Value_LYCM_INR) 
+--over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_LYCM_INR,
+--YTD_Value_PrevYrRate,
+--isnull(YTD_Value_PrevYrRate,0) - isnull(lag(YTD_Value_PrevYrRate) 
+--over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_PrevYrRate,
+--YTD_Value_BudRate,
+--isnull(YTD_Value_BudRate,0) - isnull(lag(YTD_Value_BudRate) 
+--over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_BudRate,
+--YTD_Value_LYCM_BudRate,
+--isnull(YTD_Value_LYCM_BudRate,0) - isnull(lag(YTD_Value_LYCM_BudRate) 
+--over(partition by Entity,CONO,LEAC,LEAC_DESC,FINYEAR order by finperiod),0) as FTM_Value_LYCM_BudRate
+--from TB_details
+--where leac is not null
+--and CONO='Adj'
+----and concat(cono,leac)='416DB0501006' for testing
+--order by Entity,cono,LEAC,FinPeriod
+----)a
+
+
+--update TB_details set 
+--FTM_Value=a.FTM_Value,
+--FTM_Value_LYCM=a.FTM_Value_LYCM,
+--FTM_Value_INR=a.FTM_Value_INR,
+--FTM_Value_LYCM_INR=a.FTM_Value_LYCM_INR,
+--FTM_Value_PrevYrRate=a.FTM_Value_PrevYrRate,
+--FTM_Value_BudRate=a.FTM_Value_BudRate,
+--FTM_Value_LYCM_BudRate=a.FTM_Value_LYCM_BudRate
+--from (select * from TB_Temp2)a
+--where TB_details.CONO=a.CONO
+--and TB_details.LEAC=a.LEAC
+--and TB_details.LEAC_DESC=a.LEAC_DESC
+--and TB_details.FinPeriod=a.FinPeriod
+--and TB_details.CONO='Adj'
+
+
+
+--update TB_details set 
+--FTM_Value_LYCM=YTD_Value_LYCM,
+--FTM_Value_INR=YTD_Value_INR,
+--FTM_Value_LYCM_INR=YTD_Value_LYCM_INR,
+--FTM_Value_PrevYrRate=YTD_Value_PrevYrRate,
+--FTM_Value_BudRate=YTD_Value_BudRate,
+--FTM_Value_LYCM_BudRate=YTD_Value_LYCM_BudRate
+--where FinMonth=1
+
+
+
+--Part 3 : Budget and BudPlan (As these data are available against Entity, PRD1,PRD2,PRD3)
+
+
+--drop table TB_Temp3
+--create table TB_Temp3 (
+--Entity	varchar(100),
+--PRD1	varchar(200),
+--PRD2	varchar(200),
+--PRD3	varchar(200),
+--FinYear	nvarchar(38),
+--FinPeriod	varchar(32),
+--YTD_Budget	float,
+--FTM_Budget	float,
+--YTD_BudPlan	float,
+--FTM_BudPlan	float,
+--YTD_Budget_BudRate	float,
+--FTM_Budget_BudRate	float,
+--YTD_BudPlan_PlanRate	float,
+--FTM_BudPlan_PlanRate	float)
+
+Insert into TB_Temp3(Entity,PRD1,PRD2,PRD3,FinYear,FinPeriod,
+YTD_Budget,FTM_Budget,YTD_BudPlan,FTM_BudPlan,YTD_Budget_BudRate,FTM_Budget_BudRate,YTD_BudPlan_PlanRate,FTM_BudPlan_PlanRate)
+--select * into TB_Temp3 from (
+select Entity,PRD1,PRD2,PRD3,FinYear,FinPeriod,
+YTD_Budget,
+isnull(YTD_Budget,0) - isnull(lag(YTD_Budget) over(partition by Entity,PRD1,PRD2,PRD3,FINYEAR order by finperiod),0) as FTM_Budget,
+YTD_BudPlan,
+isnull(YTD_BudPlan,0) - isnull(lag(YTD_BudPlan) over(partition by Entity,PRD1,PRD2,PRD3,FINYEAR order by finperiod),0) as FTM_BudPlan,
+YTD_Budget_BudRate,
+isnull(YTD_Budget_BudRate,0) - isnull(lag(YTD_Budget_BudRate) over(partition by Entity,PRD1,PRD2,PRD3,FINYEAR order by finperiod),0) as FTM_Budget_BudRate,
+YTD_BudPlan_PlanRate,
+isnull(YTD_BudPlan_PlanRate,0) - isnull(lag(YTD_BudPlan_PlanRate) over(partition by Entity,PRD1,PRD2,PRD3,FINYEAR order by finperiod),0) as FTM_BudPlan_PlanRate
+from TB_details
+where Entity is not null
+and PRD1 is not null
+and PRD2 is not null
+and PRD3 is not null
+--and concat(cono,leac)='416DB0501006' for testing
+order by Entity,PRD1,PRD2,PRD3,FinPeriod
+--)a
+
+
+update TB_details set 
+FTM_Budget=a.FTM_Budget,
+FTM_Budget_BudRate=a.FTM_Budget_BudRate,
+FTM_BudPlan=a.FTM_BudPlan,
+FTM_BudPlan_PlanRate=a.FTM_BudPlan_PlanRate
+from (select * from TB_Temp3)a
+where TB_details.Entity=a.Entity
+and TB_details.PRD1=a.PRD1
+and TB_details.PRD2=a.PRD2
+and TB_details.PRD3=a.PRD3
+and TB_details.FinPeriod=a.FinPeriod
+
+
+
+update TB_details set 
+FTM_Budget=YTD_Budget,
+FTM_BudPlan=YTD_BudPlan,
+FTM_Budget_BudRate=YTD_Budget_BudRate,
+FTM_BudPlan_PlanRate=YTD_BudPlan_PlanRate
+where FinMonth=1
+
+
+
+delete from TB_details where finyear<'2019'
+
+end
+
+
+
+
+select distinct FinPeriod,Entity,CONO,LEAC,UniqueCode,PRD1,PRD2,PRD3
+FinPeriod,YTD_Value,FTM_Value,YTD_Value_LYCM,FTM_Value_LYCM,YTD_Value_INR,
+FTM_Value_INR,YTD_Value_LYCM_INR,FTM_Value_LYCM_INR,YTD_Value_PrevYrRate,FTM_Value_PrevYrRate,
+YTD_Value_BudRate,FTM_Value_BudRate,YTD_Value_LYCM_BudRate,FTM_Value_LYCM_BudRate
+from TB_details
+where 
+--leac is not null
+--entity is not null
+--and 
+leac like '%Sales%'
+--order by cono,LEAC,FinPeriod
+
+
+select * from TB_details
+where LEAC='DA0103029'--'DA0101001'
+and LEAC_DESC=''
+--and LEDE='By Sale of Services A/c'
+and Entity= 'Elgi Standalone'
+
+
+
+
+--select * from TZZGLD802400 --entity and ccur for Currency rated fetching
+--select * from TZZGLD804400
+--select * from TZZGLD806400
+
+
+
+
+
+Completion time: 2025-11-19T12:37:18.9169343+05:30

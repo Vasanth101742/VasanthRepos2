@@ -1,0 +1,104 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_temp_SalesItemdata4yrs
+
+CREATE proc [dbo].[sp_temp_SalesItemdata4yrs] as
+begin
+
+truncate table temp_SalesItemdata4yrs
+
+
+
+insert into temp_SalesItemdata4yrs(Company,ItemCode,Item_desc) 
+select distinct Company,ItemCode,null as Item_desc from TmpSlsDespData_baan
+where year(Date)>=year(getdate()-1)-4
+and company <>101
+and company not like '6%'
+
+insert into temp_SalesItemdata4yrs(Company,ItemCode,Item_desc) 
+select distinct Company,Item,Item_desc from ELGi_Sales_Details
+where year(Invoice_Date)>=year(getdate()-1)-4
+and company like '4%'
+
+--select * from 
+--(select Company,ItemCode,Item_desc,ROW_NUMBER() over(partition by Company,ltrim(rtrim(ItemCode)) order by Company,ltrim(rtrim(ItemCode))) as Itemrnk 
+--from temp_SalesItemdata4yrs)a
+--where Itemrnk>=2
+
+
+update temp_SalesItemdata4yrs set Item_desc=[description]
+from
+(select company,Itemcode,description from  [ELGI-DW].dbo.comitemdata)b
+where temp_SalesItemdata4yrs.Company=b.company
+and ltrim(rtrim(temp_SalesItemdata4yrs.ItemCode))=ltrim(rtrim(b.ItemCode))
+
+
+
+--------------------------------------
+--Item Updations
+
+update temp_SalesItemdata4yrs set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where temp_SalesItemdata4yrs.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(temp_SalesItemdata4yrs.Itemcode))=ltrim(rtrim(a.t_item))
+
+
+update temp_SalesItemdata4yrs set item_desc=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where temp_SalesItemdata4yrs.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(temp_SalesItemdata4yrs.Itemcode))=ltrim(rtrim(a.ITEM))
+
+
+update temp_SalesItemdata4yrs set item_desc=ltrim(rtrim(a.DSCA))
+from ttcibd001470 a
+where temp_SalesItemdata4yrs.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(temp_SalesItemdata4yrs.Itemcode))=ltrim(rtrim(a.ITEM))
+
+update temp_SalesItemdata4yrs set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where temp_SalesItemdata4yrs.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(temp_SalesItemdata4yrs.Itemcode))=ltrim(rtrim(a.item))
+
+
+update temp_SalesItemdata4yrs set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where temp_SalesItemdata4yrs.company in 
+(select  company from ELGI_Companies_Master where Company in (551,552) )
+and ltrim(rtrim(temp_SalesItemdata4yrs.Itemcode))=ltrim(rtrim(a.item))
+
+
+update temp_SalesItemdata4yrs set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where temp_SalesItemdata4yrs.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(temp_SalesItemdata4yrs.Itemcode))=ltrim(rtrim(a.t_item))
+
+
+update temp_SalesItemdata4yrs set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where temp_SalesItemdata4yrs.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(temp_SalesItemdata4yrs.Itemcode))=ltrim(rtrim(a.item))
+
+
+
+--select * from temp_SalesItemdata4yrs where Item_desc is  null
+--select distinct company from temp_SalesItemdata4yrs where Item_desc is  null and company=400
+
+
+
+
+
+delete from temp_SalesItemdata4yrs where Item_desc is  null
+
+end
+
+
+--select Company,ItemCode,Item_desc from temp_SalesItemdata4yrs order by Company,ItemCode,Item_desc
+
+
+Completion time: 2025-11-19T12:39:12.7421038+05:30

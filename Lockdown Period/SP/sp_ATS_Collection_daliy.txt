@@ -1,0 +1,38 @@
+CREATE PROCEDURE [dbo].[sp_ATS_Collection_daliy] as
+   Declare @date as datetime
+    Declare @count as int
+    Declare @loopcount as int 
+set nocount on
+BEGIN
+
+truncate table ats_collection_daywise
+
+set @count=datepart(dd,getdate()-1)
+    set @loopcount=1
+    set @date=convert(datetime,convert(varchar,DATEADD(dd,-(DAY(getdate()-1)-1),getdate()-1),106))
+    
+	WHILE ( @loopcount<=@count)
+		Begin
+	    insert into ats_collection_daywise 
+		select case when day(a.date1)=1 then east_mkt_coll else isnull(east_mkt_coll,0)+isnull(east_act_mkt,0) end as east_act_mkt,
+			 case when day(a.date1)=1 then west_mkt_coll else isnull(west_mkt_coll,0)+isnull(west_act_mkt,0) end as west_act_mkt, 
+			 case when day(a.date1)=1 then north_mkt_coll else isnull(north_mkt_coll,0)+isnull(north_act_mkt,0) end as north_act_mkt ,
+			 case when day(a.date1)=1 then south_mkt_coll else isnull(south_mkt_coll,0)+isnull(south_act_mkt,0) end  as south_act_mkt,
+			 case when day(a.date1)=1 then east_aftsale_coll else isnull(east_aftsale_coll,0)+isnull(east_act_aftsale,0) end as east_act_aftsale, 
+			 case when day(a.date1)=1 then west_aftsale_coll else isnull(west_aftsale_coll,0)+isnull(west_act_aftsale,0) end as west_act_aftsale , 
+			 case when day(a.date1)=1 then north_aftsale_coll else isnull(north_aftsale_coll,0)+isnull(north_act_aftsale,0) end as north_act_aftsale ,
+			 case when day(a.date1)=1 then south_aftsale_coll else isnull(south_aftsale_coll,0)+isnull(south_act_aftsale,0) end as south_act_aftsale,
+			 case when day(a.date1)=1 then other_coll else isnull(other_coll,0)+isnull(other_sale,0) end as other_sale,
+			 case when day(a.date1)=1 then export_coll else isnull(export_coll,0)+isnull(export_act,0) end as export_act,
+			date1 from 
+				(select * from vw_ats_collection_daywise_act where date1=@date )a
+			left outer join
+				(select * from ats_collection_daywise where date =convert(datetime,convert(varchar,@date-1,106)))b
+			on a.date1=b.date+1
+				order by date1
+
+		set @date=@date+1
+		set @loopcount=@loopcount+1
+	   END
+
+END

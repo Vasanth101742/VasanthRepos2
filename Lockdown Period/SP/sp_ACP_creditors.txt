@@ -1,0 +1,616 @@
+--exec sp_ACP_creditors '2025-04-17'
+
+CREATE proc sp_ACP_creditors (@AS_OF_DATE date) as 
+
+Begin
+
+--declare @AS_OF_DATE date='2024-03-20'
+Declare @Finyear varchar(10)=case when month(@AS_OF_DATE)<4 then year(@AS_OF_DATE)-1 else year(@AS_OF_DATE) end
+declare @Finmonth varchar(10) =case when month(@AS_OF_DATE)<4 then month(@AS_OF_DATE)+9 else month(@AS_OF_DATE)-3 end
+set  @Finmonth=RIGHT('00'+CAST(@Finmonth AS VARCHAR(2)),2)
+
+--declare @Finyear int=2017
+--Declare @Finmonth int=3
+
+--select * into ACP_Creditors_Stage from ACP_Creditors
+
+--Alter table ACP_Creditors_Stage add ORNO nvarchar(18)
+--Alter table ACP_Creditors_Stage add REFR nvarchar(64)
+
+
+truncate table ACP_Creditors_Stage
+truncate table CreditorsTemp
+Truncate table ACP_CREDITORS_CONSOLIDATED
+Truncate table ACP_Creditors_Complete
+
+----Existing Logic
+insert into ACP_Creditors_Stage(DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,
+DPST,DPSTName,Description,InvAmnt,PaidAmnt,BalanceAmt,DueDate,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,
+CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,LINE,BalanceAmti,ORNO,REFR)
+select DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,DPST,DPSTName,Description,avg(InvAmnt) InvAmnt,PaidAmnt,
+BalanceAmnt,DueDate,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,LINE,BalanceAmnti,
+ORNO,REFR
+from 
+(
+select a.DOCD as DocDt,a.COMPANY,a.TTYP as TranType,a.NINV as InvNo,
+a.IFBP as SuppCode,null as SuppName,
+null as SuppAreaCode,null as SuppAreaName,
+null as DPST, null as DPSTName,
+null as Description,
+avg(a.InvAmnt) InvAmnt,SUM(ISNULL(b.PaidAmnt,0)) PaidAmnt,
+--null as BalanceAmnt --Old Method,
+avg(a.InvAmnt) + SUM(ISNULL(b.PaidAmnt,0)) as BalanceAmnt,
+a.DueDate,
+case when a.DueDate='9999-01-01 00:00:00.000' then 'NA'
+--Old Ageing Classification
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) <30 then 'LessThan30' 
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 30 and 45 then '30-45'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 45 and 60 then '45-60'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 60 and 90 then '60-90'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 90 and 120 then '90-120'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 120 and 150 then '120-150'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 150 and 180 then '150-180' 
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) >180 then 'GreaterThan180' end as Ageing,
+
+
+--New Ageing Classification
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) < 1 then 'Not Due' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 1 and 30 then 'Upto30' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 31 and 45 then '31-45'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 46 and 90 then '46-90'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 91 and 120 then '91-120'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 121 and 180 then '121-180'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 181 and 365 then '181-365' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 366 and 730 then '366-730' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) >730 then 'GreaterThan730' end as Ageing,
+
+
+null as AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,a.CurRate,a.Currency,
+AVG(a.InvAmnti) AS InvAmnti,
+SUM(ISNULL(b.PaidAmnti,0)) AS PaidAmnti,A.LINE,
+--null as BalanceAmnti --OldMethod
+AVG(a.InvAmnti)+SUM(ISNULL(b.PaidAmnti,0)) as BalanceAmnti,
+a.ORNO,a.REFR
+from
+(select COMPANY,TTYP,NINV,DOCD,DOCN,IFBP,LINE,
+CCUR as Currency,RATE$1 as CurRate,
+sum(AMTI) as InvAmnti,
+SUM(ISNULL(AMTH$1,0)+ISNULL(PADH$1,0)+ISNULL(DC1H$1,0)+ISNULL(CDAM$1,0)) as InvAmnt,
+YEAR as FinYear,PROD as FinMonth,null as CalYear,null as CalMonth,
+case when DUED='9999-01-01 00:00:00.000' then DOCD
+else DUED end as DueDate ,
+ORNO,REFR
+from TTFACP200ALL
+where DOCN=0
+and concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth) --Period based
+--and DOCD<=@AS_OF_DATE  --Docdt based
+group by COMPANY,TTYP,NINV,DOCD,DOCN,IFBP,LINE,CCUR,RATE$1,YEAR,PROD,DUED,ORNO,REFR
+)a
+left outer join
+(select COMPANY,IFBP,TTYP,NINV,LINE,ccur as Currency,
+sum(isnull(AMTI,0)) as PaidAmnti, 
+SUM(ISNULL(AMTH$1,0)+ISNULL(PADH$1,0)+ISNULL(DC1H$1,0)+ISNULL(CDAM$1,0)) as PaidAmnt
+
+from TTFACP200ALL
+where DOCN<>0
+and concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth) --Period Based
+--and DOCD<=@AS_OF_DATE --Docdt based
+group by COMPANY,IFBP,TTYP,NINV,LINE,ccur
+)b
+on a.company=b.company
+and a.NINV=b.NINV
+and a.TTYP=b.TTYP
+and a.IFBP=b.IFBP
+and a.LINE=b.LINE
+
+group by a.DOCD,a.COMPANY,a.TTYP,a.NINV,a.IFBP,a.DueDate,
+FinYear,FinMonth,CalYear,CalMonth,a.CurRate,a.Currency,a.LINE,a.ORNO,a.REFR
+)a
+group by DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,DPST,DPSTName,Description,InvAmnt,PaidAmnt,
+BalanceAmnt,DueDate,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,lINE,BalanceAmnti,
+ORNO,REFR
+
+----------------------------
+--Subsidiaries
+
+insert into ACP_Creditors_Stage(DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,
+DPST,DPSTName,Description,InvAmnt,PaidAmnt,BalanceAmt,DueDate,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,
+CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,LINE,BalanceAmti,ORNO,REFR)
+
+--declare @AS_OF_DATE date='2024-08-29'
+--Declare @Finyear varchar(10)=case when month(@AS_OF_DATE)<4 then year(@AS_OF_DATE)-1 else year(@AS_OF_DATE) end
+--declare @Finmonth varchar(10) =case when month(@AS_OF_DATE)<4 then month(@AS_OF_DATE)+9 else month(@AS_OF_DATE)-3 end
+--set  @Finmonth=RIGHT('00'+CAST(@Finmonth AS VARCHAR(2)),2)
+
+
+select DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,DPST,DPSTName,Description,avg(InvAmnt) InvAmnt,PaidAmnt,
+BalanceAmnt,DueDate,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,LINE,BalanceAmnti,
+ORNO,REFR
+from 
+(
+select a.DOCD as DocDt,a.COMPANY,a.TTYP as TranType,a.NINV as InvNo,
+a.IFBP as SuppCode,null as SuppName,
+null as SuppAreaCode,null as SuppAreaName,
+null as DPST, null as DPSTName,
+null as Description,
+avg(a.InvAmnt) InvAmnt,SUM(ISNULL(b.PaidAmnt,0)) PaidAmnt,
+--null as BalanceAmnt --Old Method,
+avg(a.InvAmnt) + SUM(ISNULL(b.PaidAmnt,0)) as BalanceAmnt,
+a.DueDate,
+case when a.DueDate='9999-01-01 00:00:00.000' then 'NA'
+--Old Ageing Classification
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) <30 then 'LessThan30' 
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 30 and 45 then '30-45'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 45 and 60 then '45-60'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 60 and 90 then '60-90'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 90 and 120 then '90-120'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 120 and 150 then '120-150'
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 150 and 180 then '150-180' 
+--when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) >180 then 'GreaterThan180' end as Ageing,
+
+
+--New Ageing Classification
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) < 1 then 'Not Due' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 1 and 30 then 'Upto30' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 31 and 45 then '31-45'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 46 and 90 then '46-90'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 91 and 120 then '91-120'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 121 and 180 then '121-180'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 181 and 365 then '181-365' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) between 366 and 730 then '366-730' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,@AS_OF_DATE) >730 then 'GreaterThan730' end as Ageing,
+
+
+null as AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,a.CurRate,a.Currency,
+AVG(a.InvAmnti) AS InvAmnti,
+SUM(ISNULL(b.PaidAmnti,0)) AS PaidAmnti,A.LINE,
+--null as BalanceAmnti --OldMethod
+AVG(a.InvAmnti)+SUM(ISNULL(b.PaidAmnti,0)) as BalanceAmnti,
+a.ORNO,a.REFR
+from
+(select COMPANY,TTYP,NINV,DOCD,DOCN,IFBP,LINE,
+CCUR as Currency,RATE$1 as CurRate,
+sum(AMTI) as InvAmnti,
+SUM(ISNULL(AMTH$1,0)+ISNULL(PADH$1,0)+ISNULL(DC1H$1,0)+ISNULL(CDAM$1,0)) as InvAmnt,
+YEAR as FinYear,PROD as FinMonth,null as CalYear,null as CalMonth,
+case when DUED='9999-01-01 00:00:00.000' then DOCD
+else DUED end as DueDate ,
+ORNO,REFR
+from TTFACP200551552
+where DOCN=0
+and concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth) --Period based
+--and DOCD<=@AS_OF_DATE  --Docdt based
+group by COMPANY,TTYP,NINV,DOCD,DOCN,IFBP,LINE,CCUR,RATE$1,YEAR,PROD,DUED,ORNO,REFR
+)a
+left outer join
+(select COMPANY,IFBP,TTYP,NINV,LINE,ccur as Currency,
+sum(isnull(AMTI,0)) as PaidAmnti, 
+SUM(ISNULL(AMTH$1,0)+ISNULL(PADH$1,0)+ISNULL(DC1H$1,0)+ISNULL(CDAM$1,0)) as PaidAmnt
+
+from TTFACP200551552
+where DOCN<>0
+and concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth) --Period Based
+--and DOCD<=@AS_OF_DATE --Docdt based
+group by COMPANY,IFBP,TTYP,NINV,LINE,ccur
+)b
+on a.company=b.company
+and a.NINV=b.NINV
+and a.TTYP=b.TTYP
+and a.IFBP=b.IFBP
+and a.LINE=b.LINE
+
+group by a.DOCD,a.COMPANY,a.TTYP,a.NINV,a.IFBP,a.DueDate,
+FinYear,FinMonth,CalYear,CalMonth,a.CurRate,a.Currency,a.LINE,a.ORNO,a.REFR
+)a
+group by DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,DPST,DPSTName,Description,InvAmnt,PaidAmnt,
+BalanceAmnt,DueDate,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,lINE,BalanceAmnti,
+ORNO,REFR
+
+
+
+
+
+
+
+----------------------------
+
+Insert into CreditorsTemp
+--select * into CreditorsTemp from (
+select suppcode,company,trantype,invno,sum(isnull(convert(numeric,InvAmnti),0)) InvAmnti,
+sum(isnull(convert(numeric,PaidAmnti),0)) PaidAmnti
+from ACP_Creditors_stage  
+where 
+concat(convert(varchar,FinYear),RIGHT('00'+CAST(FinMonth AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth) --Period based
+--DocDt<=@AS_OF_DATE --Docdt Based
+group by suppcode,company,trantype,invno
+having sum(isnull(convert(numeric,InvAmnti),0))+sum(isnull(convert(numeric,PaidAmnti),0))=0
+--)a
+
+
+
+--delete from ACP_Creditors_stage where DocDt>@AS_OF_DATE  --Enable it only when fetching data based on DocDt
+
+
+
+--Part 1: Rate_USD Update for INR to USD----------------------
+--Alter table ACP_Creditors_stage add Rate_USD float
+--Alter table ACP_Creditors_stage add InvAmnt_USD float
+--Alter table ACP_Creditors_stage add PaidAmnt_USD float
+--Alter table ACP_Creditors_stage add BalanceAmnt_USD float
+
+update ACP_Creditors_stage set Rate_USD= a.CurRate
+from (select distinct DocDt,currency,CurRate from ACP_Creditors_stage 
+where currency='USD'
+and company not in (500,551,552,553)
+and CurRate>1
+)a
+where ACP_Creditors_stage.DocDt=a.DocDt
+and ACP_Creditors_stage.currency='USD'
+and ACP_Creditors_stage.company not in (500,551,552,553)
+
+
+
+--Data Reconciliation
+update ACP_Creditors_stage set Rate_USD =a.Rate_USD 
+from (
+select DocDt,Rate_USD,Rnk1 from (
+select a.DocDt,b.Rate_USD,row_number() over(partition by a.DocDt order by datediff(dd,b.DocDt,a.DocDt) desc ) as Rnk1 from
+(select distinct DocDt,Rate_USD from ACP_Creditors_stage 
+where Rate_USD is null
+and company not in (500,551,552,553)
+)a
+left outer join
+(select distinct DocDt,Rate_USD from ACP_Creditors_stage 
+where Rate_USD is not null
+and company not in (500,551,552,553)
+)b
+on a.DocDt<=b.DocDt
+)a
+where Rnk1=1
+)a
+where ACP_Creditors_stage.DocDt=a.DocDt
+and ACP_Creditors_stage.Rate_USD is null
+and ACP_Creditors_stage.company not in (500,551,552,553)
+
+--End: Part 1: Rate_USD Update for INR to USD----------------------
+
+--Part 2: Rate_USD Update for Home Currency of Subsidiary Companies to USD---------------------------
+update ACP_Creditors_stage set Rate_USD=a.CurRate
+from (select distinct company,DocDt,currency,CurRate from ACP_Creditors_stage 
+where currency='USD'
+and company in (500,551,552,553)
+)a
+where ACP_Creditors_stage.company=a.company
+and ACP_Creditors_stage.DocDt=a.DocDt
+and ACP_Creditors_stage.currency='USD'
+
+
+--Data Reconciliation
+update ACP_Creditors_stage set Rate_USD =a.Rate_USD 
+from (
+select company,DocDt,Rate_USD,Rnk1 from (
+select a.company,a.DocDt,b.Rate_USD,row_number() over(partition by a.company,a.DocDt order by datediff(dd,b.DocDt,a.DocDt) desc ) as Rnk1 from
+(select distinct Company,DocDt,Rate_USD from ACP_Creditors_stage 
+where Rate_USD is null
+and company in (500,551,552,553)
+)a
+left outer join
+(select distinct Company,DocDt,Rate_USD from ACP_Creditors_stage 
+where Rate_USD is not null
+and company in (500,551,552,553)
+)b
+on a.company=b.company
+and a.DocDt>=b.DocDt
+)a
+where Rnk1=1
+)a
+where ACP_Creditors_stage.company=a.company
+and ACP_Creditors_stage.DocDt=a.DocDt
+and ACP_Creditors_stage.Rate_USD is null
+
+
+--Part 2: Rate_USD Update for Home Currency of Subsidiary Companies to USD---------------------------
+
+
+update ACP_Creditors_stage set InvAmnt_USD=invAmnti where currency='USD'
+update ACP_Creditors_stage set PaidAmnt_USD=PaidAmnti  where currency='USD'
+update ACP_Creditors_stage set BalanceAmnt_USD=BalanceAmti  where currency='USD'
+
+
+update ACP_Creditors_stage set InvAmnt_USD=invAmnt/Rate_USD where currency<>'USD' and CurRate>1 and Rate_USD is not null
+update ACP_Creditors_stage set PaidAmnt_USD=PaidAmnt/Rate_USD where currency<>'USD' and CurRate>1 and Rate_USD is not null
+update ACP_Creditors_stage set BalanceAmnt_USD=BalanceAmt/Rate_USD where currency<>'USD' and CurRate>1 and Rate_USD is not null
+
+
+update ACP_Creditors_stage set InvAmnt_USD=invAmnt*Rate_USD where currency<>'USD' and CurRate<=1 and Rate_USD is not null
+update ACP_Creditors_stage set PaidAmnt_USD=PaidAmnt*Rate_USD where currency<>'USD' and CurRate<=1 and Rate_USD is not null
+update ACP_Creditors_stage set BalanceAmnt_USD=BalanceAmt*Rate_USD where currency<>'USD' and CurRate<=1 and Rate_USD is not null
+
+
+
+
+
+
+
+
+
+update ACP_Creditors_stage set suppname=v.custname1,SuppAreaCode=v.CustAreaCode
+from vw_business_partner v
+where ACP_Creditors_stage.suppcode=v.custcode
+
+update ACP_Creditors_stage set suppname=v.custname1,SuppAreaCode=v.CustAreaCode
+from vw_Business_Partner_IAS v
+where ACP_Creditors_stage.suppcode=v.custcode
+and ACP_Creditors_stage.COMPANY=951
+
+update ACP_Creditors_stage set suppname=v.custname1,SuppAreaCode=v.CustAreaCode
+from vw_Business_Partner_551 v
+where ACP_Creditors_stage.suppcode=v.custcode
+and ACP_Creditors_stage.COMPANY=551
+
+update ACP_Creditors_stage set suppname=v.custname1,SuppAreaCode=v.CustAreaCode
+from vw_Business_Partner_552 v
+where ACP_Creditors_stage.suppcode=v.custcode
+and ACP_Creditors_stage.COMPANY=552
+
+
+update ACP_Creditors_stage set suppname=v.custname1,SuppAreaCode=v.CustAreaCode
+from vw_Business_Partner_553 v
+where ACP_Creditors_stage.suppcode=v.custcode
+and ACP_Creditors_stage.COMPANY=553
+
+update ACP_Creditors_stage set suppAreaName =v.AreaName
+from vw_AREA_MASTER v
+where ACP_Creditors_stage.SuppAreaCode=v.Areacode
+
+
+--Alter table ACP_Creditors_stage add SuppInvDate date
+
+update ACP_Creditors_stage set SuppInvNo=a.ISUP,SuppInvDate=a.SIDT$L
+from (
+select COMPANY,TTYP,NINV,IFBP,ISUP,SIDT$L from TTFACP200ALL where len(isup)>2)a
+where ACP_Creditors_stage.COMPANY=a.COMPANY
+and ltrim(rtrim(ACP_Creditors_stage.TranType))=ltrim(rtrim(a.TTYP))
+and ltrim(rtrim(ACP_Creditors_stage.InvNo))=ltrim(rtrim(a.NINV))
+and ltrim(rtrim(ACP_Creditors_stage.SuppCode))=ltrim(rtrim(a.IFBP))
+
+
+update ACP_Creditors set SuppAreaCode=null where SuppAreaCode =''
+
+update ACP_Creditors_stage set SupplierType='Import' where currency not in ('IND','INR')
+update ACP_Creditors_stage set SupplierType='Domestic' where currency in ('IND','INR')
+
+update ACP_Creditors_stage set SuppCategory='HUNDI'
+where suppcode in (select distinct BPID from TZZACP100400 where EXDT='1970-01-01 00:00:00.000')
+
+update ACP_Creditors_stage set SuppCategory='NORMAL' where SuppCategory is null
+
+--Alter table ACP_Creditors_stage add MSME varchar(20)
+
+update ACP_Creditors_stage set MSME='MSME'
+from (select * from TZZCMG728ALL where company like '4%' and exdt='9999-01-01 00:00:00.000' )a
+where ltrim(rtrim(ACP_Creditors_stage.SuppCode))=ltrim(rtrim(a.BPID))
+and ACP_Creditors_stage.COMPANY like '4%'
+
+
+update ACP_Creditors_stage set MSME='MSME'
+from (select * from TZZCMG728ALL where company like '6%' and exdt='9999-01-01 00:00:00.000' )a
+where ltrim(rtrim(ACP_Creditors_stage.SuppCode))=ltrim(rtrim(a.BPID))
+and ACP_Creditors_stage.COMPANY like '6%'
+
+update ACP_Creditors_stage set MSME='MSME'
+from (select * from TZZCMG728ALL where company = '581' and exdt='9999-01-01 00:00:00.000' )a
+where ltrim(rtrim(ACP_Creditors_stage.SuppCode))=ltrim(rtrim(a.BPID))
+and ACP_Creditors_stage.COMPANY ='581'
+
+
+update ACP_Creditors_stage set MSME='Regular' where MSME is null
+
+--alter table ACP_Creditors_stage add PaidStatus varchar(20)
+--alter table ACP_Creditors_stage add DueStatus varchar(20)
+
+update ACP_Creditors_stage set PaidStatus=a.PaidStatus,DueStatus=a.DueStatus
+from (select * from acp_status)a
+where ACP_Creditors_stage.COMPANY=a.Company
+and ACP_Creditors_stage.TranType=a.TranType
+and ACP_Creditors_stage.InvNo=a.InvNo
+and ACP_Creditors_stage.SuppCode=a.SuppCode
+
+
+
+--Old Ageing Classification 
+update ACP_Creditors_stage set AgeingOrdr=1 where Ageing= 'LessThan30' 
+update ACP_Creditors_stage set AgeingOrdr=2 where Ageing= '30-45'
+update ACP_Creditors_stage set AgeingOrdr=3 where Ageing= '45-60'
+update ACP_Creditors_stage set AgeingOrdr=4 where Ageing= '60-90'
+update ACP_Creditors_stage set AgeingOrdr=5 where Ageing= '90-120'
+update ACP_Creditors_stage set AgeingOrdr=6 where Ageing= '120-150'
+update ACP_Creditors_stage set AgeingOrdr=7 where Ageing= '150-180' 
+update ACP_Creditors_stage set AgeingOrdr=8 where Ageing= 'GreaterThan180'
+update ACP_Creditors_stage set AgeingOrdr=9 where Ageing='NA'
+
+
+--New Ageing Classification
+update ACP_Creditors_stage set AgeingOrdr=1 where Ageing='Not Due' 
+update ACP_Creditors_stage set AgeingOrdr=2 where Ageing= 'Upto30' 
+update ACP_Creditors_stage set AgeingOrdr=3 where Ageing= '31-45'
+update ACP_Creditors_stage set AgeingOrdr=4 where Ageing= '46-90'
+update ACP_Creditors_stage set AgeingOrdr=5 where Ageing= '91-120'
+update ACP_Creditors_stage set AgeingOrdr=6 where Ageing= '121-180'
+update ACP_Creditors_stage set AgeingOrdr=7 where Ageing= '181-365' 
+update ACP_Creditors_stage set AgeingOrdr=8 where Ageing= '366-730' 
+update ACP_Creditors_stage set AgeingOrdr=9 where Ageing= 'GreaterThan730'
+update ACP_Creditors_stage set AgeingOrdr=10 where Ageing='NA'
+
+
+
+
+update ACP_Creditors_stage set CalMonth=FinMonth+3 where FinMonth<=9
+update ACP_Creditors_stage set CalMonth=FinMonth-9 where FinMonth>9
+
+update ACP_Creditors_stage set CalYear=FinYear where FinMonth<=9
+update ACP_Creditors_stage set CalYear=FinYear+1 where FinMonth>9
+
+
+--update ACP_Creditors_stage set PaidAmnt= PaidAmnti * CurRate
+--where paidamnt<>0
+--AND SUPPCODE IN (SELECT T_BPID  FROM TTCCOM100400 WHERE T_CCUR NOT IN ('IND','INR'))
+--and Currency NOT IN ('IND','INR')
+--and COMPANY in (select company from ELGI_Companies_Master where CompanyGroup ='ELGI')
+
+--update ACP_Creditors_stage set BalanceAmt= InvAmnt+PaidAmnt
+--where SUPPCODE IN (SELECT T_BPID  FROM TTCCOM100400 WHERE T_CCUR NOT IN ('IND','INR'))
+--and Currency NOT IN ('IND','INR')
+----and COMPANY in (select company from ELGI_Companies_Master where CompanyGroup ='ELGI')
+
+
+--Alter table ACP_Creditors_stage add UnlinkedCredits float
+--Alter table ACP_Creditors_Complete add UnlinkedCredits float
+
+--Alter table ACP_Creditors_Complete add ORNO nvarchar(18)
+--Alter table ACP_Creditors_Complete add REFR nvarchar(64)
+
+
+Insert into ACP_Creditors_Complete(DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,
+DPST,DPSTName,Description,InvAmnt,PaidAmnt,BalanceAmt,DueDate,Ageing,AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,LINE,BalanceAmti,
+SuppInvNo,SupplierType,SuppCategory,SuppInvDate,MSME,PaidStatus,DueStatus,UnlinkedCredits,ORNO,REFR)
+select DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,
+DPST,DPSTName,Description,InvAmnt,PaidAmnt,BalanceAmt,DueDate,Ageing,AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency,InvAmnti,PaidAmnti,LINE,BalanceAmti,
+SuppInvNo,SupplierType,SuppCategory,SuppInvDate,MSME,PaidStatus,DueStatus,UnlinkedCredits,ORNO,REFR
+from ACP_Creditors_stage
+
+
+
+delete from ACP_Creditors_stage where concat(suppcode,company,trantype,invno) in 
+(select concat(suppcode,company,trantype,invno) from CreditorsTemp)
+
+delete from ACP_Creditors_stage where BalanceAmt between -1 and 1
+
+--Special Case deletion against the SR: 72240112456
+delete from ACP_Creditors_stage where company=581 and trantype='OSA' and invno='17000001'
+
+
+
+
+--Alter table ACP_CREDITORS_CONSOLIDATED add MSME varchar(20)
+--Alter table ACP_CREDITORS_CONSOLIDATED alter column PaidStatus varchar(20)
+--Alter table ACP_CREDITORS_CONSOLIDATED alter column DueStatus varchar(20)
+
+--Alter table ACP_CREDITORS_CONSOLIDATED add ORNO nvarchar(18)
+--Alter table ACP_CREDITORS_CONSOLIDATED add REFR nvarchar(64)
+
+
+insert into ACP_CREDITORS_CONSOLIDATED(COMPANY,TranType,InvNo,SuppCode,SuppName,
+Currency,CurRate,InvAmnt,PaidAmnt,BalanceAmt,InvAmnti,PaidAmnti,BalanceAmti,Ageing,
+AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,SuppInvNo,DocDt,SupplierType,SuppCategory,
+MSME,PaidStatus,DueStatus,ORNO,REFR,InvAmnt_USD,PaidAmnt_USD,BalanceAmnt_USD)
+--Select * into ACP_CREDITORS_CONSOLIDATED from (
+
+select COMPANY,TranType,InvNo,SuppCode,SuppName,Currency,CurRate,
+sum(isnull(InvAmnt,0)) InvAmnt,sum(isnull(PaidAmnt,0)) PaidAmnt,
+--null as BalanceAmt,
+sum(isnull(BalanceAmt,0)) BalanceAmt,
+sum(isnull(InvAmnti,0)) InvAmnti,sum(isnull(PaidAmnti,0)) PaidAmnti, 
+--null as BalanceAmti,
+sum(isnull(BalanceAmti,0)) BalanceAmti,
+Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,SuppInvno,DocDt,
+SupplierType,SuppCategory,MSME,PaidStatus,DueStatus,ORNO,REFR,
+sum(isnull(InvAmnt_USD,0)) InvAmnt_USD,
+sum(isnull(PaidAmnt_USD,0)) PaidAmnt_USD ,
+sum(isnull(BalanceAmnt_USD,0)) BalanceAmnt_USD
+from ACP_Creditors_stage 
+group by COMPANY,TranType,InvNo,SuppCode,SuppName,currency,currate,
+Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,SuppInvno,DocDt,
+SupplierType,SuppCategory,MSME,PaidStatus,DueStatus,ORNO,REFR
+--)a
+
+
+--Credits and Debits Classification
+
+--Alter table ACP_Creditors_consolidated add Credit_Debit varchar(20)
+--Alter table ACP_Creditors_Stage add Credit_Debit varchar(20)
+--Alter table ACP_Creditors_Complete add Credit_Debit varchar(20)
+
+
+update ACP_Creditors_Complete set Credit_Debit='Credits'
+from
+(SELECT SuppCode FROM ACP_Creditors_Complete 
+where company like '4%'
+GROUP BY SuppCode
+HAVING sum(BalanceAmt)>0
+)a
+where ACP_Creditors_Complete.SuppCode=a.SuppCode
+and ACP_Creditors_Complete.company like '4%'
+
+
+update ACP_Creditors_Complete set Credit_Debit='Credits'
+from
+(SELECT SuppCode FROM ACP_Creditors_Complete 
+where company like '6%'
+GROUP BY SuppCode
+HAVING sum(BalanceAmt)>0
+)a
+where ACP_Creditors_Complete.SuppCode=a.SuppCode
+and ACP_Creditors_Complete.company like '6%'
+
+
+update ACP_Creditors_Complete set Credit_Debit='Debits'
+from
+(SELECT SuppCode FROM ACP_Creditors_Complete
+where company like '4%'
+GROUP BY SuppCode
+HAVING sum(BalanceAmt)<0
+)a
+where ACP_Creditors_Complete.SuppCode=a.SuppCode
+and ACP_Creditors_Complete.company like '4%'
+
+
+update ACP_Creditors_Complete set Credit_Debit='Debits'
+from
+(SELECT SuppCode FROM ACP_Creditors_Complete
+where company like '6%'
+GROUP BY SuppCode
+HAVING sum(BalanceAmt)<0
+)a
+where ACP_Creditors_Complete.SuppCode=a.SuppCode
+and ACP_Creditors_Complete.company like '6%'
+
+
+---------------Unlinked Credits-------------------------------
+
+----exec sp_UnlinkedCredits
+
+--update ACP_Creditors_stage set UnlinkedCredits=a.TempBalance
+--from (select * from ACP_Creditors_complete_Advances)a
+--where ACP_Creditors_stage.COMPANY=a.Company
+--and ACP_Creditors_stage.TranType=a.Trantype
+--and ACP_Creditors_stage.InvNo=a.InvNo
+--and ACP_Creditors_stage.SuppCode=a.SuppCode
+--and ACP_Creditors_stage.DocDt=a.DocDt
+
+--update ACP_Creditors_Complete set UnlinkedCredits=a.TempBalance
+--from (select * from ACP_Creditors_complete_Advances)a
+--where ACP_Creditors_Complete.COMPANY=a.Company
+--and ACP_Creditors_Complete.TranType=a.Trantype
+--and ACP_Creditors_Complete.InvNo=a.InvNo
+--and ACP_Creditors_Complete.SuppCode=a.SuppCode
+--and ACP_Creditors_Complete.DocDt=a.DocDt
+
+
+-----End: Unlinked Credits------------------------------------
+
+
+end
+
+
+--alter table ACP_CREDITORS_CONSOLIDATED add SuppInvNo varchar(100)
+--Alter table ACP_CREDITORS_CONSOLIDATED add DocDt datetime
+
+--select * from TTFACP200ALL where company=581
+
+
+--select distinct company from TTFACP200ALL order by company

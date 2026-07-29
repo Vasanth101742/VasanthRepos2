@@ -1,0 +1,123 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--execute sp_HR_Transfers
+
+CREATE proc [dbo].[sp_HR_Transfers]
+
+as
+
+Begin
+
+
+
+Truncate Table HR_Transfers
+Truncate table elgi_hr_tmp
+
+Insert into elgi_hr_tmp
+select * from vw_elgi_HR
+
+
+
+Insert into HR_Transfers
+select 
+emp_code,Emp_Name,NewBand,New_Designation,New_Division,New_Function,New_Department,
+Old_Band,Old_Designation,Old_Division,Old_Function,Old_Department,Transfer_Date,Data_Load_Date,
+row_number()  over (order by emp_code,transfer_date) ERANK,company  from (
+select emp_code,Emp_Name,NewBand,New_Designation,New_Division,New_Function,New_Department,
+Old_Band,Old_Designation,Old_Division,Old_Function,Old_Department,Transfer_Date,max(Data_Load_Date) Data_Load_Date,company
+from (
+select emp_code,Emp_Name,band as NewBand,
+Designation as New_Designation,
+Division_Name as New_Division,
+Function_Name as New_Function,
+Department as New_Department,
+null Old_Band,
+null Old_Designation,
+null Old_Division,
+null Old_Function,
+null Old_Department,
+Transfer_Date,Data_Load_Date,company
+from --vw_elgi_HR
+elgi_hr_tmp
+where Transfer_Date not in('','1900-01-01 00:00:00')
+)a
+group by emp_code,Emp_Name,NewBand,New_Designation,New_Division,New_Function,New_Department,
+Old_Band,Old_Designation,Old_Division,Old_Function,Old_Department,Transfer_Date,company
+)b
+
+
+--alter table HR_Transfers alter column Old_Band varchar(255) null
+--alter table HR_Transfers alter column Old_Division varchar(255) null
+--alter table HR_Transfers alter column Old_Function varchar(255) null
+--alter table HR_Transfers alter column Old_Department varchar(255) null
+--alter table HR_Transfers alter column Old_Designation varchar(255) null
+
+
+declare @emp_count int
+declare @count int=1
+declare @emp_code int
+
+
+set @emp_count=(select count(emp_code) from HR_Transfers)
+
+while (@count<=@emp_count)
+
+begin
+
+set @emp_code=(select emp_code from hr_transfers where erank=@count)
+
+update HR_Transfers set 
+Old_Division=Division_Name,
+Old_Function=Function_Name,
+Old_Department=Department,
+Old_band=Band,
+Old_Designation=Designation
+from (
+--NEW LOGIC
+select emp_code,Emp_Name,Band,Designation,Division_Name,Function_Name,Department,Data_Load_Date from --vw_elgi_HR
+elgi_hr_tmp
+where EMP_CODE=@emp_code
+and month(Data_Load_Date)=(Select  case when month(max(Data_Load_Date))-1=0 then 12 else month(max(Data_Load_Date))-1 end 
+from --vw_elgi_HR 
+elgi_hr_tmp
+where emp_code=@emp_code)
+and year(data_load_date)=(Select  max(year(Data_Load_Date)) from --vw_elgi_HR 
+elgi_hr_tmp
+where emp_code=@emp_code
+and month(Data_Load_Date)=(Select  case when month(max(Data_Load_Date))-1=0 then 12 else month(max(Data_Load_Date))-1 end 
+from --vw_elgi_HR 
+elgi_hr_tmp
+where emp_code=@emp_code))
+
+
+--OLD LOGIC
+--select emp_code,Emp_Name,Band,Designation,Division_Name,Function_Name,Department,Data_Load_Date from vw_elgi_HR
+--where finmonthno<(Select  max(month(transfer_date)) from hr_transfers where emp_code=@emp_code)
+--and EMP_CODE=@emp_code
+--and month(Data_Load_Date)=(Select  max(month(transfer_date))-1 from hr_transfers where emp_code=@emp_code)
+--and year(data_load_date)=(Select  max(year(transfer_date)) from hr_transfers where emp_code=@emp_code)
+
+
+)a
+where HR_Transfers.emp_code=a.EMP_CODE
+and HR_Transfers.emp_code=@emp_code
+and a.EMP_CODE=@emp_code
+
+
+set @count=@count+1
+
+end
+
+end
+
+
+
+
+
+
+
+
+
+
+
+Completion time: 2025-11-19T11:18:46.2072830+05:30

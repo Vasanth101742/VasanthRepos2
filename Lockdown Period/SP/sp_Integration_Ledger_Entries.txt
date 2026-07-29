@@ -1,0 +1,100 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_Integration_Ledger_Entries
+CREATE proc sp_Integration_Ledger_Entries as
+begin
+
+Truncate table Integration_Ledger_Entries
+
+Insert into Integration_Ledger_Entries(Comp,Ledger,DBCR,Type,Date1,RBON,RBID,
+RPON,Trantype,DocNo,PODT,Currency,Detail1,Detail2,Detail3,Value,FYER,FPRD,LINO)
+--select * into Integration_Ledger_Entries from (
+SELECT T$OCMP AS Comp,T$LEAC as Ledger,T$DBCR as DBCR,iif(T$DBCR =1,'Debit','Credit')as Type,
+T$TRDT as Date1,T$RBON as RBON,T$RBID as RBID,T$RPON as RPON,T$TTYP as Trantype,
+T$DOCN as DocNo,T$PODT as PODT,T$CCUR as Currency,T$REV1 as Detail1,T$REV2 as Detail2,T$REV3 as Detail3,--,T$LINK,
+--sum(iif(T$DBCR=1,T$AMTH$1 ,-T$AMTH$1)) as Value
+sum(case when T$DBCR=1 then T$AMTH$1 else -T$AMTH$1 end) as Value,
+T$FYER,T$FPRD,T$LINO
+FROM TTFGLD495ALL
+where T$OCMP like '4%'
+and T$LEAC in (select distinct leac from vw_Integration_Ledger_list)
+and T$FYER >= (select max(T$FYER)-1 from TTFGLD495ALL)
+--and T$OCMP in (@comp)
+--and T$LEAC in (@leac)
+--and T$FYER in (@year)
+--and T$FPRD in (@month)
+----and T$RBON in (@rbon)
+group by 
+T$OCMP,T$LEAC,T$DBCR,T$DBCR,T$TRDT,T$RBON,T$RBID,T$RPON,T$TTYP,
+T$DOCN ,T$PODT,T$CCUR,T$REV1,T$REV2,T$REV3,--,T$LINK,
+T$FYER,T$FPRD,T$LINO
+--)a
+
+Insert into Integration_Ledger_Entries(Comp,Ledger,DBCR,Type,Date1,RBON,RBID,
+RPON,Trantype,DocNo,PODT,Currency,Detail1,Detail2,Detail3,Value,FYER,FPRD,LINO)
+select COMPANY as Comp, T$LEAC as Ledger,T$DBCR as DBCR,iif(T$DBCR =1,'Debit','Credit')as Type,
+T$DCDT as Date1,null as RBON,null as RBID,null as RPON,T$OTYP as Trantype,
+T$ODOC as DocNo,null as PODT,T$CCUR as Currency,null as Detail1,null as Detail2,null as Detail3,
+sum(case when T$DBCR=1 then T$AMTH$1 else -T$AMTH$1 end) as Value,
+T$FYER,T$FPRD,0 as T$LINO
+--T$OLIN,T$CTYP,T$CINV, 
+from ttfgld106all
+where company like '4%'
+and T$LEAC in (select distinct leac from vw_Integration_Ledger_list)
+and T$FYER >= (select max(T$FYER)-1 from ttfgld106all)
+--and Company in (@comp)
+--and T$LEAC in (@leac)
+--and T$FYER in (@year)
+--and T$FPRD in (@month)
+and concat(COMPANY,T$OTYP,T$ODOC) not in (select concat(T$OCMP,T$TTYP,T$DOCN) from TTFGLD495ALL)
+--and T$OTYP in ('AQU','RJV','JVG','APR','FJV','JV1','JV2','KSD','ICG')
+--and T$leac in ('AA0102001','AA0103001','AA0103013','AA0104001',
+--'AA0104004','AA0104016','AA0104019','AA0108004','AA0108005') 
+group by COMPANY,T$LEAC,T$DBCR,T$DCDT,T$OTYP,T$ODOC,T$CCUR,T$FYER,T$FPRD
+
+
+--Alter Table Integration_Ledger_Entries add LEAC_Descr nvarchar(60)
+--Alter Table Integration_Ledger_Entries add NUNI float
+
+update Integration_Ledger_Entries set LEAC_Descr=a.T$DESC
+from(select distinct T$LEAC,T$DESC from TTFGLD008ALL) a
+where ltrim(rtrim(Integration_Ledger_Entries.Ledger)) =ltrim(rtrim(a.T$LEAC)) 
+
+update Integration_Ledger_Entries set NUNI=c.NUNI
+from (select OCMP,TTYP,DOCN,LEAC,RBID,RPON,LINO,
+sum(case when DBCR=1 then convert(float,NUNI) else -convert(float,NUNI) end) as NUNI
+from  TTFGLD482ALL
+where OCMP like '4%'
+and LEAC in (select distinct leac from vw_Integration_Ledger_list)
+and FYER >= (select max(FYER)-1 from TTFGLD482ALL)
+--and OCMP in (@comp)
+--and LEAC in (@leac)
+--and FYER in (@year)
+--and FPRD in (@month)
+group by OCMP,TTYP,DOCN,LEAC,RBID,RPON,LINO
+)c
+where Integration_Ledger_Entries.Ledger=c.LEAC
+and Integration_Ledger_Entries.Comp=c.OCMP
+and Integration_Ledger_Entries.Trantype=c.TTYP
+and Integration_Ledger_Entries.DocNo=c.DOCN
+and Integration_Ledger_Entries.RBID=c.RBID
+and Integration_Ledger_Entries.RPON=c.RPON
+and Integration_Ledger_Entries.LINO=c.LINO
+
+
+
+end
+
+select * from Integration_Ledger_Entries
+where Ledger='EC0301001'
+and FYER in ('2025')
+and FPRD in ('5')
+and RBID='CON001877'
+and RPON in ('840','570')
+
+--sp_rename 'Integration_Ledger_Entries.T$FYER','FYER'
+--sp_rename 'Integration_Ledger_Entries.T$FPRD','FPRD'
+--sp_rename 'Integration_Ledger_Entries.T$LINO','LINO'
+
+
+Completion time: 2025-11-19T11:21:37.7982833+05:30

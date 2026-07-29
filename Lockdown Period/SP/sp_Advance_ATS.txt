@@ -1,0 +1,143 @@
+--select * from Acc_Advance_ATS
+--exec sp_Advance_ATS
+
+CREATE PROCEDURE [dbo].[sp_Advance_ATS] as  
+
+Begin
+
+truncate table Acc_Advance_ATS  
+
+insert into  Acc_Advance_ATS (custno,custname1,trantyp,invno,docdt,collection,anptrantyp,anpdocno,  
+doctyp,balamnt,refrence,company)  
+select custno,b.t_nama as  custname1,trantyp,invno,docdt,abs(amnthome) as collection,anptrantyp,anpdocno,  
+doctyp,balamnt,refrence,company 
+FROM (select * from Collection_Stage2 where company in (select Company from ELGI_Companies_Master where CompanyGroup='ATS')) a  
+inner join ttccom100400 b 
+on b.t_bpid  = a.custno  
+where 
+doctyp in (9,10,11)   
+and trantyp not in ('B23','B44','B45','R28')   
+and cdocno = 0 
+and ltrim(rtrim(ctrantyp)) = ''  
+and convert(datetime,docdt) >= '04/01/2016'    
+  
+
+--Need to be corrected
+
+--update Acc_Advance_ATS set area  = brh.area , dpst = brh.dpst   
+--from   
+--(select  
+--case when b.cono is null then Ocompany else b.comt end as company,  
+--case when b.ttyp is null then a.ttyp else b.typt end as trantyp,  
+--case when b.docn is null then a.docn else b.doct end as invno,custcode as custno,area,dpst from tecmg204 a  
+--left outer join gld112 b on b.ttyp = a.ttyp   
+--and b.cono = a.Ocompany  
+--and b.docn = a.docn  
+-- where Ocompany > 0) brh  
+--where brh.company = advance_report_ats.company   
+--and brh.trantyp = advance_report_ats.trantyp   
+--and brh.invno = advance_report_ats.invno   
+--and brh.custno = advance_report_ats.custno   
+--and advance_report_ats.area is null  
+  
+--update advance_report_ats set area  = ho.area , dpst = ho.dpst   
+--from   
+--(  
+--select ttyp as trantyp,b.docn as invno,b.cuno as custno, area,dpst from tecrc010 a  
+--inner join tfcmg403 b on a.btno = b.btno and  
+--a.cuno = b.cuno   
+--where dpst > 0  ) ho  
+--where ho.trantyp = advance_report_ats.trantyp   
+--and ho.invno = advance_report_ats.invno   
+--and ho.custno = advance_report_ats.custno   
+--and advance_report_ats.area is null  
+  
+
+--Need to be Tested
+update Acc_Advance_ATS set area  = a.AreaCode , dpst = a.dpst   
+from
+(
+select company,OrderNum as OrderNo,invnum,Trantype,CustCode,t_cofc as dpst,areacode from CI_Lines 
+where company in (select Company from ELGI_Companies_Master where CompanyGroup='ATS')
+and t_cofc not like '%[a-z]%'
+union
+select company,OrderNum,InvoiceNum,TranType,CustCode,Dpst,Area from TmpSlsDespData_baan where company in (select Company from ELGI_Companies_Master where CompanyGroup='ATS')
+) a
+where Acc_Advance_ATS.Company = a.company 
+and Acc_Advance_ATS.invno = a.invnum
+and Acc_Advance_ATS.trantyp=a.Trantype
+AND ltrim(rtrim(substring(CustNo,4,20)))=ltrim(rtrim(a.CustCode)) 
+
+
+
+
+
+update  Acc_Advance_ATS   
+set area  = b.area, dpst = '90111'  
+from (select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) b
+where b.custcode  = Acc_Advance_ATS.custno  
+ and Acc_Advance_ATS.area is null and trantyp  in ('B89','B81','b82','B85','B98','b77','b40','B86')  
+  
+
+update  Acc_Advance_ATS   
+set  dpstname  = v.dpstname, description  = v.description   
+from   DPST_MASTER_ATS v where ltrim(rtrim(v.dpstcode)) = ltrim(rtrim(Acc_Advance_ATS.dpst))  
+and Acc_Advance_ATS.dpstname is null   
+  
+
+update  Acc_Advance_ATS   
+set areaname  = v.areaname, zone  = v.ATS_zone, region = v.region,global = v.global  
+from  vw_AREA_MASTER v  
+where ltrim(rtrim(v.areacode)) = ltrim(rtrim(Acc_Advance_ATS.area))  
+ and Acc_Advance_ATS.areaname is null   
+
+
+
+--DELETING FOC DATA
+
+delete from Acc_Advance_ATS where custno like '%emp%' and trantyp = 'cdj'
+
+delete from Acc_Advance_ATS where trantyp in 
+('251','252','351','352','451','452','551','552','751','752','851','852','951','952')
+or trantyp between '2A1' and  '2A6' 
+or trantyp between '2B1' and  '2B6'
+or trantyp between '3A1' and  '3B6'
+or trantyp between '4A1' and  '4B6'
+or trantyp between '5A1' and  '5B6' 
+or trantyp between '7A1' and  '7B6'
+or trantyp between '8A1' and  '8B6'
+or trantyp between '9A1' and  '9B6'
+or trantyp between '2C1' and  '2C6'
+or trantyp between '3C1' and  '3C6'
+or trantyp between '4C1' and  '4C6'
+or trantyp between '5C1' and  '5C6'
+or trantyp between '7C1' and  '7C6'
+or trantyp between '8C1' and  '8C6'
+or trantyp between '9C1' and  '9C6'
+
+
+--International Updations
+
+update Acc_Advance_ATS
+set area = b.area 
+from (select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) b
+where b.custcode = Acc_Advance_ATS.custno
+and region = 'indirect'
+and Acc_Advance_ATS.area <> b.area 
+
+
+update Acc_Advance_ATS 
+set areaname = v.areaname, zone = v.ATS_zone, region = v.region, global = v.global 
+from vw_AREA_MASTER v
+where v.areacode = Acc_Advance_ATS.area
+and Acc_Advance_ATS.region = 'indirect'
+and Acc_Advance_ATS.region <> v.region
+
+
+--Area Updations
+
+update Acc_Advance_ATS  set areaname = 'COIMBATORE' where areaname = 'MADURAI'  
+update Acc_Advance_ATS  set areaname = 'COIMBATORE' where areaname = 'SALEM'  
+
+end 
+

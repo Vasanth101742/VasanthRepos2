@@ -1,0 +1,141 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_IDitemTemp
+--select distinct ItemCode,Item_desc,category,productline from ItemMaster_ID order by  ItemCode
+
+CREATE proc [dbo].[sp_IDitemTemp] as
+
+begin
+
+truncate table IDitemTemp
+truncate table IDitemTemp2
+
+
+Insert into IDitemTemp
+select distinct company,ltrim(rtrim(a.Item)) as Item ,a.Item_desc
+FROM 	ELGi_Sales_Details a 
+left outer JOIN vw_AREA_MASTER b ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.areacode))
+	left outer JOIN vw_SALESMAPPING_MASTER c
+	ON 	ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode)) 
+	AND ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+	left outer join vw_DPST_MASTER d
+	on ltrim(rtrim(d.DpstCode))=ltrim(rtrim(c.DPSTCode))
+
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+and c.Organ='ID'
+--AND a.SaleOrderType in (
+--select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select '' as SaleOrderType from SaleType_Master
+--)
+--and a.sales_category not in (1)
+--AND (a.areacode IS NOT NULL) 
+
+GROUP BY b.global,c.organ,c.region,c.Zone, c.user_names,c.Division,c.Vertical1,
+b.Areacode,b.AreaName,d.Dpstcode,d.dpstname,d.Description,
+a.company,a.warehouse,a.Item,a.Item_desc,
+a.cal_Month,a.cal_year,a.Fin_month,a.Fin_year
+
+
+
+
+insert into IDitemTemp2
+select distinct a.company,ltrim(rtrim(a.Item)) Item,a.Item_desc,null,null from IDitemTemp a
+where 
+concat(company,ltrim(rtrim(item))) not in 
+(select concat(company,ltrim(rtrim(ItemCode))) from ItemMaster_ID)
+--and concat(company,ltrim(rtrim(item)))='401B008603620001'
+
+
+insert into IDitemTemp2
+select distinct null,ltrim(rtrim(item_code)) item_code,null,null,null from Itemwise_Budget
+where concat(DPST,Area) in 
+(select distinct concat(DPSTCode,Areacode) from SalesMapping_Global where organ='ID')
+and ltrim(rtrim(item_code)) not in (select distinct ltrim(rtrim(itemcode)) from ItemMaster_ID)
+
+
+
+update IDitemTemp2 set ItemCode='S04208' where ItemCode= 'S04208    '
+
+--select * from ItemMaster_ID where ItemCode like '''%'
+update IDitemTemp2 set ItemCode=replace(ltrim(rtrim(ItemCode)),'''','')
+where ItemCode like '''%'
+
+update IDitemTemp2 set item_desc=a.t_dsca
+from TTCIBD001400 a
+where IDitemTemp2.company like '4%'
+and IDitemTemp2.company not in (465,470,490)
+and ltrim(rtrim(IDitemTemp2.ItemCode))=ltrim(rtrim(a.t_item))
+
+
+update IDitemTemp2 set item_desc=a.DSCA
+from TTCIBD001490 a
+where IDitemTemp2.company=490
+--and len(CoseaitemTemp.Item_desc)<3
+and ltrim(rtrim(IDitemTemp2.ItemCode))=ltrim(rtrim(a.ITEM))
+
+update IDitemTemp2 set item_desc=a.DSCA
+from TTCIBD001551 a
+where IDitemTemp2.company=551
+and ltrim(rtrim(IDitemTemp2.ItemCode))=ltrim(rtrim(a.ITEM))
+
+update IDitemTemp2 set item_desc=a.DSCA
+from TTCIBD001552 a
+where IDitemTemp2.company=552
+and ltrim(rtrim(IDitemTemp2.ItemCode))=ltrim(rtrim(a.ITEM))
+
+update IDitemTemp2 set item_desc=a.Item_desc
+from (select distinct itemcode,Item_desc from ItemMaster_ID where Item_desc is not null)a
+where ltrim(rtrim(IDitemTemp2.ItemCode))=ltrim(rtrim(a.itemcode))
+and IDitemTemp2.Item_desc is null
+
+
+delete from IDitemTemp2 where ltrim(rtrim(ItemCode)) in ('Minvo','NEWTPL10','NEWTPL6','NEWTPL7','NEWTPL8','NEWTPL9')
+
+Insert into ItemMaster_ID
+select company,ltrim(rtrim(itemcode)),item_desc,category,productline from 
+(select company,itemcode,item_desc,category,productline,
+row_number() over (partition by isnull(company,0),ltrim(rtrim(itemcode)) order by itemcode) as rnk from IDitemTemp2)a
+where rnk=1 
+and concat(isnull(company,0),ltrim(rtrim(itemcode))) not in (select distinct concat(isnull(company,0),ltrim(rtrim(itemcode))) from ItemMaster_ID)
+order by itemcode,company
+
+
+update ItemMaster_ID set category=null where category='null'
+update ItemMaster_ID set productline=null where productline='null'
+
+
+
+update ItemMaster_ID set item_desc=a.t_dsca
+from TTCIBD001400 a
+where ltrim(rtrim(ItemMaster_ID.ItemCode))=ltrim(rtrim(a.t_item))
+and Item_desc is null
+
+
+
+update ItemMaster_ID set item_desc=a.dsca
+from TTCIBD001500 a
+where ltrim(rtrim(ItemMaster_ID.ItemCode))=ltrim(rtrim(a.item))
+and Item_desc is null
+
+update ItemMaster_ID set item_desc=a.dsca
+from TTCIBD001551 a
+where ltrim(rtrim(ItemMaster_ID.ItemCode))=ltrim(rtrim(a.item))
+and Item_desc is null
+
+update ItemMaster_ID set item_desc=a.dsca
+from TTCIBD001552 a
+where ltrim(rtrim(ItemMaster_ID.ItemCode))=ltrim(rtrim(a.item))
+and Item_desc is null
+
+
+delete from ItemMaster_ID where ltrim(rtrim(ItemCode)) in ('Minvo','NEWTPL10','NEWTPL6','NEWTPL7','NEWTPL8','NEWTPL9','EXPORT-FREIGHT')
+--delete from ItemMaster_ID where Item_desc is null
+
+end
+
+
+Select * from ItemMaster_ID where category is null 
+--ltrim(rtrim(itemcode))='000998053'
+
+

@@ -1,0 +1,107 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Exec sp_Engineerwise_Sales_details
+CREATE proc [dbo].[sp_Engineerwise_Sales_details] as 
+Begin
+
+Truncate table Engineerwise_Sales_details
+
+Insert into Engineerwise_Sales_details(company,trantype,Invoice,EntryDate,
+SalesRepCode,SalesRep,dpst,dpstname,areacode,areaname,Zone,custcode,custname,
+Sales_amount,Fin_year,Fin_month,Monthname,cal_Year,cal_Month)
+--select * into Engineerwise_Sales_details from (
+select company,trantype,Invoice,Invoice_Date,
+SalesRepCode,SalesRep,
+dpst,dpstname,areacode,areaname,Zone,custcode,custname,
+sum(Sales_amount) Sales_amount,Fin_year,Fin_month,Monthname,
+cal_Year,cal_Month
+from ELGi_Sales_Details
+where 
+invoice_date>='2017-04-01'
+and sales_category not in (1)
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and SalesRepCode is not null
+--and dpst in (select distinct dpst from CRM_Sales_Review_Deck where CRM_AssemblyLine is not null)
+and dpst in (select distinct dpstcode from vw_Vertical_DPST_Master_fromHR )
+group by company,trantype,Invoice,Invoice_Date,
+SalesRepCode,SalesRep,
+dpst,dpstname,areacode,areaname,Zone,custcode,custname,
+Fin_year,Fin_month,Monthname,cal_year,cal_Month
+--order by Invoice_Date
+--)a
+
+--Alter table Engineerwise_Sales_details alter column Areacode varchar(50)
+
+Insert into Engineerwise_Sales_details(SalesRepCode,SalesRep,
+Zone,--Areacode,Areaname,
+DPST,EntryDate,cal_Year,cal_Month,SalesBudValue
+)
+select convert(varchar(20),SalesRepCode) SalesRepCode,
+convert(varchar(25),owneridname) SalesRepName,
+convert(varchar(20),Region) Region,
+--convert(varchar(50),Areacode) Areacode,
+--convert(varchar(200),Areaname) Areaname,
+elgi_salesofficecode as DPST,
+Convert(DATE,concat(convert(varchar,CalYear),'-',RIGHT('00'+CAST(CalMonth AS VARCHAR(2)),2),'-01')) as EntryDate,
+Calyear,CalMonth,
+sum(infValue) SalesBudValue
+--select * 
+from [ELGI_CRM].dbo.CRM_Budget
+group by SalesRepCode,owneridname,Region,--Areacode,Areaname,
+elgi_salesofficecode,Calyear,CalMonth
+
+
+
+--Alter table Engineerwise_Sales_details add CRM_AssemblyLine nvarchar(255)
+
+--Method 1 from CRM 
+--update Engineerwise_Sales_details set CRM_AssemblyLine=a.CRM_AssemblyLine
+--from (select distinct CRM_AssemblyLine,dpst from CRM_Sales_Review_Deck where CRM_AssemblyLine is not null)a
+--where Engineerwise_Sales_details.dpst=a.dpst
+
+update Engineerwise_Sales_details set dpstname=a.dpstname
+from (select distinct dpst,dpstname from Engineerwise_Sales_details where dpstname is not null)a
+where Engineerwise_Sales_details.dpst=a.dpst
+and Engineerwise_Sales_details.dpstname is null
+
+--Method 2 from Manual Master data from Vinoth Uthirapathy (HR)
+
+update Engineerwise_Sales_details set CRM_AssemblyLine=a.Vertical
+from (select * from vw_Vertical_DPST_Master_fromHR )a
+where Engineerwise_Sales_details.dpst=a.dpstcode
+
+
+
+
+update Engineerwise_Sales_details set Fin_Year=cal_year-1 where cal_Month<4
+update Engineerwise_Sales_details set Fin_Year=cal_year where cal_Month>=4
+
+update Engineerwise_Sales_details set Fin_Month=cal_Month+9 where cal_Month<4
+update Engineerwise_Sales_details set Fin_Month=cal_Month-3 where cal_Month>=4
+
+update Engineerwise_Sales_details set Monthname=substring(datename(mm,dateadd(mm,cal_Month,-1)),1,3)
+
+delete from Engineerwise_Sales_details where Fin_year is null
+
+
+end
+
+select * from Engineerwise_Sales_details 
+--where salesbudvalue is not null
+--where fin_year is null
+--salesBudValue is not null
+--and SalesRep like 'Hindol%'
+
+--Alter table Engineerwise_Sales_details add cal_Year int
+--Alter table Engineerwise_Sales_details add cal_Month int
+
+
+--sp_rename 'Engineerwise_Sales_details.[Engineerwise_Sales_details.EntryDate]','EntryDate'
+
+
+
+
+
+
+
+Completion time: 2025-11-19T10:03:23.6767524+05:30

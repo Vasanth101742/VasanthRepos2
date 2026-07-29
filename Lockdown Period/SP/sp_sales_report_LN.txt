@@ -1,0 +1,147 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_sales_report_ln
+CREATE proc sp_sales_report_LN
+as 
+begin
+
+Truncate table sales_report_LN 
+
+Insert into sales_report_LN(Date,OrderNum,ItemCode,areacode,areaname,Model,Item_desc,dpst,dpstname,custname,
+DeliveredQty,CustCode,sales_category,SaleOrderType,AssesValue,zone,Invoice,trantype,company,SalesDescription,
+taxcode,Month,Monthaname,Item_Category,Type,Product_Group,Tax_Amount,order_Date,subproduct,SalesRep,segment,
+SHIPTO,SHIPTO_ADDRESS,positionno,Currency,t_rate_1,Organ,Vertical1,rate_usd,sales_usd,Foreign_currency_amount) 
+
+--Alter table sales_report_LN add rate_usd float
+--Alter table sales_report_LN add sales_usd float
+--Alter table sales_report_LN add Foreign_currency_amount float
+--Alter table sales_report_LN alter column date Datetime 
+
+
+--select date,OrderNum,ItemCode,areacode,areaname,model,Item_desc,dpst,dpstname,custname,DeliveredQty,CustCode,sales_category,SaleOrderType,
+--AssesValue,Zone,Invoice,trantype,company,
+--SalesDescription,taxcode,month(date)as Month,datename(mm,date)as Monthaname,null as Item_Category,null as Type,null as Product_Group,Tax_Amount,orderDate,
+--'' subproduct,SalesRep,lineofbusiness as segment,ShiptoAddress AS SHIPTO,'' AS SHIPTO_ADDRESS,positionno
+--  From (
+--select 
+--convert(varchar,convert(datetime,a.Invoice_Date),101) as Date,
+--convert(varchar,convert(datetime,a.OrderDate),101) as orderDate,
+--ltrim(rtrim(a.OrderNo)) as OrderNum, 
+--positionno,
+--ltrim(rtrim(a.Item)) as ItemCode, 
+--areacode,areaname , 
+--null as Model, 
+--a.Item_desc, 
+----producttpl.Model, 
+----producttpl.Item, 
+--a.dpst , 
+--a.dpstname, 
+--ltrim(rtrim(a.custname))custname, 
+--a.DeliveryQty as DeliveredQty, 
+--ltrim(rtrim(a.CustCode))CustCode,
+----salesdescription,     
+--a.sales_category,    
+--ltrim(rtrim(a.SaleOrderType))SaleOrderType ,             
+--sum(a.Sales_amount) as AssesValue,
+--a.zone,
+--ltrim(rtrim(a.Invoice))Invoice, 
+--ltrim(rtrim(a.trantype))trantype  ,
+--a.company,
+--b.SalesDescription,
+--ltrim(rtrim(a.taxcode)) taxcode,
+--a.t_txah_1 as Tax_Amount,
+--a.SalesRep,lineofbusiness,
+--ShiptoAddress
+----f.RefA as indentno
+
+--from (
+--select sales_category,* From ELGi_Sales_Details where Invoice_Date >='2017-04-01' and sales_category not in (1)
+--and Organ is not null
+--and Organ <>''
+--AND concat(company,SaleOrderType) in (select distinct concat(company,SaleOrderType) from SaleType_Master where Sales_Category not in (1))
+--)a
+--left outer join SalesCategory_Master b
+--on b.salescode = a.sales_category
+--group by convert(varchar,convert(datetime,a.Invoice_Date),101),
+--convert(varchar,convert(datetime,a.OrderDate),101),
+--a.OrderNo,ltrim(rtrim(a.Item)),a.Item_desc,a.dpst , a.dpstname, a.custname, a.DeliveryQty,a.CustCode ,areacode,areaname ,
+--a.sales_category,a.zone,a.Invoice,a.trantype ,b.SalesDescription,a.SaleOrderType,a.company,a.taxcode,a.t_txah_1,SalesRep,lineofbusiness,
+--ShiptoAddress,positionno
+--)a
+
+
+select --convert(varchar,convert(datetime,Invoice_Date),101) as Date
+invoice_date2 as Date,
+ltrim(rtrim(OrderNo)) as OrderNum,
+ltrim(rtrim(Item)) as ItemCode,areacode,areaname,''model,Item_desc,dpst,dpstname,ltrim(rtrim(custname))custname,
+sum(DeliveryQty) as DeliveredQty, 
+ltrim(rtrim(CustCode))CustCode,sales_category,SaleOrderType,
+sum(Sales_amount) as AssesValue,Zone,Invoice,trantype,company,
+''SalesDescription,taxcode,month(Invoice_Date)as Month,datename(mm,Invoice_Date)as Monthaname,null as Item_Category,null as Type,null as Product_Group,
+t_txah_1 as Tax_Amount,convert(varchar,convert(datetime,OrderDate),101) as orderDate,
+'' subproduct,SalesRep,lineofbusiness as segment,ShiptoAddress AS SHIPTO,'' AS SHIPTO_ADDRESS,positionno,
+Currency,t_rate_1,
+Organ,
+case when organ='SAAME' then user_names else Vertical1 end as Vertical1,
+rate_usd,sum(sales_usd) sales_usd,
+sum(Foreign_currency_amount) Foreign_currency_amount
+
+From ELGi_Sales_Details where Invoice_Date >='2017-04-01' and sales_category not in (1)
+--and Organ is not null
+--and Organ <>''
+--AND concat(company,SaleOrderType) in (select distinct concat(company,SaleOrderType) from SaleType_Master where Sales_Category not in (1))
+group by
+--convert(varchar,convert(datetime,Invoice_Date),101)
+invoice_date2,ltrim(rtrim(OrderNo)),
+ltrim(rtrim(Item)),areacode,areaname,Item_desc,dpst,dpstname,ltrim(rtrim(custname)),
+ltrim(rtrim(CustCode)),sales_category,SaleOrderType,
+Zone,Invoice,trantype,company,
+taxcode,month(Invoice_Date),datename(mm,Invoice_Date),t_txah_1,convert(varchar,convert(datetime,OrderDate),101),
+SalesRep,lineofbusiness,ShiptoAddress,positionno,Currency,t_rate_1,Organ,Vertical1,user_names,rate_usd
+
+--alter table sales_report_LN alter column SalesDescription varchar(1000)
+--alter table sales_report_LN alter column model varchar(1000)
+--alter table sales_report_LN alter column Item_Category varchar(1000)
+--alter table sales_report_LN alter column Type varchar(1000)
+--alter table sales_report_LN alter column Product_Group varchar(1000)
+--alter table sales_report_LN alter column subproduct varchar(1000)
+--alter table sales_report_LN alter column SHIPTO_ADDRESS varchar(1000)
+--alter table sales_report_LN add Currency nvarchar(5)
+--alter table sales_report_LN add t_rate_1 float
+
+
+update sales_report_LN SET SalesDescription= a.SalesDescription  from(select * From SalesCategory_Master)a
+where a.SalesCode =sales_report_LN.sales_category
+
+update sales_report_LN SET SHIPTO_ADDRESS=A.Address 
+FROM(select CADR,concat(BLDG,BLFL,BLUN) as Address From TTCCOM130ALL where company=400)A
+WHERE sales_report_LN.SHIPTO=A.CADR 
+
+update sales_report_LN set type=b.TYPE  from (select distinct dpst,[ITEM CODE],TYPE   from Item_category_model)b
+where  --ltrim(rtrim(sales_report_LN.dpst)) =ltrim(rtrim(b.dpst)) and 
+ltrim(rtrim(sales_report_LN.ItemCode)) =ltrim(rtrim(b.[item code]))
+
+
+update sales_report_LN set item_category=b.category  from (select distinct dpst,[ITEM CODE],category   from Item_category_model)b
+where  
+--ltrim(rtrim(sales_report_LN.dpst)) =ltrim(rtrim(b.dpst)) and 
+ltrim(rtrim(sales_report_LN.ItemCode)) =ltrim(rtrim(b.[item code]))
+
+
+update sales_report_LN set Product_Group=b.pg  from (select distinct dpst,[ITEM CODE],PG   from Item_category_model)b
+where  
+--ltrim(rtrim(sales_report_LN.dpst)) =ltrim(rtrim(b.dpst))and 
+ltrim(rtrim(sales_report_LN.ItemCode)) =ltrim(rtrim(b.[item code]))
+
+update sales_report_LN set subproduct=a.elgi_categoryname 
+from(select distinct elgi_itemcode,elgi_categoryname From [ELGI_CRM].dbo.product_CRM  where elgi_categoryname is not null)a
+where ltrim(rtrim(sales_report_LN.ItemCode)) =ltrim(rtrim(a.elgi_itemcode))
+
+
+
+
+
+end
+
+
+Completion time: 2025-11-19T12:13:00.4610064+05:30

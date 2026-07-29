@@ -1,0 +1,108 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--select * From variablecost_mainreport_Ln
+-- exec sp_variablecost_mainreport_Ln '2017'
+
+CREATE  proc [dbo].[sp_variablecost_mainreport_Ln] @year varchar(12)
+as 
+begin
+
+truncate table Variablecost_mainreport_Ln
+--delete from variablecost_mainreport_Ln where years=(select year(getdate()-1))
+insert into Variablecost_mainreport_Ln
+
+select sum(budget )as budget,years ,functions ,Subcategory ,PARTICULARS,exp_ordering ,ytd_act,mon_act1
+,mon_act2,mon_act3 ,mon_act4 ,mon_act5,mon_act6,mon_act7 ,mon_act8,mon_act9 ,mon_act10,mon_act11,mon_act12  
+from (
+select a.*,isnull(b.budget,0)as budget  From (
+select 	years,functions,subcategory,particulars,exp_ordering,
+sum(ytd_act)as ytd_act,
+sum(mon_act1)as mon_act1,
+sum(mon_act2 )as mon_act2,
+sum(mon_act3 )as mon_act3,
+sum(mon_act4)as mon_act4,
+sum(mon_act5 )as mon_act5,
+sum(mon_act6 )as mon_act6,
+sum(mon_act7 )as mon_act7,
+sum(mon_act8 )as mon_act8,
+sum(mon_act9 )as mon_act9,
+sum(mon_act10 )as mon_act10,
+		sum(mon_act11 )as mon_act11,
+		sum(mon_act12)as mon_act12,
+		sum(lytd_act) as lytd_act
+		 from (
+			select 	t$cono,years,periods as month,functions,subcategory,particulars,exp_ordering,
+				sum(case when years = @year then val else 0 end ) as ytd_act,
+				sum(case when periods = 1 and years = @year then val else 0 end) as mon_act1,
+				sum(case when periods = 2 and years = @year then val else 0 end) as mon_act2,
+				sum(case when periods = 3 and years = @year then val else 0 end) as mon_act3,
+				sum(case when periods = 4 and years = @year then val else 0 end) as mon_act4,
+				sum(case when periods = 5 and years = @year then val else 0 end) as mon_act5,
+				sum(case when periods = 6 and years = @year then val else 0 end) as mon_act6,
+				sum(case when periods = 7 and years = @year then val else 0 end) as mon_act7,
+				sum(case when periods = 8 and years = @year then val else 0 end) as mon_act8,
+				sum(case when periods = 9 and years = @year then val else 0 end) as mon_act9,
+				sum(case when periods = 10 and years = @year then val else 0 end) as mon_act10,
+				sum(case when periods = 11 and years = @year then val else 0 end) as mon_act11,
+				sum(case when periods = 12 and years = @year then val else 0 end) as mon_act12,
+				sum(case when years = @year-1 then val else 0 end ) as lytd_act,
+				--sum(case when periods = @prno and years = @year-1 then val else 0 end) as lytd_mon_act,
+				0 as lytd_mon_act
+			from (
+				--Layer 4
+				select 	a.*, case when periods < 10 then periods + 3 else periods - 9 end as periods1,
+					case when periods < 10 then years else years + 1 end as year1
+				from (
+					--Layer 5   
+					select 	t$cono,T$LEAC as leac,SUM(T$FDAH$1)-SUM(T$FCAH$1) as val,
+					case when t$cono in (401)then 'Compressor Center'
+						when t$cono in (450)then 'Air Centre'
+						--when t$cono in (104)then 'MED'
+						when t$cono in (470)then 'PVD'
+						when t$cono in (490)then 'GSC'
+						when t$cono in (411,412,413,414,415,416,417,418,419,420,421,422)then 'Branch'
+						when t$cono in (440)then 'R&D '
+						when t$cono in (400)then 'ME'
+						end as functions,subcategory,particulars,ordering as exp_ordering
+						,t$year as years,T$prno as periods
+					
+					from 	TTFGLD205ALL ttfgld205 (nolock)
+						inner join (select * from elgi_exp_master where ordering < 4)elgi_exp_master 
+						on ttfgld205.t$leac between elgi_exp_master.from_leac and elgi_exp_master.to_leac
+						and t$year in ( @year) 
+						and T$PRNO in(1,2,3,4,5,6) and T$PTYP=1
+							GROUP BY t$cono,T$LEAC,
+					--case when t$cono in (401)then 'Compressor Center'
+					--	when t$cono in (450)then 'Air Centre'
+					--	--when t$cono in (104)then 'MED'
+					--	when t$cono in (470)then 'PVD'
+					--	when t$cono in (490)then 'GSC'
+					--	when t$cono in (411,412,413,414,415,416,417,418,419,420,421,422)then 'Branch'
+					--	when t$cono in (440)then 'R&D '
+					--	when t$cono in (400)then 'ME'
+					--	end ,
+					t$year,T$prno,subcategory,particulars,ordering
+					HAVING SUM(T$FDAH$1)-SUM(T$FCAH$1) <> 0
+					)a
+
+				--where periods <=@prno
+		where years=@year and t$cono not in (465) --and periods <= case when month(getdate()-1)>3 then month(getdate())-3 else month(getdate())+9 end
+			           )a 
+  				group by t$cono,years,periods,functions,subcategory,particulars,exp_ordering)a
+						group by 	years,functions,subcategory,particulars,exp_ordering)a
+						left outer join variable_budget b
+						on a.PARTICULARS =b.particulars 
+						and a.years =b.year 
+						and a.functions =b.functions 
+						)a
+						group by years ,functions ,Subcategory ,PARTICULARS,exp_ordering ,ytd_act,mon_act1
+,mon_act2,mon_act3 ,mon_act4 ,mon_act5,mon_act6,mon_act7 ,mon_act8,mon_act9 ,mon_act10,mon_act11,mon_act12  
+--having a.Subcategory ='VARIABLE COSTS' and a.PARTICULARS  in (@particulars)
+						--and a.functions  in (@function)and years in (@year)
+					
+											end
+
+
+
+
+Completion time: 2025-11-19T12:43:21.3662736+05:30

@@ -1,0 +1,28 @@
+CREATE function [dbo].[UFN_working_wkdays](@addDate as datetime,@numdays as int)
+returns datetime
+as
+begin
+
+if @numdays>0
+while @numdays>0
+begin
+
+set @addDate =dateadd(d,1,@adddate)
+if datename(dw,@addDate)='saturday' and convert(date,@addDate)<>'2019-01-19'  set @addDate =dateadd(d,1,@adddate)
+if datename(dw,@addDate)='sunday' set @addDate =dateadd(d,1,@adddate)
+set @numdays=@numdays-1 
+
+end 
+else if @numdays <0
+while @numdays <0
+begin
+
+set @addDate =dateadd(d,-1,@adddate)
+if datename(dw,@addDate)='saturday' set @addDate =dateadd(d,-1,@adddate)
+if datename(dw,@addDate)='sunday' set @addDate =dateadd(d,-2,@adddate)
+set @numdays=@numdays+1 
+
+end
+return cast (@adddate as datetime)
+end 
+

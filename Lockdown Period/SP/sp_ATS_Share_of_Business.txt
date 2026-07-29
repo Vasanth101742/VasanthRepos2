@@ -1,0 +1,77 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ATS_Share_of_Business
+
+CREATE proc sp_ATS_Share_of_Business as
+
+Begin
+
+Truncate table ATS_Share_of_Business
+
+Insert into ATS_Share_of_Business(ITEM,sup_cnt_person,semail,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5, 
+SHA1,SHA2,SHA3,SHA4,SHA5, 
+ORNO1,ORNO2,ORNO3,ORNO4,ORNO5,BUYR,QtyUpto)
+
+select a.ITEM,SCPR,SEML,
+SUNO1,SUNO2,SUNO3,SUNO4,SUNO5, 
+SHA1,SHA2,SHA3,SHA4,SHA5, 
+ORNO1,ORNO2,ORNO3,ORNO4,ORNO5,BUYR,b.miqt 
+from TZZPUR049ALL a
+left outer join vw_pbs_ats b
+on ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+and ltrim(rtrim(a.SUNO1))=ltrim(rtrim(b.OTBP))
+
+where company in (select company from ELGI_Companies_Master where CompanyGroup ='ATS')
+
+
+
+update ATS_Share_of_Business set empname=emp_name from
+(select emp_code,new_emp_code,emp_name from [ELGi_Intranet].dbo.Employee_Detail) buyer 
+where ltrim(rtrim(ATS_Share_of_Business.BUYR)) =buyer.new_emp_code
+
+update ATS_Share_of_Business set Description=t_dsca
+from (select distinct t_item ,t_dsca from TTCIBD001600 ) ItemData 
+where ATS_Share_of_Business.ITEM = ItemData.t_item 
+
+
+--Price Updation
+update ATS_Share_of_Business set price1=b.bapr
+from vw_pbs_ats b
+where ltrim(rtrim(ATS_Share_of_Business.ITEM))=ltrim(rtrim(b.ITEM))
+and ltrim(rtrim(ATS_Share_of_Business.SUNO1))=ltrim(rtrim(b.OTBP))
+
+update ATS_Share_of_Business set price2=b.bapr
+from vw_pbs_ats b
+where ltrim(rtrim(ATS_Share_of_Business.ITEM))=ltrim(rtrim(b.ITEM))
+and ltrim(rtrim(ATS_Share_of_Business.SUNO2))=ltrim(rtrim(b.OTBP))
+
+update ATS_Share_of_Business set price3=b.bapr
+from vw_pbs_ats b
+where ltrim(rtrim(ATS_Share_of_Business.ITEM))=ltrim(rtrim(b.ITEM))
+and ltrim(rtrim(ATS_Share_of_Business.SUNO3))=ltrim(rtrim(b.OTBP))
+
+update ATS_Share_of_Business set price4=b.bapr
+from vw_pbs_ats b
+where ltrim(rtrim(ATS_Share_of_Business.ITEM))=ltrim(rtrim(b.ITEM))
+and ltrim(rtrim(ATS_Share_of_Business.SUNO4))=ltrim(rtrim(b.OTBP))
+
+update ATS_Share_of_Business set price5=b.bapr
+from vw_pbs_ats b
+where ltrim(rtrim(ATS_Share_of_Business.ITEM))=ltrim(rtrim(b.ITEM))
+and ltrim(rtrim(ATS_Share_of_Business.SUNO5))=ltrim(rtrim(b.OTBP))
+
+
+End
+
+--select * from ATS_Share_of_Business where price2 is not null
+--where item= '         150402410' and suno1='SU1V00309'
+
+
+--select * from vw_pbs_ats where ltrim(rtrim(otbp))='SU1S02390' and ltrim(rtrim(item))='110461110'
+
+
+
+
+
+Completion time: 2025-11-10T15:31:02.6426715+05:30

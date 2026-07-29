@@ -1,0 +1,122 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Alter table TTDPUR401ALL alter column QIAP float
+
+--Alter table DOL add QIAP float
+--Alter table DOL Alter column SupplierName varchar(100)
+--Select * from DOL where T$orno='221000026' and T$pono='40' and T$rcno='WHR000055'
+--select * from TWHINH211ALL where orno='221000026' and pono='40' and rcno=''
+--select * from TTDPUR406ALL where T$ORNO='221000026' and T$PONO='40' and T$RCNO='WHR000055'
+
+--Select * from DOL where T$orno='221000059' and T$pono='10' and T$rcno='WHR000092'
+--select * from TWHINH211ALL where orno='221000059' and pono='10' and rcno='' and seqn=5
+
+--exec sp_DOL
+CREATE proc [dbo].[sp_DOL] as
+
+Begin
+
+Truncate table DOL
+
+--Drop table DOL
+Insert into  DOL
+--select * into DOL from (
+select a.year,a.month,a.monthname,week,
+COMPANY,T$RCNO,Rec_Date,T$ORNO,T$PONO,T$SQNB,CWAR,ITEM,null as Item_desc,OTBP,null as SupplierName ,
+count(*) as Rec_Count,null as DOL_SysCnt,null as DOL_ManCnt,sum(QIAP) QIAP 
+from (
+select year(a.T$DDTE) as year,month(a.T$DDTE) as month,datename(mm,a.T$DDTE) as monthname,
+datepart(week, a.T$DDTE) as week,
+convert(date,a.T$DDTE) Rec_Date,a.COMPANY,b.OTBP,T$RCNO,
+a.T$ORNO,a.T$PONO,a.T$SQNB,b.CWAR,b.ITEM,b.QIAP
+from TTDPUR406ALL a
+left outer join TTDPUR401ALL b
+on a.COMPANY=b.COMPANY 
+and a.T$ORNO=b.ORNO
+and a.T$PONO=b.PONO
+and a.T$SQNB=b.SQNB
+--WHERE a.COMPANY=401
+--and a.T$QUAL=1  --Inspectable Item
+--and cwar IN ('209','211','212','246','252','253') 
+)a
+group by a.year,a.month,a.monthname,week,Rec_Date,
+COMPANY,T$RCNO,T$ORNO,T$PONO,T$SQNB,OTBP,CWAR,ITEM
+--)a
+
+
+update DOL set SupplierName=a.custname1
+from vw_Business_Partner a
+where ltrim(rtrim(DOL.otbp))=ltrim(rtrim(a.custcode))
+
+
+update DOL set Item_desc=a.Item_desc
+from
+(select 400 as company,ltrim(rtrim(t_item))as Item,t_dsca as Item_desc From TTCIBD001400)a
+where ltrim(rtrim(DOL.Item))=ltrim(rtrim(a.item))
+
+
+update  DOL set DOL_SysCnt=b.DOL_SysCount
+from (
+select year,month,monthname,week,--ADAT,
+COMPANY,RCNO,ORNO,a.PONO,SEQN,OTBP,AVG(cnt) as DOL_SysCount from
+(select year(a.ADAT) as year,month(a.ADAT) as month,datename(mm,a.ADAT) as monthname, 
+datepart(week, a.ADAT) as week,a.ADAT,a.COMPANY,b.OTBP,a.RCNO,
+a.ORNO,a.PONO,a.SEQN,a.QAPR,a.QTBU,1 as cnt 
+from TWHINH211ALL a
+left outer join TTDPUR401ALL b
+on a.COMPANY=b.COMPANY 
+and a.ORNO=b.ORNO
+and a.PONO=b.PONO
+and a.SEQN=b.SQNB
+WHERE concat(a.COMPANY,a.ORNO) in (select concat(COMPANY,T$ORNO) from TZZIBD207ALL)
+and a.COMPANY=401
+--AND a.CWAR IN ('209','211','212','246','252','253') 
+--AND CONVERT(DATE,a.ADAT) BETWEEN @Fromdate and @Todate 
+--AND b.OTBP = @Suno
+)a
+group by year,month,monthname,week,COMPANY,RCNO,ORNO,PONO,SEQN,OTBP
+)b
+where DOL.COMPANY=b.COMPANY
+and DOL.T$ORNO=b.ORNO
+and DOL.T$PONO=b.PONO
+and DOL.T$SQNB=b.SEQN
+--and DOL.T$RCNO=b.RCNO
+
+update  DOL set DOL_ManCnt=b.DOL_ManCount
+from (
+select year,month,monthname,week,
+COMPANY,RCNO,ORNO,PONO,SEQN,OTBP,AVG(cnt) as DOL_ManCount from
+(select year(a.ADAT) as year,month(a.ADAT) as month,datename(mm,a.ADAT) as monthname, 
+datepart(week, a.ADAT) as week,convert(date,a.ADAT) ADAT,a.COMPANY,b.OTBP,a.RCNO,
+a.ORNO,a.PONO,a.SEQN,a.QAPR,a.QTBU,1 as cnt 
+from TWHINH211ALL a
+left outer join TTDPUR401ALL b
+on a.COMPANY=b.COMPANY 
+and a.ORNO=b.ORNO
+and a.pono=b.pono
+and a.SEQN=b.SQNB
+WHERE concat(a.COMPANY,a.ORNO) not in (select concat(COMPANY,T$ORNO) from TZZIBD207ALL)
+and a.COMPANY=401
+--AND a.CWAR IN ('209','211','212','246','252','253') 
+)a
+group by year,month,monthname,week,
+COMPANY,RCNO,ORNO,PONO,SEQN,OTBP
+)b
+where DOL.COMPANY=b.COMPANY
+and DOL.T$ORNO=b.ORNO
+and DOL.T$PONO=b.PONO
+and DOL.T$SQNB=b.SEQN
+
+
+--and DOL.T$RCNO=b.RCNO
+
+
+End
+
+
+
+
+
+
+
+Completion time: 2025-11-19T09:34:30.1573269+05:30

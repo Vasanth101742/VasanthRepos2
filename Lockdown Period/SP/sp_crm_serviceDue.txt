@@ -1,0 +1,1263 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CREATE proc [dbo].[sp_crm_serviceDue]
+as begin
+
+truncate  table crm_servicedue
+truncate  table over_cur_fet_Dues
+
+
+update [elgi_crm].dbo.MSDYN_CUSTOMERASSET_crm set 
+elgi_checkvalvechangedremaininghours=replace(replace(elgi_checkvalvechangedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_advremaininghours=replace(replace(elgi_advremaininghours,'NO','0'),('Yes'),'0'),
+elgi_mpvremaininghours=replace(replace(elgi_mpvremaininghours,'NO','0'),('Yes'),'0'),
+elgi_gasketsandoringsremaininghours=replace(replace(replace(elgi_gasketsandoringsremaininghours,'5550N','5550'),'NO','0'),('NA'),'0'),
+elgi_waterreplacedremaininghours=replace(replace(elgi_waterreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_waterfilterreplacedremaininghours=replace(replace(elgi_waterfilterreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_airwaterseparatorreplacedremaininghours=replace(replace(elgi_airwaterseparatorreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_ivbdvsvreplacedremaininghours=replace(replace(elgi_ivbdvsvreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_safetyvalvereplacedremaininghours=replace(replace(elgi_safetyvalvereplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_drivepipecouplingsreplacedremaininghours=replace(replace(elgi_drivepipecouplingsreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_airfilterprefilterreplacedremaininghours=replace(replace(elgi_airfilterprefilterreplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_waterstopvalvereplacedremaininghours=replace(replace(elgi_waterstopvalvereplacedremaininghours,'NO','0'),('Yes'),'0'),
+elgi_sealairmosreplacedremaininghours=replace(replace(elgi_sealairmosreplacedremaininghours,'NO','0'),('Yes'),'0')
+
+
+update [elgi_crm].dbo.MSDYN_CUSTOMERASSET_crm set elgi_concernedelgiserviceengineername=a.[fullname]
+ from [elgi_crm].dbo.systemuser_crm a
+where [elgi_crm].dbo.MSDYN_CUSTOMERASSET_crm.[elgi_concernedelgiserviceengineer]=a.systemuserid 
+
+
+
+
+truncate table stage1
+insert into stage1
+
+select 
+elgi_lockindealername,elgi_lockindealer,elgi_concernedelgisalesengineername,msdyn_name as fabno,elgi_productgroupname,
+elgi_productsubgroupname,elgi_warrantytypename,msdyn_accountname,msdyn_productname,
+elgi_averagerunninghours ,elgi_hmrdate,elgi_loadedhourshmr,elgi_totalhours,elgi_unloadedhours,
+elgi_hmrairfilterremaining,
+elgi_hmrmotorregressedremaining,
+elgi_hmroilfilterremaining,
+elgi_hmroilremaining,
+elgi_hmrseparatorremaining,
+elgi_hmrvalvekitremaining,
+msdyn_account,elgi_assetclustersparesname,elgi_dateofcommissioning,elgi_dateofinvoice,
+elgi_typeofoilname,elgi_oilreplacementdate,elgi_lastvalvekitreplacementdate,elgi_carbonfilterdateofinstallation,
+elgi_finefilterdateofinstallation,elgi_prefilterdateofinstallation,elgi_typeofdownstreamaccessoriesname,MSDYN_CUSTOMERASSETid,
+elgi_airfilterreplaceddate,elgi_oilfilterreplaceddate,elgi_aosreplaceddate,elgi_greasingdonedate,
+elgi_concernedelgiserviceengineername,elgi_concernedelgisparesengineername,elgi_isdsfavailablename
+,'' lineofbusiness,'' calltrackingnumber,'' serv_eng_comm,
+0 as overdue,0 as curntdue,0 as feturdue,
+
+case when
+elgi_hmrairfilterremaining is not null then 
+dateadd(d,case when (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL else round((ISNULL(elgi_hmrairfilterremaining,0)/elgi_averagerunninghours),0)end,CONVERT(DATE,elgi_hmrdate))
+else 
+dateadd(DAY,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL 
+else round(((
+case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end
+-(convert(int,elgi_totalhours)-(abs(convert(int,elgi_totalhours)/case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end))
+*case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end))/convert(int,elgi_averagerunninghours)),0) end
+,CONVERT(DATE,elgi_hmrdate)) end AF_DUE_DATE,
+
+case when
+elgi_hmroilfilterremaining is not null then 
+dateadd(d,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL else round((ISNULL(elgi_hmroilfilterremaining,0)/elgi_averagerunninghours),0)end,CONVERT(DATE,elgi_hmrdate))
+else 
+dateadd(DAY,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL 
+else round(((
+case when elgi_productsubgroupname in ('sepsac','Lepsac') then 2000 when elgi_productsubgroupname='encap'then 2000 end
+-(convert(int,elgi_totalhours)-(abs(convert(int,elgi_totalhours)/case when elgi_productsubgroupname in ('sepsac','Lepsac') then 2000 when elgi_productsubgroupname='encap'then 2000 end))
+*case when elgi_productsubgroupname in ('sepsac','Lepsac') then 2000 when elgi_productsubgroupname='encap'then 2000 end))/convert(int,elgi_averagerunninghours)),0) end
+,CONVERT(DATE,elgi_hmrdate)) end OF_DUE_DATE,
+
+case when
+elgi_hmroilremaining is not null then 
+dateadd(d,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL else round((ISNULL(elgi_hmroilremaining,0)/elgi_averagerunninghours),0)end,CONVERT(DATE,elgi_hmrdate))
+else 
+dateadd(DAY,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL 
+else round(((
+case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 4000 end
+-(convert(int,elgi_totalhours)-(abs(convert(int,elgi_totalhours)/case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 4000 end))
+*case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 4000 end))/convert(int,elgi_averagerunninghours)),0) end
+,CONVERT(DATE,elgi_hmrdate)) end OIL_DUE_DATE,
+
+case when
+elgi_hmrseparatorremaining is not null then 
+dateadd(d,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL else round((ISNULL(elgi_hmrseparatorremaining,0)/elgi_averagerunninghours),0)end,CONVERT(DATE,elgi_hmrdate))
+else 
+dateadd(DAY,case when elgi_averagerunninghourS =0 then null 
+else round(((
+case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 4000 end
+-(convert(int,elgi_totalhours)-(abs(convert(int,elgi_totalhours)/case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 4000 end))
+*case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 4000 end))/convert(int,elgi_averagerunninghours)),0) end
+,CONVERT(DATE,elgi_hmrdate)) end AOS_DUE_DATE,
+
+--case when
+--elgi_hmrvalvekitremaining is not null then 
+--dateadd(d,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL else round((ISNULL(elgi_hmrvalvekitremaining,0)/elgi_averagerunninghours),0)end,CONVERT(DATE,elgi_hmrdate))
+--else 
+--dateadd(DAY,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL 
+--else round(((
+--case when elgi_productsubgroupname in ('sepsac','Lepsac') then 8000 when elgi_productsubgroupname='encap'then 8000 end
+---(convert(int,elgi_totalhours)-(abs(convert(int,elgi_totalhours)/case when elgi_productsubgroupname in ('sepsac','Lepsac') then 8000 when elgi_productsubgroupname='encap'then 8000 end))
+--*case when elgi_productsubgroupname in ('sepsac','Lepsac') then 8000 when elgi_productsubgroupname='encap'then 8000 end))/convert(int,elgi_averagerunninghours)),0) end
+--,CONVERT(DATE,elgi_hmrdate)) end VALVEKIT_DUE_DATE,
+
+
+case when
+replace(elgi_hmrvalvekitremaining,' ','') is not null then 
+dateadd(d,case when  (convert(varchar,replace(elgi_averagerunninghours,' ',''))='0' or convert(varchar,replace(elgi_averagerunninghours,' ','')) is null)  then NULL 
+else round((ISNULL(replace(elgi_hmrvalvekitremaining,' ',''),0)/convert(float,replace(elgi_averagerunninghours,' ',''))),0)end,CONVERT(DATE,elgi_hmrdate))
+else 
+dateadd(DAY,case when  (convert(varchar,replace(elgi_averagerunninghours,' ',''))='0' or convert(varchar,replace(elgi_averagerunninghours,' ','')) is null)  then NULL 
+else round(((
+case when elgi_productsubgroupname in ('sepsac','Lepsac') then 8000 when elgi_productsubgroupname='encap'then 8000 end
+-(convert(int,replace(elgi_totalhours,' ',''))-(abs(convert(int,replace(elgi_totalhours,' ',''))/case when elgi_productsubgroupname in ('sepsac','Lepsac') then 8000 when elgi_productsubgroupname='encap'then 8000 end))
+*case when elgi_productsubgroupname in ('sepsac','Lepsac') then 8000 when elgi_productsubgroupname='encap'then 8000 end))/convert(int,replace(elgi_averagerunninghours,' ',''))),0) end
+,CONVERT(DATE,elgi_hmrdate)) end VALVEKIT_DUE_DATE,
+
+case when
+elgi_hmrmotorregressedremaining is not null then 
+dateadd(d,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL else round((ISNULL(elgi_hmrmotorregressedremaining,0)/elgi_averagerunninghours),0)end,CONVERT(DATE,elgi_hmrdate))
+else 
+dateadd(DAY,case when  (elgi_averagerunninghours=0 or elgi_averagerunninghours is null)  then NULL 
+else round(((
+case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end
+-(convert(int,elgi_totalhours)-(abs(convert(int,elgi_totalhours)/case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end))
+*case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end))/convert(int,elgi_averagerunninghours)),0) end
+,CONVERT(DATE,elgi_hmrdate)) end RGT_DUE_DATE ,
+
+case when elgi_hmrairfilterremaining is null and elgi_hmrmotorregressedremaining is null and 
+elgi_hmroilfilterremaining is null and elgi_hmroilremaining is null and 
+elgi_hmrseparatorremaining is null and elgi_hmrvalvekitremaining is null then 1 else 0 end as rem_hours,
+
+case when 
+convert(Date,elgi_hmrdate)<=dateadd(d,-180,convert(date,getdate())) then 1 else 0 end as rem_hours_6mnths,
+
+case when (elgi_hmrdate is null or year(elgi_hmrdate)<2000)  then 1 else 0 end as rem_hours_witouthmr,
+
+case when 
+convert(Date,elgi_hmrdate)<=dateadd(d,-90,convert(date,getdate())) 
+and elgi_warrantytypename in ('In Uptime warranty' ,'In Standard Warranty')
+then 1 else 0 end as rem_hours_3mnths_nc,
+
+CASE WHEN elgi_typeofdownstreamaccessoriesname like '%Pre%' then 1 else 0 end as PF,
+CASE WHEN elgi_typeofdownstreamaccessoriesname like '%fine%' then 1 else 0 end as FF,
+CASE WHEN elgi_typeofdownstreamaccessoriesname like '%carbon%' then 1 else 0 end as CF,
+
+''AF_HMR,''OF_HMR,''OIL_HMR,''AOS_HMR,''VALVEKIT_HMR,''RGT_HMR,''PF_HMR,''FF_HMR,''CF_HMR,''territoryidname,
+''final_AF_DUE_DATE,
+''final_OF_DUE_DATE,
+''final_OIL_DUE_DATE,
+''final_AOS_DUE_DATE,
+''final_VALVEKIT_DUE_DATE,
+''final_RGT_DUE_DATE,
+''FINAL_PF_HMR,
+''FINAL_FF_HMR,
+''FINAL_CF_HMR,
+
+'          'AF_CLR,
+'          'OF_CLR,
+'          'OIL_CLR,
+'          'AOS_CLR,
+'          'VALVEKIT_CLR,
+'          'RGT_CLR,
+'          'PF_CLR,
+'          'FF_CLR,
+'          'CF_CLR
+
+--into  stage1
+
+ From [elgi_crm].dbo.MSDYN_CUSTOMERASSET_crm
+	where		elgi_lockindealername in (select distinct * from service_dealer_list) and
+	elgi_productsubgroupname in ('SEPSAC','encap','Lepsac')
+	and statuscodename='active'
+	and (substring(elgi_assetclustersparesname,1,1)like '[a,b,c]%' 
+	or substring(elgi_assetclustersparesname,1,2)like 'p1%'
+	or substring(elgi_assetclustersparesname,1,2)like 'p2%'
+	or substring(elgi_assetclustersparesname,1,2)like 'p3'
+	or substring(elgi_assetclustersparesname,1,2)like 'p4%'
+--or elgi_assetclustersparesname=	'Not in Budget'
+)
+--and msdyn_name in ('bskc374846')
+
+
+ALTER TABLE STAGE1 alter column  AF_HMR DATETIME
+ALTER TABLE STAGE1 alter column  OF_HMR DATETIME
+ALTER TABLE STAGE1 alter column  OIL_HMR DATETIME
+ALTER TABLE STAGE1 alter column  AOS_HMR DATETIME
+ALTER TABLE STAGE1 alter column  VALVEKIT_HMR DATETIME
+ALTER TABLE STAGE1 alter column  RGT_HMR DATETIME
+ALTER TABLE STAGE1 alter column  PF_HMR DATETIME
+ALTER TABLE STAGE1 alter column  FF_HMR DATETIME
+ALTER TABLE STAGE1 alter column  CF_HMR DATETIME
+ALTER TABLE STAGE1 alter column territoryidname varchar(1000)
+ALTER TABLE STAGE1 alter column lineofbusiness varchar(1000)
+ALTER TABLE STAGE1 alter column calltrackingnumber varchar(1000)
+ALTER TABLE STAGE1 alter column serv_eng_comm varchar(4000)
+
+
+ ALTER TABLE STAGE1 alter column final_AF_DUE_DATE DATE null
+ ALTER TABLE STAGE1 alter column final_OF_DUE_DATE DATE null
+ ALTER TABLE STAGE1 alter column final_OIL_DUE_DATE DATE null
+ ALTER TABLE STAGE1 alter column final_AOS_DUE_DATE DATE null
+ ALTER TABLE STAGE1 alter column final_VALVEKIT_DUE_DATE DATE null
+ ALTER TABLE STAGE1 alter column final_RGT_DUE_DATE DATE null
+ ALTER TABLE STAGE1 alter column FINAL_PF_HMR DATE null
+ ALTER TABLE STAGE1 alter column FINAL_FF_HMR DATE null
+ ALTER TABLE STAGE1 alter column FINAL_CF_HMR DATE NULL
+
+
+update STAGE1 set lineofbusiness =Description from(select distinct elgi_lineofbusinessname,b.Description,accountid
+ from [elgi_crm].dbo.ACCOUNT_crm left join (select * From LineOfBusiness)b
+on [elgi_crm].dbo.ACCOUNT_crm.elgi_lineofbusinessname=b.LineOfBusiness)a
+where stage1.msdyn_account=a.accountid 
+
+update STAGE1 set msdyn_accountname=[name]
+ from [elgi_crm].dbo.ACCOUNT_crm a
+where stage1.msdyn_account=a.accountid 
+
+
+
+
+update STAGE1 set calltrackingnumber=msdyn_name,serv_eng_comm=elgi_serviceengineercomments
+from(select * From (
+select msdyn_name,MSDYN_CUSTOMERASSET,elgi_serviceengineercomments,createdon,
+ROW_NUMBER()over (partition by MSDYN_CUSTOMERASSET order by createdon desc)rno  from [elgi_crm].dbo.msdyn_workorder_crm
+)a where rno=1)a
+where  stage1.MSDYN_CUSTOMERASSETid=a.MSDYN_CUSTOMERASSET
+
+
+
+
+update stage1 set AF_HMR= 
+CASE WHEN (elgi_airfilterreplaceddate IS NULL  OR YEAR(elgi_airfilterreplaceddate)<2000) THEN ---2
+case when elgi_hmrairfilterremaining> 
+case when elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end
+then 
+dateadd(d,-
+CASE WHEN elgi_averagerunninghours<=0 or elgi_averagerunninghours is null THEN 0 ELSE (CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end-
+(elgi_hmrairfilterremaining-(abs(elgi_hmrairfilterremaining/
+CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end)*
+CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end)))end
+/case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end  ,elgi_hmrdate)
+
+else
+
+dateadd(d,- 
+(CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac') then 4000 when elgi_productsubgroupname='encap'then 2000 end -
+elgi_hmrairfilterremaining) /case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end ,elgi_hmrdate)
+
+end
+else
+dateadd(d, 
+(CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac') then 365
+ when elgi_productsubgroupname='encap'then 180 end) ,elgi_airfilterreplaceddate)
+end
+
+
+update stage1 set OF_HMR= 
+CASE WHEN (elgi_oilfilterreplaceddate IS NULL  OR YEAR(elgi_oilfilterreplaceddate)<2000) THEN ---2
+case when elgi_hmroilfilterremaining> 2000 then --------1
+dateadd(d,- CASE WHEN elgi_averagerunninghours<=0 or elgi_averagerunninghours is null THEN 0 ELSE (2000-
+(elgi_hmroilfilterremaining-(abs(elgi_hmroilfilterremaining/2000)*2000)))end
+/case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end,elgi_hmrdate)
+else 
+dateadd(d,- 
+(2000 - elgi_hmroilfilterremaining) /case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end ,elgi_hmrdate)
+end  -- end 1
+else
+dateadd(d,180,elgi_oilfilterreplaceddate)
+end  -- end 2
+
+
+update stage1 set OIL_HMR=
+case when elgi_typeofoilname is null then  
+dateadd(d,-CASE WHEN elgi_averagerunninghours<=0 or elgi_averagerunninghours is null THEN 0 ELSE ((4000-
+elgi_hmroilremaining)/(case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end)) END,elgi_hmrdate)
+else 
+case when elgi_typeofoilname IN ('XD','Air lube Plus','PD') then dateadd(d,365,elgi_oilreplacementdate)
+when elgi_typeofoilname='Synthetic' then dateadd(d,730,elgi_oilreplacementdate) END
+END
+
+
+
+update stage1 set AOS_HMR=
+case when elgi_typeofoilname is null then 
+dateadd(d,-CASE WHEN elgi_averagerunninghours<=0 or elgi_averagerunninghours is null THEN 0 ELSE ((4000-
+elgi_hmrseparatorremaining)/(case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end)) END,elgi_hmrdate)
+else 
+case when elgi_typeofoilname IN ('XD','Air lube Plus','PD') then dateadd(d,365,elgi_aosreplaceddate)
+when elgi_typeofoilname='Synthetic' then dateadd(d,730,elgi_aosreplaceddate) END
+END
+
+
+update stage1 set VALVEKIT_HMR= 
+CASE WHEN (elgi_lastvalvekitreplacementdate IS NULL  OR YEAR(elgi_lastvalvekitreplacementdate)<2000) THEN
+dateadd(d,730,
+dateadd(d,-CASE WHEN elgi_averagerunninghours<=0 or elgi_averagerunninghours is null THEN 0 ELSE (8000-elgi_hmrvalvekitremaining)/(case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end) END,elgi_hmrdate))
+ELSE DATEADD(D,730,elgi_lastvalvekitreplacementdate) END
+
+update stage1 set RGT_HMR= 
+case when elgi_greasingdonedate is null or year(elgi_greasingdonedate)<2000 then 
+case when elgi_hmrmotorregressedremaining> 
+case when elgi_productsubgroupname in ('sepsac','Lepsac','encap') then 4000 end
+then 
+dateadd(d,-
+CASE WHEN elgi_averagerunninghours<=0 or elgi_averagerunninghours is null THEN 0 ELSE (CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac','encap') then 4000 end-
+(elgi_hmrmotorregressedremaining-(abs(elgi_hmrmotorregressedremaining/
+4000)*4000)))end
+/case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end  ,elgi_hmrdate)
+
+else
+
+dateadd(d,- 
+(CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac','encap') then 4000  end -
+elgi_hmrmotorregressedremaining) /case when elgi_averagerunninghours<8 then 11 else elgi_averagerunninghours end ,elgi_hmrdate)
+
+end
+else
+dateadd(d,
+(CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac','encap') then 365 end),
+elgi_greasingdonedate)
+
+end
+
+  
+
+
+update stage1 set PF_HMR= DATEADD(D,365,elgi_prefilterdateofinstallation)
+update stage1 set FF_HMR= DATEADD(D,365,elgi_finefilterdateofinstallation)
+update stage1 set CF_HMR= DATEADD(D,365,elgi_carbonfilterdateofinstallation)
+
+
+
+UPDATE stage1 SET territoryidname=a.territoryidname FROM
+(select accountid,territoryidname from [elgi_crm].dbo.ACCOUNT_crm where elgi_accounttypename='dealer' and territoryidname is not null)A
+WHERE stage1.elgi_lockindealer=a.accountid
+
+UPDATE stage1 set elgi_warrantytypename=null
+
+UPDATE stage1 set elgi_warrantytypename= isnull(Stats,'Out of warranty') from (
+
+select *,
+case when statuscodename='Active'and elgi_warrantytypename='In Standard Warranty' then 'In Standard Warranty'
+when statuscodename='Active'and elgi_warrantytypename='In Uptime Warranty' then 'In Uptime Warranty'
+else 'Out of warranty' end as Stats
+
+ From (
+select *,
+row_number()over(partition by elgi_customerassetid order by statuscodename,elgi_warrantytypename )as rno
+ From (
+select distinct statuscodename,elgi_warrantytypename,elgi_customerassetid From elgi_crm.dbo.msdyn_agreement_crm
+where statuscodename in ('Active','Expired')
+and elgi_warrantytypename in ('In Uptime Warranty','In Standard Warranty')
+and elgi_customerassetid is not null
+--and elgi_customerassetid in ('5C0AE896-04D1-E811-A8EB-0003FF906C33')
+)a
+)a
+where rno=1
+)a
+where stage1.MSDYN_CUSTOMERASSETid=a.elgi_customerassetid
+
+update stage1 set final_AF_DUE_DATE=
+case when elgi_airfilterreplaceddate is null or year(elgi_airfilterreplaceddate)<2000 then
+			case when dateadd(d,CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac') then 365 when elgi_productsubgroupname='encap'then 180 end,AF_HMR)
+<=AF_DUE_DATE then dateadd(d,CASE WHEN elgi_productsubgroupname in ('sepsac','Lepsac') then 365 when elgi_productsubgroupname='encap'then 180 end,AF_HMR) else AF_DUE_DATE end  else
+		case when 	AF_HMR <=AF_DUE_DATE then AF_HMR else AF_DUE_DATE end end  
+
+		update stage1 set final_OF_DUE_DATE=
+case when elgi_oilfilterreplaceddate is null or year(elgi_oilfilterreplaceddate)<2000 then
+case when dateadd(d,180,OF_HMR)<=OF_DUE_DATE then dateadd(d,180,OF_HMR) else OF_DUE_DATE end  ELSE
+case when 	OF_HMR <=OF_DUE_DATE then OF_HMR else OF_DUE_DATE end END 
+
+
+		update stage1 set final_AOS_DUE_DATE=
+case when elgi_aosreplaceddate is null or year(elgi_aosreplaceddate)<2000 then
+case when dateadd(d,case when elgi_typeofoilname IN ('XD','Air lube Plus','PD') then 365 
+when elgi_typeofoilname is null then 365 when elgi_typeofoilname='Synthetic' then 730 end,
+AOS_HMR)<=AOS_DUE_DATE then
+dateadd(d,case when elgi_typeofoilname IN ('XD','Air lube Plus','PD') then 365 
+when elgi_typeofoilname is null then 365 when elgi_typeofoilname='Synthetic' then 730 end,
+AOS_HMR) else AOS_DUE_DATE end   ELSE
+case when elgi_typeofoilname is null then AOS_DUE_DATE
+when elgi_typeofoilname is not null
+and AOS_HMR <=AOS_DUE_DATE then AOS_HMR else AOS_DUE_DATE end END 
+
+
+		update stage1 set final_OIL_DUE_DATE=
+		case when elgi_oilreplacementdate is null or year(elgi_oilreplacementdate)<2000 then
+case when dateadd(d,case when elgi_typeofoilname IN ('XD','Air lube Plus','PD') then 365 
+when elgi_typeofoilname is null then 365 when elgi_typeofoilname='Synthetic' then 730 end,
+OIL_HMR)<=OIL_DUE_DATE then
+dateadd(d,case when elgi_typeofoilname IN ('XD','Air lube Plus','PD') then 365 
+when elgi_typeofoilname is null then 365 when elgi_typeofoilname='Synthetic' then 730 end,
+OIL_HMR) else OIL_DUE_DATE end   ELSE
+case when 	OIL_HMR <=OIL_DUE_DATE then OIL_HMR else OIL_DUE_DATE end END 
+
+		update stage1 set final_VALVEKIT_DUE_DATE=
+case when VALVEKIT_HMR<=VALVEKIT_DUE_DATE then VALVEKIT_HMR else VALVEKIT_DUE_DATE end
+
+		update stage1 set final_RGT_DUE_DATE=
+			case when elgi_greasingdonedate is null or year(elgi_greasingdonedate)<2000 then
+			case when 
+			dateadd(d,365,RGT_HMR)<=RGT_DUE_DATE then dateadd(d,365,RGT_HMR) else RGT_DUE_DATE end
+			else 	case when 	RGT_HMR <=RGT_DUE_DATE then RGT_HMR else RGT_DUE_DATE end end 
+
+	UPDATE STAGE1 SET FINAL_PF_HMR=PF_HMR
+	UPDATE STAGE1 SET FINAL_FF_HMR=FF_HMR
+	UPDATE STAGE1 SET FINAL_CF_HMR=CF_HMR
+
+		---------------- END FINAL DATES
+
+		------------- STARTS COLOUR CODING
+
+		UPDATE STAGE1 SET AF_CLR=
+	case when convert(date,final_AF_DUE_DATE) < dateadd(d,-day(getdate()),convert(Date,getdate()+1)) then 'Red'
+when convert(date,final_AF_DUE_DATE) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(d,-1,dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Yellow'
+when convert(date,final_AF_DUE_DATE) between dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Green'
+	WHEN final_AF_DUE_DATE IS NULL THEN 'No colour'
+	when convert(date,final_AF_DUE_DATE)> dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) 
+	then 'No colour'end 
+
+		UPDATE STAGE1 SET OF_CLR=
+case when convert(date,final_OF_DUE_DATE)<dateadd(d,-day(getdate()),convert(Date,getdate()+1)) then 'Red'
+when convert(date,final_OF_DUE_DATE) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(d,-1,dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Yellow'
+when convert(date,final_OF_DUE_DATE) between dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Green'
+	WHEN final_OF_DUE_DATE IS NULL THEN 'No colour'
+	when convert(date,final_OF_DUE_DATE)> dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) 
+	then 'No colour'end 
+	
+	
+		UPDATE STAGE1 SET OIL_CLR=
+case when convert(date,final_OIL_DUE_DATE)<dateadd(d,-day(getdate()),convert(Date,getdate()+1)) then 'Red'
+when convert(date,final_OIL_DUE_DATE) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(d,-1,dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Yellow'
+when convert(date,final_OIL_DUE_DATE) between dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Green'
+		WHEN final_OIL_DUE_DATE IS NULL THEN 'No colour'
+	when convert(date,final_OIL_DUE_DATE)>dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) 
+	then 'No colour'end 
+	
+	
+		UPDATE STAGE1 SET AOS_CLR=
+case when convert(date,final_AOS_DUE_DATE)<dateadd(d,-day(getdate()),convert(Date,getdate()+1)) then 'Red'
+when convert(date,final_AOS_DUE_DATE) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(d,-1,dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Yellow'
+when convert(date,final_AOS_DUE_DATE) between dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Green'
+	WHEN final_AOS_DUE_DATE IS NULL THEN 'No colour'
+	when convert(date,final_AOS_DUE_DATE)>dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) 
+	then 'No colour'end 
+
+	UPDATE STAGE1 SET VALVEKIT_CLR=
+	case when convert(date,final_VALVEKIT_DUE_DATE)<dateadd(d,-day(getdate()),convert(Date,getdate()+1)) then 'Red'
+when convert(date,final_VALVEKIT_DUE_DATE) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(d,-1,dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Yellow'
+when convert(date,final_VALVEKIT_DUE_DATE) between dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Green'
+	WHEN final_VALVEKIT_DUE_DATE IS NULL THEN 'No colour'
+	when convert(date,final_VALVEKIT_DUE_DATE)>dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) 
+	then 'No colour'end 
+
+		UPDATE STAGE1 SET RGT_CLR=
+case when convert(date,final_RGT_DUE_DATE)< dateadd(d,-day(getdate()),convert(Date,getdate()+1)) then 'Red'
+when convert(date,final_RGT_DUE_DATE) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(d,-1,dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Yellow'
+when convert(date,final_RGT_DUE_DATE) between dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) then 'Green'
+	WHEN final_RGT_DUE_DATE IS NULL THEN 'No colour'
+	when convert(date,final_RGT_DUE_DATE)>dateadd(d,-1,dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate())))) 
+	then 'No colour'end
+	
+	
+		UPDATE STAGE1 SET PF_CLR=
+	case when convert(date,FINAL_PF_HMR)<=convert(date,getdate()) then 'Red'
+when convert(date,FINAL_PF_HMR) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'Yellow'
+when convert(date,FINAL_PF_HMR) between  dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'Green'
+	when convert(date,FINAL_PF_HMR)> dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'No colour'
+	WHEN FINAL_PF_HMR IS NULL THEN 'No colour'end 
+
+	UPDATE STAGE1 SET FF_CLR=
+		case when convert(date,FINAL_FF_HMR)<=convert(date,getdate()) then 'Red'
+when convert(date,FINAL_FF_HMR) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'Yellow'
+when convert(date,FINAL_FF_HMR) between  dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'Green'
+	when convert(date,FINAL_FF_HMR)> dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'No colour'
+	WHEN FINAL_FF_HMR IS NULL THEN 'No colour'end 
+	
+	
+	UPDATE STAGE1 SET CF_CLR=
+		case when convert(date,FINAL_CF_HMR)<=convert(date,getdate()) then 'Red'
+when convert(date,FINAL_CF_HMR) between dateadd(d,-day(getdate())+1,convert(date,getdate())) and
+dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'Yellow'
+when convert(date,FINAL_CF_HMR) between  dateadd(m,1,dateadd(d,-day(getdate())+1,convert(date,getdate()))) and
+ dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'Green'
+	when convert(date,FINAL_CF_HMR)> dateadd(m,2,dateadd(d,-day(getdate())+1,convert(date,getdate()-1))) then 'No colour'
+	WHEN FINAL_CF_HMR IS NULL THEN 'No colour'end 
+
+
+		--------- END COLOUR CODING
+
+
+--------------- end base code
+-- drop table crm_servicedue
+
+alter table crm_servicedue alter column territoryidname varchar(1000)
+alter table crm_servicedue alter column elgi_lockindealername varchar(1000)
+alter table crm_servicedue alter column elgi_productsubgroupname varchar(1000)
+
+insert into crm_servicedue
+
+
+select territoryidname,elgi_lockindealername,elgi_productsubgroupname,sum(machine)machine,sum(a)a,sum(b)b,sum(c)c,
+sum(p1)p1,sum(p1_nc)p1_nc,sum(p2)p2,sum(p3)p3,sum(p4)p4,sum(notcomm)notcomm,
+sum(case when elgi_warrantytypename='In Standard Warranty' then 1 else 0 end) as dist_stand,
+sum(case when elgi_warrantytypename='In Uptime warranty' then 1 else 0 end) as dist_war,
+
+sum(Apr)Apr,sum(Apr_war)Apr_war,sum(May)May,sum(May_war)May_war,sum(Jun)Jun,sum(Jun_war)Jun_war,sum(Jul)Jul,
+sum(Jul_war)Jul_war,sum(Aug)Aug,sum(Aug_war)Aug_war,sum(sep)sep,sum(sep_war)sep_war,sum(oct)oct,sum(oct_war)oct_war,
+sum(nov)nov,sum(nov_war)nov_war,sum(dec)dec,sum(dec_war)dec_war,sum(Jan)Jan,sum(Jan_war)Jan_war,sum(Feb)Feb,
+sum(Feb_war)Feb_war,sum(Mar)Mar,sum(Mar_war)Mar_war,
+
+sum(bfapr)bfapr,sum(bfapr_war)bfapr_war,sum(AprAF)AprAF,sum(mayAF)mayAF,
+sum(junAF)junAF,sum(julAF)julAF,sum(AugAF)AugAF,sum(sepAF)sepAF,sum(octAF)octAF,sum(novAF)novAF,sum(decAF)decAF,
+sum(janAF)janAF,sum(febAF)febAF,sum(marAF)marAF,sum(bfaprAF)bfaprAF,sum(Aprof)Aprof,sum(mayof)mayof,sum(junof)junof,sum(julof)julof,
+sum(Augof)Augof,sum(sepof)sepof,sum(octof)octof,sum(novof)novof,sum(decof)decof,sum(janof)janof,sum(febof)febof,sum(marof)marof,
+
+sum(bfaprof)bfaprof,sum(AprOIL)AprOIL,sum(mayOIL)mayOIL,sum(junOIL)junOIL,sum(julOIL)julOIL,sum(AugOIL)AugOIL,sum(sepOIL)sepOIL,
+sum(octOIL)octOIL,sum(novOIL)novOIL,sum(decOIL)decOIL,sum(janOIL)janOIL,sum(febOIL)febOIL,sum(marOIL)marOIL,sum(bfaprOIL)bfaprOIL,
+sum(AprAOS)AprAOS,sum(mayAOS)mayAOS,sum(junAOS)junAOS,sum(julAOS)julAOS,sum(AugAOS)AugAOS,sum(sepAOS)sepAOS,sum(octAOS)octAOS,
+sum(novAOS)novAOS,sum(decAOS)decAOS,sum(janAOS)janAOS,sum(febAOS)febAOS,sum(marAOS)marAOS,sum(bfaprAOS)bfaprAOS,sum(AprVALVEKIT)AprVALVEKIT,
+sum(mayVALVEKIT)mayVALVEKIT,sum(junVALVEKIT)junVALVEKIT,sum(julVALVEKIT)julVALVEKIT,sum(AugVALVEKIT)AugVALVEKIT,sum(sepVALVEKIT)sepVALVEKIT,
+sum(octVALVEKIT)octVALVEKIT,sum(novVALVEKIT)novVALVEKIT,sum(decVALVEKIT)decVALVEKIT,sum(janVALVEKIT)janVALVEKIT,sum(febVALVEKIT)febVALVEKIT,
+sum(marVALVEKIT)marVALVEKIT,sum(bfaprVALVEKIT)bfaprVALVEKIT,sum(AprRGT)AprRGT,sum(mayRGT)mayRGT,sum(junRGT)junRGT,sum(julRGT)julRGT,
+sum(AugRGT)AugRGT,sum(sepRGT)sepRGT,sum(octRGT)octRGT,sum(novRGT)novRGT,sum(decRGT)decRGT,sum(janRGT)janRGT,sum(febRGT)febRGT,sum(marRGT)marRGT,
+sum(bfaprRGT)bfaprRGT,
+sum(AprPF) AprPF,sum(mayPF) mayPF,sum(junPF) junPF,sum(julPF) julPF,sum(AugPF) AugPF,sum(sepPF) sepPF,sum(octPF) octPF,sum(novPF) novPF,
+sum(decPF) decPF,sum(janPF) janPF,sum(febPF) febPF,sum(marPF) marPF,sum(bfaprPF) bfaprPF,
+
+sum(AprFF) AprFF,sum(mayFF) mayFF,sum(junFF) junFF,sum(julFF) julFF,sum(AugFF) AugFF,sum(sepFF) sepFF,sum(octFF) octFF,sum(novFF) novFF,
+sum(decFF) decFF,sum(janFF) janFF,sum(febFF) febFF,sum(marFF) marFF,sum(bfaprFF) bfaprFF,
+
+sum(AprCF) AprCF,sum(mayCF) mayCF,sum(junCF) junCF,sum(julCF) julCF,sum(AugCF) AugCF,sum(sepCF) sepCF,sum(octCF) octCF,sum(novCF) novCF,
+sum(decCF) decCF,sum(janCF) janCF,sum(febCF) febCF,sum(marCF) marCF,sum(bfaprCF) bfaprCF,
+
+
+sum(Aprtotal)Aprtotal,sum(maytotal)maytotal,sum(juntotal)juntotal,sum(jultotal)jultotal,sum(augtotal)augtotal,sum(septotal)septotal,sum(octtotal)octtotal,sum(novtotal)novtotal,sum(dectotal)dectotal,sum(jantotal)jantotal,sum(febtotal)
+
+
+
+febtotal,sum(martotal)martotal,
+sum(bfaprtotal)bfaprtotal,sum(Apr_st)Apr_st,sum(May_st)May_st,sum(Jun_st)Jun_st,sum(Jul_st)Jul_st,sum(Aug_st)Aug_st,sum(sep_st)sep_st,
+sum(oct_st)oct_st,sum(nov_st)nov_st,sum(dec_st)dec_st,sum(Jan_st)Jan_st,sum(Feb_st)Feb_st,sum(Mar_st)Mar_st,sum(bfapr_st)bfapr_st,
+sum(rem_hours)rem_hours,
+sum(rem_hours_6mnths)rem_hours_6mnths,
+sum(rem_hours_witouthmr)rem_hours_witouthmr,
+sum(rem_hours_3mnths_nc)rem_hours_3mnths_nc,
+sum(curntdue)curntdue,
+sum(feturdue)feturdue,
+sum(overdue)overdue,
+sum(due_stndwrnty)due_stndwrnty,
+sum(due_uptmwrnty)due_uptmwrnty  
+--into  crm_servicedue
+
+
+ From (
+
+select *,
+ (AprAF+aprof+apraos+AprOIL+AprVALVEKIT+AprRGT)Aprtotal, 
+ (mayAF+mayof+mayaos+mayOIL+mayVALVEKIT+mayRGT)maytotal, 
+ (junAF+junof+junaos+junOIL+junVALVEKIT+junRGT)juntotal, 
+ (julAF+julof+julaos+julOIL+julVALVEKIT+julRGT)jultotal, 
+ (augAF+augof+augaos+augOIL+augVALVEKIT+augRGT)augtotal, 
+ (sepAF+sepof+sepaos+sepOIL+sepVALVEKIT+sepRGT)septotal, 
+ (octAF+octof+octaos+octOIL+octVALVEKIT+octRGT)octtotal, 
+ (novAF+novof+novaos+novOIL+novVALVEKIT+novRGT)novtotal, 
+ (decAF+decof+decaos+decOIL+decVALVEKIT+decRGT)dectotal,
+ (janAF+janof+janaos+janOIL+janVALVEKIT+janRGT)jantotal, 
+ (febAF+febof+febaos+febOIL+febVALVEKIT+febRGT)febtotal, 
+ (marAF+marof+maraos+marOIL+marVALVEKIT+marRGT)martotal,
+	(bfaprAF+bfaprof+bfapraos+bfaprOIL+bfaprVALVEKIT+bfaprRGT)bfaprtotal
+
+from (
+select 
+count( distinct fabno) as machine,elgi_warrantytypename,elgi_lockindealer,territoryidname,elgi_productsubgroupname,
+case when substring(elgi_assetclustersparesname,1,1)='a' then count(distinct fabno)else 0 end as a,
+case when substring(elgi_assetclustersparesname,1,1)='b' then count(distinct fabno)else 0 end as b,
+case when substring(elgi_assetclustersparesname,1,1)='c' then count(distinct fabno)else 0 end as c,
+case when (substring(elgi_assetclustersparesname,1,2)='p1'
+or elgi_assetclustersparesname=	'Not in Budget') then count(distinct fabno)else 0 end as p1,
+case when (substring(elgi_assetclustersparesname,1,2)='p1' or elgi_assetclustersparesname=	'Not in Budget')
+and  elgi_dateofcommissioning is null then count(distinct fabno)else 0 end as p1_nc,
+case when substring(elgi_assetclustersparesname,1,2)='p2' then count(distinct fabno)else 0 end as p2,
+case when substring(elgi_assetclustersparesname,1,2)='p3' then count(distinct fabno)else 0 end as p3,
+case when substring(elgi_assetclustersparesname,1,2)='p4' then count(distinct fabno)else 0 end as p4,
+
+
+case when elgi_dateofcommissioning is null then count(distinct fabno)else 0 end as notcomm,
+fabno,msdyn_account,elgi_lockindealername,0 as overdue,0 as curntdue,0 as feturdue,
+sum(rem_hours) as rem_hours,sum(rem_hours_6mnths) as rem_hours_6mnths,
+sum(rem_hours_witouthmr) as rem_hours_witouthmr,sum(rem_hours_3mnths_nc) as rem_hours_3mnths_nc,
+case when (AF_CLR in ('Red','Yellow') or OF_CLR in ('Red','Yellow') or OIL_CLR in ('Red','Yellow') or AOS_CLR in ('Red','Yellow') or
+VALVEKIT_CLR in ('Red','Yellow')or RGT_CLR in ('Red','Yellow')
+or PF_CLR in ('Red','Yellow') OR FF_CLR in ('Red','Yellow') OR CF_CLR in ('Red','Yellow')) and elgi_warrantytypename='In Standard Warranty' 
+then count(distinct fabno)else 0 end as due_stndwrnty,
+
+case when (AF_CLR in ('Red','Yellow') or OF_CLR in ('Red','Yellow') or OIL_CLR in ('Red','Yellow') or AOS_CLR in ('Red','Yellow') or
+VALVEKIT_CLR in ('Red','Yellow')or RGT_CLR in ('Red','Yellow')
+or PF_CLR in ('Red','Yellow') OR FF_CLR in ('Red','Yellow') OR CF_CLR in ('Red','Yellow')) and elgi_warrantytypename='In Uptime warranty' 
+then count(distinct fabno)else 0 end as due_uptmwrnty,
+		
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-04-01' and '2024-04-30'
+or   final_OF_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_OIL_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_AOS_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_VALVEKIT_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_RGT_DUE_DATE between '2024-04-01' and '2024-04-30' 
+or   FINAL_PF_HMR between '2024-04-01' and '2024-04-30'
+or   FINAL_FF_HMR between '2024-04-01' and '2024-04-30'
+or   FINAL_CF_HMR between '2024-04-01' and '2024-04-30' 
+ then 1 else 0 end) as Apr,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-04-01' and '2024-04-30'
+or   final_OF_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_OIL_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_AOS_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_VALVEKIT_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_RGT_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   FINAL_PF_HMR between '2024-04-01' and '2024-04-30'
+or   FINAL_FF_HMR between '2024-04-01' and '2024-04-30'
+or   FINAL_CF_HMR between '2024-04-01' and '2024-04-30'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as Apr_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-05-01' and '2024-05-31'
+or   final_OF_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_OIL_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_AOS_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_VALVEKIT_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_RGT_DUE_DATE between '2024-05-01' and '2024-05-31'  
+or   FINAL_PF_HMR between '2024-05-01' and '2024-05-31'
+or   FINAL_FF_HMR between '2024-05-01' and '2024-05-31'
+or   FINAL_CF_HMR between '2024-05-01' and '2024-05-31'  
+then 1 else 0 end) as May,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-05-01' and '2024-05-31'
+or   final_OF_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_OIL_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_AOS_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_VALVEKIT_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_RGT_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   FINAL_PF_HMR between '2024-05-01' and '2024-05-31'
+or   FINAL_FF_HMR between '2024-05-01' and '2024-05-31'
+or   FINAL_CF_HMR between '2024-05-01' and '2024-05-31'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as May_war,
+
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-06-01' and '2024-06-30'
+or   final_OF_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_OIL_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_AOS_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_VALVEKIT_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_RGT_DUE_DATE between '2024-06-01' and '2024-06-30' 
+or   FINAL_PF_HMR between '2024-06-01' and '2024-06-30'
+or   FINAL_FF_HMR between '2024-06-01' and '2024-06-30'
+or   FINAL_CF_HMR between '2024-06-01' and '2024-06-30' 
+ then 1 else 0 end) as Jun,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-06-01' and '2024-06-30'
+or   final_OF_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_OIL_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_AOS_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_VALVEKIT_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_RGT_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   FINAL_PF_HMR between '2024-06-01' and '2024-06-30'
+or   FINAL_FF_HMR between '2024-06-01' and '2024-06-30'
+or   FINAL_CF_HMR between '2024-06-01' and '2024-06-30'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as Jun_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-07-01' and '2024-07-31'
+or   final_OF_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_OIL_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_AOS_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_VALVEKIT_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_RGT_DUE_DATE between '2024-07-01' and '2024-07-31' 
+or   FINAL_PF_HMR between '2024-07-01' and '2024-07-31'
+or   FINAL_FF_HMR between '2024-07-01' and '2024-07-31'
+or   FINAL_CF_HMR between '2024-07-01' and '2024-07-31' 
+ then 1 else 0 end) as Jul,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-07-01' and '2024-07-31'
+or   final_OF_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_OIL_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_AOS_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_VALVEKIT_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_RGT_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   FINAL_PF_HMR between '2024-07-01' and '2024-07-31'
+or   FINAL_FF_HMR between '2024-07-01' and '2024-07-31'
+or   final_CF_HMR between '2024-07-01' and '2024-07-31'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as Jul_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-08-01' and '2024-08-31'
+or   final_OF_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_OIL_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_AOS_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_VALVEKIT_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_RGT_DUE_DATE between '2024-08-01' and '2024-08-31' 
+or   FINAL_PF_HMR between '2024-08-01' and '2024-08-31'
+or   FINAL_FF_HMR between '2024-08-01' and '2024-08-31'
+or   FINAL_CF_HMR between '2024-08-01' and '2024-08-31' 
+then 1 else 0 end) as Aug,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-08-01' and '2024-08-31'
+or   final_OF_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_OIL_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_AOS_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_VALVEKIT_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_RGT_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   FINAL_PF_HMR between '2024-08-01' and '2024-08-31'
+or   FINAL_FF_HMR between '2024-08-01' and '2024-08-31'
+or   FINAL_CF_HMR between '2024-08-01' and '2024-08-31'
+) and elgi_warrantytypename='In Uptime warranty' then 1 else 0 end) as Aug_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-09-01' and '2024-09-30'
+or   final_OF_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_OIL_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_AOS_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_VALVEKIT_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_RGT_DUE_DATE between '2024-09-01' and '2024-09-30' 
+or   FINAL_PF_HMR between '2024-09-01' and '2024-09-30'
+or   FINAL_FF_HMR between '2024-09-01' and '2024-09-30'
+or   FINAL_CF_HMR between '2024-09-01' and '2024-09-30' 
+ then 1 else 0 end) as sep,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-09-01' and '2024-09-30'
+or   final_OF_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_OIL_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_AOS_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_VALVEKIT_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_RGT_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   FINAL_PF_HMR between '2024-09-01' and '2024-09-30'
+or   FINAL_FF_HMR between '2024-09-01' and '2024-09-30'
+or   FINAL_CF_HMR between '2024-09-01' and '2024-09-30'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as sep_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-10-01' and '2024-10-31'
+or   final_OF_DUE_DATE between   '2024-10-01' and '2024-10-31'
+or   final_OIL_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_AOS_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_VALVEKIT_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_RGT_DUE_DATE between '2024-10-01' and '2024-10-31'  
+or   FINAL_PF_HMR between '2024-10-01' and '2024-10-31'
+or   FINAL_FF_HMR between '2024-10-01' and '2024-10-31'
+or   FINAL_CF_HMR between '2024-10-01' and '2024-10-31'  
+then 1 else 0 end) as oct,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-10-01' and '2024-10-31'
+or   final_OF_DUE_DATE between   '2024-10-01' and '2024-10-31'
+or   final_OIL_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_AOS_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_VALVEKIT_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_RGT_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   FINAL_PF_HMR between '2024-10-01' and '2024-10-31'
+or   FINAL_FF_HMR between '2024-10-01' and '2024-10-31'
+or   FINAL_CF_HMR between '2024-10-01' and '2024-10-31'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as oct_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-11-01' and '2024-11-30'
+or   final_OF_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_OIL_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_AOS_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_VALVEKIT_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_RGT_DUE_DATE between '2024-11-01' and '2024-11-30'  
+or   FINAL_PF_HMR between '2024-11-01' and '2024-11-30'
+or   FINAL_FF_HMR between '2024-11-01' and '2024-11-30'
+or   FINAL_CF_HMR between '2024-11-01' and '2024-11-30'  
+then 1 else 0 end) as nov,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-11-01' and '2024-11-30'
+or   final_OF_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_OIL_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_AOS_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_VALVEKIT_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_RGT_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   FINAL_PF_HMR between '2024-11-01' and '2024-11-30'
+or   FINAL_FF_HMR between '2024-11-01' and '2024-11-30'
+or   FINAL_CF_HMR between '2024-11-01' and '2024-11-30'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as nov_war,
+
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2024-12-01' and '2024-12-31'
+or   final_OF_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_OIL_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_AOS_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_VALVEKIT_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_RGT_DUE_DATE between '2024-12-01' and '2024-12-31'  
+or   FINAL_PF_HMR between '2024-12-01' and '2024-12-31'
+or   FINAL_FF_HMR between '2024-12-01' and '2024-12-31'
+or   FINAL_CF_HMR between '2024-12-01' and '2024-12-31'  
+then 1 else 0 end) as dec,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-12-01' and '2024-12-31'
+or   final_OF_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_OIL_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_AOS_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_VALVEKIT_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_RGT_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   FINAL_PF_HMR between '2024-12-01' and '2024-12-31'
+or   FINAL_FF_HMR between '2024-12-01' and '2024-12-31'
+or   FINAL_CF_HMR between '2024-12-01' and '2024-12-31'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as dec_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2025-01-01' and '2025-01-31'
+or   final_OF_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_OIL_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_AOS_DUE_DATE between '2025-01-01' and '2025-01-31'
+or  final_VALVEKIT_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_RGT_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   FINAL_PF_HMR between '2025-01-01' and '2025-01-31'
+or   FINAL_FF_HMR between '2025-01-01' and '2025-01-31'
+or   FINAL_CF_HMR between '2025-01-01' and '2025-01-31'
+  then 1 else 0 end) as Jan,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2025-01-01' and '2025-01-31'
+or   final_OF_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_OIL_DUE_DATE between '2025-01-01' and '2025-01-31'
+or final_AOS_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_VALVEKIT_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_RGT_DUE_DATE between '2025-01-01' and '2025-01-31'
+or FINAL_PF_HMR between '2025-01-01' and '2025-01-31'
+or   FINAL_FF_HMR between '2025-01-01' and '2025-01-31'
+or   FINAL_CF_HMR between '2025-01-01' and '2025-01-31'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as Jan_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2025-02-01' and '2025-02-28'
+or   final_OF_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_OIL_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_AOS_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_VALVEKIT_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_RGT_DUE_DATE between '2025-02-01' and '2025-02-28'  
+or   FINAL_PF_HMR between '2025-02-01' and '2025-02-28'
+or   FINAL_FF_HMR between '2025-02-01' and '2025-02-28'
+or   FINAL_CF_HMR between '2025-02-01' and '2025-02-28'  
+then 1 else 0 end) as Feb,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2025-02-01' and '2025-02-28'
+or   final_OF_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_OIL_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_AOS_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_VALVEKIT_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_RGT_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   FINAL_PF_HMR between '2025-02-01' and '2025-02-28'
+or   FINAL_FF_HMR between '2025-02-01' and '2025-02-28'
+or   FINAL_CF_HMR between '2025-02-01' and '2025-02-28'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as Feb_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE  between '2025-03-01' and '2025-03-31'
+or final_OF_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_OIL_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_AOS_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_VALVEKIT_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_RGT_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   FINAL_PF_HMR between '2025-03-01' and '2025-03-31'
+or   FINAL_FF_HMR between '2025-03-01' and '2025-03-31'
+or   FINAL_CF_HMR between '2025-03-01' and '2025-03-31'
+
+  then 1 else 0 end) as Mar,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2025-03-01' and '2025-03-31'
+or   final_OF_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_OIL_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_AOS_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_VALVEKIT_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_RGT_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   FINAL_PF_HMR between '2025-03-01' and '2025-03-31'
+or   FINAL_FF_HMR between '2025-03-01' and '2025-03-31'
+or   FINAL_CF_HMR between '2025-03-01' and '2025-03-31'
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as Mar_war,
+
+SUM(CASE WHEN final_AF_DUE_DATE <'2024-04-01'
+or   final_OF_DUE_DATE <'2024-04-01'
+or   final_OIL_DUE_DATE <'2024-04-01'
+or   final_AOS_DUE_DATE <'2024-04-01'
+or   final_VALVEKIT_DUE_DATE <'2024-04-01'
+or  final_RGT_DUE_DATE <'2024-04-01'
+or   FINAL_PF_HMR <'2024-04-01'
+or   FINAL_FF_HMR <'2024-04-01'
+or   FINAL_CF_HMR <'2024-04-01'
+then 1 else 0 end) as bfapr,
+
+SUM(CASE WHEN (final_AF_DUE_DATE <'2024-04-01'
+or   final_OF_DUE_DATE <'2024-04-01'
+or   final_OIL_DUE_DATE <'2024-04-01'
+or   final_AOS_DUE_DATE <'2024-04-01'
+or   final_VALVEKIT_DUE_DATE <'2024-04-01'
+or   final_RGT_DUE_DATE <'2024-04-01'
+or   FINAL_PF_HMR <'2024-04-01'
+or   FINAL_FF_HMR <'2024-04-01'
+or   FINAL_CF_HMR <'2024-04-01'
+
+) and elgi_warrantytypename='In Uptime warranty'  then 1 else 0 end) as bfapr_war,
+
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-04-01' and '2024-04-30'
+or   final_OF_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_OIL_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_AOS_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_VALVEKIT_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   final_RGT_DUE_DATE between '2024-04-01' and '2024-04-30'
+or   FINAL_PF_HMR between '2024-04-01' and '2024-04-30'
+or   FINAL_FF_HMR between '2024-04-01' and '2024-04-30'
+or   FINAL_CF_HMR between '2024-04-01' and '2024-04-30'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as Apr_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-05-01' and '2024-05-31'
+or   final_OF_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_OIL_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_AOS_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_VALVEKIT_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   final_RGT_DUE_DATE between '2024-05-01' and '2024-05-31'
+or   FINAL_PF_HMR between '2024-05-01' and '2024-05-31'
+or   final_FF_HMR between '2024-05-01' and '2024-05-31'
+or   FINAL_CF_HMR between '2024-05-01' and '2024-05-31'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as May_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-06-01' and '2024-06-30'
+or   final_OF_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_OIL_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_AOS_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_VALVEKIT_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   final_RGT_DUE_DATE between '2024-06-01' and '2024-06-30'
+or   FINAL_PF_HMR between '2024-06-01' and '2024-06-30'
+or   FINAL_FF_HMR between '2024-06-01' and '2024-06-30'
+or   FINAL_CF_HMR between '2024-06-01' and '2024-06-30'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as Jun_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-07-01' and '2024-07-31'
+or   final_OF_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_OIL_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_AOS_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_VALVEKIT_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   final_RGT_DUE_DATE between '2024-07-01' and '2024-07-31'
+or   FINAL_PF_HMR between '2024-07-01' and '2024-07-31'
+or   FINAL_FF_HMR between '2024-07-01' and '2024-07-31'
+or   FINAL_CF_HMR between '2024-07-01' and '2024-07-31'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as Jul_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-08-01' and '2024-08-31'
+or   final_OF_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_OIL_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_AOS_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_VALVEKIT_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   final_RGT_DUE_DATE between '2024-08-01' and '2024-08-31'
+or   FINAL_PF_HMR between '2024-08-01' and '2024-08-31'
+or   FINAL_FF_HMR between '2024-08-01' and '2024-08-31'
+or   FINAL_CF_HMR between '2024-08-01' and '2024-08-31'
+
+) and elgi_warrantytypename='In Standard Warranty' then 1 else 0 end) as Aug_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-09-01' and '2024-09-30'
+or   final_OF_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_OIL_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_AOS_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_VALVEKIT_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   final_RGT_DUE_DATE between '2024-09-01' and '2024-09-30'
+or   FINAL_PF_HMR between '2024-09-01' and '2024-09-30'
+or   FINAL_FF_HMR between '2024-09-01' and '2024-09-30'
+or   FINAL_CF_HMR between '2024-09-01' and '2024-09-30'
+
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as sep_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-10-01' and '2024-10-31'
+or   final_OF_DUE_DATE between   '2024-10-01' and '2024-10-31'
+or   final_OIL_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_AOS_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_VALVEKIT_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   final_RGT_DUE_DATE between '2024-10-01' and '2024-10-31'
+or   FINAL_PF_HMR between '2024-10-01' and '2024-10-31'
+or   FINAL_FF_HMR between '2024-10-01' and '2024-10-31'
+or   FINAL_CF_HMR between '2024-10-01' and '2024-10-31'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as oct_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-11-01' and '2024-11-30'
+or   final_OF_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_OIL_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_AOS_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_VALVEKIT_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   final_RGT_DUE_DATE between '2024-11-01' and '2024-11-30'
+or   FINAL_PF_HMR between '2024-11-01' and '2024-11-30'
+or   FINAL_FF_HMR between '2024-11-01' and '2024-11-30'
+or   FINAL_CF_HMR between '2024-11-01' and '2024-11-30'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as nov_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2024-12-01' and '2024-12-31'
+or   final_OF_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_OIL_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_AOS_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_VALVEKIT_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   final_RGT_DUE_DATE between '2024-12-01' and '2024-12-31'
+or   FINAL_PF_HMR between '2024-12-01' and '2024-12-31'
+or   FINAL_FF_HMR between '2024-12-01' and '2024-12-31'
+or   FINAL_CF_HMR between '2024-12-01' and '2024-12-31'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as dec_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2025-01-01' and '2025-01-31'
+or   final_OF_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_OIL_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_AOS_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_VALVEKIT_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   final_RGT_DUE_DATE between '2025-01-01' and '2025-01-31'
+or   FINAL_PF_HMR between '2025-01-01' and '2025-01-31'
+or   FINAL_FF_HMR between '2025-01-01' and '2025-01-31'
+or   FINAL_CF_HMR between '2025-01-01' and '2025-01-31'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as Jan_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2025-02-01' and '2025-02-28'
+or   final_OF_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_OIL_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_AOS_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_VALVEKIT_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   final_RGT_DUE_DATE between '2025-02-01' and '2025-02-28'
+or   FINAL_PF_HMR between '2025-02-01' and '2025-02-28'
+or   FINAL_FF_HMR between '2025-02-01' and '2025-02-28'
+or   FINAL_CF_HMR between '2025-02-01' and '2025-02-28'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as Feb_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE  between '2025-03-01' and '2025-03-31'
+or   final_OF_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_OIL_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_AOS_DUE_DATE between '2025-03-01' and '2025-03-31'
+or  final_VALVEKIT_DUE_DATE between '2025-03-01' and '2025-03-31'
+or   final_RGT_DUE_DATE between '2025-03-01' and '2025-03-31'
+OR  FINAL_PF_HMR between '2025-03-01' and '2025-03-31' 
+OR  FINAL_FF_HMR  between '2025-03-01' and '2025-03-31'
+OR  FINAL_CF_HMR between '2025-03-01' and '2025-03-31'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as Mar_st,
+
+SUM(CASE WHEN (final_AF_DUE_DATE <'2024-04-01'
+or   final_OF_DUE_DATE <'2024-04-01'
+or   final_OIL_DUE_DATE <'2024-04-01'
+or   final_AOS_DUE_DATE <'2024-04-01'
+or   final_VALVEKIT_DUE_DATE <'2024-04-01'
+or final_RGT_DUE_DATE <'2024-04-01'
+OR  FINAL_PF_HMR<'2024-04-01' OR  FINAL_FF_HMR<'2024-04-01' OR  FINAL_CF_HMR<'2024-04-01'
+) and elgi_warrantytypename='In Standard Warranty'  then 1 else 0 end) as bfapr_st,
+
+
+sum(case when final_AF_DUE_DATE  between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprAF,
+sum(case when final_AF_DUE_DATE  between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayAF,
+sum(case when final_AF_DUE_DATE  between '2024-06-01' and '2024-06-30' then 1 else 0 end) junAF,
+sum(case when final_AF_DUE_DATE  between '2024-07-01' and '2024-07-31' then 1 else 0 end) julAF,
+sum(case when final_AF_DUE_DATE  between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugAF,
+sum(case when final_AF_DUE_DATE  between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepAF,
+sum(case when final_AF_DUE_DATE  between '2024-10-01' and '2024-10-31' then 1 else 0 end) octAF,
+sum(case when final_AF_DUE_DATE  between '2024-11-01' and '2024-11-30' then 1 else 0 end) novAF,
+sum(case when final_AF_DUE_DATE  between '2024-12-01' and '2024-12-31' then 1 else 0 end) decAF,
+sum(case when final_AF_DUE_DATE  between '2025-01-01' and '2025-01-31' then 1 else 0 end) janAF,
+sum(case when final_AF_DUE_DATE  between '2025-02-01' and '2025-02-28' then 1 else 0 end) febAF,
+sum(case when final_AF_DUE_DATE  between '2025-03-01' and '2025-03-31' then 1 else 0 end) marAF,
+sum(case when final_AF_DUE_DATE <'2024-04-01' then 1 else 0 end) bfaprAF,
+
+
+sum(case when final_OF_DUE_DATE  between '2024-04-01' and '2024-04-30' then 1 else 0 end) Aprof,
+sum(case when final_OF_DUE_DATE  between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayof,
+sum(case when final_OF_DUE_DATE  between '2024-06-01' and '2024-06-30' then 1 else 0 end) junof,
+sum(case when final_OF_DUE_DATE  between '2024-07-01' and '2024-07-31' then 1 else 0 end) julof,
+sum(case when final_OF_DUE_DATE  between '2024-08-01' and '2024-08-31' then 1 else 0 end) Augof,
+sum(case when final_OF_DUE_DATE  between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepof,
+sum(case when final_OF_DUE_DATE  between '2024-10-01' and '2024-10-31' then 1 else 0 end) octof,
+sum(case when final_OF_DUE_DATE  between '2024-11-01' and '2024-11-30' then 1 else 0 end) novof,
+sum(case when final_OF_DUE_DATE  between '2024-12-01' and '2024-12-31' then 1 else 0 end) decof,
+sum(case when final_OF_DUE_DATE  between '2025-01-01' and '2025-01-31' then 1 else 0 end) janof,
+sum(case when final_OF_DUE_DATE  between '2025-02-01' and '2025-02-28' then 1 else 0 end) febof,
+sum(case when final_OF_DUE_DATE  between '2025-03-01' and '2025-03-31' then 1 else 0 end) marof,
+sum(case when final_OF_DUE_DATE <'2024-04-01' then 1 else 0 end) bfaprof,
+
+
+sum(case when final_OIL_DUE_DATE  between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-06-01' and '2024-06-30' then 1 else 0 end) junOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-07-01' and '2024-07-31' then 1 else 0 end) julOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-10-01' and '2024-10-31' then 1 else 0 end) octOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-11-01' and '2024-11-30' then 1 else 0 end) novOIL,
+sum(case when final_OIL_DUE_DATE  between '2024-12-01' and '2024-12-31' then 1 else 0 end) decOIL,
+sum(case when final_OIL_DUE_DATE  between '2025-01-01' and '2025-01-31' then 1 else 0 end) janOIL,
+sum(case when final_OIL_DUE_DATE  between '2025-02-01' and '2025-02-28' then 1 else 0 end) febOIL,
+sum(case when final_OIL_DUE_DATE  between '2025-03-01' and '2025-03-31' then 1 else 0 end) marOIL,
+sum(case when final_OIL_DUE_DATE <'2024-04-01' then 1 else 0 end) bfaprOIL,
+
+sum(case when final_AOS_DUE_DATE  between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-06-01' and '2024-06-30' then 1 else 0 end) junAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-07-01' and '2024-07-31' then 1 else 0 end) julAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-10-01' and '2024-10-31' then 1 else 0 end) octAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-11-01' and '2024-11-30' then 1 else 0 end) novAOS,
+sum(case when final_AOS_DUE_DATE  between '2024-12-01' and '2024-12-31' then 1 else 0 end) decAOS,
+sum(case when final_AOS_DUE_DATE  between '2025-01-01' and '2025-01-31' then 1 else 0 end) janAOS,
+sum(case when final_AOS_DUE_DATE  between '2025-02-01' and '2025-02-28' then 1 else 0 end) febAOS,
+sum(case when final_AOS_DUE_DATE  between '2025-03-01' and '2025-03-31' then 1 else 0 end) marAOS,
+sum(case when final_AOS_DUE_DATE <'2024-04-01' then 1 else 0 end) bfaprAOS,
+
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-06-01' and '2024-06-30' then 1 else 0 end) junVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-07-01' and '2024-07-31' then 1 else 0 end) julVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-10-01' and '2024-10-31' then 1 else 0 end) octVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-11-01' and '2024-11-30' then 1 else 0 end) novVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2024-12-01' and '2024-12-31' then 1 else 0 end) decVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2025-01-01' and '2025-01-31' then 1 else 0 end) janVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2025-02-01' and '2025-02-28' then 1 else 0 end) febVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE  between '2025-03-01' and '2025-03-31' then 1 else 0 end) marVALVEKIT,
+sum(case when final_VALVEKIT_DUE_DATE<'2024-04-01' then 1 else 0 end) bfaprVALVEKIT,
+
+
+sum(case when final_RGT_DUE_DATE  between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-06-01' and '2024-06-30' then 1 else 0 end) junRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-07-01' and '2024-07-31' then 1 else 0 end) julRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-10-01' and '2024-10-31' then 1 else 0 end) octRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-11-01' and '2024-11-30' then 1 else 0 end) novRGT,
+sum(case when final_RGT_DUE_DATE  between '2024-12-01' and '2024-12-31' then 1 else 0 end) decRGT,
+sum(case when final_RGT_DUE_DATE  between '2025-01-01' and '2025-01-31' then 1 else 0 end) janRGT,
+sum(case when final_RGT_DUE_DATE  between '2025-02-01' and '2025-02-28' then 1 else 0 end) febRGT,
+sum(case when final_RGT_DUE_DATE  between '2025-03-01' and '2025-03-31' then 1 else 0 end) marRGT,
+sum(case when final_RGT_DUE_DATE<'2024-04-01' then 1 else 0 end) bfaprRGT,
+
+sum(case when FINAL_PF_HMR between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprPF,
+sum(case when FINAL_PF_HMR between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayPF,
+sum(case when FINAL_PF_HMR between '2024-06-01' and '2024-06-30' then 1 else 0 end) junPF,
+sum(case when FINAL_PF_HMR between '2024-07-01' and '2024-07-31' then 1 else 0 end) julPF,
+sum(case when FINAL_PF_HMR between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugPF,
+sum(case when FINAL_PF_HMR between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepPF,
+sum(case when FINAL_PF_HMR between '2024-10-01' and '2024-10-31' then 1 else 0 end) octPF,
+sum(case when FINAL_PF_HMR between '2024-11-01' and '2024-11-30' then 1 else 0 end) novPF,
+sum(case when FINAL_PF_HMR between '2024-12-01' and '2024-12-31' then 1 else 0 end) decPF,
+sum(case when FINAL_PF_HMR between '2025-01-01' and '2025-01-31' then 1 else 0 end) janPF,
+sum(case when FINAL_PF_HMR between '2025-02-01' and '2025-02-28' then 1 else 0 end) febPF,
+sum(case when FINAL_PF_HMR between '2025-03-01' and '2025-03-31' then 1 else 0 end) marPF,
+sum(case when FINAL_PF_HMR <'2024-04-01' then 1 else 0 end) bfaprPF,
+
+sum(case when FINAL_FF_HMR between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprFF,
+sum(case when FINAL_FF_HMR between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayFF,
+sum(case when FINAL_FF_HMR between '2024-06-01' and '2024-06-30' then 1 else 0 end) junFF,
+sum(case when FINAL_FF_HMR between '2024-07-01' and '2024-07-31' then 1 else 0 end) julFF,
+sum(case when FINAL_FF_HMR between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugFF,
+sum(case when FINAL_FF_HMR between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepFF,
+sum(case when FINAL_FF_HMR between '2024-10-01' and '2024-10-31' then 1 else 0 end) octFF,
+sum(case when FINAL_FF_HMR between '2024-11-01' and '2024-11-30' then 1 else 0 end) novFF,
+sum(case when FINAL_FF_HMR between '2024-12-01' and '2024-12-31' then 1 else 0 end) decFF,
+sum(case when FINAL_FF_HMR between '2025-01-01' and '2025-01-31' then 1 else 0 end) janFF,
+sum(case when FINAL_FF_HMR between '2025-02-01' and '2025-02-28' then 1 else 0 end) febFF,
+sum(case when FINAL_FF_HMR between '2025-03-01' and '2025-03-31' then 1 else 0 end) marFF,
+sum(case when FINAL_FF_HMR <'2024-04-01' then 1 else 0 end) bfaprFF,
+
+sum(case when FINAL_CF_HMR between '2024-04-01' and '2024-04-30' then 1 else 0 end) AprCF,
+sum(case when FINAL_CF_HMR between '2024-05-01' and '2024-05-31' then 1 else 0 end) mayCF,
+sum(case when FINAL_CF_HMR between '2024-06-01' and '2024-06-30' then 1 else 0 end) junCF,
+sum(case when FINAL_CF_HMR between '2024-07-01' and '2024-07-31' then 1 else 0 end) julCF,
+sum(case when FINAL_CF_HMR between '2024-08-01' and '2024-08-31' then 1 else 0 end) AugCF,
+sum(case when FINAL_CF_HMR between '2024-09-01' and '2024-09-30' then 1 else 0 end) sepCF,
+sum(case when FINAL_CF_HMR between '2024-10-01' and '2024-10-31' then 1 else 0 end) octCF,
+sum(case when FINAL_CF_HMR between '2024-11-01' and '2024-11-30' then 1 else 0 end) novCF,
+sum(case when FINAL_CF_HMR between '2024-12-01' and '2024-12-31' then 1 else 0 end) decCF,
+sum(case when FINAL_CF_HMR between '2025-01-01' and '2025-01-31' then 1 else 0 end) janCF,
+sum(case when FINAL_CF_HMR between '2025-02-01' and '2025-02-28' then 1 else 0 end) febCF,
+sum(case when FINAL_CF_HMR between '2025-03-01' and '2025-03-31' then 1 else 0 end) marCF,
+sum(case when FINAL_CF_HMR <'2024-04-01' then 1 else 0 end) bfaprCF
+
+fROM STAGE1
+group by fabno,msdyn_account,elgi_lockindealername,elgi_warrantytypename,elgi_lockindealer,territoryidname,elgi_productsubgroupname,
+substring(elgi_assetclustersparesname,1,1),substring(elgi_assetclustersparesname,1,2),elgi_assetclustersparesname,
+elgi_dateofcommissioning,af_clr,of_clr,oil_clr,aos_clr,VALVEKIT_CLR,RGT_CLR,pf_clr,ff_clr,cf_clr,elgi_warrantytypename
+
+)a)a
+group by territoryidname,elgi_lockindealername,elgi_productsubgroupname
+
+
+		---------------------------- overdue,curdue,feturedue machines
+alter table over_cur_fet_Dues alter column elgi_lockindealername varchar(1000)
+alter table over_cur_fet_Dues alter column elgi_productsubgroupname varchar(1000)
+alter table over_cur_fet_Dues alter column fabno varchar(1000)
+
+-- DROP TABLE over_cur_fet_Dues
+		insert into over_cur_fet_Dues
+
+		SELECT elgi_lockindealername,elgi_productsubgroupname,fabno,
+sum(case when AF_CLR='Red' or OF_CLR='Red' or OIL_CLR='Red' or AOS_CLR='Red' or VALVEKIT_CLR='Red' or RGT_CLR='Red' 
+or PF_CLR='Red' or FF_CLR='Red' or CF_CLR='Red'  then 1 else 0 end) as overdue,
+sum(case when AF_CLR='Yellow' or OF_CLR='Yellow' or OIL_CLR='Yellow' or AOS_CLR='Yellow' or VALVEKIT_CLR='Yellow' or RGT_CLR='Yellow'
+ or PF_CLR='Yellow' or FF_CLR='Yellow' or CF_CLR='Yellow' then 1 else 0 end) as curdue,
+sum(case when AF_CLR='Green' or OF_CLR='Green' or OIL_CLR='Green' or AOS_CLR='Green' or VALVEKIT_CLR='Green' or RGT_CLR='Green'
+ or PF_CLR='Green' or FF_CLR='Green' or CF_CLR='Green' then 1 else 0 end) as fetdue  
+	-- into over_cur_fet_Dues
+ fROM (SELECT * fROM STAGE1)a
+where elgi_lockindealername is not null
+group by elgi_lockindealername,elgi_productsubgroupname,fabno
+order by elgi_lockindealername
+
+------------------- end
+update crm_servicedue set overdue= a.overdue,curntdue=a.curdue,feturdue=a.fetdue 
+from(
+select elgi_lockindealername,elgi_productsubgroupname,sum(overdue)overdue,sum(curdue)curdue,sum(fetdue)fetdue from over_cur_fet_Dues
+group by elgi_lockindealername,elgi_productsubgroupname) a
+where crm_servicedue.elgi_lockindealername=a.elgi_lockindealername
+and crm_servicedue.elgi_productsubgroupname=a.elgi_productsubgroupname
+
+
+update stage1 set overdue= a.overdue,curntdue=a.curdue,feturdue=a.fetdue from over_cur_fet_Dues a
+where stage1.elgi_lockindealername=a.elgi_lockindealername
+and stage1.elgi_productsubgroupname=a.elgi_productsubgroupname
+and stage1.fabno=a.fabno
+
+update stage1 set elgi_warrantytypename='Out of warranty'  where isnull(elgi_warrantytypename,'')=''
+---------- testing
+
+--select elgi_hmrairfilterremaining,
+--elgi_hmrmotorregressedremaining,
+--elgi_hmroilfilterremaining,
+--elgi_hmroilremaining,
+--elgi_hmrseparatorremaining,
+--elgi_hmrvalvekitremaining
+-- from [elgi_crm].dbo.MSDYN_CUSTOMERASSET_crm
+--where		elgi_lockindealername in (select distinct * from service_dealer_list) and
+--	elgi_productsubgroupname in ('SEPSAC','encap','Lepsac') and 
+--	(elgi_hmrairfilterremaining like '%[a-z]%' or
+--elgi_hmrmotorregressedremaining like '%[a-z]%' or
+--elgi_hmroilfilterremaining like '%[a-z]%' or
+--elgi_hmroilremaining like '%[a-z]%' or
+--elgi_hmrseparatorremaining like '%[a-z]%' or
+--elgi_hmrvalvekitremaining like '%[a-z]%')
+
+
+
+		select * from crm_servicedue  --where elgi_lockindealername='DYNACORP ENGINEERING PVT LTD - CU1D00990'
+		end
+
+
+
+
+
+
+
+
+
+Completion time: 2025-11-19T09:22:56.8296269+05:30

@@ -1,0 +1,17 @@
+create function [dbo].[UFN_WEEKEND_DAYS](@fromdate as DATE,@todate as DATE)
+returns INT
+as
+begin
+declare @cnt int
+set @cnt =0
+
+while(@fromdate<=@todate)
+begin
+if(datepart(DW,@fromdate)=1 or datepart(DW,@fromdate)=7)
+begin
+set @cnt=@cnt+1
+end
+set @fromdate=dateadd(dd,1,@fromdate)
+end
+return @cnt 
+END

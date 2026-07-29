@@ -1,0 +1,126 @@
+--exec sp_ACP_ControlAccount '2025-03-31'
+CREATE proc sp_ACP_ControlAccount(@AS_OF_DATE date) as 
+
+Begin
+
+--Declare @AS_OF_DATE date='2024-05-23'
+Declare @Finyear varchar(10)=case when month(@AS_OF_DATE)<4 then year(@AS_OF_DATE)-1 else year(@AS_OF_DATE) end
+declare @Finmonth varchar(10) =case when month(@AS_OF_DATE)<4 then month(@AS_OF_DATE)+9 else month(@AS_OF_DATE)-3 end
+--select @Finyear,@Finmonth
+
+Truncate table ACP_ControlAccount_Temp
+Truncate table ACP_ControlAccount
+
+
+
+
+--Alter table ACP_ControlAccount add ClosingBalance float
+
+
+Insert into ACP_ControlAccount_Temp(YEAR,CONO,LEAC,OpeningBalance)
+select YEAR,CONO,LEAC,
+sum(convert(float,FOBH$1)) as OeningBalance
+from TTFGLD203400
+where 
+leac in (select distinct ledgercode from vw_Creditors_Ledgers)
+group by YEAR,CONO,LEAC
+
+
+Insert into ACP_ControlAccount_Temp(YEAR,CONO,LEAC,CurrentValue)
+select  YEAR,CONO,LEAC,
+sum(convert(float,FDAH$1)) - sum(convert(float,FCAH$1))  as CurrentValue
+from TTFGLD201400 
+where   year < @Finyear and  PTYP=1 
+and leac in (select distinct ledgercode from vw_Creditors_Ledgers)
+group by YEAR,CONO,LEAC
+
+
+Insert into ACP_ControlAccount_Temp(YEAR,CONO,LEAC,CurrentValue)
+select  YEAR,CONO,LEAC,
+sum(convert(float,FDAH$1)) - sum(convert(float,FCAH$1))  as CurrentValue
+from TTFGLD201400
+where   year = @Finyear and  convert(int,prno) <= @Finmonth and  PTYP=1
+and leac in (select distinct ledgercode from vw_Creditors_Ledgers)
+group by YEAR,CONO,LEAC
+
+
+
+--Alter table ACP_ControlAccount add CurrentValue float
+--sp_rename 'ACP_ControlAccount.OeningBalance','OpeningBalance'
+
+
+insert into ACP_ControlAccount(YEAR,CONO,LEAC,OpeningBalance,CurrentValue)
+select YEAR,CONO,LEAC,
+sum(OpeningBalance) OpeningBalance,
+sum(CurrentValue) CurrentValue
+from ACP_ControlAccount_Temp
+group by YEAR,CONO,LEAC
+
+
+update ACP_ControlAccount set ClosingBalance=isnull(OpeningBalance,0)+isnull(CurrentValue,0)
+
+
+-------------------------------------------------------------------------------------------------------------------
+--ELGi Sauer 
+
+
+--Declare @AS_OF_DATE date='2024-05-23'
+--Declare @Finyear varchar(10)=case when month(@AS_OF_DATE)<4 then year(@AS_OF_DATE)-1 else year(@AS_OF_DATE) end
+--declare @Finmonth varchar(10) =case when month(@AS_OF_DATE)<4 then month(@AS_OF_DATE)+9 else month(@AS_OF_DATE)-3 end
+--select @Finyear,@Finmonth
+
+Truncate table ACP_ControlAccount_Temp
+Truncate table ACP_ControlAccount_581
+
+
+
+
+--Alter table ACP_ControlAccount add ClosingBalance float
+
+
+Insert into ACP_ControlAccount_Temp(YEAR,CONO,LEAC,OpeningBalance)
+select YEAR,CONO,LEAC,
+sum(convert(float,FOBH$1)) as OeningBalance
+from TTFGLD203581
+where 
+leac in (select distinct ledgercode from vw_Creditors_Ledgers_581)
+group by YEAR,CONO,LEAC
+
+
+Insert into ACP_ControlAccount_Temp(YEAR,CONO,LEAC,CurrentValue)
+select  YEAR,CONO,LEAC,
+sum(convert(float,FDAH$1)) - sum(convert(float,FCAH$1))  as CurrentValue
+from TTFGLD201581 
+where   year < @Finyear and  PTYP=1 
+and leac in (select distinct ledgercode from vw_Creditors_Ledgers_581)
+group by YEAR,CONO,LEAC
+
+
+Insert into ACP_ControlAccount_Temp(YEAR,CONO,LEAC,CurrentValue)
+select  YEAR,CONO,LEAC,
+sum(convert(float,FDAH$1)) - sum(convert(float,FCAH$1))  as CurrentValue
+from TTFGLD201581
+where   year = @Finyear and  convert(int,prno) <= @Finmonth and  PTYP=1
+and leac in (select distinct ledgercode from vw_Creditors_Ledgers_581)
+group by YEAR,CONO,LEAC
+
+
+
+--Alter table ACP_ControlAccount add CurrentValue float
+--sp_rename 'ACP_ControlAccount.OeningBalance','OpeningBalance'
+
+
+insert into ACP_ControlAccount_581(YEAR,CONO,LEAC,OpeningBalance,CurrentValue)
+select YEAR,CONO,LEAC,
+sum(OpeningBalance) OpeningBalance,
+sum(CurrentValue) CurrentValue
+from ACP_ControlAccount_Temp
+group by YEAR,CONO,LEAC
+
+
+update ACP_ControlAccount_581 set ClosingBalance=isnull(OpeningBalance,0)+isnull(CurrentValue,0)
+
+
+end
+
+select * from ACP_ControlAccount_581

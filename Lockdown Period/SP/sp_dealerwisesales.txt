@@ -1,0 +1,111 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_dealerwisesales
+--select * From  dealerwisesales
+CREATE proc sp_dealerwisesales
+as
+begin
+
+declare @year int
+set @year =(select case when month(getdate()-1)<4 then year(getdate()-1)-1 else year(getdate()-1)end)
+
+truncate table dealerwisesales
+insert into dealerwisesales
+
+select *  From (
+select Fin_year,dpst,custcode,CustName1 ,AreaCode ,AreaName ,Zone,itemcode,item_desc,
+sum(mon_act1)/1000000 as mon_act1 ,
+sum(mon_act2)/1000000  as mon_act2 ,
+sum(mon_act3)/1000000  as mon_act3 ,
+sum(mon_act4)/1000000  as mon_act4 ,
+sum(mon_act5)/1000000  as mon_act5 ,
+sum(mon_act6)/1000000  as mon_act6 ,
+sum(mon_act7)/1000000  as mon_act7 ,
+sum(mon_act8)/1000000  as mon_act8 ,
+sum(mon_act9)/1000000  as mon_act9 ,
+sum(mon_act10)/1000000 as mon_act10, 
+sum(mon_act11)/1000000 as mon_act11 ,
+sum(mon_act12)/1000000 as mon_act12 ,
+sum(ytd_act )/1000000 as ytd_act,
+sum(qty1)as qty1,sum(qty2)as qty2,sum(qty3)as qty3,sum(qty4)as qty4,sum(qty5)as qty5,sum(qty6)as qty6,sum(qty7)as qty7,sum(qty8)as qty8,
+sum(qty9)as qty9,sum(qty10)as qty10,sum(qty11)as qty11,sum(qty12)as qty12,sum(ytd_qty)as ytd_qty
+
+ From (
+
+select Fin_year,fin_month,dpst,custcode,CustName1 ,AreaCode ,AreaName ,Zone ,itemcode,item_desc,
+sum(case when Fin_year = @year then sales else 0 end ) as ytd_act,
+sum(case when Fin_year = @year then qty else 0 end) as ytd_qty,
+sum(case when Fin_month = 1 and Fin_year = @year then Sales else 0 end) as mon_act1,
+sum(case when Fin_month = 1 and Fin_year = @year then qty else 0 end) as qty1,
+sum(case when Fin_month = 2 and Fin_year = @year then Sales else 0 end) as mon_act2,
+sum(case when Fin_month = 2 and Fin_year = @year then qty else 0 end) as qty2,
+sum(case when Fin_month = 3 and Fin_year = @year then Sales else 0 end) as mon_act3,
+sum(case when Fin_month = 3 and Fin_year = @year then qty else 0 end) as qty3,
+sum(case when Fin_month = 4 and Fin_year = @year then Sales else 0 end) as mon_act4,
+sum(case when Fin_month = 4 and Fin_year = @year then qty else 0 end) as qty4,
+sum(case when Fin_month = 5 and Fin_year = @year then Sales else 0 end) as mon_act5,
+sum(case when Fin_month = 5 and Fin_year = @year then qty else 0 end) as qty5,
+sum(case when Fin_month = 6 and Fin_year = @year then Sales else 0 end) as mon_act6,
+sum(case when Fin_month = 6 and Fin_year = @year then qty else 0 end) as qty6,
+sum(case when Fin_month = 7 and Fin_year = @year then Sales else 0 end) as mon_act7,
+sum(case when Fin_month = 7 and Fin_year = @year then qty else 0 end) as qty7,
+sum(case when Fin_month = 8 and Fin_year = @year then Sales else 0 end) as mon_act8,
+sum(case when Fin_month = 8 and Fin_year = @year then qty else 0 end) as qty8,
+sum(case when Fin_month = 9 and Fin_year = @year then Sales else 0 end) as mon_act9,
+sum(case when Fin_month = 9 and Fin_year = @year then qty else 0 end) as qty9,
+sum(case when Fin_month = 10 and Fin_year = @year then Sales else 0 end) as mon_act10,
+sum(case when Fin_month = 10 and Fin_year = @year then qty else 0 end) as qty10,
+sum(case when Fin_month = 11 and Fin_year = @year then Sales else 0 end) as mon_act11,
+sum(case when Fin_month = 11 and Fin_year = @year then qty else 0 end) as qty11,
+sum(case when Fin_month = 12 and Fin_year = @year then Sales else 0 end) as mon_act12,
+sum(case when Fin_month = 12 and Fin_year = @year then qty else 0 end) as qty12
+From (
+
+select years,months,dpst,custcode,CustName1 ,AreaCode ,AreaName ,Zone ,itemcode,item_desc ,sum(sales)as sales,sum(qty)as qty,
+	case when months<4 then years-1 else years end as Fin_year,
+			case when months<4 then months+9 else Months-3 end as Fin_month
+ From (
+	
+SELECT year(Invoice_Date) as Years, month(Invoice_Date) as months,item_desc,
+AreaName,AreaCode,zone, Invoice_Date ,OrderNum,ltrim(rtrim(ItemCode)) as Itemcode, 
+dpst,a.custcode ,custname as custname1,qty,sales 
+FROM       
+(select areacode,areaname,zone,company,DeliveryQty as qty,OrderNo as OrderNum,PositionNo as PositionNum ,
+Invoice as invnum ,Trantype ,CustCode,custname,item as itemcode,Item_desc,dpst,
+sum(Sales_amount)as sales,Invoice_Date From ELGi_Sales_Details 
+where ltrim(rtrim(ZONE)) IN ('West','South','North','East')
+and (Invoice_Date>='2017-04-01') and sales_category not in (1)
+and year(Invoice_Date) in (@year)
+and concat(company,SaleOrderType) IN(select concat(company,saleordertype)  from saletype_master where Sales_Category not in (1))
+--and DeliveryQty >0
+group by areacode,areaname,zone,company,DeliveryQty,OrderNo,PositionNo,
+Invoice,Trantype,CustCode,custname,item,Item_desc,dpst,Invoice_Date 
+)a
+--left join vw_Business_Partner  b
+--on ltrim(rtrim(a.CustCode)) =ltrim(rtrim(b.custcode)) 
+--left join vw_AREA_MASTER c
+--on ltrim(rtrim(b.CustAreaCode)) =ltrim(rtrim(c.Areacode)) 
+--left join vw_Item_Master d
+--on concat(case when a.company in (465,470,490,500,551,552,600)then a.Company else 400 end,ltrim(rtrim(a.ItemCode))) =concat(d.company,ltrim(rtrim(d.Item)))
+--Left outer JOIN InflowProduct ON InflowDetails.Dpst = InflowProduct.Dpst AND InflowDetails.ItemCode = InflowProduct.ItemCode      
+
+)a
+group by years,months,dpst,custcode,CustName1 ,AreaCode ,AreaName ,Zone,itemcode,Item_desc
+)a
+group by Fin_year,fin_month,dpst,custcode,CustName1 ,AreaCode ,AreaName ,Zone ,itemcode,item_desc
+)a
+group by Fin_year,dpst,custcode,CustName1 ,AreaCode ,AreaName ,Zone,itemcode,item_desc
+)a
+
+END
+
+
+
+
+
+--select * from ELGi_Sales_Details where custname is null
+select * from dealerwisesales
+
+
+
+Completion time: 2025-11-19T09:31:24.9492178+05:30

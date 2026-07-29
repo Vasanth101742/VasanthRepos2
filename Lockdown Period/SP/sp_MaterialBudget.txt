@@ -1,0 +1,387 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_MaterialBudget
+
+CREATE proc sp_MaterialBudget as
+begin 
+Truncate table MaterialBudget
+
+Insert into MaterialBudget
+SELECT YEAR, Company1, SOFC, SalesOfc, MITM, Item_desc, 
+SUM(QANA) AS QANA, SUM(PRIC) AS PRIC, 
+SUM(PreBud_MatCost) AS PreBud_MatCost, SUM(Q1PR) AS Q1PR, 
+SUM(Q1_Qty) AS Q1_Qty, SUM(Q1_Val) AS Q1_Val, SUM(Q1Increase) AS Q1Increase, SUM(Q1_MatCost) AS Q1_MatCost, 
+SUM(APRQ) AS APRQ, SUM(APRV) AS APRV,SUM(Apr_MatCost) AS Apr_MatCost, 
+SUM(MAYQ) AS MAYQ, SUM(MAYV) AS MAYV, SUM(May_MatCost) AS May_MatCost, 
+SUM(JUNQ) AS JUNQ, SUM(JUNV) AS JUNV, SUM(Jun_MatCost) AS Jun_MatCost, 
+SUM(Q2_Qty) AS Q2_Qty, SUM(Q2_Val) AS Q2_Val, SUM(Q2PR) AS Q2PR, SUM(Q2Increase) AS Q2Increase, SUM(Q2_MatCost) AS Q2_MatCost, 
+SUM(JULQ) AS JULQ, SUM(JULV) AS JULV, SUM(Jul_MatCost) AS Jul_MatCost, 
+SUM(AUGQ) AS AUGQ, SUM(AUGV) AS AUGV, SUM(Aug_MatCost) AS Aug_MatCost, 
+SUM(SEPQ) AS SEPQ, SUM(SEPV) AS SEPV, SUM(Sep_MatCost) AS Sep_MatCost, 
+SUM(Q3_Qty) AS Q3_Qty, SUM(Q3_Val) AS Q3_Val, SUM(Q3PR) AS Q3PR, SUM(Q3Increase) AS Q3Increase, SUM(Q3_MatCost) AS Q3_MatCost, 
+SUM(OCTQ) AS OCTQ, SUM(OCTV) AS OCTV, SUM(Oct_MatCost) AS Oct_MatCost, 
+SUM(NOVQ) AS NOVQ, SUM(NOVV) AS NOVV, SUM(Nov_MatCost) AS Nov_MatCost, 
+SUM(DECQ) AS DECQ, SUM(DECV) AS DECV, SUM(Dec_MatCost) AS Dec_MatCost, 
+SUM(Q4_Qty) AS Q4_Qty, SUM(Q4_Val) AS Q4_Val, SUM(Q4PR) AS Q4PR, SUM(Q4Increase) AS Q4Increase, SUM(Q4_MatCost) AS Q4_MatCost, 
+SUM(JANQ) AS JANQ, SUM(JANV) AS JANV, SUM(Jan_MatCost) AS Jan_MatCost, 
+SUM(FEBQ) AS FEBQ, SUM(FEBV) AS FEBV, SUM(Feb_MatCost) AS Feb_MatCost, 
+SUM(MARQ) AS MARQ, SUM(MARV) AS MARV, SUM(Mar_MatCost) AS Mar_MatCost, 
+SUM(Total_Qty) AS Total_Qty, SUM(Total_Value) AS Total_Value
+FROM (SELECT a.SOFC, null AS SalesOfc, a.MITM, b_1.Item_desc, a.QANA, a.PRIC, a.PreBud_MatCost, 
+a.Q1_Qty, a.Q1_Val, a.Q1PR, a.Q1Increase, a.Q1_MatCost, 
+a.APRQ, a.APRV, a.APRQ * a.Q1_MatCost AS Apr_MatCost, 
+a.MAYQ, a.MAYV, a.MAYQ * a.Q1_MatCost AS May_MatCost, 
+a.JUNQ, a.JUNV, a.JUNQ * a.Q1_MatCost AS Jun_MatCost, 
+a.Q2_Qty, a.Q2_Val, a.Q2PR, a.Q2Increase, a.Q2_MatCost, 
+a.JULQ, a.JULV, a.JULQ * a.Q2_MatCost AS Jul_MatCost, 
+a.AUGQ, a.AUGV, a.AUGQ * a.Q2_MatCost AS Aug_MatCost, 
+a.SEPQ, a.SEPV, a.SEPQ * a.Q2_MatCost AS Sep_MatCost, 
+a.Q3_Qty, a.Q3_Val, a.Q3PR, a.Q3Increase, a.Q3_MatCost, 
+a.OCTQ, a.OCTV, a.OCTQ * a.Q3_MatCost AS Oct_MatCost, 
+a.NOVQ, a.NOVV, a.NOVQ * a.Q3_MatCost AS Nov_MatCost, 
+a.DECQ, a.DECV, a.DECQ * a.Q3_MatCost AS Dec_MatCost, 
+a.Q4_Qty, a.Q4_Val, a.Q4PR, a.Q4Increase, a.Q4_MatCost, 
+a.JANQ, a.JANV, a.JANQ * a.Q4_MatCost AS Jan_MatCost, 
+a.FEBQ, a.FEBV, a.FEBQ * a.Q4_MatCost AS Feb_MatCost, 
+a.MARQ, a.MARV, a.MARQ * a.Q4_MatCost AS Mar_MatCost, 
+a.APRQ + a.MAYQ + a.JUNQ + a.JULQ + a.AUGQ + a.SEPQ + a.OCTQ + a.NOVQ + a.DECQ + a.JANQ + a.FEBQ + a.MARQ AS Total_Qty, 
+a.APRV + a.MAYV + a.JUNV + a.JULV + a.AUGV + a.SEPV + a.OCTV + a.NOVV + a.DECV + a.JANV + a.FEBV + a.MARV AS Total_Value,
+a.YEAR, 
+a.Company1
+FROM (SELECT a_1.YEAR, a_1.Company1, a_1.SOFC, a_1.MITM, 
+SUM(a_1.QANA) AS QANA, SUM(a_1.PRIC) AS PRIC, SUM(a_1.PreBud_MatCost) AS PreBud_MatCost, 
+SUM(a_1.Q1PR) AS Q1PR, SUM(ISNULL(b.APRQ, 0) + ISNULL(b.MAYQ, 0) + ISNULL(b.JUNQ, 0)) AS Q1_Qty, 
+SUM(ISNULL(b.APRV, 0) + ISNULL(b.MAYV, 0) + ISNULL(b.JUNV, 0)) AS Q1_Val, 
+SUM(a_1.Q1Increase) AS Q1Increase, SUM(a_1.Q1_MatCost) AS Q1_MatCost, 
+SUM(b.APRQ) AS APRQ, SUM(b.APRV) AS APRV, 
+SUM(b.MAYQ) AS MAYQ, SUM(b.MAYV) AS MAYV, 
+SUM(b.JUNQ) AS JUNQ, SUM(b.JUNV) AS JUNV, 
+SUM(a_1.Q2PR) AS Q2PR, SUM(ISNULL(b.JULQ, 0) + ISNULL(b.AUGQ, 0) + ISNULL(b.SEPQ, 0)) AS Q2_Qty, 
+SUM(ISNULL(b.JULV, 0) + ISNULL(b.AUGV, 0) + ISNULL(b.SEPV, 0)) AS Q2_Val, 
+SUM(a_1.Q2Increase) AS Q2Increase, SUM(a_1.Q2_MatCost) AS Q2_MatCost, 
+SUM(b.JULQ) AS JULQ, SUM(b.JULV) AS JULV, 
+SUM(b.AUGQ) AS AUGQ, SUM(b.AUGV) AS AUGV, 
+SUM(b.SEPQ) AS SEPQ, SUM(b.SEPV) AS SEPV, 
+SUM(a_1.Q3PR) AS Q3PR, SUM(ISNULL(b.OCTQ, 0) + ISNULL(b.NOVQ, 0) + ISNULL(b.DECQ, 0)) AS Q3_Qty, 
+SUM(ISNULL(b.OCTV, 0) + ISNULL(b.NOVV, 0) + ISNULL(b.DECV, 0)) AS Q3_Val, 
+SUM(a_1.Q3Increase) AS Q3Increase, SUM(a_1.Q3_MatCost) AS Q3_MatCost, 
+SUM(b.OCTQ) AS OCTQ, SUM(b.OCTV) AS OCTV, 
+SUM(b.NOVQ) AS NOVQ, SUM(b.NOVV) AS NOVV, 
+SUM(b.DECQ) AS DECQ, SUM(b.DECV) AS DECV, 
+SUM(a_1.Q4PR) AS Q4PR, SUM(ISNULL(b.JANQ, 0) + ISNULL(b.FEBQ, 0) + ISNULL(b.MARQ, 0)) AS Q4_Qty, 
+SUM(ISNULL(b.JANV, 0) + ISNULL(b.FEBV, 0) + ISNULL(b.MARV, 0)) AS Q4_Val, 
+SUM(a_1.Q4Increase) AS Q4Increase, SUM(a_1.Q4_MatCost) AS Q4_MatCost, 
+SUM(b.JANQ) AS JANQ, SUM(b.JANV) AS JANV, 
+SUM(b.FEBQ) AS FEBQ, SUM(b.FEBV) AS FEBV, 
+SUM(b.MARQ) AS MARQ, SUM(b.MARV) AS MARV
+
+FROM (SELECT YEAR, Company, SOFC, MITM, 
+SUM(QANA) AS QANA, SUM(PRIC) AS PRIC, SUM(QANA * PRIC) AS PreBud_MatCost, 
+SUM(Q1PR) AS Q1PR, SUM(QANA * Q1PR) AS Q1Increase, 
+SUM(Q2PR) AS Q2PR, SUM(QANA * Q2PR) AS Q2Increase, 
+SUM(Q3PR) AS Q3PR, SUM(QANA * Q3PR) AS Q3Increase, 
+SUM(Q4PR) AS Q4PR, SUM(QANA * Q4PR) AS Q4Increase, 
+SUM(QANA * PRIC + QANA * Q1PR) AS Q1_MatCost, 
+SUM(QANA * PRIC + QANA * Q1PR + QANA * Q2PR) AS Q2_MatCost, 
+SUM(QANA * PRIC + QANA * Q1PR + QANA * Q2PR +QANA * Q3PR) AS Q3_MatCost, 
+SUM(QANA * PRIC + QANA * Q1PR + QANA * Q2PR +QANA * Q3PR + QANA * Q4PR) AS Q4_MatCost, 
+CASE WHEN company = 400 AND sofc IN ('90257', '90231', '90213', '90013', '90028', '90031', 
+'90075', '90076', '90077', '90092', '90039', '70085', '70056', '70057', '70028', '70029', 
+'70030', '70096', '70065', '70066', '70016') THEN 490 ELSE company END AS Company1
+FROM tzzinv609all
+GROUP BY YEAR, Company, SOFC, MITM) AS a_1 
+
+
+LEFT OUTER JOIN
+
+(SELECT COMPANY, YEAR, SOFC,TPL, 
+sum(APRQ) APRQ, sum(APRV) APRV, sum(MAYQ) MAYQ, sum(MAYV) MAYV, sum(JUNQ) JUNQ, sum(JUNV) JUNV, 
+sum(JULQ) JULQ, sum(JULV) JULV, sum(AUGQ) AUGQ, sum(AUGV) AUGV, sum(SEPQ) SEPQ, sum(SEPV) SEPV,
+sum(OCTQ) OCTQ, sum(OCTV) OCTV, sum(NOVQ) NOVQ, sum(NOVV) NOVV, sum(DECQ) DECQ, sum(DECV) DECV, 
+sum(JANQ) JANQ, sum(JANV) JANV, sum(FEBQ) FEBQ, sum(FEBV) FEBV, sum(MARQ) MARQ, sum(MARV) MARV,
+CASE WHEN company = 400 AND sofc IN ('90257', '90231', '90213', '90013', '90028', '90031', '90075', 
+'90076', '90077', '90092', '90039', '70085', '70056', '70057', '70028', '70029', '70030', '70096', 
+'70065', '70066', '70016') THEN 490 ELSE company END AS Company1
+--,UPDT,LOGN,RMRK, REFCNTD, REFCNTU
+FROM TZZINV608ALL
+group by COMPANY, YEAR, SOFC,TPL 
+
+) AS b 
+
+ON a_1.SOFC = b.SOFC 
+AND a_1.MITM = b.TPL 
+AND a_1.YEAR = b.YEAR
+and a_1.Company1=b.Company1
+GROUP BY a_1.YEAR, a_1.Company1, a_1.SOFC, a_1.MITM
+) AS a 
+
+
+
+LEFT OUTER JOIN
+
+(SELECT DISTINCT company, Item, Item_desc FROM vw_Item_Master
+WHERE (company IN (400, 490, 600))) AS b_1 
+ON a.Company1 = b_1.company 
+AND REPLACE(LTRIM(RTRIM(a.MITM)), '''', '') = LTRIM(RTRIM(b_1.Item)) 
+
+) AS complete
+
+--WHERE  Company1 IN (@Company)
+--and year in (@Year)
+--and sofc in ('90031','90032')
+--and ltrim(rtrim(mitm)) in --('s013865','s013866','s013867','s013868','s013869','s013870')
+--('s013396','s013397')
+--('z011537','z011538')  --for testing purpose
+
+GROUP BY YEAR, Company1, SOFC, SalesOfc, MITM, Item_desc
+
+
+
+
+
+--Special Case :ATS Value calculated base on Percentage of the Value
+
+Insert into MaterialBudget
+select a.YEAR,a.Company,a.SOFC,null as SalesOfc,
+a.tpl as MITM,b.itemdesc as Item_desc,
+null as QANA,null as PRIC,null as PreBud_MatCost,
+null as Q1PR,null as Q1_Qty,null as Q1_Val,null as Q1Increase,null as Q1_MatCost,
+APRQ,APRV,null as Apr_MatCost,
+MAYQ,MAYV,null as May_MatCost,
+JUNQ,JUNV,null as Jun_MatCost,
+null as Q2_Qty,null as Q2_Val,null as Q2PR,null as Q2Increase,null as Q2_MatCost,
+JULQ,JULV,null as Jul_MatCost,
+AUGQ,AUGV,null as Aug_MatCost,
+SEPQ,SEPV,null as Sep_MatCost,
+null as Q3_Qty,null as Q3_Val,null as Q3PR,null as Q3Increase,null as Q3_MatCost,
+OCTQ,OCTV,null as Oct_MatCost,
+NOVQ,NOVV,null as Nov_MatCost,
+DECQ,DECV,null as Dec_MatCost,
+null as Q4_Qty,null as Q4_Val,null as Q4PR,null as Q4Increase,null as Q4_MatCost,
+JANQ,JANV,null as Jan_MatCost,
+FEBQ,FEBV,null as Feb_MatCost,
+MARQ,MARV,null as Mar_MatCost,
+null as Total_Qty,null as Total_Value
+--select * 
+from TZZINV608ALL a
+inner join MatBudget_Percentage b
+on a.COMPANY=b.company
+and a.SOFC=b.dpst
+and ltrim(rtrim(a.TPL))=ltrim(rtrim(b.Itemcode))
+and a.YEAR=b.FinYear
+
+
+
+update MaterialBudget set SalesOfc=c.DPSTName
+from vw_DPST_MASTER AS c 
+where LTRIM(RTRIM(SOFC)) = LTRIM(RTRIM(c.DPSTcode))
+and MaterialBudget.company1 not like '6%'
+
+update MaterialBudget set SalesOfc=c.DPSTName
+from DPST_Master_ATS AS c 
+where LTRIM(RTRIM(SOFC)) = LTRIM(RTRIM(c.DPSTcode))
+and MaterialBudget.company1 like '6%'
+
+
+
+update MaterialBudget set Q1_Qty=APRQ+MAYQ+JUNQ
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[year]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+
+update MaterialBudget set Q2_Qty=JULQ+AUGQ+SEPQ
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+update MaterialBudget set Q3_Qty=OCTQ+NOVQ+DECQ
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+
+update MaterialBudget set Q4_Qty=JANQ+FEBQ+MARQ
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+update MaterialBudget set Total_Qty=isnull(Q1_Qty,0)+isnull(Q2_Qty,0)+isnull(Q3_Qty,0)+isnull(Q4_Qty,0)
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+update MaterialBudget set Q1_Val=APRV+MAYV+JUNV
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+update MaterialBudget set Q2_Val=JULV+AUGV+SEPV
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+update MaterialBudget set Q3_Val=OCTV+NOVV+DECV
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+update MaterialBudget set Q4_Val=JANV+FEBV+MARV
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+
+update MaterialBudget set Total_Value=isnull(Q1_Val,0)+isnull(Q2_Val,0)+isnull(Q3_Val,0)+isnull(Q4_Val,0)
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) in 
+(select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) from MatBudget_Percentage)
+
+
+
+update MaterialBudget set Q1_MatCost=((APRV+MAYV+JUNV)/ q1_qty)  *a.Percentage
+from (select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) cola,Percentage from MatBudget_Percentage) a
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) =a.cola  and q1_qty > 0
+
+
+update MaterialBudget set Q2_MatCost=((JULV+AUGV+SEPV)/ q2_qty)*a.Percentage
+from (select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) cola,Percentage from MatBudget_Percentage) a
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) =a.cola  and q2_qty > 0
+
+
+update MaterialBudget set Q3_MatCost=((OCTV+NOVV+DECV) / q3_qty)*a.Percentage
+from (select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) cola,Percentage from MatBudget_Percentage) a
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) =a.cola  and q3_qty > 0
+
+
+
+update MaterialBudget set Q4_MatCost=((JANV+FEBV+MARV)/ q4_qty)*a.Percentage
+from (select concat(company,DPST,ltrim(rtrim(Itemcode)),FinYear) cola,Percentage from MatBudget_Percentage) a
+where concat(company1,SOFC,ltrim(rtrim(MITM)),[YEAR]) =a.cola and q4_qty > 0
+
+
+
+--create table MatBudget_Percentage
+--(
+--company int,
+--DPST int,
+--Itemcode varchar(50),
+--Itemdesc varchar(50),
+--Percentage float
+--)
+
+
+
+--Insert into MatBudget_Percentage values
+--(600,90040,'NEW TPL 1','MSU Regular',0.7),
+--(600,90040,'NEW TPL 2','MSU PV',0.7),
+--(600,90242,'NEW TPL 9','Service Charges',0.7),
+--(600,90040,'NEW TPL 8','Semi Automatic ACRU-BuyBack',0.6),
+--(600,90042,'New TPL 3','CRS BENCH ',0.7),
+--(600,90042,'New TPL 5','FULLY AUTO INVERTER SPOT',0.7),
+--(600,90040,'New TPL 7','BUS BOOTH',0.6),
+--(600,90042,'New TPL 4','New Electronic Measuring',0.7),
+--(600,90042,'New TPL 6','EXHAUST EXTRACTION SYSTEM ',0.7)
+
+
+
+
+update MaterialBudget set Apr_MatCost=aprv*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+
+
+update MaterialBudget set May_MatCost=MAYV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Jun_MatCost=JUNV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Jul_MatCost=JULV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Aug_MatCost=AUGV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Sep_MatCost=SEPV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Oct_MatCost=OCTV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Nov_MatCost=NOVV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Dec_MatCost=DECV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Jan_MatCost=JANV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Feb_MatCost=FEBV*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+update MaterialBudget set Mar_MatCost=Marv*a.Percentage
+from MatBudget_Percentage a
+where MaterialBudget.Company1=a.company
+and MaterialBudget.SOFC =a.DPST
+and ltrim(rtrim(MaterialBudget.MITM))=ltrim(rtrim(a.Itemcode))
+and MaterialBudget.[YEAR]=a.FinYear
+
+end
+
+select * from MaterialBudget 
+--where company1=400 and ltrim(rtrim(MITM)) like '%new%' and year=1920
+
+--select QANA,PRIC,Q1PR,Q2PR,Q3PR,Q4PR,(QANA * PRIC + QANA * Q1PR + QANA * Q2PR +QANA * Q3PR + QANA * Q4PR) AS Q4_MatCost
+--from MaterialBudget
+
+--select * from Catg_MatBudget_Percentage 
+
+
+
+
+Completion time: 2025-11-19T11:36:22.4548636+05:30

@@ -1,0 +1,422 @@
+--exec sp_ACR
+--select * from ACR where ProductGrp is null and company<600 
+--select * from ACR where ProductGrp is null and company<600 and docdt<'2017-04-01 00:00:00.000' order by docdt 
+
+CREATE proc [sp_ACR]
+as
+Begin
+
+
+--Alter table ACR alter column SalRepAsInACR nvarchar(18)
+
+Truncate table ACR
+
+insert into ACR (company,Trantyp,InvNo,[LineNo],CustNo,ProductGrp,Division,Area,CustomerGroup,SalRep,
+DocDt,Cur,CurRate,UnlinkCrdInvCur,UnlinkCrdHomeCur,InvAmntInInvCur,InvAmntInHomeCur,FDisAmntInvCur,FDisAmntHomeCur,
+SDisAmntInvCur,SDisAmntHomeCur,TDisAmntInvCur,TDisAmntHomeCur,PayDiffInv,PayDiffHome,BankCostInvCur,BankCostHomeCur,
+CurDiffBas,CurDiffAmnt,RealCurDiff,DueDt,Refrence,PayTerm,PayRecMeth,Proj,PurNo,FinRunNo,FinDt,RecAmntInvCur,RecAmntHomeCur,
+RecAntiInvCur,RecAntiHomeCur,BalAmntInvCur,BalAmntHomeCur,BalAntiInvCur,BalAntiHomeCur,Fyear,Fprod,BtNo,SalRepAsInACR,DueAmt,
+UnDueAmt,DueAmtHC30,DueAmtHC31_60,DueAmtHC61_90,DueAmtHC91_180,DueAmtHCGT180)
+select company,Trantyp,InvNo,[LineNo],CustNo,ProductGrp,Division,Area,CustomerGroup,SalRep,
+DocDt,Cur,CurRate,UnlinkCrdInvCur,UnlinkCrdHomeCur,InvAmntInInvCur,InvAmntInHomeCur,FDisAmntInvCur,FDisAmntHomeCur,
+SDisAmntInvCur,SDisAmntHomeCur,TDisAmntInvCur,TDisAmntHomeCur,PayDiffInv,PayDiffHome,BankCostInvCur,BankCostHomeCur,
+CurDiffBas,CurDiffAmnt,RealCurDiff,DueDt,Refrence,PayTerm,PayRecMeth,Proj,PurNo,FinRunNo,FinDt,RecAmntInvCur,RecAmntHomeCur,
+RecAntiInvCur,RecAntiHomeCur,BalAmntInvCur,BalAmntHomeCur,BalAntiInvCur,BalAntiHomeCur,Fyear,Fprod,BtNo,SalRepAsInACR,DueAmt,
+UnDueAmt,DueAmtHC30,DueAmtHC31_60,DueAmtHC61_90,DueAmtHC91_180,DueAmtHCGT180--,diffdays 
+from ACR_Stage2
+
+update ACR set area = substring(area,2,4) where len(area) > 3
+
+update ACR set salrep = Sales_Header.salesrep
+from Sales_Header 
+where
+Sales_Header.company =  ACR.company and
+Sales_Header.ordernum =  ACR.purno  and
+Sales_Header.custcode =  ACR.custno 
+
+
+insert into last_run_date  select 'ACR',getdate()
+
+--delete from ACR where custno  in (select distinct itbp from TTCCOM112ALL where company = 400 and cfcg = '004') --Commented on 2-Dec-2020
+
+update ACR set balamnthomecur  = balamnthomecur + fdisamntinvcur  where fdisamntinvcur <> 0
+
+
+
+update  ACR set salrep = saleseng.salesrep
+from
+(select invnum as invoicenum,trantype,custcode,max(isnull(SalesRep,0)) as salesrep 
+from CI_Lines (nolock)
+where trantype is not null
+group by invnum,trantype,custcode
+having max(isnull(salesrep,0)) > 0) saleseng
+where saleseng.invoicenum = ACR.invno  
+and saleseng.custcode = ACR.custno  
+and saleseng.trantype = ACR.trantyp  
+and salrep <> salesrep
+and productgrp <> '111' 
+
+
+--Commented on 2-Dec-2020
+--delete from ACR  where ltrim(rtrim(custno)) in ('DUMMY','EMP','E00578','S00653')  and substring(convert(varchar,company),3,1)= 1
+--delete from ACR where productgrp like '111%'
+--delete from ACR where trantyp in ('D25','D35','2p5','3p5','2k5','3k5')
+
+--delete from ACR where balamnthomecur  + paydiffhome = 0
+
+
+
+
+
+--insert into ats_debtors_hist 
+--select *,(select convert(varchar,max(last_run_date),101) from last_run_Date ) from vw_ATS_Debtors 
+
+---------------------------------------DPST Updation ------------------------------------------------
+
+--select * INTO AccReceivableBackup_BAAN_BKP from AccReceivableBackup_BAAN
+
+--update AccReceivableBackup_BAAN set company=000  where company=000
+--update AccReceivableBackup_BAAN set company=400  where company=100
+--update AccReceivableBackup_BAAN set company=490  where company=102
+--update AccReceivableBackup_BAAN set company=470  where company=103
+--update AccReceivableBackup_BAAN set company=465  where company=107
+--update AccReceivableBackup_BAAN set company=450  where company=108
+
+--update AccReceivableBackup_BAAN set company=614  where company=411
+--update AccReceivableBackup_BAAN set company=411  where company=110
+
+--update AccReceivableBackup_BAAN set company=415  where company=120
+--update AccReceivableBackup_BAAN set company=440  where company=140
+--update AccReceivableBackup_BAAN set company=401  where company=150
+--update AccReceivableBackup_BAAN set company=401  where company=170
+--update AccReceivableBackup_BAAN set company=401  where company=180
+--update AccReceivableBackup_BAAN set company=412  where company=210
+--update AccReceivableBackup_BAAN set company=416  where company=220
+--update AccReceivableBackup_BAAN set company=417  where company=230
+--update AccReceivableBackup_BAAN set company=418  where company=240
+--update AccReceivableBackup_BAAN set company=413  where company=310
+--update AccReceivableBackup_BAAN set company=423  where company=320
+--update AccReceivableBackup_BAAN set company=424  where company=340
+--update AccReceivableBackup_BAAN set company=414  where company=410
+
+--update AccReceivableBackup_BAAN set company=419  where company=420
+--update AccReceivableBackup_BAAN set company=420  where company=430
+
+--update AccReceivableBackup_BAAN set company=619  where company=421
+--update AccReceivableBackup_BAAN set company=421  where company=520
+
+--update AccReceivableBackup_BAAN set company=422  where company=540
+--update AccReceivableBackup_BAAN set company=500  where company=712
+--update AccReceivableBackup_BAAN set company=551  where company=725
+--update AccReceivableBackup_BAAN set company=552  where company=727
+--update AccReceivableBackup_BAAN set company=581  where company=722
+--update AccReceivableBackup_BAAN set company=600  where company=101
+--update AccReceivableBackup_BAAN set company=611  where company=111
+--update AccReceivableBackup_BAAN set company=615  where company=121
+--update AccReceivableBackup_BAAN set company=640  where company=141
+--update AccReceivableBackup_BAAN set company=612  where company=211
+--update AccReceivableBackup_BAAN set company=616  where company=221
+--update AccReceivableBackup_BAAN set company=617  where company=231
+--update AccReceivableBackup_BAAN set company=618  where company=241
+--update AccReceivableBackup_BAAN set company=613  where company=311
+
+
+--update AccReceivableBackup_BAAN set company=620  where company=431
+--update AccReceivableBackup_BAAN set company=621  where company=521
+--update AccReceivableBackup_BAAN set company=622  where company=541
+--update AccReceivableBackup_BAAN set company=901  where company=981
+--update AccReceivableBackup_BAAN set company=902  where company=982
+--update AccReceivableBackup_BAAN set company=903  where company=983
+--update AccReceivableBackup_BAAN set company=904  where company=984
+--update AccReceivableBackup_BAAN set company=905  where company=985
+--update AccReceivableBackup_BAAN set company=906  where company=986
+
+----update AccReceivableBackup_BAAN set company=NA  where company=104
+----update AccReceivableBackup_BAAN set company=NA  where company=105
+----update AccReceivableBackup_BAAN set company=NA  where company=106
+----update AccReceivableBackup_BAAN set company=NA  where company=160
+----update AccReceivableBackup_BAAN set company=NA  where company=300
+----update AccReceivableBackup_BAAN set company=NA  where company=321
+----update AccReceivableBackup_BAAN set company=NA  where company=330
+----update AccReceivableBackup_BAAN set company=NA  where company=331
+----update AccReceivableBackup_BAAN set company=NA  where company=440
+----update AccReceivableBackup_BAAN set company=NA  where company=441
+----update AccReceivableBackup_BAAN set company=NA  where company=530
+----update AccReceivableBackup_BAAN set company=NA  where company=531
+
+
+--Logic 1 : DPST Updation from BAAN
+
+update ACR set ProductGrp=null
+
+--insert into AccReceivableBackup_BAAN
+--select * from --[bisdb].elgi_ln.dbo.AccReceivableBackup_BAAN
+
+--INSERT INTO AccReceivable_BAAN
+--SELECT * FROM [BISDB].ELGI_LN.DBO.AccReceivable_BAAN
+
+update ACR set ProductGrp=a.productgrp
+from 
+AccReceivableBackup_BAAN a
+where ACR.company= a.company
+and ACR.InvNo =a.InvNo
+and ACR.Trantyp =a.Trantyp
+
+
+update ACR set ProductGrp=b.dpst
+from(SELECT DISTINCT company,Trantype,invnum,t_cofc as dpst FROM CI_Lines WHERE T_COFC NOT LIKE '%[A-Z]%') b
+where
+acr.company=b.company 
+and acr.InvNo=b.invnum
+and acr.Trantyp=b.Trantype
+and acr.ProductGrp is null
+
+
+update ACR set ProductGrp=b.dpst
+from(select company,InvNo,Trantyp,ProductGrp as dpst from AccReceivable_BAAN) b
+where
+acr.company=b.company 
+and acr.InvNo=b.InvNo
+and acr.Trantyp=b.Trantyp
+and acr.ProductGrp is null
+
+
+UPDATE ACR_Debtors_Details SET DPST=a.t_dim5
+from (select company,t_ttyp,t_ninv,t_dim5 from TTFACR200ALL where t_dim5 is not null and ltrim(rtrim(t_dim5)) <>'') A
+WHERE ACR_Debtors_Details.Company=A.company
+AND ACR_Debtors_Details.Trantyp=A.t_ttyp
+AND ACR_Debtors_Details.InvNo=A.t_ninv
+and ACR_Debtors_Details.DPST is null
+
+
+--Special Case:DPST Updation for Manual Invoice billing
+
+update ACR set ProductGrp=b.DPST
+from
+(
+select a.SFCP,ITYP,IDOC,line,a.MSID,isnull(b.COFC,a.DIM5) as DPST  from TCISLI225ALL a
+left outer join
+(select SFCP,MSID,COFC from TCISLI220ALL where cofc not like '%[A-Z]%') b
+on a.SFCP=b.SFCP
+and a.MSID=b.MSID
+)b
+where ACR.company=b.SFCP
+and ACR.trantyp=b.ITYP
+and ACR.InvNo=b.IDOC
+ --and ACR.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and ACR.ProductGrp is null
+--like '%[a-z]%' 
+
+
+
+
+
+--For Analysis Purpose
+--select  * from AccReceivable_BAAN where company=401 and Trantyp= 'IDJ' and InvNo=	'17000187'
+--SELECT company,OrderNum,PositionNum,invnum,Trantype,saletype,t_cofc as dpst FROM CI_Lines
+--where company=401 and Trantype= 'IDJ' and invnum=	'17000187'
+--select * from ACR where company=401 and Trantyp='IDJ' and InvNo=	'17000187'
+--select * from ELGi_Sales_Details where company=401 and trantype='IDJ' and Invoice=	'17000187'
+--select * from TmpSlsDespData_baan where company=401 and trantype='IDJ' and InvoiceNum=	'17000187'
+--select * from TTFACR200ALL where company=401 and t_ttyp='IDJ' and t_ninv=	'17000187'
+
+
+
+--Old Method
+
+--update ACR set ProductGrp=a.dpst
+--from (select *,
+--CASE WHEN COMPANY=000 THEN 000
+--WHEN COMPANY=100 THEN 400
+--WHEN COMPANY=102 THEN 490
+--WHEN COMPANY=103 THEN 470
+--WHEN COMPANY=107 THEN 465
+--WHEN COMPANY=108 THEN 450
+--WHEN COMPANY=110 THEN 411
+--WHEN COMPANY=120 THEN 415
+--WHEN COMPANY=140 THEN 440
+--WHEN COMPANY=150 THEN 401
+--WHEN COMPANY=170 THEN 401
+--WHEN COMPANY=180 THEN 401
+--WHEN COMPANY=210 THEN 412
+--WHEN COMPANY=220 THEN 416
+--WHEN COMPANY=230 THEN 417
+--WHEN COMPANY=240 THEN 418
+--WHEN COMPANY=310 THEN 413
+--WHEN COMPANY=320 THEN 423
+--WHEN COMPANY=340 THEN 424
+--WHEN COMPANY=410 THEN 414
+--WHEN COMPANY=420 THEN 419
+--WHEN COMPANY=430 THEN 420
+--WHEN COMPANY=520 THEN 421
+--WHEN COMPANY=540 THEN 422
+--WHEN COMPANY=712 THEN 500
+--WHEN COMPANY=725 THEN 551
+--WHEN COMPANY=727 THEN 552
+--WHEN COMPANY=722 THEN 581
+--WHEN COMPANY=101 THEN 600
+--WHEN COMPANY=111 THEN 611
+--WHEN COMPANY=121 THEN 615
+--WHEN COMPANY=141 THEN 640
+--WHEN COMPANY=211 THEN 612
+--WHEN COMPANY=221 THEN 616
+--WHEN COMPANY=231 THEN 617
+--WHEN COMPANY=241 THEN 618
+--WHEN COMPANY=311 THEN 613
+--WHEN COMPANY=411 THEN 614
+--WHEN COMPANY=421 THEN 619
+--WHEN COMPANY=431 THEN 620
+--WHEN COMPANY=521 THEN 621
+--WHEN COMPANY=541 THEN 622
+--WHEN COMPANY=981 THEN 901
+--WHEN COMPANY=982 THEN 902
+--WHEN COMPANY=983 THEN 903
+--WHEN COMPANY=984 THEN 904
+--WHEN COMPANY=985 THEN 905
+--WHEN COMPANY=986 THEN 906
+----WHEN COMPANY=104 THEN NA
+----WHEN COMPANY=105 THEN NA
+----WHEN COMPANY=106 THEN NA
+----WHEN COMPANY=160 THEN NA
+----WHEN COMPANY=300 THEN NA
+----WHEN COMPANY=321 THEN NA
+----WHEN COMPANY=330 THEN NA
+----WHEN COMPANY=331 THEN NA
+----WHEN COMPANY=440 THEN NA
+----WHEN COMPANY=441 THEN NA
+----WHEN COMPANY=530 THEN NA
+----WHEN COMPANY=531 THEN NA
+--ELSE COMPANY END AS COMPANY1
+--from LN_Sales_Details 
+----where Invoice_Date >= '2017-04-01' 
+--) a
+--where ACR.company=a.COMPANY1
+--and ACR.Trantyp=a.trantype
+--and ACR.InvNo=a.Invoice
+--and ACR.ProductGrp is null
+
+
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='14000011' and CustNo='CU1E00068'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000058' and CustNo='CU1S00732'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000059' and CustNo='CU1S00732'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000057' and CustNo='CU1S08849'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='15000051' and CustNo='CU1C00259'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='15000015' and CustNo='CU1A03177'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000055' and CustNo='CU1A03177'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000061' and CustNo='CU1E00068'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000060' and CustNo='CU1A03177'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000056' and CustNo='CU1S08849'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000063' and CustNo='CU1A03177'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000045' and CustNo='CU1A03177'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000039' and CustNo='CU1E00068'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000037' and CustNo='CU1E00068'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000038' and CustNo='CU1E00068'
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16000040' and CustNo='CU1E00068'
+
+Update acr set ProductGrp='90110' where ProductGrp is null and invno='16006303' and CustNo='CU1K00185'
+Update acr set ProductGrp='90150' where ProductGrp is null and invno='905895' and CustNo='CU1S01886'
+Update acr set ProductGrp='70085' where ProductGrp is null and invno='16004474' and CustNo='CU1E00804'
+Update acr set ProductGrp='70085' where ProductGrp is null and invno='16004475' and CustNo='CU1E00804'
+Update acr set ProductGrp='70085' where ProductGrp is null and invno='16010463' and CustNo='CU1E00804'
+Update acr set ProductGrp='70085' where ProductGrp is null and invno='16010464' and CustNo='CU1E00804'
+
+
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000009' and CustNo='CU1O00001'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000006' and CustNo='CU1ZA0001'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000009' and CustNo='CU1EMP'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000002' and CustNo='CU1M04019'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000010' and CustNo='CU1EMP'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000001' and CustNo='CU1A00851'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000012' and CustNo='CU1O00442'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000001' and CustNo='CU1I00544'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000002' and CustNo='CU1R02532'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000002' and CustNo='CU1E00847'
+update ACR set ProductGrp='90150' where ProductGrp is null and invno='17000001' and CustNo='CU1E00847'
+
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=	 '13000099' and CustNo= 'CU1R06902'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'13000068' and CustNo= 'CU1H00507'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'14000003' and CustNo= 'CU1B01525'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'14000007' and CustNo= 'CU1H00187'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'14000016' and CustNo= 'CU1B01147'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'14000008' and CustNo= 'CU1C01277'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'13000109' and CustNo= 'CU1L00538'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'13000070' and CustNo= 'CU1L00538'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'11000033' and CustNo= 'CU1M01928'
+update ACR set ProductGrp='90029' WHERE TRANTYP='SS1' AND INVNO=		'16000001' and CustNo= 'CU1A02403'
+
+update ACR set ProductGrp='90150' WHERE TRANTYP='2C2' AND INVNO=		'29000001' and CustNo= 'CU1C00002'
+update ACR set ProductGrp='90150' WHERE TRANTYP='2C2' AND INVNO=		'14000005' and CustNo= 'CU1A00024'
+update ACR set ProductGrp='90150' WHERE TRANTYP='SR1' AND INVNO=		'13000002' and CustNo= 'CU1E00068'
+update ACR set ProductGrp='90150' WHERE TRANTYP='SR1' AND INVNO=		'13000003' and CustNo= 'CU1E00068'
+update ACR set ProductGrp='90150' WHERE TRANTYP='SR1' AND INVNO=		'13000004' and CustNo= 'CU1E00068'
+update ACR set ProductGrp='90150' WHERE TRANTYP='SR1' AND INVNO=		'16000014' and CustNo= 'CU1J00184'
+update ACR set ProductGrp='90150' WHERE TRANTYP='SR1' AND INVNO=		'16000013' and CustNo= 'CU1J00184'
+
+
+
+
+--Area Updation based on IndentNo 
+
+update ACR set Area=a.areacode
+from LN_Sales_Details_ver2 a
+where ACR.Company=a.company
+and ACR.Trantyp=a.trantype
+and ACR.InvNo=a.Invoice
+and ACR.DocDt>='2017-04-01'
+
+
+--insert into elgi_customer_access
+--select distinct CustNo,'ELGI\gokulnath' from ACR
+--select distinct CustNo,'ELGI\nagaveni.selvaraj' from ACR
+--select distinct CustNo,'ELGI\prakash' from ACR
+--select distinct CustNo,'ELGI\prakashm' from ACR
+--select distinct CustNo,'ELGI\prasenjit.pal' from ACR
+--select distinct CustNo,'ELGI\raghuram' from ACR
+--select distinct CustNo,'ELGI\raviprasath' from ACR
+
+
+--select distinct CustNo,'ELGI\deepa.jayaraman' from ACR
+--select distinct CustNo,'ELGI\ashokkumar' from ACR
+--select distinct CustNo,'ELGI\vasanthk' from ACR
+
+
+if exists (select * from ACR_Tmp)
+begin
+drop table ACR_Tmp
+end
+select distinct CustNo into ACR_Tmp from ACR
+
+
+Truncate table ELGi_Cust_FullAccess
+
+Insert into ELGi_Cust_FullAccess
+--select * into Elgi_Inv_FullAccess from(
+select userid,row_number() over(order by userid) as Rnk from elgi_customer_access
+--where userid like '%elgi\roberts%'
+group by Userid
+having count(*)>100
+--)a
+
+declare @Count1 int=1
+declare @TotalCount int
+declare @userid varchar(50)
+
+set @TotalCount=(select count(userid) from ELGi_Cust_FullAccess)
+
+while (@Count1<=@TotalCount)
+begin
+
+set @userid=(select userid from ELGi_Cust_FullAccess where Rnk=@Count1)
+
+insert into ELGi_Customer_Access
+select distinct CustNo,@userid from ACR_Tmp
+where CustNo not in (select distinct custcode from ELGi_Customer_Access where userid =@userid)
+
+
+set @Count1=@Count1+1
+
+end 
+
+
+
+End

@@ -1,0 +1,149 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+--exec sp_Collection_ATS
+--select * from Acc_Collection_ATS
+CREATE PROCEDURE [dbo].[sp_Collection_ATS] as  
+
+Begin
+
+truncate table Acc_Collection_ATS  
+truncate table collection_GL_receipts_ats  
+
+--insert into Acc_Collection_ATS select * from vw_collection_report_daily_new_ats  --commented on 3 Aug 2018
+insert into Acc_Collection_ATS(company,Trantyp,InvNo,CustNo,CustName1,DocDt,doctyp,collection,DpstCode,DpstName,
+Description,areacode,AreaName,Zone,region,Global,AnpTranTyp,anpdocno,ctrantyp,cdocno,refr) 
+select * from collection_report_daily_new_ats  --commented on 3 Aug 2018
+delete from  Acc_Collection_ATS where docdt = '9999-01-01 00:00:00.000'  
+
+--Alter table Acc_Collection_ATS alter column refr int null
+  
+insert into collection_GL_receipts_ats  
+select *  from vw_collection_GL_receipts_ats
+
+
+---DELETING FOC DATA
+
+
+delete from Acc_Collection_ATS where custno like '%emp%' and trantyp = 'cdj'
+
+delete from Acc_Collection_ATS  where trantyp in 
+('251','252','351','352','451','452','551','552','751','752','851','852','951','952')
+or trantyp between '2A1' and  '2A6' 
+or trantyp between '2B1' and  '2B6'
+or trantyp between '3A1' and  '3B6'
+or trantyp between '4A1' and  '4B6'
+or trantyp between '5A1' and  '5B6' 
+or trantyp between '7A1' and  '7B6'
+or trantyp between '8A1' and  '8B6'
+or trantyp between '9A1' and  '9B6'
+or trantyp between '2C1' and  '2C6'
+or trantyp between '3C1' and  '3C6'
+or trantyp between '4C1' and  '4C6'
+or trantyp between '5C1' and  '5C6'
+or trantyp between '7C1' and  '7C6'
+or trantyp between '8C1' and  '8C6'
+or trantyp between '9C1' and  '9C6'
+
+
+
+--International Updations
+
+	update Acc_Collection_ATS 
+set areacode = b.Area
+from 	(select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) b
+where b.CustCode = Acc_Collection_ATS.custno
+and Acc_Collection_ATS.description = 'exports'
+and Acc_Collection_ATS.global <> 'international'
+
+
+update Acc_Collection_ATS 
+set areaname = v.areaname, zone = v.ATS_Zone, region = v.region, global = v.global 
+from vw_AREA_MASTER v
+where v.areacode = Acc_Collection_ATS.areacode
+and Acc_Collection_ATS.description = 'exports'
+and Acc_Collection_ATS.global <> 'international'
+
+
+update Acc_Collection_ATS 
+set areacode = b.area 
+from 	(select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) b
+where b.custcode = Acc_Collection_ATS.custno
+and region = 'indirect'
+and Acc_Collection_ATS.areacode <> b.area 
+
+
+update Acc_Collection_ATS 
+set areaname = v.areaname, zone = v.ATS_Zone, region = v.region, global = v.global 
+from vw_AREA_MASTER v
+where v.areacode = Acc_Collection_ATS.areacode
+and Acc_Collection_ATS.region = 'indirect'
+and Acc_Collection_ATS.region <> v.region
+
+
+update Acc_Collection_ATS
+set areacode = b.area
+from 	(select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) b
+where b.custcode  = Acc_Collection_ATS.custno 
+and Acc_Collection_ATS.description = 'exports'
+and Acc_Collection_ATS.areacode  <> b.area
+
+update Acc_Collection_ATS
+set areaname = v.areaname, zone = v.ATS_Zone, region = v.region, global = v.global 
+from vw_AREA_MASTER v
+where v.areacode = Acc_Collection_ATS.areacode
+and Acc_Collection_ATS.description = 'exports'
+and Acc_Collection_ATS.areaname <> v.areaname
+
+
+update  Acc_Collection_ATS set
+Acc_Collection_ATS.areacode = b.areacode,
+Acc_Collection_ATS.areaname  = b.areaname,
+Acc_Collection_ATS.zone      = b.ATS_Zone,
+Acc_Collection_ATS.region    = b.region,
+Acc_Collection_ATS.global    = b.global
+
+from (select distinct t_ofbp as CustCode,t_creg as Area from TTCCOM110400) a,vw_AREA_MASTER b 
+where a.custcode  = Acc_Collection_ATS.custno
+and b.areacode = a.area
+and Acc_Collection_ATS.global   = 'international' and Acc_Collection_ATS.description <> 'exports'
+
+
+
+---Area Updations
+
+update Acc_Collection_ATS set areaname = 'COIMBATORE' where areaname = 'MADURAI'  
+update Acc_Collection_ATS set areaname = 'COIMBATORE' where areaname = 'SALEM'  
+
+
+--update collection_report_ats set areaname = 'BHOPAL' where areaname = 'RANCHI'  
+--update advance_report_ats  set areaname = 'BHOPAL' where areaname = 'RANCHI'  
+--update collection_report_ats set areaname = 'NEW DELHI' where areaname = 'LUCKNOW'  
+--update advance_report_ats  set areaname = 'NEW DELHI' where areaname = 'LUCKNOW'  
+--update collection_report_ats set areaname = 'NEW DELHI' where areaname = 'LUDHIANA'  
+--update advance_report_ats  set areaname = 'NEW DELHI' where areaname = 'LUDHIANA'  
+--update collection_report_ats set areaname = 'CALCUTTA' where areaname = 'JAMSHEDPUR'  
+--update advance_report_ats  set areaname = 'CALCUTTA' where areaname = 'JAMSHEDPUR'  
+--update collection_report_ats set areaname = 'CALCUTTA' where areaname = 'BHUBANESHWAR'  
+--update advance_report_ats  set areaname = 'CALCUTTA' where areaname = 'BHUBANESHWAR'  
+--update advance_report_ats  set zone = 'West' where areaname = 'bhopal'
+--update collection_report_ats set zone = 'West' where areaname = 'bhopal'
+
+
+
+
+--Daily Collections
+
+exec sp_ATS_Collection_daywise
+
+
+end
+
+
+
+
+
+
+
+Completion time: 2025-11-19T09:12:22.5830186+05:30

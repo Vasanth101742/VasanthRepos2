@@ -1,0 +1,57 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+CREATE proc [dbo].[sp_gr_USreport]
+as
+begin
+
+--SELECT    i.compnr,CAST(i.dldt AS DATE) AS ShipDate,    i.shpm,    CASE WHEN sol.dltp = 5 THEN COALESCE(asn.bola, 'Not Recorded') ELSE s.trnr END AS trnr,
+--    CASE WHEN sol.dltp = 5 THEN asn.carr ELSE s.carr END AS carr,
+--    (SELECT dsca FROM ln_tcmcs080 c WHERE s.carr=c.cfrw) AS Carrier,
+--    CONCAT(i.ttyp, '-', i.invn) AS invnum,    i.orno AS SO,
+--    i.pono AS SOLin,    so.corn AS PONum,
+--    so.ofbp AS CustNum,    (SELECT DISTINCT TRIM(sol.item) FROM ln_tdsls401 sol WHERE i.orno=sol.orno AND i.pono=sol.pono AND i.compnr=sol.compnr) AS Item,
+--    sol.dltp AS "Type",    (select it.dsca from ln_tcibd001 it WHERE sol.item=it.item AND it.compnr='3100') as "Desc",
+--    i.qidl,    i.damt,
+--    CAST(so.odat AS DATE) AS odat
+--FROM    ln_tdsls406 i
+--LEFT JOIN ln_whinh430 s ON i.shpm = s.shpm AND i.compnr = s.compnr
+--JOIN ln_tdsls401 sol ON i.orno = sol.orno AND i.pono = sol.pono AND i.compnr = sol.compnr
+--LEFT JOIN ln_whinh300 asn ON asn.shid = i.shpm
+--JOIN ln_tdsls400 so ON i.orno=so.orno AND i.compnr=so.compnr
+--WHERE    --so.compnr = $P{Compnr} AND so.ofbp = $P{CustNum} AND 
+--    (i.qidl <> 0 OR i.damt <> 0) AND DATEDIFF(dd,i.dldt,CURRENT_TIMESTAMP)<30 and i.compnr between 3110 and 3150
+--ORDER BY ShipDate ASC, trnr ASC, SO ASC
+
+--select case when compnr='3110' then 'Industrial'
+--when compnr='3120' then 'Portables'
+--when compnr='3130' then 'Medical'
+--when compnr='3140' then 'Pattons'
+--when compnr='3150' then 'MAS'
+--end 'Compnr'
+--,convert(date,ShipDate)ShipDate,trnr,so,invnum,convert(date,odat)'OrderDate',PONum,Item,[Desc],qidl'Qty',damt'Amount' from [dbo].[Shipment_Details]
+--order by compnr,CustNum,convert(date,ShipDate) desc
+
+
+
+SELECT
+	l.ofbp as CustNum,
+	(select bp.nama FROM ln_tccom100 bp WHERE l.ofbp=bp.bpid and bp.compnr='3100') as CustName,
+	CAST(l.odat as DATE) AS OrderDate,	l.corn AS PONum,	l.orno AS OrderNum,	l.pono AS PosNum,
+	l.sqnb AS SeqNum,	l.scon AS ShipConstrt,	l.dltp AS Type,	trim(l.item) AS Item,
+	(select i.dsca from ln_tcibd001 i WHERE l.item=i.item AND i.compnr='3100') as "Desc",
+	l.qoor AS OrderedQTY,	CAST(l.ddtc as DATE) AS RequestDate,	CAST(l.ddta as DATE) AS PlannedDate,
+	l.pric AS UnitPrice,	l.qoor-l.qidl AS PendQTY,	l.pric*(l.qoor-l.qidl) AS ExtPrice
+FROM 	ln_tdsls401 l
+JOIN ln_tdsls400 h ON	l.compnr = h.compnr 	AND l.orno = h.orno
+WHERE	l.clyn = 2
+	--AND l.compnr=$P{Compnr}	AND l.ofbp=$P{CustNum}
+	AND l.clyn = 2	AND l.term = 2	AND h.oamt > 0.01	AND h.chrq > 1
+	AND (h.hdst > 5	AND h.hdst < 30)	AND l.dldt < '2000-01-01'	AND h.odat > '2024-04-01'
+	and l.compnr between 3110 and 3150
+
+end
+
+
+Completion time: 2025-11-19T10:36:56.6272140+05:30

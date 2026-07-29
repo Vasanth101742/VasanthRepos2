@@ -1,0 +1,56 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE FUNCTION [dbo].[ufn_REMOVE_SPECIAL_CHARACTER]
+( 
+ @INPUT_STRING varchar(300))
+ RETURNS VARCHAR(300)
+ AS 
+ BEGIN
+
+ --declare @testString varchar(100),
+ DECLARE @NEWSTRING VARCHAR(100) 
+ -- set @teststring = '@san?poojari(darsh)'
+ SET @NEWSTRING = @INPUT_STRING ; 
+ With SPECIAL_CHARACTER as
+ (
+ SELECT '>' as item
+ UNION ALL 
+ SELECT '<' as item
+ UNION ALL 
+ SELECT '(' as item
+ UNION ALL 
+SELECT ')' as item
+ UNION ALL 
+ SELECT '!' as item
+ UNION ALL 
+ SELECT '?' as item
+ UNION ALL 
+ SELECT '@' as item
+ UNION ALL 
+ SELECT '*' as item
+ UNION ALL 
+ SELECT '%' as item
+ UNION ALL 
+ SELECT '$' as item
+	UNION ALL 
+ SELECT '/' as item
+	UNION ALL 
+ SELECT '\' as item
+	UNION ALL 
+ SELECT '.' as item
+	UNION ALL 
+ SELECT '-' as item
+	UNION ALL 
+ SELECT '' as item
+ UNION ALL 
+ SELECT '#' as item
+	)
+ SELECT @NEWSTRING = Replace(@NEWSTRING, ITEM, '') FROM SPECIAL_CHARACTER 
+ return @NEWSTRING 
+ END
+
+
+--select dbo.ufn_REMOVE_SPECIAL_CHARACTER ('@s()an/to@./\sh') 
+
+
+Completion time: 2025-11-10T14:35:05.2157487+05:30

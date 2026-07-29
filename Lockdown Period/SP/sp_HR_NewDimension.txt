@@ -1,0 +1,262 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE proc [dbo].[sp_HR_NewDimension]
+as 
+begin
+
+--truncate table HR_NewDimension
+
+--insert into HR_NewDimension ([Source],DIVCD,Division_Name,FUNCD,Function_Name,DEPCD,Department)
+--select * from(
+--select distinct 'From BAAN' as [Source], DIVCD,DIVNM as Division_Name,FUNCD,FUNNM as Function_Name,DEPCD,DEPNM as Department from TTHHRD085 
+--union all
+--select 'From SAP',Division_Code,Division_Name,Function_Code,Function_Name,Dept_Code,Department from HR_MASTER
+--where Division_Name is not null and Division_Name<>''
+--group by Division_Code,Division_Name,Function_Code,Function_Name,Dept_Code,Department
+--)a
+--order by [Source],Division_Name,Function_Name,Department
+
+
+--update HR_NewDimension set Vertical_ordr=2,vertical='AMERICAS'
+--where ltrim(rtrim(division_name))='AMERICAS'
+--update HR_NewDimension set Vertical_ordr=3,vertical='COSEA'
+--where ltrim(rtrim(division_name))='COSEA'
+--update HR_NewDimension set Vertical_ordr=4,vertical='EUROPE'
+--where ltrim(rtrim(division_name))='EUROPE'
+--update HR_NewDimension set Vertical_ordr=5,vertical='ISAAME'
+--where ltrim(rtrim(division_name))='ISAAME'
+--update HR_NewDimension set Vertical_ordr=1,vertical='CORPORATE'
+--where vertical is null
+
+--update HR_NewDimension set Function2= ltrim(rtrim(Function_Name))
+--where vertical='AMERICAS' and ltrim(rtrim(Function_Name)) in
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+--update HR_NewDimension set Function2= ltrim(rtrim(Function_Name))
+--where vertical='COSEA' and ltrim(rtrim(Function_Name)) in
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+--update HR_NewDimension set Function2='OPERATIONS' 
+--where vertical='COSEA' and ltrim(rtrim(Function_Name))= 'REGIONAL OPERATIONS'
+--update HR_NewDimension set Function2= 'OPERATIONS'
+--where vertical='COSEA' and Division_Name='COSEA' and function_name='CHINA OPERATIONS'
+--update HR_NewDimension set Function2= 'OPERATIONS'
+--where vertical='COSEA' and Division_Name='COSEA' and function_name='QUALITY'
+
+
+
+--update HR_NewDimension set Function2= ltrim(rtrim(Function_Name))
+--where vertical='EUROPE' and ltrim(rtrim(Function_Name)) in
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+--update HR_NewDimension set Function2= ltrim(rtrim(Function_Name))
+--where vertical='ISAAME' and ltrim(rtrim(Function_Name)) in
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+--update HR_NewDimension set Function2= 'OPERATIONS'
+--where vertical='ISAAME' and Division_Name='ISAAME' and function_name='REGIONAL OPERATIONS'
+
+-----Updating function2 for vertical='CORPORATE'
+
+--update HR_NewDimension set Function2= ltrim(rtrim(Function_Name))
+--where vertical='CORPORATE' and ltrim(rtrim(Function_Name)) in
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY','STRATEGY & PLANNING','EBS',
+--'INTERNATIONAL DIVISION','MD OFFICE','PHOENIX','GLOBAL PMO')
+
+--update HR_NewDimension set Function2= ltrim(rtrim(division_name))
+--where vertical='CORPORATE' and ltrim(rtrim(division_name)) in ('TECHNOLOGY','OPERATIONS')
+
+--update HR_NewDimension set Function2= 'OPERATIONS' 
+--where vertical='CORPORATE' and division_name='BUSINESS SYSTEMS & STRATEGY' and function_name='QUALITY'
+
+
+
+----select * from HR_NewDimension where function2_ordr is null order by source,division_name,Function_Name,Department
+
+--update HR_NewDimension set Function2_ordr=1 where Function2='SALES'
+--update HR_NewDimension set Function2_ordr=2 where Function2='AFTER SALES'
+--update HR_NewDimension set Function2_ordr=3 where Function2='MARKETING'
+--update HR_NewDimension set Function2_ordr=4 where Function2='EBS'
+--update HR_NewDimension set Function2_ordr=5 where Function2='STRATEGY & PLANNING'
+--update HR_NewDimension set Function2_ordr=6 where Function2='IT'
+--update HR_NewDimension set Function2_ordr=7 where Function2='FINANCE'
+--update HR_NewDimension set Function2_ordr=8 where Function2='GLOBAL PMO'
+--update HR_NewDimension set Function2_ordr=9 where Function2='HR'
+--update HR_NewDimension set Function2_ordr=10 where Function2='INTERNATIONAL DIVISION'
+--update HR_NewDimension set Function2_ordr=11 where Function2='MD OFFICE'
+--update HR_NewDimension set Function2_ordr=12 where Function2='OPERATIONS'
+--update HR_NewDimension set Function2_ordr=13 where Function2='PHOENIX'
+--update HR_NewDimension set Function2_ordr=14 where Function2='TECHNOLOGY'
+
+
+----Added on 14 Dec 2016
+----insert into HR_NewDimension(Source,DIVCD,Division_Name,FUNCD,Function_Name,DEPCD,Department,Vertical_ordr,vertical,Function2,Function2_ordr)
+----select 'From SAP','50012326','BUSINESS SYSTEMS & STRATEGY','50013202','GLOBAL PMO','50013203','AFTER MARKET',1,'CORPORATE','GLOBAL PMO',7
+
+
+
+-------------------------------------------------------------------------------------------------------------------
+-----------------------------------------New Method in BAAN--------------------------------------------------------
+
+Truncate table HR_NewDimension2
+
+Insert into HR_NewDimension2(Division_Code,Division_Name,Function_Code,Function_Name,Dept_Code,Department) 
+select Division_Code,Division_Name,Function_Code,Function_Name,Dept_Code,Department  from HR_Master_DFD
+
+--alter table HR_NewDimension2 drop column Data_Load_Date
+--alter table HR_NewDimension2 drop column DFDRank
+--add Vertical_ordr int,vertical varchar(50),Function2_ordr int,Function2 varchar(50)
+
+
+update HR_NewDimension2 set Vertical_ordr=2,vertical='AMERICAS'
+where ltrim(rtrim(Division_Code))='50012325'
+update HR_NewDimension2 set Vertical_ordr=3,vertical='COSEA'
+where ltrim(rtrim(Division_Code))='50012331'
+update HR_NewDimension2 set Vertical_ordr=4,vertical='EUROPE'
+where ltrim(rtrim(Division_Code))='50012332'
+update HR_NewDimension2 set Vertical_ordr=5,vertical='ISAAME'
+where ltrim(rtrim(Division_Code))='50012333'
+update HR_NewDimension2 set Vertical_ordr=1,vertical='CORPORATE'
+where vertical is null
+update HR_NewDimension2 set Vertical_ordr=5,vertical='ISAAME'
+where ltrim(rtrim(Division_name))='PHOENIX'
+
+
+update HR_NewDimension2 set Function2= ltrim(rtrim(Function_Name))
+where vertical='AMERICAS' and ltrim(rtrim(function_code)) in
+('50012299','50012303','50012313','50012307','50012309','50012312','50012321','50012323','50012326','50012693')
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+
+update HR_NewDimension2 set Function2= ltrim(rtrim(Function_Name))
+where vertical='COSEA' and ltrim(rtrim(function_code)) in
+('50012299','50012303','50012317','50012313','50012321','50012307','50012312')
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+update HR_NewDimension2 set Function2='OPERATIONS' 
+where vertical='COSEA' and ltrim(rtrim(division_code))='50012331' and ltrim(rtrim(function_code))='50012320' --'REGIONAL OPERATIONS'
+update HR_NewDimension2 set Function2= 'OPERATIONS'
+where vertical='COSEA' and ltrim(rtrim(division_code))='50012331' and ltrim(rtrim(function_code))='50012300' --'CHINA OPERATIONS'
+update HR_NewDimension2 set Function2= 'OPERATIONS'
+where vertical='COSEA' and ltrim(rtrim(division_code))='50012331' and ltrim(rtrim(function_code))='50012319' --'QUALITY'
+
+
+update HR_NewDimension2 set Function2= ltrim(rtrim(Function_Name))
+where vertical='EUROPE' and ltrim(rtrim(function_code)) in
+('50012299','50012303','50012317','50012313','50012307','50012309','50012312','50012321','50012323')
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+
+update HR_NewDimension2 set Function2= ltrim(rtrim(Function_Name))
+where vertical='ISAAME' and ltrim(rtrim(function_code)) in
+('50012299','50012303','50012313','50012321','50012693')
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY')
+
+update HR_NewDimension2 set Function2= 'OPERATIONS'
+where vertical='ISAAME' and ltrim(rtrim(Division_code))='50012333' and ltrim(rtrim(function_code))='50012320'--'REGIONAL OPERATIONS'
+
+
+update HR_NewDimension2 set vertical='CORPORATE',Function2= ltrim(rtrim(Function_Name))
+where Division_Name='ED''S OFFICE' and ltrim(rtrim(Function_Name)) ='ED''S OFFICE'
+
+
+
+---Updating function2 for vertical='CORPORATE'
+
+update HR_NewDimension2 set Function2= ltrim(rtrim(Function_Name))
+where vertical='CORPORATE' and ltrim(rtrim(Function_code)) in
+('50012303','50012307','50012309','50012317','50012323','50012313','50012322','50012301',
+'50012308','50012315','50012693','50013202')
+--('AFTER SALES','FINANCE','HR','IT','OPERATIONS','MARKETING','SALES','TECHNOLOGY','STRATEGY & PLANNING','EBS',
+--'INTERNATIONAL DIVISION','MD OFFICE','PHOENIX','GLOBAL PMO')
+
+update HR_NewDimension2 set Function2= ltrim(rtrim(division_name))
+where vertical='CORPORATE' and ltrim(rtrim(Division_Code)) in 
+('50012336','50012335')
+--('TECHNOLOGY','OPERATIONS')
+
+update HR_NewDimension2 set Function2= 'OPERATIONS' 
+where vertical='CORPORATE' and ltrim(rtrim(division_code))='50012326' --'BUSINESS SYSTEMS & STRATEGY' 
+and ltrim(rtrim(function_code))='50012319'--'QUALITY'
+
+update HR_NewDimension2 set Function2= 'OPERATIONS' 
+where vertical='AMERICAS' and ltrim(rtrim(division_code))='50012325' 
+and ltrim(rtrim(function_code))='50012317'
+
+update HR_NewDimension2 set Function2= 'AFTER MARKET' 
+where vertical='CORPORATE' and ltrim(rtrim(division_code))='50012692' 
+and ltrim(rtrim(function_code))='50012299'
+
+update HR_NewDimension2 set Function2= 'SALES' 
+where vertical='CORPORATE' and ltrim(rtrim(division_code))='50012692' 
+and ltrim(rtrim(function_code))='50012321'
+
+update HR_NewDimension2 set Function2='AFTER MARKET'
+where ltrim(rtrim(Function2)) in ('AFTER SALES','AFTER MARKET')
+
+update HR_NewDimension2 set Function2='PMMO' where Function2='GLOBAL PMO'
+
+update HR_NewDimension2 set Division_Name='EUROPE',Function_Name='OPERATIONS',Department='OPERATIONS',
+vertical='EUROPE',Function2='OPERATIONS'
+where Division_Code='50012332' and Function_Code='50012312' and Dept_Code='50012382'
+
+--select * from HR_NewDimension2 where function2_ordr is null order by source,division_name,Function_Name,Department
+
+update HR_NewDimension2 set Function2_ordr=1 where Function2='SALES'
+update HR_NewDimension2 set Function2_ordr=2 where Function2='AFTER MARKET'
+update HR_NewDimension2 set Function2_ordr=3 where Function2='MARKETING'
+update HR_NewDimension2 set Function2_ordr=4 where Function2='EBS'
+update HR_NewDimension2 set Function2_ordr=5 where Function2 in ('STRATEGY & PLANNING','SYSTEMS & STRATEGY')
+update HR_NewDimension2 set Function2_ordr=6 where Function2='IT'
+update HR_NewDimension2 set Function2_ordr=7 where Function2='FINANCE'
+update HR_NewDimension2 set Function2_ordr=8 where Function2='PMMO'
+update HR_NewDimension2 set Function2_ordr=9 where Function2='HR'
+update HR_NewDimension2 set Function2_ordr=10 where Function2='INTERNATIONAL DIVISION'
+update HR_NewDimension2 set Function2_ordr=11 where Function2='MD''S OFFICE' --'MD OFFICE'
+update HR_NewDimension2 set Function2_ordr=12 where Function2='ED''S OFFICE'
+update HR_NewDimension2 set Function2_ordr=13 where Function2='MANUFACTURING'
+update HR_NewDimension2 set Function2_ordr=13 where Function2='OPERATIONS'
+update HR_NewDimension2 set Function2_ordr=14 where Function2='PHOENIX'
+update HR_NewDimension2 set Function2_ordr=15 where Function2='TECHNOLOGY'
+
+
+----------------------------------------End of New Method in BAAN-------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+---------------------------------------Fetching from Intranet instead of BAAN-----------------------------------------
+
+--select * into HR_Master_DFD_bkp_10Aug2017 from HR_Master_DFD
+
+--alter table HR_Master_DFD alter column Division_Code varchar(20)
+--alter table HR_Master_DFD alter column Function_Code varchar(20)
+--alter table HR_Master_DFD alter column Dept_Code varchar(20)
+
+--select * from HR_Master_DFD_bkp_10Aug2017
+
+
+--truncate table HR_Master_DFD
+		
+--insert into HR_Master_DFD
+--select  distinct divn_code as Division_Code,divn_name as Division_Name,
+--func_code as Function_Code,func_name as Function_Name,Dept_Code,dept_name as Department,getdate(),1
+--from employee_detail
+		
+
+
+
+
+
+
+
+		
+------------------------------------End ofFetching from Intranet instead of BAAN--------------------------------------
+
+end
+
+
+
+Completion time: 2025-11-19T11:18:13.7496438+05:30
