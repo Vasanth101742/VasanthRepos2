@@ -1,0 +1,45 @@
+/*
+Example:
+SELECT dbo.CHARINDEX2('a', 'abbabba', 3)
+returns the location of the third occurrence of 'a'
+which is 7
+*/
+
+CREATE FUNCTION CHARINDEX2
+(
+@TargetStr varchar(8000), 
+@SearchedStr varchar(8000), 
+@Occurrence int
+)
+
+RETURNS int
+
+as
+begin
+
+declare @pos int, @counter int, @ret int
+
+set @pos = CHARINDEX(@TargetStr, @SearchedStr)
+set @counter = 1
+
+if @Occurrence = 1 set @ret = @pos
+
+else
+begin
+
+while (@counter < @Occurrence)
+begin
+
+select @ret = CHARINDEX(@TargetStr, @SearchedStr, @pos + 1)
+	
+set @counter = @counter + 1
+
+set @pos = @ret
+
+end
+
+end
+
+RETURN(@ret)
+
+end

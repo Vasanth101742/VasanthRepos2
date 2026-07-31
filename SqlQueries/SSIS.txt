@@ -1,0 +1,93 @@
+Changing Connection Manager
+
+Step 1: To Run in 32 bit mode
+
+Run c:\windows\sysWoW64\odbcad32.exe
+
+-------------------------------------------------------------------
+
+
+•ODBC provides access only to relational databases
+•OLE DB provides the following features •Access to data regardless of its format or location
+•Full access to ODBC data sources and ODBC drivers
+
+
+01.ERROR_NUMBER()
+
+This returns the error number and its value is same as for @@ERROR function.
+
+
+02.ERROR_LINE()
+
+This returns the line number of T-SQL statement that caused error.
+
+
+03.ERROR_SEVERITY()
+
+This returns the severity level of the error.
+
+
+04.ERROR_STATE()
+
+This returns the state number of the error.
+
+
+05.ERROR_PROCEDURE()
+
+This returns the name of the stored procedure or trigger where the error occurred.
+
+
+06.ERROR_MESSAGE()
+
+This returns the full text of error message. The text includes the values supplied for any substitutable parameters, such as lengths, object names, or times.
+
+
+Exception handling example
+01. BEGIN TRY
+02.DECLARE @num INT, @msg varchar(200)
+03.---- Divide by zero to generate Error
+04.SET @num = 5/0
+05.PRINT 'This will not execute'
+06.END TRY
+07.BEGIN CATCH
+08.PRINT 'Error occured that is'
+09.set @msg=(SELECT ERROR_MESSAGE())
+10.print @msg;
+11.END CATCH
+12.GO 
+
+ 01. BEGIN TRY
+02.DECLARE @num INT
+03.---- Divide by zero to generate Error
+04.SET @num = 5/0
+05.PRINT 'This will not execute'
+06.END TRY
+07.BEGIN CATCH
+08.SELECT ERROR_NUMBER() AS ErrorNumber, ERROR_SEVERITY() AS ErrorSeverity, ERROR_STATE() AS ErrorState, ERROR_PROCEDURE() AS ErrorProcedure, ERROR_LINE() AS ErrorLine, ERROR_MESSAGE() AS ErrorMessage;
+09.END CATCH;
+10.GO 
+
+ 
+Note
+
+1.A TRY..CATCH block combination catches all the errors that have a severity between 11 and 19.
+
+
+2.The CATCH block is executed only if there is an error occurs in T-SQL statements within TRY block otherwise the CATCH block is ignored.
+
+
+3.Each TRY block is associated with only one CATCH block and vice versa
+
+
+4.TRY and CATCH blocks can’t be separated with the GO statement. We need to put both TRY and CATCH blocks within the same batch.
+
+
+5.TRY..CATCH blocks can be used with transactions. We check the number of open transactions by using @@TRANCOUNT function in Sql Server.
+
+
+6.XACT_STATE function within the TRY..CATCH block can be used to check whether a open transaction is committed or not. It will return -1 if transaction is not committed else returns 1.
+
+
+Summary 
+
+In this article I try to explain Exception handling in Sql Server with example. I hope after reading this article you will be know how to handle exception in Sql Server. I would like to have feedback from my blog readers. Please post your feedback, question, or comments about this article. 

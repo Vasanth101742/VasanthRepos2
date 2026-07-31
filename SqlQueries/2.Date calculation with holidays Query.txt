@@ -1,0 +1,129 @@
+select 
+company,DIV,DIVISION_NAME,DEPT,Dept_Name,ItemCode,Description,LOT_NO,INVNO,STATUS,SupplierNum,
+NAMA,BUYR,empname,SQTY,convert(varchar,ENTRY_DATE) ENTRY_DATE,RPLT,No_of_nat_holidays,
+convert(varchar,duedate_excluding_all_holidays) duedate_excluding_all_holidays,
+convert(varchar,GT_INW_DT) GT_INW_DT,nodays1,Perc1,subc,catg,
+case 
+when STATUS in ('M','S') and duedate_excluding_all_holidays < convert(date,GETDATE()) then 0 
+when STATUS in ('M','S') and duedate_excluding_all_holidays >= convert(date,GETDATE()) then -2
+when STATUS ='C' and GT_INW_DT<=duedate_excluding_all_holidays then 100
+when STATUS='C' and GT_INW_DT>duedate_excluding_all_holidays then 0
+when STATUS='C' and INVNO is null then -1
+else ' ' end as ADH_Status
+from(
+select distinct  *,
+    
+  
+	case datepart(dw,duedate_exc_all_holidays)
+		when 7 then convert(date,2+duedate_exc_all_holidays)
+		when 1 then convert(date,1+duedate_exc_all_holidays)
+		else convert(date,duedate_exc_all_holidays)
+		end		as duedate_excluding_all_holidays
+from(
+SELECT  distinct *,
+	
+	(select count(*) from CompanyCalendar where 
+	 date between ENTRY_DATE and duedate and
+	 datepart(dw,date) not in(1,7)
+	 and day_type=4) as No_of_nat_holidays,
+	
+	(
+	 (select count(*) from CompanyCalendar where 
+	  date between ENTRY_DATE and duedate and
+	  datepart(dw,date) not in(1,7)
+	  and day_type=4
+	 ) + 
+	 convert(datetime,duedate) 
+	) as duedate_exc_all_holidays,	
+	
+	CASE WHEN rplt >= (DATEDIFF(dd, entry1, Expr1)) - 
+			   DATEDIFF(wk, entry1,Expr1) * 2 - 
+			  (CASE datepart(dw, entry1) + @@datefirst 
+				WHEN 8 THEN 1 ELSE 0 END) - 
+			  (CASE datepart(dw, expr1) + @@datefirst 
+				WHEN 7 THEN 1 
+				WHEN 14 THEN 1 
+				ELSE 0 END) THEN 100 ELSE 0 END AS Perc1, 
+	
+	DATEDIFF(dd, entry1, Expr1) - 
+	DATEDIFF(wk, entry1, Expr1) * 2 - 
+	(CASE datepart(dw, entry1) + @@datefirst 
+	WHEN 8 THEN 1 ELSE 0 END) - 
+	(CASE datepart(dw, expr1) + @@datefirst 
+	WHEN 7 THEN 1 
+	WHEN 14 THEN 1 
+	ELSE 0 END) AS nodays1
+
+FROM        (
+
+		SELECT distinct 		LEAN_MASTER.company,		RPLDATA.DIV, 			Materials_Division_MASTER.DIVISION_NAME, 			RPLDATA.DEPT, 
+			Materials_Dept_MASTER.Dept_Name, 			ComItemData.ItemCode, 			ComItemData.Description, 			RPLDATA.LOT_NO,			RPLDATA.DC_NO AS INVNO,
+			RPLDATA.STATUS,			PurSupplier.SupplierNum, 			PurSupplier.NAMA,			LEAN_MASTER.BUYR, 			BAAN_Emp_Master.empname, 
+			LEAN_MASTER.SQTY, 			--LEAN_MASTER.SUP_CNT_PERSON, 						
+			CONVERT(date, RPLDATA.ENTRY_DATE) AS ENTRY_DATE,			LEAN_MASTER.RPLT, 			
+ 		--CONVERT(varchar(10), CONVERT(datetime, MGE.T$UPDT), 103) AS GT_INW_DT,
+					convert(date,rpldata.GT_INW_DT) AS GT_INW_DT,
+			 convert(datetime,
+			DATEADD(d,CASE DATEPART(dw,RPLDATA.ENTRY_DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.ENTRY_DATE) +
+			(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.ENTRY_DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.ENTRY_DATE)) - 2 +convert(int,LEAN_MASTER.RPLT)) %5 +
+			((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.ENTRY_DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.ENTRY_DATE))-2+convert(int,LEAN_MASTER.RPLT))/5)*7-
+			(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.ENTRY_DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.ENTRY_DATE))-2)
+			,103) as duedate,
+			DATEDIFF(dd, CONVERT(DATE,RPLDATA.ENTRY_DATE), CONVERT(date, RPLDATA.GT_INW_DT)) AS Noofdays, 
+			CASE WHEN rplt >= datediff(dd, CONVERT(DATE,RPLDATA.ENTRY_DATE), CONVERT(date, RPLDATA.GT_INW_DT)) THEN 100 ELSE 0 END AS Perc, 
+			CONVERT(date, RPLDATA.GT_INW_DT) AS Expr1, 
+			CONVERT(DATE,RPLDATA.ENTRY_DATE) AS entry1,
+			TTEPUR162.SUBC,
+			ttepur162.CATG
+
+		
+		from 	RPLDATA
+		left outer join LEAN_MASTER
+			ON RPLDATA.div = LEAN_MASTER.divi 
+			and RPLDATA.item = LEAN_MASTER.item 
+			and RPLDATA.dept = LEAN_MASTER.dept
+		left outer join BAAN_Emp_Master
+					on BAAN_Emp_Master.empcode =LEAN_MASTER.BUYR
+		left outer join 
+			(select * from 
+			(select distinct itemcode,Description, 
+			row_number() over (partition by itemcode order by description desc) Itemrank from ComItemData  
+			)a
+			where itemrank=1
+			)ComItemData
+			on LTRIM(RTRIM(ComItemData.ItemCode))= LTRIM(RTRIM(RPLDATA.ITEM))
+			inner join Materials_Dept_MASTER 
+			on RPLDATA.DEPT=Materials_Dept_MASTER.Dept_code
+			inner join Materials_Division_MASTER 
+			on RPLDATA.DIV=Materials_Division_MASTER.DIVISION_CODE
+			INNER JOIN PurSupplier 
+			ON RPLDATA.SUPP = PurSupplier.SupplierNum 
+			left outer join TTEPUR162
+			on ltrim(rtrim(RPLDATA.ITEM))=ltrim(rtrim(TTEPUR162.ITEM))
+			
+
+			
+		WHERE	
+			(CONVERT(date, RPLDATA.ENTRY_DATE) BETWEEN 
+						@From_Date AND @To_Date) 
+			AND (PurSupplier.SupplierNum IN (@supp))
+			
+
+			  ---for testing only
+			--(CONVERT(date, RPLDATA.ENTRY_DATE) BETWEEN 
+			--'2016-02-01 00:00:00.000' and '2016-03-14 00:00:00.000')
+			--AND (PurSupplier.SupplierNum IN ('S01996')) --and 
+			--ltrim(rtrim(RPLDATA.Item))='015308950'--'       015309488'
+			
+			
+			
+) AS a
+) AS b
+) AS c
+--where 
+--GT_INW_DT<duedate_excluding_all_holidays
+--duedate_excluding_all_holidays >= convert(date,GETDATE())
+--ORDER BY SupplierNum, empcode, ItemCode
+
+
+--select * from rpldata where ltrim(rtrim(item))='015308950'

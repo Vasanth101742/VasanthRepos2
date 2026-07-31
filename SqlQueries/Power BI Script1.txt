@@ -1,0 +1,12 @@
+Hi = 
+VAR user =  USERPRINCIPALNAME() --USERNAME()
+VAR display =CONCATENATE("Hi ", LOOKUPVALUE('UserName'[UserName],'UserName'[email],user))
+VAR hour = HOUR(NOW())
+VAR minute = MINUTE(NOW())
+VAR prefix = SWITCH(
+                    TRUE(),
+                    hour<12,"Good morning ",
+                    hour>=12 && hour<17,"Good afternoon ",
+                    "Good evening "
+             )
+RETURN CONCATENATE(prefix,display)

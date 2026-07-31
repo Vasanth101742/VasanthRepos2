@@ -1,0 +1,77 @@
+<html>
+
+<font face="verdana" size=2.5>
+<body>
+Dear All, 
+<br> Please find the ELGi FG Inventory Report attached. In case of any Queries, Please contact BI Support bisupport@elgi.com
+
+Regards,
+BI Support.
+</body>
+<br>
+
+</font>
+</html>
+
+
+
+
+<html>
+
+<font face="verdana" >
+<body>
+Dear All, 
+<br> Please find the ELGi Australia NonMoving Inventory Report attached. In case of any Queries, Please contact BI Support bisupport@elgi.com
+
+Regards,
+BI Support.
+</body>
+<br>
+
+</font>
+</html>
+
+
+JAIRAMV@ELGI.COM;SRIRAM@ELGI.COM;JAYAKANTHAN@ELGI.COM;RAMESH.PONNUSWAMI@ELGI.COM
+
+subodhn@elgi.com;prakashk@elgi.com;bisupport@elgi.com
+
+
+
+
+
+Dear Sir, 
+
+Please find attached the SalesTrend graph across all verticals of Elgi India. 
+
+This is a system generated email.
+
+For any queries, please write to :prakashk@elgi.com OR bisupport@elgi.com
+
+
+Regards,
+BI Support Team
+
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+<html>
+
+<font face="verdana" size="10">
+<body>
+Dear All, <br>
+Kindly use the following link to access Pending order Report <br>
+<a href="http://bis-apps/slssrv/Spares/Sales/Pending%20%20Order%20GSC_Ameropa_Ln.rdl?Web=1">Click Here to view the Pending order Report</a>
+</body>
+<br>
+</font>
+PS: You should be connected to the Elgi network to access the above link.
+
+With Regards
+
+BI Support
+
+</html>

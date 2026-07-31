@@ -1,0 +1,12 @@
+PATHCONTAINS(
+Employee_Hierarchy2[Emp_Path], 
+ Maxx(
+  FILTER(
+    Employee_Hierarchy2,
+    Employee_Hierarchy2[internalemailaddress]=        (LOOKUPVALUE(CRM_Login_Access[internalemailaddress],CRM_Login_Access[p_internalemailaddress],USERPRINCIPALNAME()
+))
+
+         ),
+Employee_Hierarchy2[employeeid]
+ )
+)

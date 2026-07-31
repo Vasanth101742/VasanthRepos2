@@ -1,0 +1,257 @@
+update DPMU_Details set Finperiod=concat(finyear,RIGHT('00'+CAST(FinMonth AS VARCHAR(2)),2))
+update DPMU_Details set FinperiodName=concat(substring(datename(mm,dateadd(mm,Calmonth,-1)),1,3),'-',substring(convert(varchar,Calyear),3,2))
+
+
+
+EXEC sp_start_job N'JBD_57_Additional_Tables'
+1. To modify a column in a table
+
+alter table subscription_log_test ADD JobName  varchar(50)
+alter table subscription_log_test ALTER COLUMN JobName  varchar(10)
+alter table subscription_log_test DROP COLUMN JobName  varchar(10)
+
+3. cntrl+k c --to comment selected area in sql server
+   cntrl+k u --to uncomment the selected area in sql server
+
+4. windows shortcut
+    windowskey +r --run terminal
+    windowskey +e --to view the c,d,f drives
+    windowskey +d -- to return to desktop
+
+5. different type of update
+update comitemdata_chn set dsca = replace(replace(convert(varchar,dsca),'?',''),'%','')
+
+UPDATE    InflowDetails
+SET              indentno = a.Indentno, IndentDate = a.IndentDate
+FROM         IdentDetail a
+WHERE     InflowDetails.OrderNum = a.Orderno AND InflowDetails.company = a.Company AND (Isdate(a.IndentDate) != 0)
+
+
+update supplierwiseprice set prin =  prin * ratp 
+from
+(select suno,isnull(ratp,1) as ratp  from com020 a
+left outer join (select ccur,ratp from (
+select ccur,stdt,ratp,row_number() over (partition by ccur order by stdt desc)  as ranks from tcmcs008100)a
+where ranks = 1)b
+on a.ccur = b.ccur)a
+where supplierwiseprice.suno = a.suno
+
+
+6. IF CONDITION
+
+IF DATEPART(DD,GETDATE()) = 4 AND DATEPART(HH,GETDATE()) < 10
+BEGIN
+
+END
+
+
+
+TO RENAME A TABLENAME OR COLUMN NAME
+sp_rename 'Materials_Division.department' , DIVISION
+
+
+To Find the last day in a month
+
+select day(EOMONTH(getdate()-1))
+
+
+To Find the last day in a previous month
+
+select (EOMONTH(dateadd(mm,-1,getdate()-1)))
+
+
+To Find the First day in a month
+Select dateadd(Month,datediff(Month,0,getdate()),0)
+select dateadd(dd,-day(EOMONTH(getdate()-1))+1,EOMONTH(getdate()-1))
+
+
+
+
+To achieve zero padding for month numbers to two digits
+
+RIGHT('00'+CAST(month(getdate()-1) AS VARCHAR(2)),2)
+
+
+To obtain Monthname directly from month in SQL Query
+
+select datename(mm,dateadd(mm,3,-1))
+
+
+To Find the laste date of a month Automatically
+
+dateadd(d,-1,convert(datetime,convert(varchar,year(getdate()))+'-'+RIGHT('00'+CAST(month(getdate()) AS VARCHAR(2)),2)+'-01'))
+
+
+
+Diff between Truncate and DELETE
+
+1.After Truncate stmt execution, Records cannot be rolled back where as After delete stmt execution, records can be rolled back.
+2.Truncate deletes all the records in the table but delete stmt can be manipulated to delete only a subset of records in the table based  on some conditions.
+
+
+existence of a table 
+if not exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[TmpSlsDespData]') and OBJECTPROPERTY(id, N'IsUserTable') = 1) 
+
+
+
+--comma seperated column values in an sql query.
+
+SELECT t_item,t_bqty,t_btyp,t_nbin,t_rplt,t_supp,t_Refcntd,t_Refcntu,t_stoc,t_dsca,TRGQTY,STATUS,maXSTOCK,Business_partner, sum(Pending_order)as Pending_order
+
+       ,STUFF((SELECT distinct ', ' + CAST(isnull(pono,0) AS VARCHAR(10)) [text()]
+         FROM brazil_spares_trigger 
+      WHERE t_item = t.t_item
+                                                              FOR XML PATH(''), TYPE)
+        .value('.','NVARCHAR(MAX)'),1,2,' ') as pono
+
+                                  FROM brazil_spares_trigger t
+GROUP BY t_item,t_bqty,t_btyp,t_nbin,t_rplt,t_supp,t_Refcntd,t_Refcntu,t_stoc,t_dsca,TRGQTY,STATUS,maXSTOCK,Business_partner
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------
+
+
+Pivot unpivot option in SQL
+---------------------------
+
+
+select ASSEMBLY,PLINE,METRIC,MONTH,YEAR,FDATE,TDATE,
+case 
+when column_name1='india_target' or column_name2='india_cl' then 'India and India Like'
+when column_name1='subs_target' or column_name2='subs_cl' then 'Subsidiary'
+when column_name1='overall_target' or column_name2='overall_cl' then 'Overall'
+end as Market,Targets,CLimits 
+From(
+SELECT ASSEMBLY,PLINE,METRIC,MONTH,YEAR,FDATE,TDATE,india_target,subs_target,overall_target,
+india_cl,subs_cl,overall_cl
+FROM alc_metrics
+)a
+unpivot
+(
+Targets for column_name1 in (india_target,subs_target,overall_target )
+)as k
+unpivot
+(
+CLimits for column_name2 in (india_cl,subs_cl,overall_cl)
+) as K1
+
+order by fdate ,tdate,metric,assembly
+
+
+
+
+inorder to avoid duplicate entries follow the below query
+
+select * from (
+select distinct industype,region,custype,
+case when column_name1 ='od_ar' then 'OD'
+when column_name1 ='ftm_ar' then 'FTM'
+when column_name1 ='nd_ar' then 'ND' end as Category1,
+AR,
+case when column_name2='od_pl' then 'OD'
+when column_name2='ftm_pl'  then 'FTM'
+when column_name2='nd_pl' then 'ND'
+end as Category2
+,Coll_Plan,CalYear,CalMonth,status
+From(
+SELECT distinct industype,region,custype,od_ar,od_pl,ftm_ar,ftm_pl,nd_ar,nd_pl
+,frmdt,todt,status,year(frmdt) CalYear,month(frmdt) as CalMonth
+FROM Regionwise_Collection_Plan
+where status='YES'
+)a
+unpivot
+(
+AR for column_name1 in (od_ar,ftm_ar,nd_ar)
+)as k
+unpivot
+(
+Coll_Plan for column_name2 in (od_pl,ftm_pl,nd_pl)
+) as K1
+
+)a
+where Category1=Category2
+order by industype,region,custype
+
+--select * from Regionwise_Collection_Plan A
+
+
+
+
+------------------------------------------------------------------------------------
+cumulative calculation
+
+
+
+ 
+
+select * from(
+select distinct P_ID,isnull(P_Team,'Sales') as P_Team,
+P_User_ID,P_Name,P_Email,
+segment_id,Segment,
+ordering,metrics_levels,Act_Count,
+case when ordering in (1,2,3) then sum(Act_Count)over(partition by isnull(p_id,0),segment_id order by ordering desc  rows between UNBOUNDED PRECEDING and CURRENT ROW)
+when ordering in  (4,5,6) then Act_Count 
+end as Req_Counts
+from(
+select 
+P_ID,
+P_Team,
+P_User_ID,P_Name,P_Email,
+Segment_id,isnull(segment,'Others') Segment,
+ordering,metrics_levels,sum(Act_Count) Act_Count
+from CRM_Parent_Child_ver2
+inner join crm_access acc
+on acc.pemail=CRM_Parent_Child_ver2.P_Email
+where P_Email =acc.pemail
+and concat('ELGI\',substring(acc.u_email,1,charindex('@',acc.u_email)-1)) = @email
+
+and segment_id in(@Segment)
+
+
+--where P_User_ID=226
+group by P_ID,P_Team,
+P_User_ID,P_Name,P_Email,
+Segment_id,Segment,
+ordering,metrics_levels
+)a
+)b
+--where ordering is null or ordering <5
+order by P_ID,P_Team,
+P_User_ID,P_Name,P_Email,
+Segment_id,Segment,
+ordering,metrics_levels
+
+
+
+
+-------------------------------------------------------------------------
+
+
+--Recursive query
+
+
+select distinct MITM,SITM from TTIBOM010ALL a
+where ltrim(rtrim(mitm)) in (select ltrim(rtrim(sitm)) from TTIBOM010ALL where ltrim(rtrim(SITM))=ltrim(rtrim(a.MITM)))
+--and ltrim(rtrim(MITM))='01894090P'
+order by MITM,SITM
+
+
+--Comma Seperated Column Generation
+
+SELECT ReportId, Email = 
+    STUFF((SELECT ', ' + Email
+           FROM your_table b 
+           WHERE b.ReportId = a.ReportId 
+          FOR XML PATH('')), 1, 2, '')
+FROM your_table a
+GROUP BY ReportId
+
+
+
+
+
+---------------------------------------------------------------------------
+

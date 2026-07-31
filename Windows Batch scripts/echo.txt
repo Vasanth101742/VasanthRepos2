@@ -1,0 +1,27 @@
+ECHO
+
+Display messages on screen, turn command-echoing on or off. 
+Syntax
+      ECHO [ON | OFF] 
+      ECHO [message] 
+Key
+   ON      : Display each line of the batch on screen (default)
+   OFF     : Only display the command output on screen
+   message : a string of characters to display
+
+Type ECHO without parameters to display the current echo setting (ON or OFF).
+
+ In most batch files you will want ECHO OFF, turning it ON can be useful when debugging a problematic batch script.
+
+ In a batch file, the @ symbol is the same as ECHO OFF applied to the current line only.
+
+ Normally a command is executed and takes effect from the next line onwards, @ is a rare example of a command that takes effect immediately.
+
+ Command characters will normally take precedence over the ECHO statement
+ e.g. The redirection and pipe characters: & < > | ON OFF
+
+ To override this behaviour you can escape each command character with ^ as follows:
+   ECHO Nice ^&Easy
+   ECHO Salary is ^> Commision
+   ECHO Name ^| Username ^| Expiry Date
+   ECHO:Off On Holiday

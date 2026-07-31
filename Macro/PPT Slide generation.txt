@@ -1,0 +1,671 @@
+Dim oPPTApp As PowerPoint.Application
+Dim oPPTFile As PowerPoint.Presentation
+Dim oPPTOrg As PowerPoint.Presentation
+Dim OpptOld As PowerPoint.Slide
+Dim oPPTSales As PowerPoint.Shape
+Dim oPPtHead As PowerPoint.Shape
+Dim oPPtDefect As PowerPoint.Shape
+Dim SlideNum As Integer
+Dim strPresPath As String, strNewPresPath As String
+Dim Mcnt As Integer
+Dim Region As String
+Dim SCur As String
+Dim RCnt As Integer
+
+Dim RCntF As Integer
+Dim cRow As Integer
+Dim Shp As Shape
+Dim Ltxt(1000) As String
+Dim Lt As Integer
+Dim LtDum As Integer
+Dim FName As String
+Dim Mnam As String
+Dim CCnt As Integer
+Dim RCCnt As Integer
+Dim YtdBud As Double
+Dim YtdAct As Double
+Dim YtdPAct As Double
+Dim DYtdBud As Double
+Dim DYtdAct As Double
+Dim DYtdPAct As Double
+Dim MAct As Double
+Dim MBud As Double
+Dim MPro As Double
+Dim NPro As Double
+Dim PMAct As Double
+Dim DRw As Double
+Dim DRwAct As Double
+Dim FlGAct As Boolean
+
+
+Sub Testentry()
+
+    Sheet1.Name = "Master"
+    Sheet14.Name = "Process"
+    Sheet2.Name = "Defect"
+    
+    ThisWorkbook.Worksheets("Master").Move before:=ThisWorkbook.Sheets(1)
+    ThisWorkbook.Worksheets("Defect").Move before:=ThisWorkbook.Sheets(2)
+    ThisWorkbook.Worksheets("Master").Activate
+    
+   ' ThisWorkbook.Worksheets("Process").Move before:=ThisWorkbook.Sheets(3)
+  '  ThisWorkbook.Worksheets("Process").Visible = xlSheetVeryHidden
+    
+   ' ThisWorkbook.Worksheets("Process").Visible = xlSheetVisible
+    
+       'Moves active sheet to end of active workbook.
+    
+    Call SlideGen
+    
+ '   NPro = ThisWorkbook.Worksheets(1).Cells(Rows.Count, 1).End(xlUp).Row + 1
+    
+   ' ThisWorkbook.Worksheets(1).Range("A2:O5").Copy Destination:=ThisWorkbook.Worksheets(1).Range("A46")
+'    ThisWorkbook.Worksheets(1).Rows(2).EntireRow.Copy
+'    ThisWorkbook.Worksheets(1).Range(“A46”).Select
+'    ThisWorkbook.Worksheets(1).Paste
+   
+End Sub
+Private Sub SlideGen()
+
+  On Error Resume Next
+
+If MsgBox("Are you sure to generate the slide ?", vbYesNo + vbQuestion, "ELGI-IT Confirmation") = vbYes Then
+    strPresPath = Application.ActiveWorkbook.Path & "\FillTmpNew.ppt"
+    strNewPresPath = Application.ActiveWorkbook.Path & "\SalesPerf.ppt"
+    
+    Set oPPTApp = CreateObject("PowerPoint.Application")
+    oPPTApp.Visible = msoTrue
+    
+    Set oPPTOrg = oPPTApp.Presentations.Open(strPresPath, False, False, False)
+    
+    If oPPTOrg Is Nothing Then
+        MsgBox "Template File is missing.Please Check!!!", vbOKOnly + vbInformation, "ELGI IT"
+        oPPTApp.Quit
+        Set oPPTApp = Nothing
+        Exit Sub
+    End If
+    
+  '  Region = InputBox("Please Enter the Vertical Name :", "ELGI-IT")
+    
+    Region = UCase(ThisWorkbook.Worksheets(1).Cells(1, 1))
+    SCur = Trim(ThisWorkbook.Worksheets(1).Cells(1, 12)) & Trim(ThisWorkbook.Worksheets(1).Cells(1, 14)) & "        " & Trim(ThisWorkbook.Worksheets(1).Cells(1, 6)) & Trim(ThisWorkbook.Worksheets(1).Cells(1, 10))
+    
+    Set oPPTFile = oPPTApp.Presentations.Add(msoTrue)
+    
+    Set OpptOld = oPPTOrg.Slides(3)
+    OpptOld.Copy
+    
+    oPPTFile.PageSetup.SlideHeight = oPPTOrg.PageSetup.SlideHeight
+    oPPTFile.PageSetup.SlideOrientation = oPPTOrg.PageSetup.SlideOrientation
+    oPPTFile.PageSetup.SlideSize = oPPTOrg.PageSetup.SlideSize
+    oPPTFile.PageSetup.SlideWidth = oPPTOrg.PageSetup.SlideWidth
+    
+    oPPTFile.Slides.Paste
+    
+    Application.CutCopyMode = False
+    
+    SlideNum = 1
+    oPPTFile.Slides(1).Select
+    
+    oPPTFile.Slides(1).Design = OpptOld.Design
+    oPPTFile.Slides(1).FollowMasterBackground = OpptOld.FollowMasterBackground
+    oPPTFile.Slides(1).ColorScheme = OpptOld.ColorScheme
+    
+    Set oPPTSales = oPPTFile.Slides(1).Shapes("Head")
+    With oPPTSales
+         .TextFrame.TextRange.Text = Region
+    End With
+    
+    Set oPPTSales = oPPTFile.Slides(1).Shapes("Shead")
+    With oPPTSales
+         .TextFrame.TextRange.Text = MonthName(Month(Date) - 1) & " - " & Str(Year(DateAdd("M", -1, Date)))
+         
+    End With
+    
+    Set oPPTSales = oPPTFile.Slides(1).Shapes("Tplace")
+    With oPPTSales
+         .TextFrame.TextRange.Text = SCur
+    End With
+    
+    
+    Call FillValues
+
+    Set OpptOld = oPPTOrg.Slides(4)
+    OpptOld.Copy
+    
+    oPPTFile.PageSetup.SlideHeight = oPPTOrg.PageSetup.SlideHeight
+    oPPTFile.PageSetup.SlideOrientation = oPPTOrg.PageSetup.SlideOrientation
+    oPPTFile.PageSetup.SlideSize = oPPTOrg.PageSetup.SlideSize
+    oPPTFile.PageSetup.SlideWidth = oPPTOrg.PageSetup.SlideWidth
+    
+    oPPTFile.Slides.Paste
+    
+     
+    Application.CutCopyMode = False
+    
+    SlideNum = oPPTFile.Slides.Count
+    oPPTFile.Slides(SlideNum).Select
+    
+    oPPTFile.Slides(SlideNum).Design = OpptOld.Design
+    oPPTFile.Slides(SlideNum).FollowMasterBackground = OpptOld.FollowMasterBackground
+    oPPTFile.Slides(SlideNum).ColorScheme = OpptOld.ColorScheme
+    
+    FName = Mnam & "Sales"
+     
+    Kill Application.ActiveWorkbook.Path & "\FName.ppt"
+    
+   ' FName = "test"
+  '  FName = InputBox("Enter the Presentation File Name:", "ELGI IT", "SalesPerf")
+    
+    strNewPresPath = Application.ActiveWorkbook.Path & "\" & FName
+    
+    oPPTFile.SaveAs strNewPresPath
+    oPPTFile.Close
+    oPPTOrg.Close
+    
+    oPPTApp.Quit
+    
+    Set oPPtHead = Nothing
+    Set oPPtDefect = Nothing
+    Set oPPTSales = Nothing
+    Set oPPTFile = Nothing
+    Set oPPTApp = Nothing
+    Set oPPTOrg = Nothing
+    Set OpptOld = Nothing
+  
+       
+    MsgBox "Presentation Created in path " & strNewPresPath, vbOKOnly + vbInformation, "ELGI IT"
+End If
+End Sub
+Private Sub FillValues()
+    Mnam = MonthName(Month(Date) - 1, True)
+   
+    For RCntF = 3 To 600 Step 4
+    
+        Call ClearData
+        YtdBud = 0
+        YtdAct = 0
+        YtdPAct = 0
+        DYtdBud = 0
+        DYtdAct = 0
+        DYtdPAct = 0
+        DMAct = 0
+        MBud = 0
+        MPro = 0
+        NPro = 0
+        PMAct = 0
+        
+        If Len(ThisWorkbook.Worksheets(1).Cells(RCntF, 1)) > 0 Then
+            ThisWorkbook.Worksheets("Process").Cells(3, 1) = ThisWorkbook.Worksheets(1).Cells(RCntF, 1)
+            ThisWorkbook.Worksheets("Process").Cells(1, 6) = Mnam & Str(Year(DateAdd("M", -1, Date)))
+            ThisWorkbook.Worksheets("Process").Cells(1, 9) = Mnam & Str(Year(DateAdd("M", -1, Date)))
+            For RCCnt = RCntF To RCntF + 3
+                FlGAct = False
+                For CCnt = 3 To 14
+
+                        If RCCnt = RCntF Then
+                            YtdPAct = YtdPAct + ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt)
+                                                        
+                            If ThisWorkbook.Worksheets(1).Cells(2, CCnt) = Mnam Then
+                                DYtdPAct = YtdPAct
+                                ThisWorkbook.Worksheets("Process").Cells(3, 9) = DYtdPAct
+                                PMAct = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                                ThisWorkbook.Worksheets("Process").Cells(3, 5) = PMAct
+                            End If
+                            
+                            'ThisWorkbook.Worksheets("Process").Cells(24, CCnt - 1) = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                           
+                                ThisWorkbook.Worksheets("Process").Cells(24, CCnt - 1) = YtdPAct
+                           
+                            
+                        End If
+                        If RCCnt = RCntF + 1 Then
+                            YtdBud = YtdBud + Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                                                       
+                            If ThisWorkbook.Worksheets(1).Cells(2, CCnt) = Mnam Then
+                                DYtdBud = YtdBud
+                                 ThisWorkbook.Worksheets("Process").Cells(3, 7) = DYtdBud
+                                MBud = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                                ThisWorkbook.Worksheets("Process").Cells(3, 2) = MBud
+                            End If
+                            
+                           ' ThisWorkbook.Worksheets("Process").Cells(25, CCnt - 1) = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                           ThisWorkbook.Worksheets("Process").Cells(25, CCnt - 1) = YtdBud
+                        End If
+                        If RCCnt = RCntF + 2 Then
+                            YtdAct = YtdAct + Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                            
+                            If FlGAct = False Then
+                                ThisWorkbook.Worksheets("Process").Cells(26, CCnt - 1) = YtdAct
+                            End If
+                            
+                            If ThisWorkbook.Worksheets(1).Cells(2, CCnt) = Mnam Then
+                                DYtdAct = YtdAct
+                                FlGAct = True
+                                ThisWorkbook.Worksheets("Process").Cells(3, 8) = DYtdAct
+                                MAct = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                                ThisWorkbook.Worksheets("Process").Cells(3, 4) = MAct
+                            End If
+                         '   ThisWorkbook.Worksheets("Process").Cells(26, CCnt - 1) = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                   
+                        End If
+                        If RCCnt = RCntF + 3 Then
+                            If ThisWorkbook.Worksheets(1).Cells(2, CCnt) = Mnam Then
+                                MPro = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt))
+                                ThisWorkbook.Worksheets("Process").Cells(3, 3) = MPro
+                                NPro = Val(ThisWorkbook.Worksheets(1).Cells(RCCnt, CCnt + 1))
+                                ThisWorkbook.Worksheets("Process").Cells(3, 6) = NPro
+                            End If
+                        End If
+                        
+                        If ThisWorkbook.Worksheets(1).Cells(2, CCnt) = Mnam Then
+                            'CCnt = 14
+                        End If
+                    
+                    'MsgBox ThisWorkbook.Worksheets(1).Cells(RCntF, 1)
+                Next CCnt
+            Next RCCnt
+            
+            
+        Call Generate
+        Call FillDefect
+        
+    '    MsgBox Test
+        End If
+        
+    Next RCntF
+End Sub
+Private Sub FillDefect()
+    DRwAct = 29
+    For DRw = 2 To 300
+        If Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 1))) > 0 And Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 2))) > 0 And Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 3))) > 0 And Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 5))) > 0 And Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 4))) > 0 And Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 6))) > 0 And Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 7))) > 0 And Len(Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 8))) > 0 Then
+            If Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 1)) = Trim(ThisWorkbook.Worksheets(3).Cells(3, 1)) Then
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 1) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 2))
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 2) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 3))
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 3) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 4))
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 4) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 5))
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 10) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 6))
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 11) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 7))
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 15) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 8))
+                ThisWorkbook.Worksheets(3).Cells(DRwAct, 16) = Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 9)) & "-" & Trim(ThisWorkbook.Worksheets(2).Cells(DRw, 10))
+            
+                DRwAct = DRwAct + 1
+            End If
+        End If
+    Next DRw
+    
+    Call GenDefect
+End Sub
+Private Sub ClearData()
+
+For CCnt = 1 To 9
+    ThisWorkbook.Worksheets(3).Cells(3, CCnt) = ""
+Next CCnt
+
+For RCCnt = 24 To 26
+    For CCnt = 2 To 13
+        ThisWorkbook.Worksheets(3).Cells(RCCnt, CCnt) = ""
+    Next CCnt
+Next RCCnt
+
+For RCCnt = 29 To 192
+    For CCnt = 1 To 16
+        ThisWorkbook.Worksheets(3).Cells(RCCnt, CCnt) = ""
+    Next CCnt
+Next RCCnt
+    
+
+End Sub
+Private Sub Generate()
+    
+    Mcnt = 3
+    Set OpptOld = oPPTOrg.Slides(1)
+    OpptOld.Copy
+    
+    oPPTFile.PageSetup.SlideHeight = oPPTOrg.PageSetup.SlideHeight
+    oPPTFile.PageSetup.SlideOrientation = oPPTOrg.PageSetup.SlideOrientation
+    oPPTFile.PageSetup.SlideSize = oPPTOrg.PageSetup.SlideSize
+    oPPTFile.PageSetup.SlideWidth = oPPTOrg.PageSetup.SlideWidth
+    
+    oPPTFile.Slides.Paste
+    
+    Application.CutCopyMode = False
+ 
+      
+    SlideNum = oPPTFile.Slides.Count
+    
+    oPPTFile.Slides(SlideNum).Select
+    
+    oPPTFile.Slides(SlideNum).Design = OpptOld.Design
+    oPPTFile.Slides(SlideNum).FollowMasterBackground = OpptOld.FollowMasterBackground
+    oPPTFile.Slides(SlideNum).ColorScheme = OpptOld.ColorScheme
+    
+    
+     
+    Set oPPtHead = oPPTFile.Slides(SlideNum).Shapes("tHead")
+    With oPPtHead
+     .TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 1).Text
+    End With
+    
+    Set OpptOld = Nothing
+    
+    Set oPPTSales = oPPTFile.Slides(SlideNum).Shapes("tsales")
+    With oPPTSales.Table
+        .Cell(1, 2).Shape.TextFrame.TextRange.Text = Trim(ThisWorkbook.Worksheets(Mcnt).Cells(1, 2).Text) & " " & Trim(ThisWorkbook.Worksheets(Mcnt).Cells(1, 6).Text)
+        .Cell(1, 7).Shape.TextFrame.TextRange.Text = Trim(ThisWorkbook.Worksheets(Mcnt).Cells(1, 7).Text) & " " & Trim(ThisWorkbook.Worksheets(Mcnt).Cells(1, 9).Text)
+        
+        
+        .Cell(3, 1).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 1).Text
+        
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 2).Text) > 0 Then
+        .Cell(3, 2).Shape.TextFrame.TextRange.Text = Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 2).Text)
+        Else
+        .Cell(3, 2).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 3).Text) > 0 Then
+        .Cell(3, 3).Shape.TextFrame.TextRange.Text = Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 3).Text)
+        Else
+        .Cell(3, 3).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 4).Text) > 0 Then
+        .Cell(3, 4).Shape.TextFrame.TextRange.Text = Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 4).Text)
+        Else
+        .Cell(3, 4).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 5).Text) > 0 Then
+        .Cell(3, 5).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 5).Text
+        Else
+        .Cell(3, 5).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 6).Text) > 0 Then
+        .Cell(3, 6).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 6).Text
+        Else
+        .Cell(3, 6).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        
+        If Val(.Cell(3, 4).Shape.TextFrame.TextRange.Text) >= Val(.Cell(3, 2).Shape.TextFrame.TextRange.Text) Then
+            .Cell(3, 4).Shape.Fill.BackColor.RGB = vbGreen
+        Else
+            If Val(.Cell(3, 4).Shape.TextFrame.TextRange.Text) >= Val(.Cell(3, 5).Shape.TextFrame.TextRange.Text) Then
+                .Cell(3, 4).Shape.Fill.BackColor.RGB = vbYellow
+            Else
+                .Cell(3, 4).Shape.Fill.BackColor.RGB = vbRed
+            End If
+        End If
+          
+          
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 7).Text) > 0 Then
+        .Cell(3, 7).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 7).Text
+        Else
+        .Cell(3, 7).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 8).Text) > 0 Then
+        .Cell(3, 8).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 8).Text
+        Else
+        .Cell(3, 8).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        If Val(ThisWorkbook.Worksheets(Mcnt).Cells(3, 9).Text) > 0 Then
+        .Cell(3, 9).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 9).Text
+        Else
+        .Cell(3, 9).Shape.TextFrame.TextRange.Text = 0
+        End If
+        
+        
+        If Val(.Cell(3, 8).Shape.TextFrame.TextRange.Text) >= Val(.Cell(3, 7).Shape.TextFrame.TextRange.Text) Then
+            .Cell(3, 8).Shape.Fill.BackColor.RGB = vbGreen
+        Else
+            If Val(.Cell(3, 8).Shape.TextFrame.TextRange.Text) >= Val(.Cell(3, 9).Shape.TextFrame.TextRange.Text) Then
+                .Cell(3, 8).Shape.Fill.BackColor.RGB = vbYellow
+            Else
+                .Cell(3, 8).Shape.Fill.BackColor.RGB = vbRed
+            End If
+        End If
+        
+        
+       
+    End With
+ 
+    ThisWorkbook.Worksheets(Mcnt).ChartObjects(1).Copy
+    oPPTFile.Slides(SlideNum).Shapes.PasteSpecial ppPastePNG
+    
+ 
+    
+    With oPPTFile.Slides(SlideNum).Shapes(oPPTFile.Slides(SlideNum).Shapes.Count)
+            .Name = "chart123"
+            .Left = 11
+            .Top = 215
+            .Width = 710
+            .Height = 290
+          
+    End With
+    
+   
+    
+ 
+
+End Sub
+
+Private Sub GenDefect()
+RCnt = 36
+cRow = 1
+Lt = 0
+
+For RCnt = 29 To 192
+        
+      If (Len(ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 1)) > 0 And Val(ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 2)) >= 2016) Or Lt > 0 Then
+      
+Nslide:
+                If cRow = 1 Then
+                    Set OpptOld = oPPTOrg.Slides(2)
+                    OpptOld.Copy
+                    
+                    oPPTFile.PageSetup.SlideHeight = oPPTOrg.PageSetup.SlideHeight
+                    oPPTFile.PageSetup.SlideOrientation = oPPTOrg.PageSetup.SlideOrientation
+                    oPPTFile.PageSetup.SlideSize = oPPTOrg.PageSetup.SlideSize
+                    oPPTFile.PageSetup.SlideWidth = oPPTOrg.PageSetup.SlideWidth
+                    
+                    oPPTFile.Slides.Paste
+                    
+                    Application.CutCopyMode = False
+                    
+                    
+                    
+                    oPPTFile.Slides(oPPTFile.Slides.Count).Select
+                    
+                    oPPTFile.Slides(oPPTFile.Slides.Count).Design = OpptOld.Design
+                    oPPTFile.Slides(oPPTFile.Slides.Count).FollowMasterBackground = OpptOld.FollowMasterBackground
+                    oPPTFile.Slides(oPPTFile.Slides.Count).ColorScheme = OpptOld.ColorScheme
+                    
+                    Set OpptOld = Nothing
+                    
+                    
+                    Set oPPtHead = oPPTFile.Slides(oPPTFile.Slides.Count).Shapes("tHead")
+                    With oPPtHead
+                        .TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(3, 1).Text & " - Defect Sheet"
+                    End With
+                    
+                    
+                    Set oPPtHead = oPPTFile.Slides(oPPTFile.Slides.Count).Shapes("tEnd")
+                    With oPPtHead
+                         .TextFrame.TextRange.Text = ""
+                        .TextFrame.TextRange.Font.Color = vbWhite
+                    End With
+                    
+                    If Lt > 0 Then
+                        Set oPPtDefect = oPPTFile.Slides(oPPTFile.Slides.Count).Shapes("tDefect")
+                        oPPtDefect.Table.Rows.Add
+                    End If
+                    LtDum = 1
+                    
+                   
+                    While (Lt > 0)
+
+                        oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Text = oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Text & Ltxt(Lt) & Space(1)
+                        oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Font.Bold = msoFalse
+                        oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Font.Color = vbBlack
+                        oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Font.Underline = msoFalse
+                        oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.ParagraphFormat.Alignment = ppAlignJustify
+                        
+                        Lt = Lt - 1
+                        LtDum = LtDum + 1
+                        
+                        If (oPPtDefect.Height + oPPtDefect.Top) > (oPPTFile.PageSetup.SlideHeight - 35) Then
+                            cRow = 1
+                            GoTo Nslide
+                        End If
+                        
+                    Wend
+                    If LtDum > 1 Then
+                    
+                       
+                        Set txtRng = oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange
+                        Set foundText = txtRng.Find(FindWhat:="CAUSE :")
+                        Do While Not (foundText Is Nothing)
+                            With foundText
+                                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE :").Font.Color = vbRed
+                                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE :").Font.Bold = msoCTrue
+                                'oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE").Font.Underline = msoCTrue
+                                
+                                Set foundText = txtRng.Find(FindWhat:="CAUSE :", After:=.Start + .Length - 1)
+                            End With
+                        Loop
+                 
+                    
+                 
+          ''               oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE :").Font.Color = vbRed
+             '           oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE :").Font.Bold = msoCTrue
+              '          oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE").Font.Underline = msoCTrue
+                            
+                    
+                        Set txtRng = oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange
+                        Set foundText = txtRng.Find(FindWhat:="SOLUTION :")
+                        Do While Not (foundText Is Nothing)
+                            With foundText
+                                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION :").Font.Color = vbRed
+                                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION :").Font.Bold = msoCTrue
+                               ' oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION").Font.Underline = msoCTrue
+                       
+                                Set foundText = txtRng.Find(FindWhat:="SOLUTION :", After:=.Start + .Length - 1)
+                            End With
+                        Loop
+                 
+                        
+                        
+                   '     oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION :").Font.Color = vbRed
+                    ''    oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION :").Font.Bold = msoCTrue
+                      '  oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION").Font.Underline = msoCTrue
+  
+                    End If
+                
+                cRow = cRow + 1
+                    
+  
+                End If
+        End If
+        If Len(ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 1)) > 0 And Val(ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 2)) >= 2016 Then
+                
+                Erase Ltxt()
+                
+                Set oPPtDefect = oPPTFile.Slides(oPPTFile.Slides.Count).Shapes("tDefect")
+                oPPtDefect.Table.Rows.Add
+
+            
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 1).Shape.TextFrame.TextRange.Words.Font.Name = "Verdana"
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 1).Shape.TextFrame.TextRange.Words.Font.Bold = msoFalse
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 1).Shape.TextFrame.TextRange.Words.Font.Color = vbBlack
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 1).Shape.TextFrame.TextRange.Words.Font.Underline = msoFalse
+               
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 1).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 1) & "-" & ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 2)
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 2).Shape.TextFrame.TextRange.Words.Font.Bold = msoFalse
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 2).Shape.TextFrame.TextRange.Words.Font.Color = vbBlack
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 2).Shape.TextFrame.TextRange.Words.Font.Underline = msoFalse
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 2).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 3)
+              
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.ParagraphFormat.Alignment = ppAlignJustify
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Text = "CAUSE : " & ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 4) & vbNewLine & vbNewLine & "SOLUTION : " & ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 11)
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Font.Bold = msoFalse
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Font.Color = vbBlack
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Font.Underline = msoFalse
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE :").Font.Color = vbRed
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE :").Font.Bold = msoCTrue
+               ' oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("CAUSE").Font.Underline = msoCTrue
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION :").Font.Color = vbRed
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION :").Font.Bold = msoCTrue
+                'oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Words.Find("SOLUTION").Font.Underline = msoCTrue
+                
+               
+                    oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 4).Shape.TextFrame.TextRange.Words.Font.Bold = msoFalse
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 4).Shape.TextFrame.TextRange.Words.Font.Color = vbBlack
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 4).Shape.TextFrame.TextRange.Words.Font.Underline = msoFalse
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 4).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 10)
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 5).Shape.TextFrame.TextRange.Words.Font.Bold = msoFalse
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 5).Shape.TextFrame.TextRange.Words.Font.Color = vbBlack
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 5).Shape.TextFrame.TextRange.Words.Font.Underline = msoFalse
+                
+                             
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 5).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 15)
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 6).Shape.TextFrame.TextRange.Words.Font.Bold = msoFalse
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 6).Shape.TextFrame.TextRange.Words.Font.Color = vbBlack
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 6).Shape.TextFrame.TextRange.Words.Font.Underline = msoFalse
+                
+                
+                oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 6).Shape.TextFrame.TextRange.Text = ThisWorkbook.Worksheets(Mcnt).Cells(RCnt, 16)
+                
+            
+                
+                cRow = cRow + 1
+                
+                Lt = 0
+
+                
+                While ((oPPtDefect.Height + oPPtDefect.Top) - (oPPTFile.PageSetup.SlideHeight - 35)) > 2
+                    If Len(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count)) > 0 Then
+                        Lt = Lt + 1
+                        Ltxt(Lt) = oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count)
+                        oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Delete
+                    Else
+                        Erase Ltxt()
+                        Lt = 0
+                        oPPtDefect.Table.Rows(oPPtDefect.Table.Rows.Count).Delete
+                        RCnt = RCnt - 1
+                    End If
+                    cRow = 1
+                Wend
+                If Lt > 0 Then
+                   ' oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Text = Space(20) & "Continued ....."
+                    'oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Text = Space(10) & "Continued ....."
+                   
+                    
+                    Set oPPtHead = oPPTFile.Slides(oPPTFile.Slides.Count).Shapes("tEnd")
+                    With oPPtHead
+                        .TextFrame.TextRange.Text = "Continued...."
+                        .TextFrame.TextRange.Font.Color = vbRed
+                    End With
+                    
+'                    oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Font.Color = vbRed
+'                    oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Font.Bold = msoCTrue
+'                    oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines(oPPtDefect.Table.Cell(oPPtDefect.Table.Rows.Count, 3).Shape.TextFrame.TextRange.Lines.Count).Font.Underline = msoFalse
+                End If
+           
+                
+        End If
+        
+Next RCnt
+End Sub
+

@@ -1,0 +1,22 @@
+CREATE TABLE dbo.[Image]
+(
+ ImageID INT,
+ ImageName VARCHAR(50),
+ MimeType VARCHAR(50),
+ ImageBits VARBINARY(MAX)
+);
+
+
+INSERT INTO dbo.[Image] 
+ (ImageID, ImageName, MimeType, ImageBits)
+SELECT 
+ 2
+,'UserGroupImage'
+,'image/png'
+,BulkColumn FROM OPENROWSET 
+ --(BULK 'C:\Users\bisadmin\Desktop\CRM\ELGISharepointImage.png', SINGLE_BLOB) MyImage
+	(BULK 'C:\Users\bisadmin\Desktop\CRM\elgi1.png', SINGLE_BLOB) MyImage
+	
+
+
+	select * from dbo.[Image]

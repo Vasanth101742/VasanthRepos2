@@ -1,0 +1,62 @@
+select * from 
+(select substring(requiredattendees,14,36) requiredattendees,elgi_customervisitid,
+elgi_customertypesalesname,elgi_latestvisitdate,elgi_monthstartingdate,elgi_dealer,elgi_dealerengineer,
+elgi_statusofvisitsales,owneridname 
+from appointment
+where len(requiredattendees)>2 and len(elgi_customertypesalesname)>2
+and elgi_latestvisitdate>='2018-10-01'
+)a
+full outer join
+(select opportunityid,elgi_enquiryid,elgi_businessverticalname,
+elgi_sourceofenquiryname,elgi_dealername,elgi_dealerengineername,
+owneridname,elgi_opportunitystatusname,elgi_enquirystatusname,
+statecodename,elgi_probabilityname,estimatedclosedate,
+actualclosedate,createdon,customerid,customeridname
+from CRM_OPPURTUNITY
+where elgi_enquirystatusname<>'On Hold'
+and elgi_businessverticalname='Industrial'
+and elgi_sourceofenquiryname not in ('Website')
+and createdon>='2018-10-01'
+)b
+on a.requiredattendees=b.customerid
+left outer join 
+(select accountid,name,elgi_cityname,elgi_statename,
+elgi_customerclustersalesname,
+elgi_customerclassificationname,--a.elgi_lineofbusinessname,
+b.elgi_description
+from ACCOUNT a
+left outer join
+ELGI_LINEOFBUSINESS b
+on a.elgi_lineofbusinessname=b.elgi_name
+) c
+on isnull(a.requiredattendees,b.customerid)=c.accountid
+left outer join 
+(select a.opportunityid,a.elgi_businessverticalname,a.statuscodename, 
+b.elgi_salesofficename,b.priceperunit,b.quantity,b.baseamount,b.productid,b.productidname,
+c.elgi_salesofficecode,d.elgi_itemcode,e.elgi_productcategoryname
+from QUOTE a
+left outer join QUOTEDETAILS b
+on a.quoteid=b.quoteid
+left outer join 
+(select * from ELGI_SALESOFFICES where elgi_salesofficecode in ('90008','90009','90016',
+'90020','90022','90030','90032','90093','90094') ) c
+on ltrim(rtrim(b.elgi_salesofficename))=ltrim(rtrim(c.elgi_name))
+left outer join Product d
+on b.productid=d.productid
+left outer join (
+select * from(
+select elgi_itemcode,elgi_productcategoryname,
+ROW_NUMBER() over (partition by elgi_productcategoryname order by elgi_productcategoryname) as Rnk
+from ELGI_DEALERPRICELISTMASTER)a
+where Rnk=1
+) e
+on ltrim(rtrim(d.elgi_itemcode))=ltrim(rtrim(e.elgi_itemcode))
+where a.opportunityid in 
+(select distinct  opportunityid from CRM_OPPURTUNITY
+where elgi_enquirystatusname<>'On Hold'
+and elgi_businessverticalname='Industrial'
+and elgi_sourceofenquiryname not in ('Website'))
+and a.statuscodename not in ('Revised')
+)Quote
+on b.opportunityid=Quote.opportunityid
+--select distinct elgi_sourceofenquiryname from CRM_OPPURTUNITY

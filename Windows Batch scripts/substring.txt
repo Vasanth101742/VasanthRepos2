@@ -1,0 +1,99 @@
+extract part of a variable (substring)
+
+Syntax
+      %variable:~num_chars_to_skip%
+      %variable:~num_chars_to_skip,num_chars_to_keep%
+
+This can include negative numbers:
+
+      %variable:~num_chars_to_skip, -num_chars_to_keep%
+      %variable:~-num_chars_to_skip,num_chars_to_keep%
+      %variable:~-num_chars_to_skip,-num_chars_to_keep%
+
+A negative number will count backwards from the end of the string. 
+
+Examples
+
+ The variable _test is used for all the following examples:
+SET var_test=123456789abcdef0
+
+::Extract only the first 5 characters
+
+ SET var_result=%_test:~0,5%
+ ECHO %var_result%
+
+::Skip 7 characters and then extract the next 5
+
+ SET _result=%_test:~7,5%
+ ECHO %_result%          =89abc
+
+::Skip 7 characters and then extract everything else
+
+ SET _result=%_test:~7%
+ ECHO %_result%          =89abcdef0
+
+::Extract only the last 7 characters
+
+ SET _result=%_test:~-7%
+ ECHO %_result%          =abcdef0
+
+::Extract everything except the last 7 characters
+
+ SET _result=%_test:~0,-7%
+ ECHO %_result%          =123456789
+
+::Extract between 7 from the front and 5 from the end
+
+ SET _result=%_test:~7,-5%
+ ECHO %_result%          =89ab
+
+::Go back 7 from the end then extract 5 towards the end
+
+ SET _result=%_test:~-7,5%
+ ECHO %_result%          =abcde
+
+::Extract between 7 from the end and 5 from the end
+
+   SET _result=%_test:~-7,-5%
+   ECHO %_result%        =ab
+
+This variable substring syntax only works for CMD environment variables, like %MYVAR%, it will not work with FOR parameter variables, like %%G, 
+however a simple workaround is to set a variable first: Set %MYVAR%=%%G and then find the substring of the new variable.
+
+To discover if a given variable contains a given string: use the syntax above to remove the _SearchString and compare the result with the original variable 
+\before removal. If both strings are the same, then_SearchString was not found:
+ IF /i "%_variable:_SearchString=%"=="%_variable%" (Echo String not found.) ELSE (Echo String found.) 
+
+To match an exact word, pad the search string with spaces: " John " instead of "John" will avoid a match with "Johnstone"
+
+Advanced Usage of :~
+
+ You can use the :~ syntax and provide each of the parameters from other variables, for example if you have
+
+ %_donor%=2539850
+ %_digit%=4
+
+ To extract digit # 4 from _donor you might try
+ SET _substring=%_donor:~%_digit%,1%
+
+Unfortunately this will not work because the :~ syntax expects a value not a variable. To get around this use the CALL command like this:
+SET _startchar=2
+SET _length=1
+SET _donor=884777
+CALL SET _substring=%%_donor:~%_startchar%,%_length%%%
+ECHO (%_substring%) 
+
+:: Credits:
+ :: Clay Calvert - alt.msdos.batch.nt 
+ :: Ritchie Lawrence - alt.msdos.batch.nt
+
+#Substitute Me for him, Substitute My Coke for gin, Substitute You for my mum, At least I'll get my washing done# ~ The Who (Substitute)
+
+Related:
+
+VarSearch - Search & replace part of a variable.
+strlen.cmd - Get string length.
+
+  
+
+ 

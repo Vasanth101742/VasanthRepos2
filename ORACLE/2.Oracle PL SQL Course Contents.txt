@@ -1,0 +1,133 @@
+Ref:http://www.nareshit.in/plsql-training/
+
+
+PL SQL Course Content
+
+ PL-SQL (Procedure Language – SQL) :
+•Introduction to Programming Languages
+•Introduction to PL/SQL
+•The Advantages of PL/SQL
+•PL/SQL Architecture
+•PL/SQL Data types
+•Variable and Constants
+•Using Built_in Functions
+•Conditional and Unconditional Statements
+•Simple if, if… else, nested if..else, if..else Ladder
+•Selection Case, Simple Case, GOTO Label   and EXIT
+•Iterations in PL/SQL •Simple LOOP,WHILE LOOP,FOR LOOP   and NESTED LOOPS
+•SQL within PL/SQL
+•Composite Data types (Complete)
+•Cursor Management in PL/SQL
+•Implicit Cursors
+•Explicit Cursors
+•Cursor Attributes
+•Cursor with Parameters
+•Cursors with LOOPs Nested Cursors
+•Cursors with Sub Queries
+•Ref. Cursors •Record and PL/SQL Table Types 
+
+
+
+ Advanced PL/SQL
+•Procedures in PL/SQL :
+•STORED PROCEDURES
+•PROCEDURE with Parameters (IN,OUT  and IN OUT)
+•POSITIONAL Notation and NAMED Notation
+•Procedure with Cursors
+•Dropping a Procedure •Functions in PL/SQL :
+•Difference between Procedures and Functions
+•User Defined Functions
+•Nested Functions
+•Using stored function in SQL statements •Packages in PL/SQL :
+•Creating PACKAGE Specification and  PACKAGE Body
+•Private and Public Objects in PACKAGE
+
+
+
+ EXCEPTIONS in PL/SQL :
+•Types of exceptions :
+•User Defined Exceptions
+•Pre Defined Exceptions
+•RAISE_APPLICATION_ERROR
+•PRAGMA_AUTONOMOUS_TRANSACTION
+•SQL Error Code Values
+
+ Database Triggers in PL/SQL :
+•Types of Triggers
+•Row Level Triggers
+•Statement Level Triggers
+•DDL Triggers
+•Trigger Auditing
+
+ File Input/Output :
+•PL/SQL file I/O (Input/Output)
+•Using UTL_FILE Package
+
+ Implementing Object Technology
+•What is Object Technology ?
+•OOPS-Object Instances
+•Creation of objects
+•Creating User Defined Data Types
+•Creating Object Tables
+•Inserting rows in a table using Objects
+•Retrieving data from Object based Tables
+•Calling a Method
+•Indexing Abstact Data type Attributes
+
+ Using LOBS
+•Large Objects (LOBS)
+•Creating Tables-LOB
+•Working with LOB values
+•Inserting, Updating & Deleting Values in LOBs
+•Populating Lobis DBMS_LOB Routines
+•Using B-FILE
+
+ Using Collections
+•Advantages of collection
+•Ref cursor (Dynamic Cursor)
+•Weak ref cursor
+•Strong ref cursor
+•Nested Tables VARRAYS or VARYING arrays
+•Creating tables using nested tables
+•Inserting, updating & deleting Nested
+•Table records
+•Nested table in PL/SQL
+
+Oracle Database Architecture
+•Introduction to Oracle Database Architecture
+•Physical structures Logical structures
+•DB Memory Structures Background Process
+•2 Tire, 3 Tire, N-Tier Architecture
+
+ Advanced Features
+•9i Joines
+•New Date function
+•Rename column
+•Inner Join/Natural Join
+•Left Outer Join/Right Outer Join
+•Full Outer Join
+•Multiple Inserts
+•Insert All Command
+•Merge statement
+•NVL2(), NULLIF(), COALESCE()
+•CASE expression of Select Command
+•Temporary Tables/Global Tables
+•New Function EXTRACT()
+•Autonomous Traction
+•Pragma _ Autonomous_ Transaction()
+•Bulk Collect
+•About Flash Back Queries
+•Dynamic SQL
+•New data types, Flash back Command
+•Purge Command, Recyclebin
+•Regular expressions, DML Error Logging
+•Data Pump, Virtual Columns
+•Read only tables, Cross tab Views using
+•Pivot/Unpivot operators, Follows Clause
+•Compound triggers, New data types
+
+ DBA CONCEPTS
+•Database
+•Tablespace
+•Types of tablespaces
+•Data files /Se

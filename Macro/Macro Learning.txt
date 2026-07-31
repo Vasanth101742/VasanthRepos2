@@ -1,0 +1,121 @@
+
+UCase(ThisWorkbook.Worksheets(1).Cells(1, 1))  -->Uniquely identify a cell value in the Excel workbook
+
+1. ThisWorkbook.Worksheets("Sheet1").Activate  
+	– Activates the Sheet Sheet1
+2. ThisWorkbook.Worksheets("Sheet3").Move before:=ThisWorkbook.Sheets(1)
+	Sheet3 will be moved before the first sheet in the Excel.So Sheet3 will be first sheet now.
+3. ThisWorkbook.Worksheets("Sheet4").Visible = xlSheetVeryHidden
+            Sheet4 is set from Visible state to VeryHidden State. So that it cannot even be unhidden from 
+            Excel GUI by the users. So confident information like passwords can be be saved in this Sheet.
+            It can be unhidden only from VBA Code.
+4. ThisWorkbook.Worksheets("Process").Visible = xlSheetVisible
+	Command to Unhide the Sheet from VBA code.
+
+5. Call SlideGen    – Call a Subroutine named  SlideGen
+
+6.On Error Resume Next   –
+
+Example Program: Ref: https://www.mrexcel.com/forum/excel-questions/530235-vba-error-resume-next.html
+Sub Sample()
+    Dim i As Long
+ 
+    For i = 7 To Range("Count").Value
+        On Error Resume Next
+        Workbooks.Open Cells(i, 1).Text
+ 
+        If Err.Number <> 0 Then
+            Err.Clear
+        Else
+            On Error GoTo 0
+            'code when there's no error
+ 
+        End If
+    Next i
+End Sub
+7. Application.ActiveWorkbook.Path
+Application.ThisWorkbook.Path
+
+8. xlup function
+
+Sub Range_End_Method()
+'Finds the last non-blank cell in a single row or column
+
+Dim lRow As Long
+Dim lCol As Long
+
+'Find the last non-blank cell in column A(1)
+lRow = Cells(Rows.Count, 1).End(xlUp).Row
+
+'Find the last non-blank cell in row 1
+lCol = Cells(1, Columns.Count).End(xlToLeft).Column
+
+MsgBox "Last Row: " & lRow & vbNewLine & _
+    "Last Column: " & lCol
+
+End Sub
+
+
+
+9. Option Explicit
+ Using Option Explicit forces you to declare all your variables.
+
+10.
+' ThisWorkbook.Worksheets(1).Range("A2:O5").Copy Destination:=ThisWorkbook.Worksheets(1).Range("A46")
+'    ThisWorkbook.Worksheets(1).Rows(2).EntireRow.Copy
+'    ThisWorkbook.Worksheets(1).Range(“A46”).Select
+'    ThisWorkbook.Worksheets(1).Paste
+
+11.
+MsgBox("Are you sure to generate the slide ?", vbYesNo + vbQuestion, "ELGI-IT Confirmation") = vbYes
+
+12. object Creation
+
+Dim oPPTApp As PowerPoint.Application
+Set oPPTApp = CreateObject("PowerPoint.Application")
+    oPPTApp.Visible = msoTrue
+
+Dim oPPTOrg As PowerPoint.Presentation
+Set oPPTOrg = oPPTApp.Presentations.Open(strPresPath, False, False, False)
+
+for Presentations.Open method access below link
+https://msdn.microsoft.com/en-us/vba/powerpoint-vba/articles/presentations-open-method-powerpoint
+
+oPPTApp.Quit  -->Close the presentation object
+Set oPPTApp = Nothing  --> unallocate the path
+exit sub               --> Come out of the program 
+
+
+Dim oPPTFile As powerpoint.Presentation
+Set oPPTFile = oPPTApp.Presentations.Add(msoTrue)
+
+Presentations.Add(msoTrue)  -->New presentation is created and msoTrue is the default option which will make the presentation visible.
+
+
+
+Dim OpptOld As powerpoint.Slide
+Set OpptOld = oPPTOrg.Slides(3)     
+OpptOld.Copy
+
+
+oPPTFile.PageSetup.SlideHeight = oPPTOrg.PageSetup.SlideHeight
+oPPTFile.PageSetup.SlideOrientation = oPPTOrg.PageSetup.SlideOrientation
+oPPTFile.PageSetup.SlideSize = oPPTOrg.PageSetup.SlideSize
+oPPTFile.PageSetup.SlideWidth = oPPTOrg.PageSetup.SlideWidth
+    
+oPPTFile.Slides.Paste
+    
+Application.CutCopyMode = False
+
+SlideNum = oPPTFile.Slides.Count
+oPPTFile.Slides(SlideNum).Select
+
+
+oPPTFile.Slides(1).Design = OpptOld.Design
+oPPTFile.Slides(1).FollowMasterBackground = OpptOld.FollowMasterBackground
+oPPTFile.Slides(1).ColorScheme = OpptOld.ColorScheme
+
+Dim oPPTSales As powerpoint.Shape
+Set oPPTSales = oPPTFile.Slides(1).Shapes("Head")
+
+    

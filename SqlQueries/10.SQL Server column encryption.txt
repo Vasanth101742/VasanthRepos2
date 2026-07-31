@@ -1,0 +1,3 @@
+https://www.alibabacloud.com/blog/sql-server-best-practices-using-asymmetric-keys-to-implement-column-encryption_594390
+
+https://www.sqlshack.com/an-overview-of-the-column-level-sql-server-encryption/

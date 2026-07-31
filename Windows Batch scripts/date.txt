@@ -1,0 +1,105 @@
+DATE
+
+Display or change the date.
+Syntax
+
+to display the date   
+      DATE /T
+
+to set the system date
+      DATE
+or
+      DATE <date_today>
+
+The default output from DATE /T in the United States is "1/23/1997" but this is dependent on the country/locale.
+ The default short date and time formats for a selection of countries are as follows:
+ Country/language  CountryCode Locale Date_format  Time_format
+
+   Argentina-Spanish     054   2C0A   23/01/1997   9:45:30 am
+   Australia             061   0C09   23/01/1997   9:45:30 AM
+   Austria               043   0C07   23.01.1997  09:45:30
+   Brazil-Portuguese     055   0416   23/01/1997  09:45:30
+   Belgium-French        032   080C   23/01/1997  09:45:30
+   Belgium-Dutch         032   0813   23/01/1997   9:45:30
+   Canada-French         002   0C0C   1997-01-23  09:45:30
+   Canada-English        002   1009   01/23/1997   9:45:30 AM
+   China/PRC-Chinese     086   0804   1997/1/23    9:45:30
+   China/HK-Chinese Trad 852   0C04   23/1/1997    9:45:30
+   Czech Republic        042   0405   23.1.1997    9:45:30 
+   Denmark               045   0406   23-01-1997  09.45.30
+   Finland               358   040B   23.1.1997    9:45:00
+   France                033   040C   23/01/1997  09:45:30
+   Germany               049   0407   23.01.1997  09:45:30
+   Greece                030   0408   23/01/1997   9:45:30 µµ
+   Hungary               036   040E   1997.01.23.  9:45:30 
+   India-Hindi           091   0439   23-01-1997  09:45:30
+   India-Bengali         091   0445   23-01-97    09.35.00 
+   India-Telugu          091   044A   23-01-97    09:45:30 
+   Italy                 039   0410   23/01/1997  09.45.30 
+   Japan                 081   0411   1997/01/23   9:45:30
+   Netherlands           031   0413   23-01-1997   9:45:30 
+   Norway                047   0414   23.01.1997  09:45:30 
+   Poland                048   0415   1997-01-23  09:45:30 
+   Portugal              351   0816   23-01-1997  09:45:30 
+   Spain                 034   0C0A   23/01/1997   9:45:30 
+   Sweden                046   041D   1997-01-23  09.45.30
+   Switzerland-French    041   100C   23.01.1997  09:45:30
+   Switzerland-German    041   0807   23.01.1997  09:45:30
+   Switzerland-Italian   041   0810   23.01.1997  09:45:30
+   United Kingdom        044   0809   23/01/1997  09:45:30
+   United States         001   0409   1/23/1997    9:45:30 AM
+
+                                      Bold = 24 hour time
+
+The table above is based on Vista/Windows 7, in earlier versions of Windows the default short date format for most countries returns a 2 digit year.
+
+Other date and time formats
+
+
+The dates and time above are only default settings, in the Control Panel users can change the date and time format including the date separator, 12/24 hour time and leading/trailing characters. Take care not make cultural assumptions about the users chosen date or time format.
+
+The ISO standard 8601 defines a date and time format that can be used internationally: YYYY-MM-DD to avoid the confusion that is often caused by differences in language and local custom. ISO 8601 also recommends that 24 hour times have a leading zero (09:45), but not all countries follow this convention.
+
+Errorlevels
+
+
+If the Date was successfully changed (or not given) %ERRORLEVEL% = 0
+ If the user lacks admin privileges = 1
+
+Date Formats in the registry
+
+
+Short Date Format
+HKCU\Control Panel\International\sShortDate
+
+Date Separator
+HKCU\Control Panel\International\sDate
+
+Country Code
+HKCU\Control Panel\International\iCountry
+
+
+Locale
+HKCU\Control Panel\International\Locale
+
+
+DATE is an internal command. If Command Extensions are disabled DATE will not support the /T switch
+
+“Carpe Diem - Seize the day” ~ Horace 
+
+ Related:
+
+%DATE% - variable containing current Date. 
+GetDate.cmd - Get todays Date (any region, any OS)
+datetime.vbs - Get Date, Time and daylight savings (VB Script)
+GetLocale - VBScript
+NOW - Display Message with Current Date and Time
+NET TIME - Display the Date in US Format (mm-dd-yy)
+REG - Read, Set or Delete registry keys and values 
+TIME - Display or set the system time
+TOUCH - Change file timestamps
+ Microsoft - change the date/time format: Windows XP / Windows 7
+National Language Support Reference
+ PowerShell: Set-ADUser -Country - Change a users Country Code and other settings. 
+ PowerShell: Set-Date - Change the computer system time
+ Equivalent bash command (Linux): date - Display or change the date

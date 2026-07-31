@@ -1,0 +1,21 @@
+SET ANSI NULLS ON
+SET ANSI NULLS OFF
+
+SET ANSI PADDING ON
+SET ANSI PADDING OFF
+
+SET QUOTED IDENTIFIER ON
+SET QUOTED IDENTIFIER OFF
+
+
+http://www.sql-server-performance.com/2006/dbcc-commands/
+
+http://www.codeproject.com/Articles/647950/Create-and-Populate-Date-Dimension-for-Data-Wareho
+-------------------------------------------------------
+SSAS
+
+1.Analysis Services Processing Task
+2.Analysis Services Execute DDL Task
+
+
+if not exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[TmpSlsInflowData]') and OBJECTPROPERTY(id, N'IsUserTable') = 1)

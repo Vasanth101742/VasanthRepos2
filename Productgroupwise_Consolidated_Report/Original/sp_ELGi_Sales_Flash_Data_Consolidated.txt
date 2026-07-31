@@ -1,0 +1,93 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_ELGi_Sales_Flash_Data_Consolidated
+
+--select * from ELGi_Sales_Flash_Data_Consolidated order by OrganOrdr,user_names_ordr
+
+CREATE proc sp_ELGi_Sales_Flash_Data_Consolidated as
+
+
+begin
+
+truncate table ELGi_Sales_Flash_Data_Consolidated
+
+insert 
+into ELGi_Sales_Flash_Data_Consolidated 
+select OrganOrdr,organ1,organ,user_names_ordr,user_names1,user_names,Division,dpstcode,dpstname,
+month_budget,month_actuals,last_month_actuals,ytd_budget,ytd_actuals,ly_ytd_actuals,ly_month_actuals,
+FinYear,FinMonthnum
+from (
+select *, case 
+when organ1='INDIA' then 1
+when organ1='SAAME' then 2
+when organ1='COSEA' then 3
+when organ1='AMERICA' then 4
+when organ1='EUROPE' then 5
+when organ1='ID' then 6
+end as OrganOrdr
+
+from (
+
+select *,
+case 
+when ltrim(rtrim(user_names1))='Channel' then 1
+when ltrim(rtrim(user_names1))='Direct' then 2
+when ltrim(rtrim(user_names1))='C&M' then 3
+when ltrim(rtrim(user_names1))='WW' then 4
+when ltrim(rtrim(user_names1))='Railway' then 5
+when ltrim(rtrim(user_names1))='AS' then 6
+
+when ltrim(rtrim(user_names1))='OSEA' then 1
+when ltrim(rtrim(user_names1))='AUSTRALIA' then 2
+when ltrim(rtrim(user_names1))='INDONESIA' then 3
+when ltrim(rtrim(user_names1))='CHINA' then 4
+when ltrim(rtrim(user_names1))='MED & Airends' then 5
+when ltrim(rtrim(user_names1))='EZL TO CUST' then 6
+
+when ltrim(rtrim(user_names1))='SA' then 1
+when ltrim(rtrim(user_names1))='Africa' then 2
+when ltrim(rtrim(user_names1))='ELGi Gulf' then 3
+when ltrim(rtrim(user_names1))='ME-Billing from India' then 4
+end as user_names_ordr
+from (
+select *,case 
+when organ in ('BELAIR','ROTAIR' ) then 'EUROPE'
+when organ in ('PATTONS','USA','BRAZIL') then 'AMERICA'
+else organ
+end as organ1
+from (
+select  *, case
+when user_names in ('OSEA AS','OSEA Units') then 'OSEA'
+when user_names in ('SA-Units','SA-Spares') then 'SA'
+when user_names in ('Africa-Units','Africa-Spares') then 'Africa'
+when user_names in ('GULF UNITS TO CUST','GULF SPARES TO CUST') then 'ELGi Gulf'
+when user_names in ('ME-Units','ME-Spares') then 'ME-Billing from India'
+--when ltrim(rtrim(user_names)) in ('Africa','America','CIS','Europe','Middle East & West Asia','South East Asia','Neighbouring                  ') then null
+when organ='ID' then null
+
+else user_names 
+end as user_names1
+from (
+select organ,case
+when division in ('AUSTRALIA TO CUST') then 'AUSTRALIA'
+when division in ('INDONESIA TO CUST') then 'INDONESIA'
+when division in ('EZL TO CUST') THEN 'CHINA'
+else user_names
+end as user_names,Division,dpstcode,dpstname,
+month_budget,month_actuals,last_month_actuals,ly_month_actuals,
+ytd_budget,ytd_actuals,ly_ytd_actuals,FinYear,FinMonthnum
+from
+
+(select * from ELGi_Sales_Flash_data)a)b)c)d)e)f
+
+
+update ELGi_Sales_Flash_Data_Consolidated set user_names1='BELAIR' where organ='BELAIR'
+update ELGi_Sales_Flash_Data_Consolidated set user_names1='ROTAIR' where organ='ROTAIR'
+update ELGi_Sales_Flash_Data_Consolidated set user_names1='USA' where organ='USA'
+update ELGi_Sales_Flash_Data_Consolidated set user_names1='BRAZIL' where organ='BRAZIL'
+update ELGi_Sales_Flash_Data_Consolidated set user_names1='PATTONS' where organ='PATTONS'
+update ELGi_Sales_Flash_Data_Consolidated set user_names1='AfterSales' where ltrim(rtrim(user_names1))='AS'
+
+end
+
+

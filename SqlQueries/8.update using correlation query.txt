@@ -1,0 +1,2 @@
+UPDATE OTD SET TIMETAKEN=
+(select count(distinct date) from CompanyCalendar where CCAL ='company' and DFCA<>4 and date between OTD.[OrdER_Date] and OTD.[Inv_Date])

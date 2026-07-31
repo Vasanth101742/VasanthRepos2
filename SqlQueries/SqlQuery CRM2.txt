@@ -1,0 +1,137 @@
+select * from 
+(select substring(requiredattendees,14,36) requiredattendees,elgi_customervisitid,
+elgi_customertypesalesname,elgi_latestvisitdate,elgi_monthstartingdate,elgi_dealer,elgi_dealerengineer,
+elgi_statusofvisitsales,owneridname 
+from appointment
+where len(requiredattendees)>2 and len(elgi_customertypesalesname)>2
+and elgi_latestvisitdate>='2018-10-01'
+)a
+full outer join
+(select opportunityid,elgi_enquiryid,elgi_businessverticalname,
+elgi_sourceofenquiryname,elgi_dealername,elgi_dealerengineername,
+owneridname,elgi_opportunitystatusname,elgi_enquirystatusname,
+statecodename,elgi_probabilityname,estimatedclosedate,
+actualclosedate,createdon,customerid,customeridname
+from CRM_OPPURTUNITY
+where elgi_enquirystatusname<>'On Hold'
+and elgi_businessverticalname='Industrial'
+and elgi_sourceofenquiryname not in ('Website')
+and createdon>='2018-10-01'
+)b
+on a.requiredattendees=b.customerid
+left outer join 
+(select accountid,name,elgi_cityname,elgi_statename,
+elgi_customerclustersalesname,
+elgi_customerclassificationname,--a.elgi_lineofbusinessname,
+b.elgi_description
+from ACCOUNT a
+left outer join
+ELGI_LINEOFBUSINESS b
+on a.elgi_lineofbusinessname=b.elgi_name
+) c
+on isnull(a.requiredattendees,b.customerid)=c.accountid
+left outer join 
+(select a.opportunityid,a.elgi_businessverticalname,a.statuscodename, 
+b.elgi_salesofficename,b.priceperunit,b.quantity,b.baseamount,b.productid,b.productidname,
+c.elgi_salesofficecode,d.elgi_itemcode,e.elgi_productcategoryname
+from QUOTE a
+left outer join QUOTEDETAILS b
+on a.quoteid=b.quoteid
+left outer join 
+(select * from ELGI_SALESOFFICES where elgi_salesofficecode in ('90008','90009','90016',
+'90020','90022','90030','90032','90093','90094') ) c
+on ltrim(rtrim(b.elgi_salesofficename))=ltrim(rtrim(c.elgi_name))
+left outer join Product d
+on b.productid=d.productid
+left outer join (
+select * from(
+select elgi_itemcode,elgi_productcategoryname,
+ROW_NUMBER() over (partition by elgi_productcategoryname order by elgi_productcategoryname) as Rnk
+from ELGI_DEALERPRICELISTMASTER)a
+where Rnk=1
+) e
+on ltrim(rtrim(d.elgi_itemcode))=ltrim(rtrim(e.elgi_itemcode))
+where a.opportunityid in 
+(select distinct  opportunityid from CRM_OPPURTUNITY
+where elgi_enquirystatusname<>'On Hold'
+and elgi_businessverticalname='Industrial'
+and elgi_sourceofenquiryname not in ('Website'))
+and a.statuscodename not in ('Revised')
+)Quote
+on b.opportunityid=Quote.opportunityid
+--select distinct elgi_sourceofenquiryname from CRM_OPPURTUNITY
+
+
+
+-----------------------------------------------------------------------------
+
+Output Query
+
+
+
+select 
+name as CustomerName,
+accountnumber as Account_ID,
+elgi_cityname as CityName,
+elgi_statename as StateName,
+elgi_customerclustersalesname as Customer_Cluster,
+elgi_customerclassificationname as Customer_Classification,
+elgi_description as Industry,
+elgi_dealername as Dealer,
+elgi_dealerengineername as Dealer_Engineer,
+Opportunity_Name as EnquiryID,
+isnull(Quote_Name,elgi_dealeroffername) as Quote_Offer_ID,
+elgi_customervisitid as CustomerVisitID,
+elgi_monthstartingdate as MonthstartDate,
+elgi_latestvisitdate as VisitDate,
+elgi_statusofvisitsalesname as VisitStatus,
+elgi_opportunitystatusname as EnquiryStage,
+statecodename as EnquiryStatus,
+elgi_probabilityname as Probability,
+estimatedclosedate as EstimatedCloseDate,
+actualclosedate as ActualCloseDate,
+Createdon,
+owneridname as OwnerName,
+elgi_salesofficecode as SalesOffice, 
+elgi_itemcode as ItemCode,
+productidname as Product, 
+priceperunit,
+quantity,
+baseamount,
+elgi_productcategoryname as ProductCategory,
+
+elgi_enquirystatusname
+requiredattendees,
+customerid,
+opportunityid,
+accountid,
+quoteid,
+elgi_salesofficename,
+productid,
+
+
+elgi_customertypesalesname,
+
+elgi_dealer,
+elgi_dealerengineer,
+
+
+elgi_enquiryid,
+elgi_businessverticalname,
+elgi_sourceofenquiryname,
+
+
+elgi_businessverticalname_Q,
+statuscodename,
+
+
+
+elgi_dealerofferid,
+
+
+
+createdbyname
+from CRM_Units_Fact
+
+
+--select distinct statecodename from CRM_Units_Fact

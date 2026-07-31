@@ -1,0 +1,126 @@
+select dateadd(wk,datediff(wk,0,getdate()-1),0) as WeekStartDate,
+dateadd(wk,datediff(wk,0,getdate()-1),4) as WeekEndDate,
+'As of '+dbo.ufn_DaySubScript(dateadd(wk,datediff(wk,0,getdate()-1),0))+' '+
+substring(datename (Month,dateadd(Month,datepart(Month,dateadd(wk,datediff(wk,0,getdate()-1),0)),-1)),1,3) +' Opening' as Text1,
+'From '+ dbo.ufn_DaySubScript(dateadd(wk,datediff(wk,0,getdate()-1),0))+' '+
+substring(datename (Month,dateadd(Month,datepart(Month,dateadd(wk,datediff(wk,0,getdate()-1),0)),-1)),1,3) +
+' to '+ dbo.ufn_DaySubScript(dateadd(wk,datediff(wk,0,getdate()-1),4))+' '+
+substring(datename (Month,dateadd(Month,datepart(Month,dateadd(wk,datediff(wk,0,getdate()-1),4)),-1)),1,3) as Text2,
+'As of COB '+dbo.ufn_DaySubScript(dateadd(wk,datediff(wk,0,getdate()-1),4))+' '+
+substring(datename (Month,dateadd(Month,datepart(Month,dateadd(wk,datediff(wk,0,getdate()-1),4)),-1)),1,3) as Text3
+
+
+Alter function ufn_DaySubScript (@Date as date) Returns varchar(10) as
+begin
+
+Declare @DaySubScript varchar(10)
+
+select @DaySubScript=cast(Day( @Date ) AS VARCHAR(10)) + case 
+when day(@Date) =1 then 'st' 
+when day(@Date) =2 then 'nd' 
+when day(@Date) =3 then 'rd' 
+when day(@Date) between 4 and 20 then 'th' 
+when day(@Date) =21 then 'st' 
+when day(@Date) =22 then 'nd' 
+when day(@Date) =23 then 'rd' 
+when day(@Date) between 24 and 30 then 'th' 
+when day(@Date) =31 then 'st' 
+end --as DaySubscript
+
+Return @DaySubScript
+
+end
+
+
+
+
+select 
+datename(mm,dateadd(dd,-1,getdate())) as this_month,datename(mm,dateadd(mm,-1,dateadd(dd,-1,getdate()))) as last_month,datename(mm,dateadd(mm,1,dateadd(dd,-1,getdate()))) as next_month,
+datename(mm,dateadd(mm,2,dateadd(dd,-1,getdate()))) as next_next_month,substring(datename(yy,dateadd(dd,-1,getdate())),3,4) as this_mth_yr,
+substring(datename(yy,dateadd(mm,-1,dateadd(dd,-1,getdate()))),3,4) as last_mth_yr,
+substring(datename(yy,dateadd(mm,1,dateadd(dd,-1,getdate()))),3,4) as next_mth_yr,
+substring(datename(yy,dateadd(mm,2,dateadd(dd,-1,getdate()))),3,4) as next_next_mth_yr,
+substring(datename(yy,dateadd(yy,-1,dateadd(dd,-1,getdate()))),3,4) as last_yr,
+convert(varchar,dateadd(dd,-1,getdate()),107) as lastclose,
+convert(varchar,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),107 ) as n1,
+convert(varchar,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),107 ) as n2,
+convert(varchar,dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),107 ) as n3
+
+
+
+SELECT CONVERT(VARCHAR,(CASE WHEN MONTH(GETDATE()) >3 THEN YEAR(GETDATE())-1 ELSE YEAR(GETDATE())-2 END )%2000)+'-'+
+CONVERT(VARCHAR,(CASE WHEN MONTH(GETDATE()) >3 THEN YEAR(GETDATE()) ELSE YEAR(GETDATE())-1 END )%2000 )AS LSTYR,
+CONVERT(VARCHAR,(CASE WHEN MONTH(GETDATE()) >3 THEN YEAR(GETDATE()) ELSE YEAR(GETDATE())-1 END )%2000 ) +'-'+
+CONVERT(VARCHAR,(CASE WHEN MONTH(GETDATE()) >3 THEN YEAR(GETDATE())+1 ELSE YEAR(GETDATE())  END ) %2000) AS CRNTYR 
+
+
+DECLARE @mydate DATETIME
+SELECT @mydate = GETDATE()
+SELECT CONVERT(VARCHAR(25),DATEADD(dd,-(DAY(@mydate)),@mydate),101),
+'Last Day of Previous Month'
+UNION
+SELECT CONVERT(VARCHAR(25),DATEADD(dd,-(DAY(@mydate)-1),@mydate),101) AS Date_Value,
+'First Day of Current Month' AS Date_Type
+UNION
+SELECT CONVERT(VARCHAR(25),@mydate,101) AS Date_Value, 'Today' AS Date_Type
+UNION
+SELECT CONVERT(VARCHAR(25),DATEADD(dd,-(DAY(DATEADD(mm,1,@mydate))),
+DATEADD(mm,1,@mydate)),101),
+'Last Day of Current Month'
+UNION
+SELECT CONVERT(VARCHAR(25),DATEADD(dd,-(DAY(DATEADD(mm,1,@mydate))-1),
+DATEADD(mm,1,@mydate)),101),
+'First Day of Next Month'
+GO
+
+
+First Day of Current Month
+convert(date,dateadd(yy,-1,DATEADD(month, DATEDIFF(month, 0, getdate()-1), 0)))
+
+Last Day of Current Month
+CONVERT(date,dateadd(yy,-1,DATEADD(dd,-(DAY(DATEADD(mm,1,getdate()-1))),DATEADD(mm,1,getdate()-1))))
+
+
+Week start date and End Date
+
+select dateadd(wk,datediff(wk,0,'2023-09-26'),0) as weekStart
+select dateadd(wk,datediff(wk,0,getdate()-1),4) as weekend
+
+
+
+SELECT Cast(
+Day( Getdate() ) AS VARCHAR(10)) +
+CASE WHEN Day( Getdate() ) % 10 = 1 AND Day( Getdate() ) % 100 <> 11 THEN 'st'
+WHEN Day( Getdate() ) % 10 = 2 AND Day( Getdate() ) % 100 <> 12 THEN 'nd'
+WHEN Day( Getdate() ) % 10 = 3 AND Day( Getdate() ) % 100 <> 13 THEN 'rd'
+ELSE 'th'
+END AS Day_Place
+
+
+----set @Finyear =case when @monthnum<4 then @year-1 else @year end
+----set @Finmonthnum =case when @monthnum<4 then @monthnum+9 else @monthnum-3 end
+
+
+update Inventory_History set Finyear=CalYear-1 where CalMonth<4
+update Inventory_History set Finyear=CalYear where CalMonth>=4
+
+
+update Inventory_History set FinMonth=CalMonth+9 where CalMonth<4
+update Inventory_History set FinMonth=CalMonth-3 where CalMonth>=4
+
+
+set @Calmonthnum=case when @Finmonthnum<=9 then @Finmonthnum+3 else @Finmonthnum-9 end
+set @Calyear=case when @Finmonthnum<=9 then @Finyear else @Finyear+1 end
+
+update ACR_Debtors_Details set CalMonth=FinMonth+3 where FinMonth<=9
+update ACR_Debtors_Details set CalMonth=FinMonth-9 where FinMonth>9
+
+update ACR_Debtors_Details set CalYear=FinYear where FinMonth<=9
+update ACR_Debtors_Details set CalYear=FinYear+1 where FinMonth>9
+
+
+--to find week number with in the month
+declare @now_day date='2018-03-11'
+select DATEPART(week, @now_day)- DATEPART(week, CONVERT(CHAR(6), @now_day, 112)+'01') + 1
+
+=datepart(dateinterval.WeekOfYear,Fields!docd.Value) - datepart(dateinterval.WeekOfYear,cdate(month(Fields!docd.Value) &"/01/" & year(Fields!docd.Value)))+1

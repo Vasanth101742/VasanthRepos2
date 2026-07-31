@@ -1,0 +1,22 @@
+Step 1.
+use [SharePoint_AdminContent_f4c26623-320a-45ec-b74d-9b1367173d76]
+
+Step 2.
+backup database [SharePoint_AdminContent_f4c26623-320a-45ec-b74d-9b1367173d76] to disk 
+= 'G:\Old_Backup\SharePoint_AdminContent_f4c26623-320a-45ec-b74d-9b1367173d76.bak' with init
+
+Step3.
+Delete a database 
+
+Step4.
+Restore the database from .bak file
+
+
+Step5. execute the below commands
+
+ALTER DATABASE [SharePoint_AdminContent_f4c26623-320a-45ec-b74d-9b1367173d76] SET RECOVERY SIMPLE
+ALTER DATABASE [SharePoint_AdminContent_f4c26623-320a-45ec-b74d-9b1367173d76] SET RECOVERY full 
+
+Step6.
+shrink the database 
+

@@ -1,0 +1,122 @@
+--declare @CalMonth int=6
+--declare @CalYear int=2019
+--select * from ufn_bud_Domestic_Regionwise(@CalMonth,@CalYear)
+--go
+
+
+Alter function ufn_bud_Domestic_Regionwise (@CalMonth int,@CalYear int)
+
+RETURNS @ufn_bud_Domestic_Regionwise TABLE 
+(
+Zone	varchar(20),
+DPSTCODE	varchar(10),
+budget_year	float,
+last_month_budget	float,
+ytd_budget	float,
+this_month_budget	float,
+next_month_budget	float,
+nextof_next_month_budget	float,
+budget_year_Qty	float,
+this_month_budget_Qty	float
+)
+
+AS
+
+BEGIN
+
+
+WITH CTE_bud_Domestic_Regionwise
+(
+Zone,DPSTCODE,budget_year,last_month_budget,ytd_budget,this_month_budget,
+next_month_budget,nextof_next_month_budget,budget_year_Qty,this_month_budget_Qty
+) -- CTE name and columns
+
+AS (
+
+
+select *  from (  
+SELECT Zone,DPSTCODE,
+SUM(budget_year) AS budget_year, 
+SUM(last_month_budget) AS last_month_budget, 
+SUM(ytd_budget) AS ytd_budget,   
+SUM(this_month_budget) AS this_month_budget, 
+SUM(next_month_budget) AS next_month_budget, 
+SUM(nextof_next_month_budget) AS nextof_next_month_budget,
+sum(budget_year_Qty) budget_year_Qty,
+sum(this_month_budget_Qty) this_month_budget_Qty
+FROM (
+
+SELECT     
+Zone,DPSTCODE,
+SUM(CASE WHEN CalDate BETWEEN 
+('04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end ))) 
+AND 
+('03/31/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear else @CalYear+1 end )))
+THEN (BudValue) ELSE 0 END) AS budget_year,  
+
+SUM(CASE WHEN CalDate BETWEEN 
+('04/01/' + convert(varchar,(case when @CalMonth between 1 and 4 then @CalYear - 1 else @CalYear end ))) 
+AND 
+convert(varchar,dateadd(dd, - 1, RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2) + '/1/' + convert(varchar,@CalYear)),101) 
+THEN (BudValue) ELSE 0 END) AS last_month_budget,  
+
+SUM(CASE WHEN CalDate BETWEEN 
+'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end )) 
+AND 
+convert(varchar,dateadd(dd, - 1,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2) +'/'+convert(varchar,datepart(dd,getdate()))+'/' + convert(varchar,@CalYear) ),101) 
+THEN (BudValue) ELSE 0 END) AS ytd_budget, 
+
+SUM(CASE WHEN month(CalDate)= @CalMonth 
+AND year(CalDate) =@CalYear
+THEN (BudValue) ELSE 0 END) AS this_month_budget, 
+
+SUM(CASE WHEN month(CalDate)= case when @CalMonth=12 then 1 else @CalMonth+1 end AND 
+year(CalDate) = case when @CalMonth=12 then @CalYear+1 else @CalYear end
+THEN (BudValue) ELSE 0 END) AS next_month_budget,     
+
+SUM(CASE WHEN month(CalDate) = case 
+when @CalMonth=11 then 1  
+when @CalMonth=12 then 2 else @CalMonth+2 end AND
+year(CalDate) = case 
+when @CalMonth=11 then @CalYear+1
+when @CalMonth=12 then @CalYear+1 else @CalYear end
+THEN (BudValue) ELSE 0 END) AS nextof_next_month_budget,
+
+
+SUM(CASE WHEN CalDate BETWEEN 
+('04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end ))) 
+AND 
+('03/31/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear else @CalYear+1 end )))
+THEN (BudQty) ELSE 0 END) AS budget_year_Qty,  
+
+SUM(CASE WHEN month(CalDate)= @CalMonth 
+AND year(CalDate) =@CalYear
+THEN (BudQty) ELSE 0 END) AS this_month_budget_Qty
+
+
+FROM RegionWise_Budget a
+group by Zone,DPSTCODE
+
+) AS budget  
+GROUP BY Zone,DPSTCODE
+)a  
+where budget_year <> 0 or ( (last_month_budget) > 0)
+
+
+)
+
+
+
+INSERT @ufn_bud_Domestic_Regionwise
+
+SELECT Zone,DPSTCODE,budget_year,
+last_month_budget,ytd_budget,this_month_budget,next_month_budget,
+nextof_next_month_budget,budget_year_Qty,this_month_budget_Qty
+FROM CTE_bud_Domestic_Regionwise
+
+RETURN
+
+END;
+
+
+

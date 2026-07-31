@@ -1,0 +1,50 @@
+declare @Company varchar(10)='600'
+declare @month int=5
+declare @year int=2019
+--declare @Warehouse varchar(10)='657'
+
+
+select date1,Description,warehouse,company,item,itemdescr,rnk,
+sum(case when rnk=1 then (PRODUCTION_PLAN)  else null end) as Monthly_plan,
+sum(planned_qty) Planned,
+sum(released_qty) Released,
+sum(Actual_qty) Actual,
+sum(WIP_qty) WIP,
+sum(avg_bud_price) avg_bud_price,
+sum(sls_price) sls_price,
+sum(Dispatch_qty) as Dispatch_qty,
+sum(qhnd) qhnd
+from (
+select a.company,a.warehouse,a.item,a.itemdescr,a.Description,
+a.date1,b.Production_Plan,
+a.Planned_qty,a.Released_qty,a.Actual_qty,a.WIP_qty,a.avg_bud_price,a.sls_price,a.Dispatch_qty,c.qhnd,
+ROW_NUMBER() over  (partition by a.company,a.warehouse,a.item order by a.item) as rnk  from ELGi_production_details a
+full outer join 
+(select itemcode,production_plan,calmonth,calyear from Ats_Production_Plan_Master 
+where calmonth=@month
+and calyear=@year
+)b
+on ltrim(rtrim(a.item))=ltrim(rtrim(b.ItemCode))
+and month(a.date1)=b.calmonth
+and year(a.date1)=b.calyear
+left outer join (select COMPANY,CWAR,ITEM,sum(qhnd) qhnd from twhwmd215all
+group by COMPANY,CWAR,ITEM
+having sum(qhnd)<>0
+)c
+on a.company=c.company
+and a.warehouse=c.CWAR
+and ltrim(rtrim(a.item))=ltrim(rtrim(c.Item))
+
+where 
+month(a.date1) = @month 
+and year(a.date1) =@year 
+and a.date1 <=  getdate() - 1 
+and a.company  in (@Company)
+--and a.warehouse in (@Warehouse)
+
+--and ltrim(rtrim(item))='S13002'
+
+)a
+group by date1,Description,warehouse,company,item,itemdescr,rnk
+having sum(Actual_qty)<>0
+order by company,warehouse,item,Description,rnk

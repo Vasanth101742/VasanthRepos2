@@ -1,0 +1,5 @@
+https://ss64.com/nt/echo.html
+https://ss64.com/nt/date.html
+
+Variables
+http://steve-jansen.github.io/guides/windows-batch-scripting/part-2-variables.html

@@ -1,0 +1,1 @@
+C:\oracle32bit\product\11.2.0\client_1\NETWORK\ADMIN\tnsnames.ora

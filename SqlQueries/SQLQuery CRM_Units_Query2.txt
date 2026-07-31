@@ -1,0 +1,252 @@
+CREATE TABLE [CRM_Units_Stage1](
+	[opportunityid] [varchar](200) NULL,
+	[elgi_enquiryid] [nvarchar](100) NULL,
+	[elgi_dealername] [nvarchar](160) NULL,
+	[elgi_dealerengineername] [nvarchar](160) NULL,
+	[elgi_businessverticalname] [nvarchar](255) NULL,
+	[elgi_sourceofenquiryname] [nvarchar](255) NULL,
+	[owneridname] [nvarchar](200) NULL,
+	[elgi_opportunitystatusname] [nvarchar](255) NULL,
+	[elgi_enquirystatusname] [nvarchar](255) NULL,
+	[statecodename] [nvarchar](255) NULL,
+	[statuscodename] [nvarchar](255) NULL,
+	[elgi_probabilityname] [nvarchar](255) NULL,
+	[estimatedclosedate] [date] NULL,
+	[actualclosedate] [date] NULL,
+	[createdon] [date] NULL,
+	[createdbyname] [nvarchar](200) NULL,
+	[customerid] [varchar](100) NULL,
+	[requiredattendees] [nvarchar](max) NULL,
+	[elgi_customertypesalesname] [nvarchar](255) NULL,
+	[elgi_latestvisitdate] [date] NULL,
+	[elgi_monthstartingdate] [date] NULL,
+	[elgi_statusofvisitsales] [int] NULL,
+	[name] [nvarchar](160) NULL,
+	[accountnumber] [nvarchar](20) NULL,
+	[elgi_cityname] [nvarchar](100) NULL,
+	[elgi_statename] [nvarchar](100) NULL,
+	[elgi_customerclustersalesname] [nvarchar](255) NULL,
+	[elgi_customerclassificationname] [nvarchar](255) NULL,
+	[elgi_description] [nvarchar](4000) NULL
+) 
+
+
+CREATE TABLE [CRM_Dealer](
+	[elgi_enquiry] [nvarchar](100) NULL,
+	[elgi_dealerofferid] [nvarchar](100) NULL,
+	[elgi_existingproduct] [nvarchar](100) NULL,
+	[elgi_salesofficename] [nvarchar](100) NULL,
+	[elgi_priceperunit] [float] NULL,
+	[elgi_quantity] [float] NULL,
+	[elgi_amount] [float] NULL,
+	[elgi_existingproductname] [varchar](100) NULL,
+	[elgi_salesofficecode] [varchar](20) NULL,
+	[elgi_itemcode] [varchar](50) NULL,
+	[elgi_productcategoryname] [varchar](100) NULL
+) 
+
+
+CREATE TABLE [CRM_Engineer](
+	[opportunityid] [varchar](100) NULL,
+	[quoteid] [varchar](100) NULL,
+	[productid] [varchar](100) NULL,
+	[elgi_salesofficename] [nvarchar](100) NULL,
+	[priceperunit] [float] NULL,
+	[quantity] [float] NULL,
+	[baseamount] [float] NULL,
+	[productidname] [varchar](200) NULL,
+	[elgi_salesofficecode] [varchar](20) NULL,
+	[elgi_itemcode] [varchar](50) NULL,
+	[elgi_productcategoryname] [varchar](100) NULL
+) 
+
+
+
+
+
+--exec sp_CRM_Units_Fact2
+Alter proc sp_CRM_Units_Fact2 as
+
+begin
+
+
+Truncate table CRM_Units_Stage1
+Truncate table CRM_Engineer 
+Truncate table CRM_Dealer 
+
+Insert into CRM_Units_Stage1(opportunityid,
+elgi_enquiryid,elgi_dealername,elgi_dealerengineername,elgi_businessverticalname,
+elgi_sourceofenquiryname,owneridname,elgi_opportunitystatusname,elgi_enquirystatusname,
+statecodename,statuscodename,elgi_probabilityname,estimatedclosedate,actualclosedate,
+createdon,createdbyname,customerid,requiredattendees,elgi_customertypesalesname,elgi_latestvisitdate,
+elgi_monthstartingdate,elgi_statusofvisitsales) 
+--select * into CRM_Units_Stage1 from (
+select 
+b.opportunityid,b.elgi_enquiryid,
+isnull(b.elgi_dealername,a.elgi_dealername) elgi_dealername,
+isnull(b.elgi_dealerengineername,a.elgi_dealerengineername) elgi_dealerengineername,
+b.elgi_businessverticalname,
+b.elgi_sourceofenquiryname,
+isnull(b.owneridname,a.owneridname) owneridname,b.elgi_opportunitystatusname,b.elgi_enquirystatusname,
+b.statecodename,b.statuscodename,b.elgi_probabilityname,b.estimatedclosedate,
+b.actualclosedate,b.createdon,b.createdbyname,b.customerid,
+a.requiredattendees,
+a.elgi_customertypesalesname,a.elgi_latestvisitdate,a.elgi_monthstartingdate,
+a.elgi_statusofvisitsales
+from 
+(select distinct substring(requiredattendees,14,36) requiredattendees,elgi_customervisitid
+,elgi_customertypesalesname,elgi_latestvisitdate,
+elgi_monthstartingdate,elgi_dealername,
+elgi_dealerengineername,elgi_statusofvisitsales,owneridname 
+from appointment
+where len(requiredattendees)>2 and len(elgi_customertypesalesname)>2
+and elgi_latestvisitdate>='2018-10-01'
+and ownerid in (select distinct systemuserid from SYSTEMUSER)
+)a
+full outer join
+(select opportunityid,elgi_enquiryid,
+elgi_businessverticalname,elgi_customervisitid,
+elgi_sourceofenquiryname,elgi_dealername,elgi_dealerengineername,
+owneridname,elgi_opportunitystatusname,elgi_enquirystatusname,
+statecodename,statuscodename,elgi_probabilityname,estimatedclosedate,
+actualclosedate,createdon,createdbyname,
+customerid
+from opportunity
+where 
+--elgi_enquirystatusname<>'On Hold' and 
+isnull(elgi_businessverticalname,'')='Industrial'
+and isnull(elgi_sourceofenquiryname,'') not in ('Website')
+and createdon>='2018-10-01'
+and ownerid in (select distinct systemuserid from SYSTEMUSER)
+)b
+on a.elgi_customervisitid=b.elgi_customervisitid
+--)a
+
+update crm_units_stage1 set name=c.name,
+accountnumber=c.accountnumber,
+elgi_cityname=c.elgi_cityname,
+elgi_statename=c.elgi_statename,
+elgi_customerclustersalesname=c.elgi_customerclustersalesname,
+elgi_customerclassificationname =c.elgi_customerclassificationname,
+elgi_description=c.elgi_description
+from (
+select accountid,name,accountnumber,elgi_cityname,elgi_statename,
+elgi_customerclustersalesname,
+elgi_customerclassificationname,--a.elgi_lineofbusinessname,
+b.elgi_description
+from ACCOUNT a
+left outer join
+ELGI_LINEOFBUSINESS b
+on a.elgi_lineofbusinessname=b.elgi_name
+) c
+where isnull(requiredattendees,customerid)=c.accountid
+
+
+Insert into CRM_Engineer  (opportunityid,quoteid,productid,elgi_salesofficename)
+--select * into CRM_Engineer  from (
+select a.opportunityid,a.quoteid,b.productid,b.elgi_salesofficename from QUOTE a
+left outer join QUOTEDETAILS b
+on a.quoteid=b.quoteid
+--)a
+
+update CRM_Engineer  set priceperunit=a.priceperunit,
+quantity=a.quantity,
+baseamount=a.baseamount,
+productidname=a.productidname
+from
+(select quoteid,priceperunit,quantity,baseamount,productidname from QUOTEDETAILS)a
+where CRM_Engineer.quoteid=a.quoteid
+
+
+update CRM_Engineer  set elgi_salesofficecode=c.elgi_salesofficecode
+from (select distinct elgi_salesofficecode,elgi_name from ELGI_SALESOFFICES 
+--where elgi_salesofficecode in ('90008','90009','90016','90020','90022','90030','90032','90093','90094') 
+) c
+where ltrim(rtrim(CRM_Engineer.elgi_salesofficename))=ltrim(rtrim(c.elgi_name))
+
+
+update CRM_Engineer  set elgi_itemcode=d.elgi_itemcode
+from (select distinct productid,elgi_itemcode from Product) d
+where CRM_Engineer.productid=d.productid
+
+update CRM_Engineer  set elgi_productcategoryname=e.elgi_productcategoryname
+from (
+select * from(
+select elgi_itemcode,elgi_productcategoryname,
+ROW_NUMBER() over (partition by elgi_productcategoryname,elgi_itemcode order by elgi_productcategoryname) as Rnk
+from ELGI_DEALERPRICELISTMASTER)a
+where Rnk=1
+) e
+where ltrim(rtrim(CRM_Engineer.elgi_itemcode))=ltrim(rtrim(e.elgi_itemcode))
+
+
+
+Insert into CRM_Dealer (elgi_enquiry,elgi_dealerofferid,elgi_existingproduct,elgi_salesofficename)
+--select * into CRM_Dealer  from(
+select elgi_enquiry,elgi_dealerofferid,elgi_existingproduct,elgi_salesofficename from ELGI_DEALEROFFER a
+left outer join ELGI_DEALEROFFERPRODUCT b
+on a.elgi_dealerofferid=b.elgi_dealeroffer
+--)a
+
+update CRM_Dealer  set elgi_priceperunit=a.elgi_priceperunit,
+elgi_quantity=a.elgi_quantity,
+elgi_amount=a.elgi_amount,
+elgi_existingproductname=a.elgi_existingproductname
+from (select elgi_dealeroffer,elgi_priceperunit,elgi_quantity,elgi_amount,elgi_existingproductname 
+from ELGI_DEALEROFFERPRODUCT)a
+where CRM_Dealer.elgi_dealerofferid=a.elgi_dealeroffer
+
+
+update CRM_Dealer  set elgi_salesofficecode=c.elgi_salesofficecode
+from (select distinct elgi_salesofficecode,elgi_name from ELGI_SALESOFFICES 
+--where elgi_salesofficecode in ('90008','90009','90016','90020','90022','90030','90032','90093','90094') 
+) c
+where ltrim(rtrim(CRM_Dealer.elgi_salesofficename))=ltrim(rtrim(c.elgi_name))
+
+
+update CRM_Dealer  set elgi_itemcode=d.elgi_itemcode
+from (select distinct productid,elgi_itemcode from Product) d
+where CRM_Dealer.elgi_existingproduct=d.productid
+
+update CRM_Dealer  set elgi_productcategoryname=e.elgi_productcategoryname
+from (
+select * from(
+select elgi_itemcode,elgi_productcategoryname,
+ROW_NUMBER() over (partition by elgi_productcategoryname,elgi_itemcode order by elgi_productcategoryname) as Rnk
+from ELGI_DEALERPRICELISTMASTER)a
+where Rnk=1
+) e
+where ltrim(rtrim(CRM_Dealer.elgi_itemcode))=ltrim(rtrim(e.elgi_itemcode))
+
+
+--delete from CRM_Engineer  where opportunityid in 
+--(select distinct  opportunityid from opportunity
+--where --elgi_enquirystatusname<>'On Hold' and
+--isnull(elgi_businessverticalname,'')='Industrial'
+--and isnull(elgi_sourceofenquiryname,'') not in ('Website'))
+
+--delete from CRM_Engineer  where elgi_salesofficecode is null
+
+
+
+end
+
+select * from CRM_Units_Stage1 a
+left outer join CRM_Engineer   b
+on a.opportunityid=b.opportunityid
+where elgi_dealerengineername is null
+
+select * from CRM_Units_Stage1 a
+left outer join CRM_Dealer   b
+on a.opportunityid=b.elgi_enquiry
+where elgi_dealerengineername is not null
+
+
+--select top 2 * from CRM_Engineer
+--select top 2 * from CRM_Dealer
+
+--select * into CRM_Engineer from CRM_Engineer 
+--select * into CRM_Dealer from CRM_Dealer 
+
+
+

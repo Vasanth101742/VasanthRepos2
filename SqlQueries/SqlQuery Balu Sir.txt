@@ -1,0 +1,9 @@
+select * from (
+select company,warehouse,item,itemdescr,date1,sum(Actual_qty) Actual_qty,
+sum(Dispatch_qty) Dispatch_qty
+from ELGi_production_details where company like '6%' and warehouse='657' 
+and date1 >='2018-04-01'
+group by company,warehouse,item,itemdescr,date1
+)a
+where isnull(Actual_qty,0)+isnull(Dispatch_qty,0)<>0
+order by date1

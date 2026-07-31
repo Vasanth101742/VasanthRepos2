@@ -1,0 +1,65 @@
+SELECT     JobName, step_id, runStatus, server, MAX(LastRunDate) AS startdate, MAX(lastRunTime) AS starttime, MAX(Duration) AS duration, NextRunDate, NextRunTime, 
+           CASE WHEN NEXTRUNTIME <= CONVERT(VARCHAR, GETDATE(), 108) THEN 'completed' ELSE 'Waiting' END AS jobstatus
+FROM         
+
+(SELECT     a_1.JobName, 
+            MAX(SUBSTRING(CONVERT(varchar(15), sjh.run_date), 1, 4) + '/' + SUBSTRING(CONVERT(varchar(15), sjh.run_date), 5, 2) 
+            + '/' + SUBSTRING(CONVERT(varchar(15), sjh.run_date), 7, 2)) AS LastRunDate, SUBSTRING(CONVERT(varchar(15), sjs.next_run_date), 1, 4) 
+            + '/' + SUBSTRING(CONVERT(varchar(15), sjs.next_run_date), 5, 2) + '/' + SUBSTRING(CONVERT(varchar(15), sjs.next_run_date), 7, 2) AS NextRunDate, 
+            CASE sjh.run_status WHEN 0 THEN 'Failed' 
+                                WHEN 1 THEN 'Succeded' 
+                                WHEN 3 THEN 'Cancelled' 
+                                WHEN 4 THEN 'In Progress' 
+                                END AS runStatus, 
+            sjh.step_id,
+            sjh.server, 
+            ISNULL(CASE len(sjs.next_run_time) 
+                        WHEN 3 THEN CAST('00:0' + LEFT(RIGHT(sjs.next_run_time, 3), 1) + ':' + RIGHT(sjs.next_run_time, 2) AS char(8)) 
+                        WHEN 4 THEN CAST('00:' + LEFT(RIGHT(sjs.next_run_time, 4), 2) + ':' + RIGHT(sjs.next_run_time, 2)  AS char(8)) 
+                        WHEN 5 THEN CAST('0' + LEFT(RIGHT(sjs.next_run_time, 5), 1) + ':' + LEFT(RIGHT(sjs.next_run_time, 4), 2) + ':' + RIGHT(sjs.next_run_time, 2) AS char(8)) 
+                        WHEN 6 THEN CAST(LEFT(RIGHT(sjs.next_run_time, 6), 2) + ':' + LEFT(RIGHT(sjs.next_run_time, 4), 2) + ':' + RIGHT(sjs.next_run_time, 2) AS char(8))
+                        END, 'NA') AS NextRunTime,
+            MAX(ISNULL(CASE len(sjh.run_time) 
+		        WHEN 3 THEN CAST('00:0' + LEFT(RIGHT(sjh.run_time, 3), 1) + ':' + RIGHT(sjh.run_time, 2) AS char(8)) 
+                        WHEN 4 THEN CAST('00:' + LEFT(RIGHT(sjh.run_time, 4), 2) + ':' + RIGHT(sjh.run_time, 2) AS char(8)) 
+                        WHEN 5 THEN CAST('0' + LEFT(RIGHT(sjh.run_time, 5), 1) + ':' + LEFT(RIGHT(sjh.run_time, 4), 2) + ':' + RIGHT(sjh.run_time, 2) AS char(8)) 
+                        WHEN 6 THEN CAST(LEFT(RIGHT(sjh.run_time, 6), 2) + ':' + LEFT(RIGHT(sjh.run_time, 4), 2) + ':' + RIGHT(sjh.run_time, 2) AS char(8)) 
+                        END, 'NA')) AS lastRunTime, 
+            STUFF(STUFF(REPLACE(STR(MAX(sjh.run_duration), 7, 0), ' ', '0'), 4, 0, ':'), 7, 0, ':') AS Duration
+  FROM 
+
+         (  SELECT     sj.job_id AS JobID, 
+                       sj.name AS JobName, 
+                       sj.enabled, 
+                       sc.name AS Category
+            FROM       sysjobs AS sj 
+                       INNER JOIN syscategories AS sc 
+                             ON sj.category_id = sc.category_id
+            WHERE      (sc.name LIKE '%DSS_%')
+          ) AS a_1 
+
+  INNER JOIN sysjobschedules AS sjs 
+         ON sjs.job_id = a_1.JobID 
+  INNER JOIN sysjobhistory AS sjh 
+         ON sjh.job_id = a_1.JobID
+  WHERE      (sjh.step_id <> 0)
+  
+ GROUP BY a_1.JobName, SUBSTRING(CONVERT(varchar(15), sjs.next_run_date), 1, 4) + '/' + SUBSTRING(CONVERT(varchar(15), sjs.next_run_date), 5, 2) 
+                                              + '/' + SUBSTRING(CONVERT(varchar(15), sjs.next_run_date), 7, 2), 
+          ISNULL(CASE len(sjs.next_run_time) 
+             WHEN 3 THEN CAST('00:0' + LEFT(RIGHT(sjs.next_run_time, 3), 1) + ':' + RIGHT(sjs.next_run_time, 2) AS char(8)) 
+             WHEN 4 THEN CAST('00:' + LEFT(RIGHT(sjs.next_run_time, 4), 2) + ':' + RIGHT(sjs.next_run_time, 2) AS char(8)) 
+             WHEN 5 THEN CAST('0' + LEFT(RIGHT(sjs.next_run_time, 5), 1) + ':' + LEFT(RIGHT(sjs.next_run_time, 4), 2) + ':' + RIGHT(sjs.next_run_time, 2) AS char(8)) 
+             WHEN 6 THEN CAST(LEFT(RIGHT(sjs.next_run_time, 6), 2) + ':' + LEFT(RIGHT(sjs.next_run_time, 4), 2) + ':' + RIGHT(sjs.next_run_time, 2) AS char(8)) END,'NA'),
+           CASE sjh.run_status WHEN 0 THEN 'Failed' 
+                               WHEN 1 THEN 'Succeded' 
+                               WHEN 3 THEN 'Cancelled' 
+                               WHEN 4 THEN 'In Progress' END,
+           sjh.step_id, 
+           sjh.server, 
+           STUFF(STUFF(REPLACE(STR(sjh.run_duration, 7, 0), ' ', '0'), 4, 0, ':'), 7, 0, ':')
+) AS a
+GROUP BY JobName, step_id, runStatus, server, NextRunDate, NextRunTime, 
+         CASE WHEN NEXTRUNTIME <= CONVERT(VARCHAR, GETDATE(), 108)  THEN 'completed' 
+              ELSE 'PENDING' END
+ORDER BY JobName
