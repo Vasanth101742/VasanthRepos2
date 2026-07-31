@@ -1,0 +1,82 @@
+' Microsoft Data Transformation Services (DTS) Script Task
+' Write scripts using Microsoft Visual Basic
+' The ScriptMain class is the entry point of the Script Task.
+
+Option Strict Off
+Imports System
+Imports System.Data
+Imports System.Math
+Imports Microsoft.SqlServer.Dts.Runtime
+
+
+<Microsoft.SqlServer.Dts.Tasks.ScriptTask.SSISScriptTaskEntryPointAttribute> _
+<System.CLSCompliantAttribute(False)> _
+Partial Public Class ScriptMain
+	Inherits Microsoft.SqlServer.Dts.Tasks.ScriptTask.VSTARTScriptObjectModelBase
+
+	Enum ScriptResults
+		Success = Microsoft.SqlServer.Dts.Runtime.DTSExecResult.Success
+		Failure = Microsoft.SqlServer.Dts.Runtime.DTSExecResult.Failure
+	End Enum
+
+	' The DTS execution engine calls this method when the task executes.
+	' To access the DTS object model, use the Dts object. Connections, variables, events,
+	' and logging features are available as static members of the Dts class.
+	' Before returning from this method, set the value of Dts.TaskResult to indicate success or failure.
+	' 
+	' To open Code and Text Editor Help, press F1.
+	' To open Object Browser, press Ctrl+Alt+J.
+
+    Public Sub Main()
+
+        'initialize that the script failed
+        Dts.TaskResult = ScriptResults.Failure
+
+        ' Define variable names
+        Const cMax_TimeEnd As String = "sMax_TimeEnd"
+        Const cSQL_Log As String = "sSQL_Log"
+        Const cSQL_Users As String = "sSQL_Users"
+
+        ' Pickup and assign variables
+        Dim vSQL_Log As Variable = Dts.Variables(cSQL_Log)          ' write
+        Dim vSQL_Users As Variable = Dts.Variables(cSQL_Users)      ' write
+        Dim vMax_TimeEnd As Variable = Dts.Variables(cMax_TimeEnd)  ' read
+        Dim sMax_TimeEnd As String = vMax_TimeEnd.Value
+
+        ' Local storage
+        Dim sSQL_Log As String
+        Dim sSQL_Users As String
+
+        ' -----------------------------
+        ' Actual work here
+
+        ' Two time-driven SQL statements (one for the Users table updating -- one for the execution log fact table itself)
+        sSQL_Log = "SELECT NEWID() AS ExecutionLogID, l.* FROM ExecutionLog l WITH (NOLOCK) "
+        sSQL_Users = "SELECT DISTINCT l.UserName FROM ExecutionLog l WITH (NOLOCK) WHERE l.UserName IS NOT NULL AND DataLength(l.Username) > 0 "
+
+        ' --------------------------------------
+        ' We use Max TimeEnd to figure out what execution log data to move
+        ' from the source to destination database. Whatever data is *later* than
+        ' MaxTimeEnd, we will assume is new and needs to be moved across.
+        ' --------------------------------------
+
+        ' If we have a MaxTimeEnd, then insert it into the TSQL statement
+        ' ** NOTE: The only case when we expect this to not be true is the
+        ' first time we run the package (and the destination database is empty)
+        If Len(sMax_TimeEnd) > 0 Then
+            sSQL_Log = sSQL_Log & " WHERE l.TimeEnd > CONVERT(DATETIME,'" & sMax_TimeEnd & "',121) "
+            sSQL_Users = sSQL_Users & " AND l.TimeEnd > CONVERT(DATETIME,'" & sMax_TimeEnd & "',121) "
+        End If
+
+        ' -----------------------------
+
+        ' Write out the two variables determined above
+        vSQL_Log.Value = sSQL_Log
+        vSQL_Users.Value = sSQL_Users
+
+        'if we got this far it must have worked :-)
+        Dts.TaskResult = ScriptResults.Success
+
+    End Sub
+
+End Class

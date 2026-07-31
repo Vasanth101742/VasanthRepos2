@@ -1,0 +1,31 @@
+
+
+
+ALTER VIEW[dbo].[vw_sls_perf_Dates] as  
+
+--OLD METHOD
+--select 
+--'04/01/'+convert(varchar,year(getdate())) as fromdate,
+--'03/31/'+convert(varchar,year(getdate())+1) as todate,
+--'03/31/'+convert(varchar,year(getdate())) as lytodate, 
+--'04/01/'+convert(varchar,year(getdate())-1) as lyfromdate ,
+--'14-15' as lyact,
+--'15-16' as cybud
+
+
+
+--Newly modified on 4 Jan 2016
+select *,
+substring(fromdate,9,2)+'-'+substring(todate,9,2) cybud,
+substring(lyfromdate,9,2)+'-'+substring(lytodate,9,2) lyact
+ from(
+select '04/01/' + convert(varchar,(select case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end as year)) as fromdate,
+'03/31/' + convert(varchar,(select case when month(getdate()-1) between 1 and 3 then year(getdate()-1) else year(getdate()-1)+1 end as year)) as todate,
+'04/01/' + convert(varchar,(select case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end as year)) as lyfromdate,
+'03/31/' + convert(varchar,(select case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1) end as year)) as lytodate,
+convert(varchar,dateadd(mm, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101) as LastMonthFirstday,
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101)  as LastMonthlastday
+
+
+
+)a

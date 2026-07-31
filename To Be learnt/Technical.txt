@@ -1,0 +1,280 @@
+FH666-Y346V-7XFQ3-V69JM-RHW28
+
+Changing Connection Manager
+
+Step 1: To Run in 32 bit mode
+
+Run c:\windows\sysWoW64\odbcad32.exe
+
+
+
+
+1. To modify a column in a table
+
+alter table subscription_log_test ALTER COLUMN JobName  varchar(50)
+
+2. Different types of select query
+
+select *,case when isdate(findt)=1 then findt
+ else '9999-01-01' end as findt1,
+case when isdate(docdt)=1 then DocDt
+ else '9999-01-01' end as docdt1 ,
+case when isdate(duedt)=1 then DueDt
+ else  '9999-01-01' end as duedt1 ,
+case when isdate(fdisdt)=1 then FDisDt
+ else '9999-01-01' end as fdisdt1 ,
+case when isdate(sdisdt)=1 then SDisDt
+else '9999-01-01' end as sdisdt1 ,
+case when isdate(tdisdt)=1 then TDisDt 
+else '9999-01-01' end as tdisdt1,
+case when isdate(propdate)=1 then PropDate 
+else '9999-01-01' end as propdate1,
+case when isdate(Expcashdt)=1 then ExpCashDt
+else '9999-01-01' end as Expcashdt1
+  from
+acrslsinvrec
+
+
+
+
+
+
+3. cntrl+k c --to comment selected area in sql server
+   cntrl+k u --to uncomment the selected area in sql server
+
+4. windows shortcut
+    windowskey +r --run terminal
+    windowskey +e --to view the c,d,f drives
+    windowskey +d -- to return to desktop
+
+5. different type of update
+update comitemdata_chn set dsca = replace(replace(convert(varchar,dsca),'?',''),'%','')
+
+6. IF CONDITION
+
+IF DATEPART(DD,GETDATE()) = 4 AND DATEPART(HH,GETDATE()) < 10
+
+BEGIN
+END
+
+7.
+UPDATE    InflowDetails
+SET              indentno = a.Indentno, IndentDate = a.IndentDate
+FROM         IdentDetail a
+WHERE     InflowDetails.OrderNum = a.Orderno AND InflowDetails.company = a.Company AND (Isdate(a.IndentDate) != 0)
+
+
+update supplierwiseprice set prin =  prin * ratp 
+from
+(select suno,isnull(ratp,1) as ratp  from com020 a
+left outer join (select ccur,ratp from (
+select ccur,stdt,ratp,row_number() over (partition by ccur order by stdt desc)  as ranks from tcmcs008100)a
+where ranks = 1)b
+on a.ccur = b.ccur)a
+where supplierwiseprice.suno = a.suno
+
+http://bhushan.extreme-advice.com/conditionally-setting-column-visibility-in-ssrs/
+http://www.codeproject.com/Articles/232181/SQL-Pivot-with-Grand-Total-Column-and-Row
+
+ 
+setting background color to even number rows
+= IIf(RowNumber(Nothing) Mod 2 = 0, "White", "#ffff80")
+
+=iif(RunningValue(Fields!OrderNum.Value, CountDistinct, "ElgiDw") mod 2=0,"White","Khaki")
+
+To  modify date format in SSRS
+
+=format(datevalue(Fields!Tri_Dt.Value),"dd/MM/yy")
+
+
+TO RENAME A TABLENAME OR COLUMN NAME
+sp_rename 'Materials_Division.department' , DIVISION
+
+
+To create a 32 bit connection manager
+run 
+C:\Windows\SysWOW64\odbcad32.exe
+
+
+To Find the last day in a month
+
+select day(EOMONTH(getdate()-1))
+
+
+To achieve zero padding for month numbers to two digits
+
+RIGHT('00'+CAST(month(getdate()-1) AS VARCHAR(2)),2)
+
+
+To obtain Monthname directly from month in SQL Query
+
+select datename(mm,dateadd(mm,3,-1))
+
+
+
+SSRS
+1.you can place a chart (or breakup data table say A) inside a rectangle and that rectangle can be placed into another table say B.
+Now this B Table can be customized by grouping on specific column so that details symbol will be converted into grouping symbol in the B Table.
+now if you preview this report. it wil show set of charts or tables(say A Table) for each group specified in table B.
+
+But in case of Matrix , it can be done simply by 
+i.grouping the matrix rows based on some column and then
+ii.placing the chart or table inside a matrix cell.
+
+here what is the need of rectangle is we can accomodate a title textbox along with the table A while placing inside the Table B or inside a matrix.
+
+2.you can freeze the title header in an SSRS report by
+i.checking on the "keep header visible while scrolling" on the tablix properties.
+ii.at the bottom row groups and column groups will be available.click on left of column groups and select Advanced mode.
+iii. now come to row groups. select each static member and click F4 and then properties window will appear.
+iv. set fixed data option to TRUE.
+
+
+3. To Avoid Forward dependencies error in Parameter linking with each other.
+for example, if month parameter will be selected based on the year parameter then first create a year parameter and related year dataset.
+then create a month parameter and related month dataset. now in this month dataset query you can use @year in the where clause.
+
+if ordering mismatch occurs then you will get the error as forward dependencies is invalid.
+
+
+IN SSIS Derived Column Transformation,
+To convert Unicode text stream data from source into sql server unicode string column
+
+SUBSTRING((dt_wstr,8000)cu_add,1,4000)
+
+
+
+
+----------------------------------
+To Find the laste date of a month Automatically
+
+dateadd(d,-1,convert(datetime,convert(varchar,year(getdate()))+'-'+RIGHT('00'+CAST(month(getdate()) AS VARCHAR(2)),2)+'-01'))
+
+
+
+Diff between Truncate and DELETE
+
+1.After Truncate stmt execution, Records cannot be rolled back where as After delete stmt execution, records can be rolled back.
+2.Truncate deletes all the records in the table but delete stmt can be manipulated to delete only a subset of records in the table based  on some conditions.
+
+
+existence of a table 
+if not exists (select * from dbo.sysobjects where id = object_id(N'[dbo].[TmpSlsDespData]') and OBJECTPROPERTY(id, N'IsUserTable') = 1) 
+
+
+--------------------------
+
+Question: Report containing main Report and sub report.
+when user clicks an empty box in a main report, it wont go to the sub report. instead, it throws an error. how to eliminate this and display the text as 
+'Sorry No data Availabe for this selection.'
+
+
+Step 1:  create a new parameter  @Data_Availability in the sub report
+
+step 2: in the subreport, create a new dataset with the below structure.
+
+if not exists(select * from table_name where col1=@col1)
+begin
+set @Data_Availability=False
+end
+
+if exists(select * from table_name where col1=@col1)
+begin
+set @Data_Availability=TRUE
+end
+
+
+Step 3: now create a new tablix or table with the txt msg as 'Sorry No Data Found' in the report pane.
+
+Step 4: now in the regular tablix,choose visibility as show or hide based on expression and create an exp iif(@Data_Availability=TRUE,false,true)
+Step 5: now in the newly created tablix,choose visibility as show or hide based on expression and create an exp iif(@Data_Availability=TRUE,true,false)
+
+
+
+comma seperated column values in an sql query.
+
+SELECT t_item,t_bqty,t_btyp,t_nbin,t_rplt,t_supp,t_Refcntd,t_Refcntu,t_stoc,t_dsca,TRGQTY,STATUS,maXSTOCK,Business_partner, sum(Pending_order)as Pending_order
+
+       ,STUFF((SELECT distinct ', ' + CAST(isnull(pono,0) AS VARCHAR(10)) [text()]
+         FROM brazil_spares_trigger 
+      WHERE t_item = t.t_item
+                                                              FOR XML PATH(''), TYPE)
+        .value('.','NVARCHAR(MAX)'),1,2,' ') as pono
+
+                                  FROM brazil_spares_trigger t
+GROUP BY t_item,t_bqty,t_btyp,t_nbin,t_rplt,t_supp,t_Refcntd,t_Refcntu,t_stoc,t_dsca,TRGQTY,STATUS,maXSTOCK,Business_partner
+
+
+
+
+Pivot unpivot option in SQL
+---------------------------
+
+
+select ASSEMBLY,PLINE,METRIC,MONTH,YEAR,FDATE,TDATE,
+case 
+when column_name1='india_target' or column_name2='india_cl' then 'India and India Like'
+when column_name1='subs_target' or column_name2='subs_cl' then 'Subsidiary'
+when column_name1='overall_target' or column_name2='overall_cl' then 'Overall'
+end as Market,Targets,CLimits 
+From(
+SELECT ASSEMBLY,PLINE,METRIC,MONTH,YEAR,FDATE,TDATE,india_target,subs_target,overall_target,
+india_cl,subs_cl,overall_cl
+FROM alc_metrics
+)a
+unpivot
+(
+Targets for column_name1 in (india_target,subs_target,overall_target )
+)as k
+unpivot
+(
+CLimits for column_name2 in (india_cl,subs_cl,overall_cl)
+) as K1
+
+order by fdate ,tdate,metric,assembly
+
+
+
+------------------------------------------------------------------------------------
+cumulative calculation
+
+
+
+ 
+
+select * from(
+select distinct P_ID,isnull(P_Team,'Sales') as P_Team,
+P_User_ID,P_Name,P_Email,
+segment_id,Segment,
+ordering,metrics_levels,Act_Count,
+case when ordering in (1,2,3) then sum(Act_Count)over(partition by isnull(p_id,0),segment_id order by ordering desc  rows between UNBOUNDED PRECEDING and CURRENT ROW)
+when ordering in  (4,5,6) then Act_Count 
+end as Req_Counts
+from(
+select 
+P_ID,
+P_Team,
+P_User_ID,P_Name,P_Email,
+Segment_id,isnull(segment,'Others') Segment,
+ordering,metrics_levels,sum(Act_Count) Act_Count
+from CRM_Parent_Child_ver2
+inner join crm_access acc
+on acc.pemail=CRM_Parent_Child_ver2.P_Email
+where P_Email =acc.pemail
+and concat('ELGI\',substring(acc.u_email,1,charindex('@',acc.u_email)-1)) = @email
+
+and segment_id in(@Segment)
+
+
+--where P_User_ID=226
+group by P_ID,P_Team,
+P_User_ID,P_Name,P_Email,
+Segment_id,Segment,
+ordering,metrics_levels
+)a
+)b
+--where ordering is null or ordering <5
+order by P_ID,P_Team,
+P_User_ID,P_Name,P_Email,
+Segment_id,Segment,
+ordering,metrics_levels

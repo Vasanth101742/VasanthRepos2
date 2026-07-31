@@ -1,0 +1,6 @@
+1.Connection String
+Data Source=BIS-DB;Initial Catalog=ELGI-DW
+
+2. Packages Location
+
+JBD_29 D:\SQL2012Migration\SSIS\Packages\Intranet&CCS\Intranet\Intranet\Budgetdata.dtsx

@@ -1,0 +1,8 @@
+
+--Recursive query
+
+
+select distinct MITM,SITM from TTIBOM010ALL a
+where ltrim(rtrim(mitm)) in (select ltrim(rtrim(sitm)) from TTIBOM010ALL where ltrim(rtrim(SITM))=ltrim(rtrim(a.MITM)))
+--and ltrim(rtrim(MITM))='01894090P'
+order by MITM,SITM

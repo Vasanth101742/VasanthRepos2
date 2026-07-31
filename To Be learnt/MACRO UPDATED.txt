@@ -1,0 +1,79 @@
+Sub BiUpdate()
+
+Dim Cnn As ADODB.Connection
+Dim uSQL As String
+Dim DRw As Long
+Dim CnnStr As String
+Dim FlgAdd As Boolean
+Dim CalMonth As Integer
+Dim CalYear As Integer
+
+
+Set Cnn = New Connection
+
+CnnStr = "Provider=SQLOLEDB;Data Source=bis-db;Initial Catalog=elgi-dw;User ID=sa;Password=Reset123;Trusted_Connection=No"
+Cnn.Open CnnStr
+
+If ThisWorkbook.Worksheets(1).Cells(3, 16) > 9 Then
+    
+    CalMonth = ThisWorkbook.Worksheets(1).Cells(3, 16) - 9
+    CalYear = ThisWorkbook.Worksheets(1).Cells(3, 17) + 1
+    
+    Else
+    
+    CalMonth = ThisWorkbook.Worksheets(1).Cells(3, 16) + 3
+    CalYear = ThisWorkbook.Worksheets(1).Cells(3, 17)
+    
+End If
+
+    
+If MsgBox("Delete all the Existing data of " & MonthName(CalMonth) & " " & CalYear & vbNewLine & "Do you want to continue ?  ", vbYesNo + vbQuestion, "ELGi IT - BI Support") = vbYes Then
+
+    uSQL = "delete from excel_cons_pl where finmonth = " & Val(ThisWorkbook.Worksheets(1).Cells(3, 16)) & " and finyear = " & Val(ThisWorkbook.Worksheets(1).Cells(3, 17)) & ""
+    Cnn.Execute uSQL
+    
+    FlgAdd = False
+    
+    For DRw = 3 To 10000
+        If Val(Trim(ThisWorkbook.Worksheets(1).Cells(DRw, 16))) <> 0 And Val(Trim(ThisWorkbook.Worksheets(1).Cells(DRw, 17))) <> 0 Then
+            uSQL = "insert into excel_cons_pl values(" & _
+                    "'" & Trim(ThisWorkbook.Worksheets(1).Cells(DRw, 1)) & "'," & _
+                    "'" & Trim(ThisWorkbook.Worksheets(1).Cells(DRw, 2)) & "'," & _
+                    "'" & Trim(ThisWorkbook.Worksheets(1).Cells(DRw, 3)) & "'," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 4)) & "," & _
+                    "'" & Trim(ThisWorkbook.Worksheets(1).Cells(DRw, 5)) & "'," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 6)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 7)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 8)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 9)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 10)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 11)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 12)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 13)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 14)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 15)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 16)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 17)) & "," & _
+                    "'" & Trim(ThisWorkbook.Worksheets(1).Cells(DRw, 18)) & "'," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 19)) & "," & _
+                    Val(ThisWorkbook.Worksheets(1).Cells(DRw, 20)) & ")"
+            Cnn.Execute uSQL
+            
+            FlgAdd = True
+        Else
+            DRw = 10000
+        End If
+    Next DRw
+End If
+
+Cnn.Close
+Set Cnn = Nothing
+
+If FlgAdd = True Then
+     
+    MsgBox MonthName(CalMonth) & "-" & CalYear & " Data is Sucessfully Updated. Please Verify the BI Report.", vbOKOnly + vbInformation, "ELGi IT - BI Support"
+Else
+    MsgBox "Updation Failed", vbOKOnly + vbCritical, "ELGi IT - BI Support"
+End If
+
+End Sub

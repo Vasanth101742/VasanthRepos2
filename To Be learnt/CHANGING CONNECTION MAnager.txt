@@ -1,0 +1,8 @@
+1.open run terminal
+
+2. type
+
+C:\Windows\SysWOW64\odbcad32.exe
+
+
+3. window opens .now choose the 32 bit driver available.

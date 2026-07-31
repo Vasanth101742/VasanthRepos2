@@ -1,0 +1,87 @@
+Alter view vw_mon_sls_perf_europe_new as
+
+SELECT  vertical3,vertical1 as user_names, vertical2 as Division, 
+
+--OLD Method
+--SUM(CASE WHEN date BETWEEN '04/01/2014' AND  '03/31/2015' THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_year_sale, 
+--SUM(CASE WHEN date BETWEEN '04/01/2014' AND   dateadd(yy, - 1, dateadd(dd, - 1, getdate())) THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_year_ytd, 
+--SUM(CASE WHEN date BETWEEN '04/01/2015' AND dateadd(dd, - 1, getdate()) THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS this_year_sale,   
+--SUM(CASE WHEN date BETWEEN '04/01/2015' AND dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(dd, - 1, getdate()))) THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_month_sale,
+
+--Newly Added on Jan 7 2016
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1)+1 end ))
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_year_sale, 
+
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+dateadd(yy, - 1, dateadd(dd, - 1, getdate())) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_year_ytd, 
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS this_year_sale,   
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(dd, - 1, getdate()))) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_month_sale,
+
+SUM(CASE WHEN date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS this_month_sale, 
+
+SUM(CASE WHEN date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END)  AS thr_month_sale  ,
+
+SUM(CASE WHEN date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    
+AND dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END)AS n1_month_sale,    
+
+SUM(CASE WHEN date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END)AS n2_month_sale,
+
+SUM(CASE WHEN date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END)AS n3_month_sale,
+
+sum(case when date between 
+convert(datetime,convert(varchar,datepart(mm,dateadd(yy,-1,dateadd(dd,-1,getdate())))) + '/1/' + datename(yy,dateadd(yy,-1,dateadd(dd,-1,getdate())))) 
+and 
+dateadd(yy,-1,dateadd(dd,-1,getdate())) 
+then (slsdespdata.assesvalue)/1000000 else 0 end)as last_year_this_month_sale 
+
+FROM  SlsDespData 
+INNER JOIN  AreaTmp 
+	ON AreaTmp.AreaCode = SlsDespData.Area 
+INNER JOIN  TSalesMapping AS BDM_Inter 
+	ON AreaTmp.areaname = BDM_Inter.areaname AND SlsDespData.Dpst = BDM_Inter.dpst 
+
+WHERE     
+(dbo.SlsDespData.Date BETWEEN  '04/01/2011' AND GETDATE()) 
+AND (dbo.SlsDespData.SaleType IN (0, 2, 5, 6)) 
+AND (dbo.SlsDespData.Area IS NOT NULL) 
+AND (LTRIM(RTRIM(dbo.AreaTmp.Global)) = 'International') 
+and vertical1 <> '' 
+and ltrim(rtrim(BDM_Inter.organ))='Europe' 
+
+GROUP BY vertical1,vertical2,vertical3 

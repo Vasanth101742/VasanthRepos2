@@ -1,0 +1,248 @@
+if @type = 1
+Begin
+select TYPE,Tri_Dt,RPLT,No_of_nat_holidays,duedate,duedate_excluding_all_holidays,Exp_Dt,
+no_of_days,
+(SELECT
+   (DATEDIFF(dd, duedate, @d1) )-
+   (DATEDIFF(wk, duedate, @d1) * 2)-
+   (CASE WHEN DATENAME(dw, duedate) = 'Sunday' THEN 1 ELSE 0 END)-
+   (CASE WHEN DATENAME(dw, @d1) = 'Saturday' THEN 1 ELSE 0 END)
+) as PendingDays,
+DIVI,DEPT, binqty, sceduledqty, DEPARTMENT, SUPERMARKET, BUYR,  
+empname, SupplierNum, NAMA, ID, ITEM, Description,LOT_NO,orno,company
+
+from
+(
+select 	TYPE,Tri_Dt,RPLT,No_of_nat_holidays,duedate,
+	case datepart(dw,duedate_excluding_all_holidays)
+		when 7 then convert(date,2+duedate_excluding_all_holidays)
+		when 1 then convert(date,1+duedate_excluding_all_holidays)
+		else convert(date,duedate_excluding_all_holidays)
+		end as duedate_excluding_all_holidays,
+	Exp_Dt,
+	no_of_days,
+	DIVI,DEPT, binqty, sceduledqty, DEPARTMENT, SUPERMARKET, BUYR,  empname, SupplierNum, NAMA, ID, ITEM, Description,LOT_NO,orno,company
+from
+
+(
+select TYPE,Tri_Dt,RPLT,
+(select count(distinct DATE) from CompanyCalendar where 
+date between Tri_Dt and duedate and
+datepart(dw,date) not in(1,7)
+and DFCA=4) as No_of_nat_holidays,
+duedate,
+((select count(distinct date) from CompanyCalendar where 
+date between Tri_Dt and duedate and
+datepart(dw,date) not in(1,7)
+and DFCA=4) + convert(datetime,Exp_Dt) ) 
+as duedate_excluding_all_holidays,
+Exp_Dt,
+datediff(dd,exp_dt,@d1) as no_of_days,
+DIVI,DEPT, binqty, sceduledqty, DEPARTMENT, SUPERMARKET, BUYR,  empname, SupplierNum, NAMA, ID, ITEM, Description,LOT_NO,orno,company
+
+from
+(
+SELECT  TYPE,
+	CONVERT(date, CONVERT(varchar(50),ENTRY_DATE)) AS Tri_Dt, 
+	RPLT,
+	CONVERT(date, CONVERT(varchar(50),exp_dt)) AS Exp_Dt,
+	datediff(dd,exp_dt,@d1) as no_of_days,
+	convert(date,convert(varchar(50), duedate),103)  as duedate,
+	DIVI,DEPT, binqty, sceduledqty, DEPARTMENT, SUPERMARKET, BUYR,  empname, SupplierNum, 
+	NAMA, ID, ITEM, Description,	LOT_NO,	orno,	company
+
+FROM (
+	SELECT case when LEAN_MASTER.SOPS=1 then 'Two Bin'
+	when LEAN_MASTER.SOPS=2 then 'Multi Bin'
+	when LEAN_MASTER.SOPS=3 then 'Milk run'  
+	when LEAN_MASTER.SOPS=4 then 'Slot System'
+	when LEAN_MASTER.SOPS=5 then 'Milk run(1)'
+	when LEAN_MASTER.SOPS=6 then 'Forward Cover'
+	end as TYPE,
+		RPLDATA.DATE as ENTRY_DATE, 
+		RPLDATA.SUNO as  SUPP, 
+		RPLDATA.RQTY AS sceduledqty, 
+		LEAN_MASTER.RPLT, 
+		LEAN_MASTER.DIVI, 
+		LEAN_MASTER.DEPT,
+		LEAN_MASTER.SQTY AS binqty, 
+		CONVERT(varchar, CONVERT(datetime,
+						DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE) +
+						(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE))-2+convert(int,LEAN_MASTER.RPLT))%5 + 
+						((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE))-2+convert(int,LEAN_MASTER.RPLT))/5)*7 - 
+						(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE))-2)
+					 ,103
+					)
+			) AS Exp_DT,
+		DIV.DIVISION_NAME as DEPARTMENT,
+		Dept.Dept_Name as SUPERMARKET, 
+		LEAN_MASTER.BUYR, 
+		v.custcode as SupplierNum,
+		v.custname1 as NAMA, 
+		buyer.emp_name as empname, 
+		Div.DIVISION_CODE as ID, 
+		RPLDATA.ITEM, 
+		ComItemData.Description,
+		RPLDATA.LOTN as LOT_NO,
+		pono as orno,
+		Lean_master.company,
+		convert(varchar,convert(datetime, RPLDATA.DUDT),103)  as duedate,
+		RPLDATA.DUDT as duedt 
+	FROM   
+		(select * from  TZZPUR014ALL where STAT = 'm' 
+		 and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+		 
+			UNION
+		 
+			select * from  rpldata_ats_MILKRUN where STAT = 'm'
+		)RPLDATA
+		INNER JOIN (select t_dsca as Description,t_item as itemcode from ttcibd001600) comitemdata
+			ON LTRIM(RTRIM(comitemdata.ItemCode)) = LTRIM(RTRIM(RPLDATA.ITEM))
+		LEFT OUTER JOIN vw_Business_Partner v
+			on ltrim(rtrim(v.custcode)) = ltrim(rtrim(RPLDATA.SUNO))
+		LEFT OUTER JOIN (select * from  TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) LEAN_MASTER  
+			on RPLDATA.DIVI = LEAN_MASTER.divi 
+			and RPLDATA.dept = LEAN_MASTER.dept
+			and RPLDATA.item = LEAN_MASTER.item 
+		LEFT OUTER JOIN Materials_Division_MASTER DIV
+			ON DIV.DIVISION_CODE = RPLDATA.DIVI
+		Left OUTER JOIN  Employee_Details buyer 
+			ON buyer.new_emp_code = LEAN_MASTER.BUYR 
+		LEFT OUTER JOIN MATERIALS_DEPT_MASTER Dept
+			ON LEAN_MASTER.DEPT = Dept.Dept_code
+  ) AS a
+
+WHERE   (duedt  < @d1) AND 
+	(BUYR IN (@buyer)) AND 
+	(duedt  > '03/31/2010') -- and datediff(dd,exp_dt,@d1) > 0
+
+)b
+)c
+)d
+ORDER BY datediff(dd,exp_dt,@d1) desc, DEPARTMENT, SUPERMARKET,  BUYR, ITEM
+
+end
+
+
+
+
+else
+
+Begin
+
+select 
+TYPE,Tri_Dt,RPLT,No_of_nat_holidays,duedate,duedate_excluding_all_holidays,Exp_Dt,
+(SELECT
+   (DATEDIFF(dd, duedate, @d1) )-
+   (DATEDIFF(wk, duedate, @d1) * 2)-
+   (CASE WHEN DATENAME(dw, duedate) = 'Sunday' THEN 1 ELSE 0 END)-
+   (CASE WHEN DATENAME(dw, @d1) = 'Saturday' THEN 1 ELSE 0 END)
+) as PendingDays,
+DIVI,DEPT, binqty, sceduledqty, DEPARTMENT, SUPERMARKET, BUYR,  empname, SupplierNum, NAMA, ID, ITEM, Description,LOT_NO,orno,company
+
+from
+(
+select 	TYPE,Tri_Dt,RPLT,No_of_nat_holidays,duedate,
+	case datepart(dw,duedate_excluding_all_holidays)
+		when 7 then convert(date,2+duedate_excluding_all_holidays)
+		when 1 then convert(date,1+duedate_excluding_all_holidays)
+		else convert(date,duedate_excluding_all_holidays)
+		end as duedate_excluding_all_holidays,
+	Exp_Dt,no_of_days,DIVI,DEPT, binqty, sceduledqty, DEPARTMENT, SUPERMARKET, BUYR,  empname, SupplierNum, NAMA, ID, ITEM, Description,LOT_NO,orno,company
+from
+
+(
+select TYPE,Tri_Dt,RPLT,
+(select count(distinct DATE) from CompanyCalendar where 
+date between Tri_Dt and duedate and
+datepart(dw,date) not in(1,7)
+and DFCA=4) as No_of_nat_holidays,
+duedate,
+((select count(distinct DATE) from CompanyCalendar where 
+date between Tri_Dt and duedate and
+datepart(dw,date) not in(1,7)
+and DFCA=4) + convert(datetime,duedate) ) 
+as duedate_excluding_all_holidays,
+Exp_Dt,datediff(dd,exp_dt,@d1) as no_of_days,DIVI,DEPT, binqty, sceduledqty, DEPARTMENT, SUPERMARKET, BUYR,  empname, SupplierNum, NAMA, ID, ITEM, Description,LOT_NO,orno,company
+
+from
+(
+SELECT  TYPE,
+	CONVERT(date, CONVERT(varchar(50),ENTRY_DATE)) AS Tri_Dt, 
+	RPLT,
+	CONVERT(date, CONVERT(varchar(50),exp_dt)) AS Exp_Dt,
+	datediff(dd,exp_dt,@d1) as no_of_days,
+	convert(date,convert(varchar(50), duedate),103)  as duedate,
+	DIVI, 	DEPT, 	binqty, 	sceduledqty, 	DEPARTMENT, 	SUPERMARKET, 	BUYR,  	empname, 	SupplierNum, 
+	NAMA, 	ID, 	ITEM, 	Description,	LOT_NO,	orno,	company
+
+FROM (
+	SELECT case when LEAN_MASTER.SOPS=1 then 'Two Bin'
+	when LEAN_MASTER.SOPS=2 then 'Multi Bin'
+	when LEAN_MASTER.SOPS=3 then 'Milk run'  
+	when LEAN_MASTER.SOPS=4 then 'Slot System'
+	when LEAN_MASTER.SOPS=5 then 'Milk run(1)'
+	when LEAN_MASTER.SOPS=6 then 'Forward Cover'
+	end as TYPE,
+		RPLDATA.DATE as  ENTRY_DATE, 
+		RPLDATA.SUNO as SUPP, 
+		RPLDATA.RQTY AS sceduledqty, 
+		LEAN_MASTER.RPLT, 
+		LEAN_MASTER.DIVI, 
+		LEAN_MASTER.DEPT,
+		LEAN_MASTER.SQTY AS binqty, 
+		CONVERT(varchar, CONVERT(datetime,
+						DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE) +
+						(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE))-2+convert(int,LEAN_MASTER.RPLT))%5 + 
+						((DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE))-2+convert(int,LEAN_MASTER.RPLT))/5)*7 - 
+						(DATEPART(dw,DATEADD(d,CASE DATEPART(dw,RPLDATA.DATE) WHEN 7 THEN 2 WHEN 1 THEN 1 ELSE 0 END,RPLDATA.DATE))-2)
+					 ,103
+					)
+			) AS Exp_DT,
+		DIV.DIVISION_NAME as DEPARTMENT,
+		Dept.Dept_Name as SUPERMARKET, 
+		LEAN_MASTER.BUYR, 
+		v.custcode as SupplierNum,
+		v.custname1 as NAMA, 
+		buyer.emp_name as  empname, 
+		DIV.DIVISION_CODE as ID, 
+		RPLDATA.ITEM, 
+		ComItemData.Description,
+		rpldata.LOTN as LOT_NO,
+		pono as orno,
+		Lean_master.company,
+		convert(varchar,convert(datetime, rpldata.DUDT),103)  as duedate,
+		rpldata.DUDT as duedt 
+	FROM   
+		(select * from  TZZPUR014ALL where STAT = 'm' 
+		 and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+		 
+			UNION
+		 
+			select * from  rpldata_ats_MILKRUN where STAT = 'm'
+		)RPLDATA
+		INNER JOIN (select t_dsca as Description,t_item as itemcode from ttcibd001600) comitemdata
+			ON LTRIM(RTRIM(comitemdata.ItemCode)) = LTRIM(RTRIM(RPLDATA.ITEM))
+		LEFT OUTER JOIN vw_Business_Partner v
+			on ltrim(rtrim(v.custcode)) = ltrim(rtrim(RPLDATA.SUNO))
+		LEFT OUTER JOIN (select * from  TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) LEAN_MASTER  
+			on RPLDATA.DIVI = LEAN_MASTER.divi 
+			and RPLDATA.dept = LEAN_MASTER.dept
+			and RPLDATA.item = LEAN_MASTER.item 
+		LEFT OUTER JOIN Materials_Division_MASTER DIV
+			ON DIV.DIVISION_CODE = RPLDATA.DIVI
+		Left OUTER JOIN  Employee_Details buyer 
+			ON buyer.new_emp_code = LEAN_MASTER.BUYR 
+		LEFT OUTER JOIN MATERIALS_DEPT_MASTER Dept
+			ON LEAN_MASTER.DEPT = Dept.Dept_code
+		) AS a
+
+WHERE   (duedt  < dateadd(dd,3,@d1)) AND 
+	(BUYR IN (@buyer)) AND 
+	(duedt  > '03/31/2010') -- and datediff(dd,exp_dt,@d1) > 0
+)b
+)c
+)d
+ORDER BY datediff(dd,exp_dt,@d1) desc, DEPARTMENT, SUPERMARKET,  BUYR, ITEM
+
+end

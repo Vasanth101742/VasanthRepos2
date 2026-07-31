@@ -1,0 +1,223 @@
+1.common
+cal
+ls -l
+users
+who
+w
+whoami
+halt     Brings the system down immediately. 
+init 0   Powers off the system using predefined scripts to synchronize and clean up the system prior to shutdown 
+init 6   Reboots the system by shutting it down completely and then bringing it completely back up 
+poweroff Shuts down the system by powering off. 
+reboot   Reboots the system. 
+shutdown Shuts down the system. 
+
+-        Regular file, such as an ASCII text file, binary executable, or hard link. 
+b        Block special file. Block input/output device file such as a physical hard drive. 
+c        Character special file. Raw input/output device file such as a physical hard drive 
+d        Directory file that contains a listing of other files and directories. 
+l        Symbolic link file. Links on any regular file. 
+p        Named pipe. A mechanism for interprocess communications 
+s        Socket used for interprocess communication. 
+
+
+* and ? are metacharacters. We use * to match 0 or more characters, a question mark ? matches with single character.
+
+
+2. An invisible file is one whose first character is the dot or period character (.). 
+UNIX programs (including the shell) use most of these files to store configuration information.
+
+Some common examples of hidden files include the files -
+
+.profile - the Bourne shell ( sh) initialization script
+.kshrc   - the Korn shell ( ksh) initialization script
+.cshrc   - the C shell ( csh) initialization script
+.rhosts  - the remote shell configuration file
+
+
+
+ls -a     To list invisible files
+
+3. Single dot .  - This represents current directory.
+Double dot .. - This represents parent directory.
+
+
+4. You can use vi editor to create ordinary files on any Unix system. You simply need to give following command -
+
+$ vi filename
+press key i   to come into edit mode
+Press key esc to come out of edit mode.
+Press two keys Shift + ZZ together to come out of the file completely.
+
+5. To Positiuon the cursor
+
+   k
+h    l
+   j
+
+
+6. 
+cat filename       --display the contents of the file
+cat -b filename    --display the contents of the file along with the line numbers
+
+
+wc filename
+2  19 103 filename       --total number of lines   total number of words    total number of bytes  
+
+wc filename1 filename2 filename3  --you can also give multiple files at a time.
+
+
+cp source_file destination_file  --copies the file
+example: cp filename copyfile             --to create a copy of existing file filename
+
+
+mv old_file new_file             --To rename a file
+example: mv filename newfile
+
+
+rm filename
+
+Caution: It may be dangerous to delete a file because it may contain useful information. 
+So be careful while using this command. It is recommended to use -i option along with rm command.
+
+rm filename1 filename2 filename3   --removing files at a time.
+
+
+7.
+Under normal circumstances every Unix program has three streams (files) opened for it when it starts up -
+
+stdin  - This is referred to as standard input and associated file descriptor is 0. 
+         This is also represented as STDIN. Unix program would read default input from STDIN.
+
+stdout - This is referred to as standard output and associated file descriptor is 1. 
+         This is also represented as STDOUT. Unix program would write default output at STDOUT
+
+stderr - This is referred to as standard error and associated file descriptor is 2. 
+         This is also represented as STDERR. Unix program would write all the error message at STDERR.
+
+
+8.
+cd ~          --home directory
+cd ~username  --specific user's home directory
+
+cd -          --to get in your last directory
+
+
+Absolute/Relative Pathnames
+
+Directories are arranged in a hierarchy with root (/) at the top. The position of any file within the hierarchy is described by its pathname.
+Elements of a pathname are separated by a /. A pathname is absolute if it is described in relation to root, so absolute pathnames always begin with a /.
+
+These are some example of absolute filenames.
+/etc/passwd
+/users/sjones/chem/notes
+/dev/rdsk/Os3
+
+
+pwd        --to print the current working directory 
+
+Listing Directories
+
+ls dirname
+ls /usr/local
+
+creating Directories
+
+mkdir dirname
+mkdir /tmp/test-dir
+mkdir docs pub       --To Create more than one directory
+mkdir -p /tmp/amrood/test    --To create a parent directory as well as child directory for the first time.
+
+
+Removing Directories
+
+rmdir dirname
+rmdir dirname1 dirname2 dirname3
+
+
+changing the Directories
+
+cd dirname
+cd /usr/local/bin
+cd ../../home/amrood
+
+
+Renaming Directories
+
+mv olddir newdir
+mv mydir yourdir
+
+
+9.
+File Permissions:
+
+-rwxr-xr-- 
+Owner permissions         - The owner's permissions determine what actions the owner of the file can perform on the file.
+Group permissions         - The group's permissions determine what actions a user, who is a member of the group that a file belongs to, can perform on the file.
+Other (world) permissions - The permissions for others indicate what action all other users can perform on the file.
+
+
+
+Changing Permissions
+
++ Adds the designated permission(s) to a file or directory. 
+- Removes the designated permission(s) from a file or directory. 
+= Sets the designated permission(s). 
+
+$ls -l testfile
+-rwxrwxr--  1 amrood   users 1024  Nov 2 00:10  testfile
+
+$chmod o+wx testfile
+$ls -l testfile
+-rwxrwxrwx  1 amrood   users 1024  Nov 2 00:10  testfile
+$chmod u-x testfile
+$ls -l testfile
+-rw-rwxrwx  1 amrood   users 1024  Nov 2 00:10  testfile
+$chmod g=rx testfile
+$ls -l testfile
+-rw-r-xrwx  1 amrood   users 1024  Nov 2 00:10  testfile
+
+
+Here's how you could combine these commands on a single line:
+
+$chmod o+wx,u-x,g=rx testfile
+$ls -l testfile
+-rw-r-xrwx  1 amrood   users 1024  Nov 2 00:10  testfile
+
+
+
+permission using Number
+
+Octal Permission Representation                                       Ref
+
+0     No permission                                                   ---  
+1     Execute permission                                              --x 
+2     Write permission                                                -w- 
+3     Execute and write permission: 1 (execute) + 2 (write) = 3       -wx 
+4     Read permission                                                 r-- 
+5     Read and execute permission: 4 (read) + 1 (execute) = 5         r-x 
+6     Read and write permission: 4 (read) + 2 (write) = 6             rw- 
+7     All permissions: 4 (read) + 2 (write) + 1 (execute) = 7         rwx 
+
+
+
+
+chown - The chown command stands for "change owner" and is used to change the owner of a file.
+chgrp - The chgrp command stands for "change group" and is used to change the group of a file.
+
+
+chown user filelist
+
+The value of user can be either the name of a user on the system or the user id (uid) of a user on the system.
+
+Example 
+$ chown amrood testfile     Changes the owner of the given file to the user amrood.
+
+NOTE: The super user, root, has the unrestricted capability to change the ownership of a any file but normal users can change only the owner of files they own.
+
+$ chgrp group filelist
+$ chgrp special testfile
+
+
+
+

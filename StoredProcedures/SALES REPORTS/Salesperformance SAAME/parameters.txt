@@ -1,0 +1,19 @@
+SalesPerformance SAAME.rdl
+
+declare @month varchar(20)=(select datename(mm,dateadd(dd,-1,getdate())) as this_month)
+declare @year varchar(20)= (select substring(datename(yy,dateadd(dd,-1,getdate())),3,4) as this_mth_yr)
+declare @lastclose varchar(20)=(select convert(varchar,dateadd(dd,-1,getdate()),107) as lastclose)
+declare @fromdate varchar(20)=(select fromdate from vw_sls_perf_Dates)
+declare @todate varchar(20)=(select todate from vw_sls_perf_Dates)
+declare @lyfromdate varchar(20)=(select lyfromdate from vw_sls_perf_Dates)
+declare @lytodate varchar(20)=(select lytodate from vw_sls_perf_Dates)
+
+
+--select * from vw_sls_perf_Dates
+--select distinct zone from areatmp where zone is not null and zone<>' ' --and region in (@region)
+--select distinct region from Tsalesmapping
+--select distinct user_names from TSalesMapping where user_names is not null and user_names<>' '  --and region in (@region)
+--select distinct areaname from Tsalesmapping -- where region in (@region)
+
+
+-------------------------------------------------------------------------------------------------------------------------------

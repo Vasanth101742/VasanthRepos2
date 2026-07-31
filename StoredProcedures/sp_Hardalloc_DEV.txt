@@ -1,0 +1,274 @@
+--execute  sp_Hardalloc_DEV
+--select * from hardalloc_Test
+
+
+ALTER  procedure sp_Hardalloc_DEV as
+
+begin
+
+
+truncate table hardalloc_Test
+
+
+insert into hardalloc_Test
+
+select * ,
+case when year(packCompletionDt)<>'9999' and year(packslipreleasedt) <>'9999'
+then convert(varchar,datediff(d,packslipreleasedt,packCompletionDt))
+else 'NA' end as No_of_days_to_deliver,
+case when year(packCompletionDt)<>'9999' then 'Completed'
+else 'Pending' end as PackingStatus
+from (
+SELECT  comitemdata.buyer,  
+	dbo.TmpCustomer.CustName1, 
+	tmp_hardalloc_1_DEV.OrderNum, 
+	tmp_hardalloc_1_DEV.positionnum , 
+	convert(datetime,tmp_hardalloc_1_DEV.OrderDate) as OrderDate,
+	forwardagent, 
+	tranportdesc, 
+	tmp_hardalloc_1_DEV.deliveryterms, 
+	deliverydesc ,
+	tmp_hardalloc_1_DEV.ItemCode, 
+	tmp_hardalloc_1_DEV.indentno, 
+	tmp_hardalloc_1_DEV.RefA, 
+	tmp_hardalloc_1_DEV.OrderQty, 
+	tmp_hardalloc_1_DEV.PkgQty, 
+	dbo.ComItemData.Description, 
+	AreaTmp.AreaName, 
+	tmp_hardalloc_1_DEV.PendQty, 
+	tmp_hardalloc_1_DEV.QSTS,
+	tmp_hardalloc_1_DEV.PendQty - tmp_hardalloc_1_DEV.QSTS AS Netqty, 
+	dbo.DpstMaster.Division, 
+	tmp_hardalloc_1_DEV.CustCode,
+	tmp_hardalloc_1_DEV.ordervalue as ordervalue ,
+	tmp_hardalloc_1_DEV.OrderValueWithDisc as OrderValueWithDisc,
+	tmp_hardalloc_1_DEV.company,
+	datediff(dd,convert(datetime,PlanDelDate),Getdate()) as pending_days,
+	tmp_hardalloc_1_DEV .packnum,
+	case when tmp_hardalloc_1_DEV.ordertype in ('274','374') then 'BDI' 
+	when tmp_hardalloc_1_DEV.ordertype in ('275') then 'BDI Recall' 
+	else 'Normal' end as ordertype,
+	tmp_hardalloc_1_DEV.OrderDelDate,
+	case when tmp_hardalloc_1_DEV.PlanDelDate>convert(date,getdate()) then 'No Due'
+	else 'Over Due' end as Status,
+	case when tmp_hardalloc_1_DEV.ActualDelDate='-9999-01-0' then 'Open'
+	else 'Closed' end as Position_Status,
+	tmp_hardalloc_1_DEV.PlanDelDate,
+	tmp_hardalloc_1_DEV.ActualDelDate,
+	tmp_hardalloc_1_DEV.InvoiceDt,
+	tmp_hardalloc_1_DEV.InvoiceNum,
+	tmp_hardalloc_1_DEV.InvoiceAmt,
+	tmp_hardalloc_1_DEV.ExportInvNo,
+	case 	when tmp_hardalloc_1_DEV.packslipreleasedt is null or 
+	tmp_hardalloc_1_DEV.packslipreleasedt='-9999-01-0' then '9999-01-01 00:00:00.000'
+		else convert(datetime,tmp_hardalloc_1_DEV.packslipreleasedt) end as packslipreleasedt,
+	tmp_hardalloc_1_DEV.Dpst,
+	AreaTmp.Region,
+	case --when tmp_hardalloc_1_DEV.packCompletionDt='-9999-01-0' then '9999-01-01 00:00:00.000'
+	when  tmp_hardalloc_1_DEV.packCompletionDt is null then '9999-01-01 00:00:00.000'
+	else tmp_hardalloc_1_DEV.packCompletionDt end as 
+	packCompletionDt,
+	null as OrderStatus
+
+FROM        
+(
+select tmp_hardalloc_1_DEV.*,forwardagent,t$dsca as tranportdesc,deliveryterms,dsca as deliverydesc,ordertype  
+from tmp_hardalloc_1_DEV
+inner join 
+(select company,ordernum,forwardagent,deliveryterms,ordertype from tmpslsheader 
+where ordertype not in (select ordertype from salestype where salesdesc ='Free of Cost')
+) foc_order
+on foc_order.company = tmp_hardalloc_1_DEV.company and foc_order.ordernum = tmp_hardalloc_1_DEV.ordernum 
+left outer join deliveryterm  on ltrim(rtrim(deliveryterm.cdec))  = ltrim(rtrim(foc_order.deliveryterms))
+left outer join transportmaster  on ltrim(rtrim(transportmaster.t$cfrw))  = ltrim(rtrim(foc_order.forwardagent))
+where refa not like '%foc%'
+)
+as tmp_hardalloc_1_DEV 
+INNER JOIN dbo.ComItemData 
+ON tmp_hardalloc_1_DEV.Company = dbo.ComItemData.company 
+AND tmp_hardalloc_1_DEV.ItemCode = dbo.ComItemData.ItemCode 
+INNER JOIN dbo.TmpCustomer 
+ON tmp_hardalloc_1_DEV.CustCode = dbo.TmpCustomer.CustCode 
+INNER JOIN dbo.AreaTmp 
+ON tmp_hardalloc_1_DEV.Area = dbo.AreaTmp.AreaCode 
+LEFT OUTER JOIN dbo.DpstMaster 
+ON tmp_hardalloc_1_DEV.Dpst = dbo.DpstMaster.DpstCode 
+--left outer join 
+--(
+--select * from
+--(select * from
+--(select T$ITEM,T$CUNO,T$PRIC,T$TDAT,
+--ROW_NUMBER() over (partition by T$ITEM,T$CUNO order by T$TDAT desc) DateRank
+--from ttdsls030 
+----where T$ITEM= '         B777107'
+----and T$CUNO='E00719'
+--)a
+--where DateRank=1) b
+--) as t
+--on ltrim(rtrim(t.T$ITEM)) =ltrim(rtrim(tmp_hardalloc_1_DEV.ItemCode))
+--and ltrim(rtrim(t.T$CUNO))  =ltrim(rtrim(tmp_hardalloc_1_DEV.CustCode))
+
+
+--Below code for analysis purpose
+--where 
+--ordernum='2913377'--'2903660' and PositionNum='60'
+--and t.T$TDAT in (select max(t.T$TDAT) from ttdsls030 group by T$ITEM,T$CUNO)
+--'9999-01-01 00:00:00.000'
+--and ltrim(rtrim(tmp_hardalloc_1_DEV.OrderNum)) in('2914339')--,'2914328')
+--)a
+
+where year(tmp_hardalloc_1_DEV.OrderDate)>=year(getdate())-3
+
+)a
+--ORDER BY tmp_hardalloc_1_DEV.company,tmp_hardalloc_1_DEV.OrderDate,   
+--tmp_hardalloc_1_DEV.OrderNum,tmp_hardalloc_1_DEV.positionnum,tmp_hardalloc_1_DEV.ItemCode
+
+--------------------------------------------------------------------------------------------------------------
+
+--Tracking OrderStatus based on position Status
+
+
+
+
+declare @ordernum int =0
+declare @ordernum_rank bigint =1
+declare @positionnum int=0
+declare @posnum_rank bigint =1
+declare @ordercounts int =0
+declare @poscounts int =0
+declare @pos_status varchar(20)
+declare @count1 int =1
+declare @count2 int =1
+declare @closedCount int=0
+declare @OpenCount int=0
+
+
+set @ordercounts=(select count(distinct ordernum) from hardalloc_Test)
+--select 'Ordercounts='+ convert(Varchar,@ordercounts)
+
+while (@count1<=@ordercounts)
+begin
+
+
+set @ordernum=--'2913377'
+(
+select OrderNum from(
+select ordernum,ROW_NUMBER() over(order by ordernum) ordernum_rank 
+from (select  distinct ordernum from hardalloc_Test)a)b
+where ordernum_rank=@ordernum_rank
+)
+
+--select 'Ordernum='+ convert(Varchar,@ordernum)
+
+set @poscounts=(select count(positionnum) from hardalloc_Test where ordernum=@ordernum)
+--select 'Ordernum='+ convert(Varchar,@ordernum)+' poscounts='+ convert(Varchar,@poscounts)
+
+set @count2=1
+set @posnum_rank=1
+
+
+while (@count2<=@poscounts)
+begin
+
+set @pos_status=
+(
+select Position_Status from
+(select ordernum,positionnum,Position_Status,itemcode,isnull(exportinvno,Invoicenum) InvoiceNum,invoiceamt,
+ROW_NUMBER() over (order by itemcode,isnull(exportinvno,Invoicenum),invoiceamt) posnum_Rank from hardalloc_Test
+where ordernum=
+--'2913377'
+@ordernum 
+)a
+where posnum_Rank=
+--5
+@posnum_rank
+)
+
+--select 'Ordernum='+ convert(Varchar,@ordernum)+' posstatus='+ convert(Varchar,@pos_status)
+
+if(@pos_status='Closed')
+begin
+set @closedCount=@closedCount + 1
+--select 'Ordernum='+ convert(Varchar,@ordernum)+' poscounts='+ convert(Varchar,@poscounts)+' closedcount='+ convert(Varchar,@closedCount)
+end
+
+
+
+if(@pos_status='Open')
+begin
+set @OpenCount=@OpenCount + 1
+--select 'Ordernum='+ convert(Varchar,@ordernum)+' poscounts='+ convert(Varchar,@poscounts)+' OpenCount='+ convert(Varchar,@OpenCount)
+end
+
+
+--select * from hardalloc_Test where ordernum='2914405'
+--select convert(varchar,@OpenCount)+'OpenCount'
+--select convert(varchar,@closedCount)+'ClosedCount'
+--select 'PositionRank='+ convert(Varchar,@posnum_rank)
+
+
+set @count2=@count2 + 1
+set @posnum_rank=@posnum_rank + 1
+
+end  --Child while loop
+
+
+
+--select convert(varchar,@OpenCount)+'OpenCount'+convert(varchar,@ordernum)
+--select convert(varchar,@closedCount)+'ClosedCount'+convert(varchar,@ordernum)
+
+
+if(@closedCount=0)
+begin
+update hardalloc_Test set OrderStatus='Open' where ordernum=@ordernum
+--Insert into Hardalloc_orderstatus
+--select top 1 @ordernum,'1' as Opened,'' as Closed, '' PartiallyClosed from hardalloc_test
+--select 'Open Count',getdate()
+end
+
+
+if(@OpenCount=0)
+begin
+update hardalloc_Test set OrderStatus='Closed' where ordernum=@ordernum
+--Insert into Hardalloc_orderstatus
+--select top 1 @ordernum,'' as Opened,'1' as Closed, '' PartiallyClosed from hardalloc_test
+--select 'Updated Closed Count for '+convert(varchar,@ordernum) ,getdate()
+end
+
+
+
+if(@OpenCount>0 and @closedCount>0)
+begin
+update hardalloc_Test set OrderStatus='Partially Closed' where ordernum=@ordernum
+--Insert into Hardalloc_orderstatus
+--select top 1 @ordernum,'' as Opened,'' as Closed, '1' PartiallyClosed from hardalloc_test
+--select 'partially closed Count',getdate()
+end
+
+
+
+set @closedCount=0
+set @OpenCount=0
+set @ordernum_rank=@ordernum_rank+1
+set @count1=@count1+1
+
+end--Parent while loop
+
+
+
+
+
+
+
+--Special Case: Added on 29 Apr 2016
+delete from tmp_hardalloc_1 where company =102 and OrderNum='2909910' and positionnum=520
+
+
+
+
+
+end
+
+
+
+

@@ -1,0 +1,22 @@
+http://www.folkstalk.com/p/unix-commands-list.html
+http://www.dba-oracle.com/Shell-Script-sec.pdf
+http://www.oracle.com/technetwork/database/enterprise-edition/calling-shell-commands-from-plsql-1-1-129519.pdf
+
+
+date manipulations
+http://www.cyberciti.biz/faq/linux-unix-formatting-dates-for-display/
+
+standard input output redirection
+http://sc.tamu.edu/help/general/unix/redirection.html
+
+Pattern Matching:
+http://wiki.bash-hackers.org/syntax/pattern
+
+cut command
+http://www.folkstalk.com/2012/02/cut-command-in-unix-linux-examples.html
+
+awk command
+http://www.folkstalk.com/2011/12/good-examples-of-awk-command-in-unix.html
+
+Difference between block file, characte file and regular File
+http://unix.stackexchange.com/questions/60034/what-are-character-special-and-block-special-files-in-a-unix-system

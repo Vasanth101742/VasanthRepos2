@@ -1,0 +1,63 @@
+Alter view [dbo].[vw_mon_bud_perf_europe_new] as   
+
+SELECT   vertical3,user_names, Division, 
+SUM(budget_year) AS budget_year, 
+SUM(last_month_budget) AS last_month_budget, 
+SUM(ytd_budget) AS ytd_budget,
+SUM(this_month_budget) AS this_month_budget, 
+SUM(next_month_budget) AS next_month_budget, 
+SUM(nextof_next_month_budget)AS nextof_next_month_budget   
+FROM (
+
+SELECT     vertical3,vertical1 as user_names , 
+
+--OLD Method
+--SUM(CASE WHEN date BETWEEN '04/01/'+convert(varchar,year(getdate())) AND '03/31/'+convert(varchar,year(getdate())+1) THEN (target) ELSE 0 END) AS budget_year,
+--SUM(CASE WHEN date BETWEEN '04/01/'+convert(varchar,year(getdate())) AND dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate())))+ '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) THEN (target) ELSE 0 END) AS last_month_budget, 
+--SUM(CASE WHEN date BETWEEN '04/01/'+convert(varchar,year(getdate())) AND dateadd(dd, - 1, getdate()) THEN (target) ELSE 0 END) AS ytd_budget, 
+
+--Newly modified on Jan 6  2016
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+('03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) else year(getdate()-1)+1 end )))
+THEN (target) ELSE 0 END) AS budget_year,  
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101) 
+THEN (target) ELSE 0 END) AS last_month_budget,  
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (target) ELSE 0 END) AS ytd_budget, 
+
+SUM(CASE WHEN date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (target) ELSE 0 END) AS this_month_budget, 
+
+SUM(CASE WHEN month(date) = datepart(mm, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) AND year(date) = datepart(yy, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) THEN (target) ELSE 0 END) AS next_month_budget, 
+SUM(CASE WHEN month(date) = datepart(mm, dateadd(mm, 2, dateadd(dd, - 1, getdate()))) AND year(date) = datepart(yy, dateadd(mm, 2,dateadd(dd, - 1, getdate()))) THEN (target) ELSE 0 END) AS nextof_next_month_budget, 
+
+vertical2 as Division  
+
+FROM   dbo.TSalesBudget AS dpstwise_target   
+INNER JOIN dbo.AreaTmp 
+	ON dbo.AreaTmp.AreaCode = dpstwise_target.Area   
+INNER JOIN TSalesMapping AS BDM_Inter 
+	ON AreaTmp.areaname = BDM_Inter.areaname 
+	AND dpstwise_target.Dpst = BDM_Inter.dpst  
+
+WHERE vertical1 <> '' 
+and dpstwise_target.organ='Europe' 
+and BDM_Inter.organ='Europe'  
+
+GROUP BY vertical1,vertical2,vertical3) AS budget  
+GROUP BY Division, user_names,vertical3  
+HAVING      (SUM(budget_year) > 0) or (SUM(last_month_budget) > 0)

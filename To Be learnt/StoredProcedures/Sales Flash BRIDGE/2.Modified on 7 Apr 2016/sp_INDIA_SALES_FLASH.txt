@@ -1,0 +1,299 @@
+Alter procedure sp_INDIA_SALES_FLASH(@ytdyear varchar(10))
+as
+
+declare @ytddate varchar(200)
+declare @monthnum int 
+
+begin
+
+--declare @ytdyear varchar(5)='2015'
+set @ytddate = '04/01/'+@ytdyear
+set @monthnum=(select case when monthno between 1 and 3 then monthno + 9 else monthno - 3 end as monthnum from (select month(getdate()-3) as monthno) a)
+set @monthnum=(select case when @monthnum-1 =0 then 12 else @monthnum-1 end)  --recently added
+
+
+insert into ELGI_SALES_FLASH
+
+
+select 
+'INDIA' as Organ,
+user_names,
+Division,
+round(sum(month_budget)/1000000,2) month_budget, 
+round(sum(month_actuals)/1000000,2) month_actuals,
+round(sum(last_month_actuals)/1000000,2) last_month_actuals,
+round(sum(ytd_budget)/1000000,2) ytd_budget,
+round(sum(ytd_actuals)/1000000,2) ytd_actuals,
+round(sum(ly_ytd_actuals)/1000000,2) ly_ytd_actuals,
+round(sum(ly_month_actuals)/1000000,2) ly_month_actuals
+
+from (
+
+select 	isnull(c.vertical_order,b.vertical_order) as vertical_order,
+	isnull(c.divn_order,b.divn_order) as divn_order,
+	case when isnull(c.dpstcode, b.dpstcode) in (90033,90037) then 'WW'
+	else isnull(c.vertical,b.user_names) 
+	end as user_names,
+	isnull(c.divn,b.division) as division,
+	isnull(c.dpstcode, b.dpstcode) as dpstcode, 
+	isnull(c.dpstname, b.dpstname) as dpstname, 
+	isnull(b.month_budget,0) as month_budget,
+	isnull(b.ytd_budget,0) as ytd_budget,
+	isnull(b.month_actuals,0) as month_actuals,
+	isnull(b.last_month_actuals,0) as last_month_actuals,
+	isnull(b.ytd_actuals,0) as ytd_actuals,
+	isnull(ly_ytd_actuals,0) as ly_ytd_actuals,
+	isnull(ly_month_actuals,0) as ly_month_actuals
+
+from (
+
+------------------------------------------Part 1----------------------------------------------------------
+
+	select 	isnull(a.vertical_order,b.vertical_order) as vertical_order,
+		isnull(a.divn_order,b.divn_order) as divn_order,
+		
+		coalesce(a.vertical,b.vertical,c.vertical) as user_names,
+		coalesce(a.divn,b.divn,c.divn) as division,
+		coalesce(a.dpstcode,b.dpstcode,c.dpstcode) as dpstcode, 
+		coalesce(a.dpstname,b.dpstname,c.dpstname) as dpstname, 
+		
+		isnull(month_budget,0) as month_budget,
+		isnull(ytd_budget,0) as ytd_budget,
+		isnull(month_actuals,0) as month_actuals,
+		isnull(last_month_actuals,0) as last_month_actuals,
+		isnull(ytd_actuals,0) as ytd_actuals
+	from (
+		
+		-------------------------------------Budget Data ----------------------------------
+		
+		select vertical_order,vertical,divn_order,divn,dpstcode,dpstname,
+			sum(case when monthnum = @monthnum then budget_month else 0 end) as month_budget,
+			sum(case when monthnum between 1 and  @monthnum then budget_month else 0 end) as ytd_budget
+		from (
+			SELECT 	vertical_order,vertical,divn_order,divn,dpstcode,dpstname,budget_month,
+				case when monthnum < 4 then monthnum + 9 else monthnum -3 end monthnum,
+				--monthnum,
+				monthnames
+			FROM (
+				SELECT 	vertical_order,vertical,divn_order,divn,month(date) as monthnum,datename(mm,date) monthnames, 
+					dpstcode,dpstname,SUM(target) AS budget_month
+
+				FROM  	(select *,'051' as area from dpstwise_target) SlsDespData 
+					INNER JOIN dbo.AreaTmp 
+						ON dbo.AreaTmp.AreaCode = SlsDespData.Area 
+					INNER JOIN dbo.dpstmaster_new 
+						ON dbo.dpstmaster_new.DpstCode = SlsDespData.Dpst
+
+				WHERE   (dbo.dpstmaster_new.Description IN ('Direct-Rly','After Sales', 'Dpsac', 'Compressor-Channel', 'Compressor-Direct'))  
+					and convert(Datetime,date) >= @ytddate 
+					and convert(Datetime,date) < dateadd(yy,1,@ytddate) 
+					AND (LTRIM(RTRIM(dbo.AreaTmp.Global)) = 'Domestic')
+					and convert(Datetime,date) <= dateadd(dd,-1,getdate())
+
+				GROUP BY divn,vertical,divn_order,vertical_order,dpstcode,dpstname,month(date),datename(mm,date)
+				--order by vertical_order,divn_order
+			      ) AS budget
+			GROUP BY divn,vertical,divn_order,vertical_order,dpstcode,dpstname,budget_month ,
+			case when monthnum < 4 then monthnum + 9 else monthnum -3 end,
+			--monthnum,
+			monthnames
+			--order by vertical_order,divn_order
+		     ) a
+
+		where monthnum <= @monthnum
+		group by divn,vertical,divn_order,vertical_order,dpstcode,dpstname		
+		--order by vertical_order,divn_order
+	       )a
+              --------------------------------------End of Budget Data -----------------------------------------
+
+
+
+	full join
+
+	    ------------------------------------------Actuals Data-----------------------------------------------
+	(select vertical_order,vertical,divn_order,divn,dpstcode,dpstname,
+		sum(case when monthnum = @monthnum then budget_month else 0 end) as month_actuals,
+		--sum(case when monthnum = @monthnum -1 then budget_month else 0 end) as last_month_actuals,
+		sum(case when monthnum between 1 and  @monthnum then budget_month else 0 end) as ytd_actuals
+
+	 from (
+		SELECT 	vertical_order,vertical,divn_order,divn,dpstcode,dpstname,budget_month,
+			case when monthnum < 4 then monthnum + 9 else monthnum -3 end monthnum,
+			--monthnum,
+			monthnames
+		FROM (
+			SELECT 	vertical_order,vertical,divn_order,divn,month(date) as monthnum,datename(mm,date) monthnames, 
+				dpstcode,dpstname,SUM(actuals) AS budget_month
+			FROM (
+				select 	dpst,convert(Datetime,date) date, sum(assesvalue) as actuals,area
+				from 	slsdespdata (nolock) 
+				where 	convert(Datetime,date) >= @ytddate 
+					and saletype in (0,2,5)
+				group by dpst,convert(Datetime,date) ,area
+			      ) SlsDespData 
+				INNER JOIN dbo.AreaTmp 
+					ON dbo.AreaTmp.AreaCode = SlsDespData.Area 
+				INNER JOIN dbo.dpstmaster_new 
+					ON dbo.dpstmaster_new.DpstCode = SlsDespData.Dpst
+
+			WHERE 	(dbo.dpstmaster_new.Description IN ('Direct-Rly','After Sales', 'Dpsac', 'Compressor-Channel', 'Compressor-Direct')) 
+				and convert(Datetime,date) >= @ytddate 
+				and convert(Datetime,date) < dateadd(yy,1,@ytddate) 
+				AND (LTRIM(RTRIM(dbo.AreaTmp.Global)) = 'Domestic')
+
+			GROUP BY vertical_order,vertical,divn_order,divn,dpstcode,dpstname,month(date),datename(mm,date)
+			--order by vertical_order,divn_order
+		      ) AS budget
+
+		GROUP BY vertical_order,vertical,divn_order,divn,dpstcode,dpstname,budget_month ,
+		--case when monthnum < 4 then monthnum + 9 else monthnum -3 end,
+		monthnum,
+		monthnames
+		--order by vertical_order,divn_order
+		) a
+
+	 where monthnum <= @monthnum
+	group by vertical_order,vertical,divn_order,divn,dpstcode,dpstname
+	--order by vertical_order,divn_order
+	)b
+
+
+	---------------------------------------End of Actuals Data--------------------------------------------------
+
+on a.vertical = b.vertical 
+and a.divn = b.divn 
+and a.dpstcode = b.dpstcode 
+
+--order by vertical_order,divn_order
+
+full join
+---------------------------------------Last Month Actuals Data--------------------------------------------------
+
+(select vertical_order,vertical,divn_order,divn,dpstcode,dpstname,
+ 	sum(case when monthnum = (case when @monthnum -1=0 then 11 else @monthnum-1 end) then budget_month else 0 end) as last_month_actuals
+
+	 from (
+		SELECT 	vertical_order,vertical,divn_order,divn,dpstcode,dpstname,budget_month,
+			case when monthnum < 4 then monthnum + 9 else monthnum -3 end monthnum,
+			--monthnum,
+			monthnames
+		FROM (
+			SELECT 	vertical_order,vertical,divn_order,divn,month(date) as monthnum,datename(mm,date) monthnames, 
+				dpstcode,dpstname,SUM(actuals) AS budget_month
+			FROM (
+				select 	dpst,convert(Datetime,date) date, sum(assesvalue) as actuals,area
+				from 	slsdespdata (nolock) 
+				where 
+				--convert(Datetime,date) >=dateadd(mm,-1,convert(datetime,@ytddate)) and 
+				saletype in (0,2,5)
+				group by dpst,convert(Datetime,date) ,area
+			      ) SlsDespData 
+				INNER JOIN dbo.AreaTmp 
+					ON dbo.AreaTmp.AreaCode = SlsDespData.Area 
+				INNER JOIN dbo.dpstmaster_new 
+					ON dbo.dpstmaster_new.DpstCode = SlsDespData.Dpst
+
+			WHERE 	(dbo.dpstmaster_new.Description IN ('Direct-Rly','After Sales', 'Dpsac', 'Compressor-Channel', 'Compressor-Direct')) 
+				and convert(Datetime,date) >=
+				convert(varchar,year(dateadd(mm,-2,getdate()-1)))+'-'+ RIGHT('00'+CAST(month(dateadd(mm,-2,getdate()-1)) AS VARCHAR(2)),2)+'-01'
+				and convert(Datetime,date) <
+				convert(varchar,year(dateadd(mm,-1,getdate()-1)))+'-'+ RIGHT('00'+CAST(month(dateadd(mm,-1,getdate()-1)) AS VARCHAR(2)),2)+'-01'
+				AND (LTRIM(RTRIM(dbo.AreaTmp.Global)) = 'Domestic')
+
+			GROUP BY vertical_order,vertical,divn_order,divn,dpstcode,dpstname,month(date),datename(mm,date)
+			--order by vertical_order,divn_order
+		      ) AS budget
+
+		GROUP BY vertical_order,vertical,divn_order,divn,dpstcode,dpstname,budget_month ,
+		--case when monthnum < 4 then monthnum + 9 else monthnum -3 end,
+		monthnum,
+		monthnames
+		--order by vertical_order,divn_order
+		) a
+
+	where	monthnum in (case when @monthnum -1=0 then 11 else @monthnum-1 end)
+	group by vertical_order,vertical,divn_order,divn,dpstcode,dpstname
+	--order by vertical_order,divn_order
+	)c
+
+
+---------------------------------------End of Last Month Actuals Data--------------------------------------------
+
+on a.vertical = c.vertical 
+and a.divn = c.divn 
+and a.dpstcode = c.dpstcode 
+
+----------------------------------------------End of Part 1-------------------------------------------------------------
+) b
+
+--order by vertical_order,divn_order
+
+
+full join
+
+
+
+
+(
+-------------------------------------------Part 2: Last year and month Actuals-----------------------------------------------------------
+select vertical_order,vertical,divn_order,divn,dpstcode,dpstname,
+ sum(case when monthnum = @monthnum then budget_month else 0 end) as ly_month_actuals,
+ sum(case when monthnum between 1 and  @monthnum then budget_month else 0 end) as ly_ytd_actuals
+ from(
+	SELECT 	vertical_order,vertical,divn_order,divn,dpstcode,dpstname,budget_month,
+		case when monthnum < 4 then monthnum + 9 else monthnum -3 end monthnum,
+		--monthnum,
+		monthnames
+	FROM(
+		SELECT 	vertical_order,vertical,divn_order,divn, month(date) as monthnum,datename(mm,date) monthnames, 
+			dpstcode,dpstname,SUM(actuals) AS budget_month
+		FROM(
+			select 	dpst,convert(Datetime,date) date, sum(assesvalue) as actuals,area
+			from 	slsdespdata (nolock) 
+			where 	convert(Datetime,date) >= dateadd(yy,-1,@ytddate) 
+				and saletype in (0,2,5,6)
+			group by dpst,convert(Datetime,date) ,area
+		    ) SlsDespData 
+		      INNER JOIN dbo.AreaTmp 
+			ON dbo.AreaTmp.AreaCode = SlsDespData.Area 
+		      INNER JOIN dbo.dpstmaster_new 
+			ON dbo.dpstmaster_new.DpstCode = SlsDespData.Dpst
+
+		WHERE 	(dbo.dpstmaster_new.Description IN ('Direct-Rly','After Sales', 'Dpsac', 'Compressor-Channel', 'Compressor-Direct')) 
+			AND (LTRIM(RTRIM(dbo.AreaTmp.Global)) = 'Domestic')
+
+			--OLD METHOD
+			and convert(Datetime,date) <= dateadd(dd,-1,convert(datetime,convert(varchar,datepart(mm,dateadd(mm,1,dateadd(yy,-1,getdate()-1 )))) + '/01/' + datename(yy,dateadd(mm,1,dateadd(yy,-1,getdate()-1))))) 
+			and convert(Datetime,date) < @ytddate 
+			and convert(Datetime,date) >= dateadd(yy,-1,@ytddate) 
+
+			--New Method
+			--and convert(Datetime,date)>=	convert(datetime,convert(varchar,datepart(mm,dateadd(yy,-1,dateadd(dd,-1,getdate())))) + '/1/' + datename(yy,dateadd(yy,-1,dateadd(dd,-1,getdate())))) 
+			--and convert(Datetime,date)<=	dateadd(yy,-1,dateadd(dd,-1,getdate())) 
+
+		GROUP BY vertical_order,vertical,divn_order,divn,dpstcode,dpstname,month(date),datename(mm,date)
+		--order by vertical_order,divn_order
+	     ) AS budget
+	GROUP BY vertical_order,vertical,divn_order,divn,dpstcode,dpstname,budget_month,
+	case when monthnum < 4 then monthnum + 9 else monthnum -3 end,
+	--monthnum,
+	monthnames
+	--order by vertical_order,divn_order,monthnum
+      ) a
+
+where monthnum <= @monthnum
+group by vertical_order,vertical,divn_order,divn,dpstcode,dpstname
+--order by vertical_order,divn_order
+-------------------------------------------End of Part 2: Last year and month Actuals-----------------------------------------------------------
+
+)c
+on c.vertical = b.user_names 
+and c.divn = b.division 
+and c.dpstcode = b.dpstcode 
+
+
+)complete
+group by user_names,Division
+order by user_names,Division
+
+end

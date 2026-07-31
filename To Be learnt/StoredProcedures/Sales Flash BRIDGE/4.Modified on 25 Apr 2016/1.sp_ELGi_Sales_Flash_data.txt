@@ -1,0 +1,151 @@
+--exec sp_ELGi_Sales_Flash_data
+--select * from ELGi_Sales_Flash_data where organ='COSEA'
+--truncate table ELGi_Sales_Flash_data
+
+
+
+Alter proc sp_ELGi_Sales_Flash_data as 
+
+
+begin
+
+
+
+
+------PART 1:    LOADING LAST 5 YEARS HISTORY DATA ---------------------------------------------
+----Note : 
+----1.It will take more than hours to complete
+----2. execute the below truncate statement
+
+----truncate table ELGi_Sales_Flash_data
+
+
+--declare @year varchar(5);
+--declare @monthnum int;
+--declare @ytddate varchar(20);
+--declare @monthcount int
+--declare @count1 int;
+--declare @count2 int;
+
+
+--set @count1 =1
+
+
+
+--while (@count1<=5)
+
+--Begin
+
+--set @year=(select Year1 from (
+--select Year1,row_number() over(order by Year1) year_rank from
+--(
+--select distinct year(convert(date,date)) Year1 from tmpslsdespdata 
+--where year(convert(date,date))>=(select max(year(convert(date,date)))-4 from tmpslsdespdata )
+--)a)b
+--where year_rank=@count1)
+
+
+--set @monthcount=(select count(distinct month(convert(date,date))) from  tmpslsdespdata where year(convert(date,date))=@year)
+
+--set @ytddate='04/01/'+@year
+
+--set @monthnum=1
+
+--while (@monthnum<=@monthcount)
+
+--begin
+
+--Insert into ELGi_Sales_Flash_data
+--select * from (
+
+
+----Uncomment one select Query at a time and execute the procedure to increase the throughput------------------------------
+
+--select *,@year as Year,@monthnum as Monthnum from ufn_ELGi_Sales_COSEA_ver2(@ytddate,@monthnum)
+----union
+----select *,@year as Year,@monthnum as Monthnum from ufn_ELGi_Sales_INDIA_ver2(@ytddate,@monthnum)
+----union
+----select *,@year as Year,@monthnum as Monthnum  from ufn_ELGi_Sales_ID_ver2(@ytddate,@monthnum)
+----union
+----select *,@year  as Year,@monthnum as Monthnum from ufn_ELGi_Sales_ISAAME_ver2(@ytddate,@monthnum)
+--)a
+
+--set @monthnum=@monthnum+1
+--end
+
+--set @count1=@count1+1
+--end
+
+
+----Deleting the obsolete data (i.e Actuals :zero or incorrect data ) for financial months >= the current financial month of current year
+----select * 
+--delete
+--from ELGi_Sales_Flash_data 
+--where FinMonthnum>=(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end as FinMonth)
+--and FinYear=(select max(FinYear) from ELGi_Sales_Flash_data)
+
+
+
+
+
+------END OF PART 1: END OF LOADING LAST 5 YEARS HISTORY DATA-------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+----PART 2: DELETING AND LOADING CURRENT FINMONTH DATA ON DALY BASIS------------------------------------------------------
+
+
+declare @year varchar(5);
+declare @monthnum int;
+declare @ytddate varchar(20);
+
+
+
+--select *
+Delete 
+from ELGi_Sales_Flash_data 
+where 
+FinMonthnum>=
+(select case when calmonthnum between 1 and 3 then calmonthnum+9 else calmonthnum-3 end as finmonthnum
+from(select max(month(convert(date,date))) calmonthnum,max(year(convert(date,date))) Yearnum from tmpslsdespdata 
+where year(convert(date,date))=(select max(year(convert(date,date))) from tmpslsdespdata ))a)
+and FinYear=
+(select case when calmonthnum between 1 and 3 then Yearnum-1 else Yearnum end as finyear
+from(select max(month(convert(date,date))) calmonthnum,max(year(convert(date,date))) Yearnum from tmpslsdespdata 
+where year(convert(date,date))=(select max(year(convert(date,date))) from tmpslsdespdata ))a)
+
+
+
+set @year =(select case when calmonthnum between 1 and 3 then Yearnum-1 else Yearnum end as finyear
+from(select max(month(convert(date,date))) calmonthnum,max(year(convert(date,date))) Yearnum from tmpslsdespdata 
+where year(convert(date,date))=(select max(year(convert(date,date))) from tmpslsdespdata ))a)
+
+set @monthnum=(select case when calmonthnum between 1 and 3 then calmonthnum+9 else calmonthnum-3 end as finmonthnum
+from(select max(month(convert(date,date))) calmonthnum,max(year(convert(date,date))) Yearnum from tmpslsdespdata 
+where year(convert(date,date))=(select max(year(convert(date,date))) from tmpslsdespdata ))a)
+
+set @ytddate='04/01/'+@year
+
+
+Insert into ELGi_Sales_Flash_data
+select *,@year as Year,@monthnum as Monthnum from ufn_ELGi_Sales_COSEA_ver2(@ytddate,@monthnum)
+Insert into ELGi_Sales_Flash_data
+select *,@year as Year,@monthnum as Monthnum from ufn_ELGi_Sales_INDIA_ver2(@ytddate,@monthnum)
+Insert into ELGi_Sales_Flash_data
+select *,@year as Year,@monthnum as Monthnum  from ufn_ELGi_Sales_ID_ver2(@ytddate,@monthnum)
+Insert into ELGi_Sales_Flash_data
+select *,@year  as Year,@monthnum as Monthnum from ufn_ELGi_Sales_ISAAME_ver2(@ytddate,@monthnum)
+
+
+----END OF PART 2: LOADING CURRENT FINMONTH DATA ON DALY BASIS-------------------------------------------------
+
+
+
+end

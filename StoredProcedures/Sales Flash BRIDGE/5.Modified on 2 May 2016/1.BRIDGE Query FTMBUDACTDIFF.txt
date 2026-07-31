@@ -1,0 +1,27 @@
+select organ1,
+--(select sum(month_budget) from ELGi_Sales_Flash_Data_Consolidated 
+--where finyear=2012 and FinMonthnum=9) as Total_budget,
+--(select sum(month_actuals) from ELGi_Sales_Flash_Data_Consolidated 
+--where finyear=2012 and FinMonthnum=9) as Total_Actuals,
+FTM_budget,
+FTM_actuals,
+ly_FTM_actuals,
+--ly_ytd_actuals,
+FTMBudActDiff ,
+FTMCyLyActDiff,
+case when FTMBudActDiff >0 then FTMBudActDiff  else 0 end as FTMBudActPlus,
+case when FTMBudActDiff <0 then abs(FTMBudActDiff ) else 0 end as FTMBudActMinus,
+case when FTMCyLyActDiff>0 then FTMCyLyActDiff else 0 end as FTMCyLyActPlus,
+case when FTMCyLyActDiff<0 then abs(FTMCyLyActDiff) else 0 end as FTMCyLyActMinus
+
+from
+(select organ1,
+sum(month_budget) as FTM_budget,
+sum(month_actuals) as FTM_actuals,
+--sum(ly_ytd_actuals) as ly_ytd_actuals,
+sum(ly_month_actuals) as ly_FTM_actuals,
+sum(month_budget)-sum(month_actuals) FTMBudActDiff,
+sum(month_actuals)-sum(ly_month_actuals) FTMCyLyActDiff 
+from ELGi_Sales_Flash_Data_Consolidated 
+where finyear=2012 and FinMonthnum=9
+group by organ1)a

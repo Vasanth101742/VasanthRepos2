@@ -1,0 +1,19 @@
+SELECT isnull(vw_mon_bud_perf_domestic.budget_year,0) as budget_year, 
+isnull( vw_mon_bud_perf_domestic.last_month_budget,0) as last_month_budget,  
+isnull(vw_mon_bud_perf_domestic.ytd_budget,0) as ytd_budget, 
+isnull(vw_mon_bud_perf_domestic.this_month_budget,0) as this_month_budget,  
+isnull(vw_mon_bud_perf_domestic.next_month_budget,0) as next_month_budget, 
+isnull(vw_mon_bud_perf_domestic.nextof_next_month_budget,0) nextof_next_month_budget,  
+isnull(vw_mon_bud_perf_domestic.description,vw_mon_sls_perf_domestic.description) as description,  
+vw_mon_sls_perf_domestic.last_year_sale, 
+vw_mon_sls_perf_domestic.last_year_ytd,  
+vw_mon_sls_perf_domestic.this_year_sale,  
+vw_mon_sls_perf_domestic.last_month_sale, 
+vw_mon_sls_perf_domestic.this_month_sale,
+isnull(vw_mon_bud_perf_domestic.dpstname,  
+vw_mon_sls_perf_domestic.dpstname) as dpstname
+
+FROM    vw_mon_bud_perf_To_subsidiary vw_mon_bud_perf_domestic full JOIN
+	vw_mon_sls_perf_To_subsidiary vw_mon_sls_perf_domestic 
+	ON  vw_mon_bud_perf_domestic.description =  vw_mon_sls_perf_domestic.description 
+	and vw_mon_bud_perf_domestic.dpstname =  vw_mon_sls_perf_domestic.dpstname

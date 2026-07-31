@@ -1,0 +1,47 @@
+
+select 	user_names,
+	isnull(region,'NA') region,
+	isnull(ltrim(rtrim(areaname)),'NA') AreaName, 
+	isnull(ltrim(rtrim(division)),'NA') Division,
+	isnull(sum(budget_year),0) as budget_year,
+	isnull(sum(last_month_budget),0) as last_month_budget,
+	isnull(sum(ytd_budget),0) as ytd_budget,
+	isnull(sum(this_month_budget),0) as this_month_budget, 
+	isnull(sum(next_month_budget),0) as next_month_budget,
+	isnull(sum(nextof_next_month_budget),0) as nextof_next_month_budget,
+	isnull(sum(last_year_sale),0) as last_year_sale,
+	isnull(sum(last_year_ytd),0) as last_year_ytd,
+	isnull(sum(this_month_sale),0) as this_month_sale,
+	isnull(sum(this_year_sale),0) as this_year_sale,
+	isnull(sum(last_month_sale),0) as last_month_sale
+	
+from(
+
+	SELECT  bud.region,
+		isnull(bud.areaname,sls.areaname) areaname,
+		bud.budget_year,   
+		bud.last_month_budget, 
+		bud.ytd_budget,   
+		bud.this_month_budget, 
+  		bud.next_month_budget,   
+		bud.nextof_next_month_budget,
+   		sls.last_year_sale, 
+		case when   sls.last_year_ytd = 0 then  0.01 
+		     else   sls.last_year_ytd end as last_year_ytd,
+	   	sls.this_year_sale,   
+		sls.last_month_sale, 
+                sls.this_month_sale,
+		case when bud.user_names is null then sls.user_names 
+		     else bud.user_names end as user_names,
+		case when bud.division is null then sls.division 
+		     else bud.division end as division
+
+	FROM   (select * from vw_mon_bud_perf_cosea_pg  )  bud
+		full JOIN
+	       (select * from vw_mon_sls_perf_cosea_pg  )  sls 
+		ON   bud.division =   sls.division
+			and   bud.user_names =   sls.user_names
+    ) BDM
+group by user_names,region,areaname,division
+
+order by user_names

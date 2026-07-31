@@ -1,0 +1,1612 @@
+--exec sp_TCODE_PROCESS 12,2015
+
+Alter procedure sp_TCODE_PROCESS(@FinMonthNo int,@FinYear int)
+
+as
+
+Begin
+
+--Step1 :Converting the Negative values to Positive Values in tables such as TCODE_TB,TCODE_ICT,TCODE_CONS_ICT
+
+update TCODE_TB set 
+Amount_in_INR=Amount_in_INR*(-1)
+where substring(combicode,7,5) in 
+('BS100','BS289','BS290','BS291','BS292','BS293','BS294','BS295','BS296',
+'BS101','BS102','BS103','BS104','BS105','BS106','BS107','BS108','BS109','BS110','BS111','BS331','PL999',
+'BS112','BS113','BS114','BS115','BS116','BS117','BS118','BS119','BS120','BS121','BS122','BS123','BS124',
+'BS125','BS126','BS127','BS129','BS130','BS131','BS132','BS133','BS134','BS299','BS300','BS135','BS136',
+'BS137','BS138','BS139','BS140','BS141','BS142','BS301','BS143','BS144','BS145','BS324','BS146','BS147',
+'BS148','BS150','BS151','BS152','BS153','BS329','BS154','BS297',
+
+'PL100','PL101','PL102','PL104','PL105','PL106','PL107','PL108','PL109','PL110','PL111','PL112','PL209',
+'PL212','PL113','PL219','PL114'
+)
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+and Amount_in_INR<0
+
+
+update TCODE_TB set 
+Amount_in_INR1=Amount_in_INR1*(-1)
+where substring(combicode,7,5) in 
+('BS100','BS289','BS290','BS291','BS292','BS293','BS294','BS295','BS296',
+'BS101','BS102','BS103','BS104','BS105','BS106','BS107','BS108','BS109','BS110','BS111','BS331','PL999',
+'BS112','BS113','BS114','BS115','BS116','BS117','BS118','BS119','BS120','BS121','BS122','BS123','BS124',
+'BS125','BS126','BS127','BS129','BS130','BS131','BS132','BS133','BS134','BS299','BS300','BS135','BS136',
+'BS137','BS138','BS139','BS140','BS141','BS142','BS301','BS143','BS144','BS145','BS324','BS146','BS147',
+'BS148','BS150','BS151','BS152','BS153','BS329','BS154','BS297',
+
+'PL100','PL101','PL102','PL104','PL105','PL106','PL107','PL108','PL109','PL110','PL111','PL112','PL209',
+'PL212','PL113','PL219','PL114'
+)
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+and Amount_in_INR1<0
+
+
+update TCODE_TB set 
+Amount_in_Reporting_currency1=Amount_in_Reporting_currency1*(-1)
+where substring(combicode,7,5) in 
+('BS100','BS289','BS290','BS291','BS292','BS293','BS294','BS295','BS296',
+'BS101','BS102','BS103','BS104','BS105','BS106','BS107','BS108','BS109','BS110','BS111','BS331','PL999',
+'BS112','BS113','BS114','BS115','BS116','BS117','BS118','BS119','BS120','BS121','BS122','BS123','BS124',
+'BS125','BS126','BS127','BS129','BS130','BS131','BS132','BS133','BS134','BS299','BS300','BS135','BS136',
+'BS137','BS138','BS139','BS140','BS141','BS142','BS301','BS143','BS144','BS145','BS324','BS146','BS147',
+'BS148','BS150','BS151','BS152','BS153','BS329','BS154','BS297',
+
+'PL100','PL101','PL102','PL104','PL105','PL106','PL107','PL108','PL109','PL110','PL111','PL112','PL209',
+'PL212','PL113','PL219','PL114'
+)
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+and Amount_in_Reporting_currency1<0
+
+
+update TCODE_TB set 
+Amount_in_Reporting_currency2=Amount_in_Reporting_currency2*(-1)
+where substring(combicode,7,5) in 
+('BS100','BS289','BS290','BS291','BS292','BS293','BS294','BS295','BS296',
+'BS101','BS102','BS103','BS104','BS105','BS106','BS107','BS108','BS109','BS110','BS111','BS331','PL999',
+'BS112','BS113','BS114','BS115','BS116','BS117','BS118','BS119','BS120','BS121','BS122','BS123','BS124',
+'BS125','BS126','BS127','BS129','BS130','BS131','BS132','BS133','BS134','BS299','BS300','BS135','BS136',
+'BS137','BS138','BS139','BS140','BS141','BS142','BS301','BS143','BS144','BS145','BS324','BS146','BS147',
+'BS148','BS150','BS151','BS152','BS153','BS329','BS154','BS297',
+
+'PL100','PL101','PL102','PL104','PL105','PL106','PL107','PL108','PL109','PL110','PL111','PL112','PL209',
+'PL212','PL113','PL219','PL114'
+)
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+and Amount_in_Reporting_currency2<0
+
+
+
+update TCODE_ICT set amount=Amount*(-1) 
+where substring(TCode,7,5) in 
+('BS100','BS289','BS290','BS291','BS292','BS293','BS294','BS295','BS296',
+'BS101','BS102','BS103','BS104','BS105','BS106','BS107','BS108','BS109','BS110','BS111','BS331','PL999',
+'BS112','BS113','BS114','BS115','BS116','BS117','BS118','BS119','BS120','BS121','BS122','BS123','BS124',
+'BS125','BS126','BS127','BS129','BS130','BS131','BS132','BS133','BS134','BS299','BS300','BS135','BS136',
+'BS137','BS138','BS139','BS140','BS141','BS142','BS301','BS143','BS144','BS145','BS324','BS146','BS147',
+'BS148','BS150','BS151','BS152','BS153','BS329','BS154','BS297',
+
+'PL100','PL101','PL102','PL104','PL105','PL106','PL107','PL108','PL109','PL110','PL111','PL112','PL209',
+'PL212','PL113','PL219','PL114'
+)
+and Amount<0
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+update TCODE_CONS_ICT set Debit_Credit=Debit_Credit*(-1)
+where substring([Combi code],7,5) in 
+('BS100','BS289','BS290','BS291','BS292','BS293','BS294','BS295','BS296',
+'BS101','BS102','BS103','BS104','BS105','BS106','BS107','BS108','BS109','BS110','BS111','BS331','PL999',
+'BS112','BS113','BS114','BS115','BS116','BS117','BS118','BS119','BS120','BS121','BS122','BS123','BS124',
+'BS125','BS126','BS127','BS129','BS130','BS131','BS132','BS133','BS134','BS299','BS300','BS135','BS136',
+'BS137','BS138','BS139','BS140','BS141','BS142','BS301','BS143','BS144','BS145','BS324','BS146','BS147',
+'BS148','BS150','BS151','BS152','BS153','BS329','BS154','BS297',
+
+'PL100','PL101','PL102','PL104','PL105','PL106','PL107','PL108','PL109','PL110','PL111','PL112','PL209',
+'PL212','PL113','PL219','PL114'
+)
+and Debit_Credit<0
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+
+
+
+
+--Step 2: Updating lamt column in Tcodeprocess table from the tables such as TCODE_TB,TCODE_ICT,TCODE_CONS_ICT for current year
+
+update Tcodeprocess set lamt=AB.TB_Amount-AB.ICT_Amnt-AB.CON_ICT_Amnt
+from
+(
+select main.*,concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code))) MainCombiCode,
+sum(isnull(A.Amount_in_Reporting_currency1,0)) TB_Amount,
+sum(isnull(B.Amount,0)) ICT_Amnt,
+sum(isnull(C.Debit_Credit,0)) CON_ICT_Amnt
+from Tcodeprocess main
+left outer join 
+(select * from TCODE_TB 
+where FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+) A
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(A.CombiCode))
+left outer join 
+(select * from TCODE_ICT
+where FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+) B
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(B.TCode))
+left outer join 
+(select * from TCODE_CONS_ICT
+where FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+) C
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(c.[Combi code]))
+where main.lamt_ordr=1
+and main.FinMonthNo=@FinMonthNo
+and main.FinYear=@FinYear
+--and main.comp=100000
+group by main.fcode,main.slno,subd,htyp,ordr,lamt_ordr,lamt_description,main.comp,code,tdesc,lamt,ddate,
+main.FinMonthNo,main.FinMonthName,main.FinYear,main.Fin_Year
+)AB
+where concat(ltrim(rtrim(Tcodeprocess.comp)),ltrim(rtrim(tcodeprocess.code)))=AB.MainCombiCode
+and tcodeprocess.lamt_ordr=1
+and tcodeprocess.FinMonthNo=@FinMonthNo
+and tcodeprocess.FinYear=@FinYear
+
+
+
+
+--order by main.fcode,main.slno,main.subd,main.ordr,concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))
+
+
+--Step 3: Updating lamt column in Tcodeprocess table from the tables such as TCODE_TB,TCODE_ICT,TCODE_CONS_ICT for last year
+
+update Tcodeprocess set lamt=AB.TB_Amount-AB.ICT_Amnt-AB.CON_ICT_Amnt
+from
+(
+select main.*,concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code))) MainCombiCode,
+sum(isnull(A.Amount_in_Reporting_currency2,0)) TB_Amount,
+sum(isnull(B.Amount,0)) ICT_Amnt,
+sum(isnull(C.Debit_Credit,0)) CON_ICT_Amnt
+from Tcodeprocess main
+left outer join 
+(select * from TCODE_TB 
+where FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+) A
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(A.CombiCode))
+left outer join 
+(select * from TCODE_ICT
+where FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+) B
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(B.TCode))
+left outer join 
+(select * from TCODE_CONS_ICT
+where FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+) C
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(c.[Combi code]))
+where main.lamt_ordr=2
+--and main.comp=100000
+and main.FinMonthNo=@FinMonthNo
+and main.FinYear=@FinYear
+group by main.fcode,main.slno,subd,htyp,ordr,lamt_ordr,lamt_description,main.comp,code,tdesc,lamt,ddate,
+main.FinMonthNo,main.FinMonthName,main.FinYear,main.Fin_Year
+)AB
+where concat(ltrim(rtrim(Tcodeprocess.comp)),ltrim(rtrim(tcodeprocess.code)))=AB.MainCombiCode
+and tcodeprocess.lamt_ordr=2
+and tcodeprocess.FinMonthNo=@FinMonthNo
+and tcodeprocess.FinYear=@FinYear
+
+
+--update Tcodeprocess set lamt=lamt*(-1)
+--where slno<=10
+--and tcodeprocess.FinMonthNo=@FinMonthNo
+--and tcodeprocess.FinYear=@FinYear
+
+--update Tcodeprocess set lamt=lamt*(-1)
+--where slno in(22,23)
+--and tcodeprocess.FinMonthNo=@FinMonthNo
+--and tcodeprocess.FinYear=@FinYear
+
+
+-------------------------------------------------------------------------------------------------------
+
+--Totals Calculation 
+
+declare @compcount int
+declare @count1 int
+declare @comp int
+declare @lamt_ordr_count int
+declare @count2 int
+
+set @compcount=(select count(distinct comp) from tcodeprocess)
+set @lamt_ordr_count=(select count(distinct lamt_ordr) from tcodeprocess)
+set @count1=1
+set @count2=1
+
+
+while (@count1<=@compcount)
+
+begin
+
+set @comp=(select comp from(
+select comp,row_number() over(order by comp) comprank from 
+(select distinct comp from tcodeprocess
+where tcodeprocess.FinMonthNo=@FinMonthNo
+and tcodeprocess.FinYear=@FinYear
+)a)b
+where comprank=@count1)
+
+set @count2=1
+
+while (@count2<=@lamt_ordr_count)
+
+begin
+
+
+--1.Share Capital
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=1
+and subd=1
+and ordr in(2,6)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=1
+and subd=1
+and ordr =7
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+--2. Reserves & Surplus
+
+--(a) Capital reserve account
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=1
+and ordr in(3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=1
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(b) Capital Redemption reserve
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=2
+and ordr in(2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=2
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(c) Revaluation reserve
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=3
+and ordr in(2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=3
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(d) Statutory reserve
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=4
+and ordr in(2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=4
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(e) Securities premium account
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=5
+and ordr in(2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=5
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(f) General reserve account
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=6
+and ordr in(2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=6
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(g) Foreign currency translation reserve account
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=7
+and ordr in(2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=7
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(h) Surplus
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=8
+and ordr in(3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=8
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--(i) Appropriations
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=9
+and ordr in(3,4,5,6,7,8)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=2
+and subd=9
+and ordr =9
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--2. Reserves & Surplus (Total)
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(
+select
+(select sum(lamt) lamt from 
+(
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=1 and ordr =5 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=2 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=3 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=4 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=5 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=6 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=7 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=8 and ordr =5 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a)
+-
+(select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=9 and ordr =9 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear)
+
+as lamt
+
+)b
+
+
+where fcode=1
+and slno=2
+and subd=9
+and ordr =10
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--3.Long Term Borrowings
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=3
+and subd=1
+and ordr in(2,4,5,6,7,8,9,10)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=3
+and subd=1
+and ordr =11
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--4A. Deferred Tax Liabilities (Net)
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=4
+and subd=1
+and ordr in(1)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=4
+and subd=1
+and ordr =2
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--5. Other Long Term liabilities
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=5
+and subd=1
+and ordr in(2,4,5,6,7,8)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=5
+and subd=1
+and ordr =9
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+---------------------------------------------------------
+
+--6. Long-term provisions
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=6
+and subd=1
+and ordr in(3,6)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=6
+and subd=1
+and ordr =7
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+---------------------------------------------------------
+
+--7. Short term borrowings
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=7
+and subd=1
+and ordr in(3,4,5,6,7)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=7
+and subd=1
+and ordr =8
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--8. Trade payables
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=8
+and subd=1
+and ordr in(2,3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=8
+and subd=1
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+---------------------------------------------------------
+
+--9. Other current liabilities
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=9
+and subd=1
+and ordr in (2,3,4,5,6,8,9,10,11,12,13,14,15,16)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=9
+and subd=1
+and ordr =17
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+---------------------------------------------------------
+
+--10. Short Term provisions
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=10
+and subd=1
+and ordr in (3,5,6,7,8,9,10,11)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=10
+and subd=1
+and ordr =12
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--11.Non Current investments
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=11
+and subd=1
+and ordr in (2,3,4,5,6,7,8,9,10,11)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=11
+and subd=1
+and ordr =12
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--14. Deferred Tax Assets (Net)
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=12
+and subd=1
+and ordr in (1)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=12
+and subd=1
+and ordr =2
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--15. Long Term Loans and advances
+
+--(a) Capital Advances
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=1
+and ordr in (3,4,5,6)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=13
+and subd=1
+and ordr =7
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+-- (b) Security Deposits
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=2
+and ordr in (2,3,4,5)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=13
+and subd=2
+and ordr =6
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+--(c) Loans and advances to related parties 
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=3
+and ordr in (2,3,4,5)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=13
+and subd=3
+and ordr =6
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+--(d) Other loans and advances 
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=4
+and ordr in (2,3,5,6,7,8,9,10,11)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=13
+and subd=4
+and ordr =12
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+---------------------------------------------------------
+
+update Tcodeprocess set lamt=a.lamt
+from (
+select 
+(select sum(lamt) from Tcodeprocess where fcode=1 and slno=13 and subd=1 and ordr in (3,4,5,6)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)
++
+(select sum(lamt) from Tcodeprocess where fcode=1 and slno=13 and subd=2 and ordr in (2,3,4,5)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)
++
+(select sum(lamt) from Tcodeprocess where fcode=1 and slno=13 and subd=3 and ordr in (2,3,4,5)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)
++
+(select sum(lamt) from Tcodeprocess where fcode=1 and slno=13 and subd=4 and ordr in (2,3,4,5,6,7,8,9,10,11)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)
+as lamt
+)a
+where fcode=1 and slno=13 and subd=4 and ordr=13 
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+---------------------------------------------------------
+
+--14. Other Non-Current Assets
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=14
+and subd=1
+and ordr in (2,3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=14
+and subd=1
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--15. Current Investments
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=15
+and subd=1
+and ordr in (2,3,4,5,6,7,8)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=15
+and subd=1
+and ordr =9
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--16. Inventories
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=16
+and subd=1
+and ordr in (2,3,4,5,6,7,8)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=16
+and subd=1
+and ordr =9
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--17. Trade Receivables
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=17
+and subd=1
+and ordr in (4,5,6,7)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=17
+and subd=1
+and ordr =8
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=17
+and subd=2
+and ordr in (4,5,6,7)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=17
+and subd=2
+and ordr =8
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=17
+and subd=3
+and ordr in (3,4,5)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=17
+and subd=3
+and ordr =6
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+--17. Trade Receivables (Total)
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from( 
+select lamt from tcodeprocess where 
+fcode=1 and slno=17 and subd=1 and ordr =8 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=17 and subd=2 and ordr =8 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=17 and subd=3 and ordr =6 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a)b
+where fcode=1
+and slno=17
+and subd=3
+and ordr =7
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+---------------------------------------------------------
+
+--18.Cash and Cash equivalents
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=18
+and subd=1
+and ordr in (2,3,4,5,6,9,10,12)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=18
+and subd=1
+and ordr =13
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+---------------------------------------------------------
+
+--19.Short Term Loans and advances
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=19 and subd =1 and ordr in (3,4,5,6) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=19 and subd =2 and ordr in (2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=19 and subd =3 and ordr in (3,4,5,6) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a)b
+where fcode=1
+and slno=19
+and subd=3
+and ordr =7
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--20.Other current assets
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=20
+and subd=1
+and ordr in (2,3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=20
+and subd=1
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+---------------------------------------------------------
+
+--21.Revenue from Operations
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=21
+and subd=1
+and ordr in (2,3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=21
+and subd=1
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--22.Other Income
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =1 and ordr in (2,3) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =2 and ordr in (2,3) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =3 and ordr in (2,3,4) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =4 and ordr in (2,3,4,5,7) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+)a)b
+where fcode=1
+and slno=22
+and subd=4
+and ordr =8
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+---------------------------------------------------------
+
+--23.Cost of material consumed
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=23
+and subd=1
+and ordr in (2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=23
+and subd=1
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=23
+and subd=2
+and ordr in (1,2,3)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=23
+and subd=2
+and ordr =4
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=23 and subd =1 and ordr in (4) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=23 and subd =2 and ordr in (4) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a)b
+where fcode=1
+and slno=23
+and subd=2
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--25.Changes in Inventory
+
+--Opening inventory
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=25
+and subd=1
+and ordr in (3,4,5)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=25
+and subd=1
+and ordr =6
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+--Closing inventory
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=25
+and subd=2
+and ordr in (2,3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=25
+and subd=2
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=25 and subd =1 and ordr in (6) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=25 and subd =2 and ordr in (5) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a)b
+where fcode=1
+and slno=25
+and subd=2
+and ordr =6
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--26.Employee Benefit Expenses
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=26
+and subd=1
+and ordr in (3,4,5,8,9,10,12,13,15,16)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=26
+and subd=1
+and ordr =17
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--27.SELLING, ADMINISTRATION AND OTHERS
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=27
+and subd=1
+and ordr in (3,4,5)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=27
+and subd=1
+and ordr =6
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--28.FINANCE COSTS
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=28
+and subd=1
+and ordr in (2,3,4)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=28
+and subd=1
+and ordr =5
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+---------------------------------------------------------
+
+--29.OTHER EXPENSES
+
+--Payment to the auditors
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=29
+and subd=1
+and htyp='L'
+and ordr in (3,4,5,6)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=29
+and subd=1
+and htyp='H'
+and ordr =6
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=29
+and subd=1
+and htyp='L'
+and ordr in 
+(7,8,9,10,
+11,12,13,14,15,16,17,18,19,20,
+21,22,23,24,25,26,27,28,29,30,
+31,32,33,34,35,36,37,38,39,40,
+41,42,43,44,45,46,47,48,49,50,
+51,52,53,54)
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a
+where fcode=1
+and slno=29
+and subd=1
+and htyp='H'
+and ordr =55
+and comp=@comp
+and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+set @count2=@count2+1
+end
+
+
+set @count1=@count1+1
+end
+
+
+end

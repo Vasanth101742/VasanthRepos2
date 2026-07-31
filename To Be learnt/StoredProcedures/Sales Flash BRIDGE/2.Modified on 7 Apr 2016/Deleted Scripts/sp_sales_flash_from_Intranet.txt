@@ -1,0 +1,60 @@
+--exec sp_sales_flash_from_Intranet
+--select * from elgi_sales_flash
+--alter table elgi_sales_flash alter column organ varchar(50)
+
+Alter proc sp_sales_flash_from_Intranet 
+as
+
+begin
+
+insert into elgi_sales_flash
+
+select organ,user_names,Division,
+sum(month_budget) as month_budget,
+sum(month_actuals) as month_actuals,
+sum(last_month_actuals) as last_month_actuals,
+sum(ytd_budget) as ytd_budget,
+sum(ytd_actuals) as ytd_actuals,
+sum(ly_ytd_actuals) as ly_ytd_actuals,
+sum(ly_month_actuals) as ly_month_actuals
+
+from (
+select region as organ,
+null as user_names,
+null as Division,
+curr2_ftmbudget as month_budget,
+curr2_ftmactual as month_actuals,
+0 as last_month_actuals,
+curr2_ytdbudget as ytd_budget,
+curr2_ytdactual as ytd_actuals,
+curr2_ytdyractual as ly_ytd_actuals,
+curr2_ftmyractual as ly_month_actuals
+
+from sms_sales_entry
+where region not in ('COSEA','ID','INDIA','SAAME')
+
+union all
+
+select region,null,null,0,0,curr2_ftmactual,0,0,0,0 
+from(
+select region,curr2_ftmactual,yyyy,month,case 
+when month like '%Jan%' then 1
+when month like '%feb%' then 2 
+when month like '%mar%' then 3
+when month like '%apr%' then 4
+when month like '%may%' then 5
+when month like '%jun%' then 6 
+when month like '%jul%' then 7
+when month like '%aug%' then 8
+when month like '%sep%' then 9
+when month like '%oct%' then 10
+when month like '%nov%' then 11
+when month like '%dec%' then 12
+end as monthno from sms_sales_entry_history
+)a
+where monthno=(select case when month(getdate()-1)-2 =0 then 12 else month(getdate()-1)-2 end)
+and region not in ('COSEA','ID','INDIA','SAAME')
+)ab
+group by organ,user_names,Division
+
+end

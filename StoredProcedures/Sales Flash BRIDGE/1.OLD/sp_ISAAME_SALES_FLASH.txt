@@ -1,0 +1,241 @@
+--select * from ELGI_SALES_FLASH
+--exec sp_ISAAME_SALES_FLASH '2015'
+
+alter procedure sp_ISAAME_SALES_FLASH(@ytdyear varchar(10))
+as
+
+declare @ytddate varchar(200)
+declare @monthnum int 
+
+begin
+
+set @ytddate = '04/01/'+@ytdyear
+set @monthnum=(select case when monthno between 1 and 3 then monthno + 9 else monthno - 3 end as monthnum from (select month(getdate()-3) as monthno) a)
+
+
+insert into ELGI_SALES_FLASH
+
+select 'SAAME' as Organ,user_names,round(sum(month_budget)/1000000,2) month_budget, 
+round(sum(month_actuals)/1000000,2) month_actuals,
+round(sum(last_month_actuals)/1000000,2) last_month_actuals,
+round(sum(ytd_budget)/1000000,2) ytd_budget,
+round(sum(ytd_actuals)/1000000,2) ytd_actuals,
+round(sum(ly_ytd_actuals)/1000000,2) ly_ytd_actuals,
+round(sum(ly_month_actuals)/1000000,2) ly_month_actuals
+from (
+
+
+
+select vertical_order,divn_order,user_names,division,dpstcode,dpstname,
+sum(month_budget) as month_budget,
+sum(ytd_budget) as ytd_budget,
+sum(month_actuals) as month_actuals,
+sum(last_month_actuals) as last_month_actuals,
+sum(ytd_actuals) as ytd_actuals,
+sum(ly_ytd_actuals) as ly_ytd_actuals,
+sum(ly_month_actuals) as ly_month_actuals 
+
+from(
+	select 	isnull(c.vertical_order,b.vertical_order) as vertical_order,
+		ltrim(rtrim(isnull(c.divn_order,b.divn_order))) as divn_order,
+		isnull(c.user_names,b.user_names) as user_names,
+		ltrim(rtrim(isnull(c.division,b.division))) as division,
+		isnull(c.dpstcode, b.dpstcode) as dpstcode, 
+		isnull(c.dpstname, b.dpstname) as dpstname, 
+		isnull(b.month_budget,0) as month_budget,
+		isnull(b.ytd_budget,0) as ytd_budget,
+		isnull(b.month_actuals,0) as month_actuals,
+		isnull(b.last_month_actuals,0) as last_month_actuals,
+		isnull(b.ytd_actuals,0) as ytd_actuals,
+		isnull(ly_ytd_actuals,0) as ly_ytd_actuals,
+		isnull(ly_month_actuals,0) as ly_month_actuals 
+	from(
+		select 	0 as vertical_order,
+			0 as divn_order,
+			isnull(a.user_names,b.user_names) as user_names,
+			isnull(a.division,b.division) as division,
+			isnull(a.dpstcode, b.dpstcode) as dpstcode, 
+			isnull(a.dpstname, b.dpstname) as dpstname, 
+			isnull(month_budget,0)*1000000 as month_budget,
+			isnull(ytd_budget,0)*1000000 as ytd_budget,
+			isnull(month_actuals,0) as month_actuals,
+			isnull(last_month_actuals,0) as last_month_actuals,
+			isnull(ytd_actuals,0) as ytd_actuals,
+			isnull(a.region,b.region) as region 
+		from(
+			----DPST Breakup FOR BUDGET
+			select 	user_names,division,dpstcode,dpstname,
+				sum(case when monthnum = @monthnum then budget_month else 0 end) as month_budget,
+				sum(case when monthnum between 1 and  @monthnum then budget_month else 0 end) as ytd_budget,
+				region
+			from(
+
+				----Month breakup FOR BUDGET
+				SELECT	user_names,Division,dpstcode,dpstname, budget_month,
+					case when monthnum < 4 then monthnum + 9 else monthnum -3 end as monthnum,
+					monthnames,region
+				FROM(
+					SELECT 	BDM_Inter.user_names,month(date) as monthnum,datename(mm,date) monthnames,
+						SUM(target) AS budget_month, 
+                                              	dbo.dpstmaster_new.Division,dpstcode,dpstname,BDM_Inter.region
+		                       
+					FROM	TSalesBudget AS dpstwise_target 
+						INNER JOIN dbo.dpstmaster_new 
+							ON dbo.dpstmaster_new.DpstCode = dpstwise_target.Dpst 
+						INNER JOIN dbo.AreaTmp 
+							ON dbo.AreaTmp.AreaCode = dpstwise_target.Area 
+						INNER JOIN (select * from TSalesMapping where organ = 'ISAAME') AS BDM_Inter 
+							ON dbo.AreaTmp.region = BDM_Inter.region 
+							and AreaTmp.areaname=BDM_inter.areaname  
+							AND dbo.dpstmaster_new.DpstCode = BDM_Inter.dpst
+
+					WHERE   convert(Datetime,date) >= @ytddate 
+						and convert(Datetime,date) < dateadd(yy,1,@ytddate) 
+						and convert(Datetime,date) <= dateadd(dd,-1,getdate()) 
+						and  dpstwise_target.organ ='ISAAME'
+
+					GROUP BY dbo.dpstmaster_new.Division, BDM_Inter.user_names,dpstcode,dpstname,
+						 month(date),datename(mm,date),BDM_Inter.region
+				    ) AS budget
+				GROUP BY Division, user_names,dpstcode,dpstname,budget_month ,
+				case when monthnum < 4 then monthnum + 9 else monthnum -3 end,monthnames,region
+				-----End of Month breakup FOR BUDGET
+
+			     ) a
+		where monthnum <= @monthnum
+		group by user_names,division,dpstcode,dpstname,region
+		----End of DPST Breakup FOR BUDGET
+	    )a
+
+
+
+full join
+
+
+(
+----DPST Breakup FOR CURRENT YEAR AND MONTH ACTUALS
+select user_names,division,dpstcode,dpstname,
+sum(case when monthnum = @monthnum then budget_month else 0 end) as month_actuals,
+sum(case when monthnum = @monthnum -1 then budget_month else 0 end) as last_month_actuals,
+sum(case when monthnum between 1 and  @monthnum then budget_month else 0 end) as ytd_actuals,
+region
+from(
+	----Month breakup FOR CURRENT YEAR AND MONTH ACTUALS
+	SELECT 	user_names,Division,dpstcode,dpstname,budget_month,
+		case when monthnum < 4 then monthnum + 9 else monthnum -3 end as monthnum,
+		monthnames,region
+	FROM(
+		SELECT	BDM_Inter.user_names,month(date) as monthnum,datename(mm,date) monthnames,
+			SUM(actuals) AS budget_month,dbo.dpstmaster_new.Division,dpstcode,dpstname,
+			BDM_Inter.region
+		FROM(
+			select 	dpst,convert(Datetime,date) date, sum(assesvalue) as actuals,area
+			from 	slsdespdata (nolock) 
+			where 	convert(Datetime,date) >= @ytddate 
+				and saletype in (0,2,5,6)
+			
+			group by dpst,convert(Datetime,date) ,area
+		    ) AS dpstwise_actuals 
+	
+		INNER JOIN dbo.dpstmaster_new 
+			ON dbo.dpstmaster_new.DpstCode = dpstwise_actuals.Dpst 
+		INNER JOIN dbo.AreaTmp 
+			ON dbo.AreaTmp.AreaCode = dpstwise_actuals.Area 
+		INNER JOIN (select * from TSalesMapping where organ = 'ISAAME') AS BDM_Inter 
+			ON dbo.AreaTmp.region = BDM_Inter.region 
+			and AreaTmp.areaname=BDM_inter.areaname 
+			AND dbo.dpstmaster_new.DpstCode = BDM_Inter.dpst
+
+		WHERE	convert(Datetime,date) >= @ytddate 
+			and convert(Datetime,date) < dateadd(yy,1,@ytddate)
+
+		GROUP BY dbo.dpstmaster_new.Division, BDM_Inter.user_names,
+			 dpstcode,dpstname,month(date),datename(mm,date),BDM_Inter.region,organ
+
+	     ) AS budget
+
+	GROUP BY Division, user_names,dpstcode,dpstname,budget_month ,
+		 case when monthnum < 4 then monthnum + 9 else monthnum -3 end,monthnames,region
+
+	----End of Month Breakup FOR CURRENT YEAR AND MONTH ACTUALS
+     ) a
+where monthnum <= @monthnum
+group by user_names,division,dpstcode,dpstname,region
+
+----End of DPST Breakup FOR CURRENT YEAR AND MONTH ACTUALS
+)b
+
+on a.user_names = b.user_names 
+and a.division = b.division 
+and a.dpstcode = b.dpstcode and a.region=b.region 
+
+) b
+
+
+
+
+full join
+(
+
+----DPST BREAKUP FOR LAST YEAR AND MONTH ACTUALS
+select 0 as vertical_order,0 as divn_order,user_names,division,dpstcode,dpstname,
+	sum(case when monthnum = @monthnum then budget_month else 0 end) as ly_month_actuals,
+	sum(case when monthnum between 1 and  @monthnum then budget_month else 0 end) as ly_ytd_actuals,
+	region
+ from(
+	
+	----MONTH BREAKUP FOR LAST YEAR AND MONTH ACTUALS
+	SELECT 	user_names,Division,dpstcode,dpstname,budget_month,
+		case when monthnum < 4 then monthnum + 9 else monthnum -3 end as monthnum,
+		monthnames,region
+	FROM(
+		SELECT 	BDM_Inter.user_names,month(date) as monthnum,datename(mm,date) monthnames,
+			SUM(actuals) AS budget_month, 
+			dbo.dpstmaster_new.Division,dpstcode,dpstname,BDM_Inter.region
+		FROM(
+			select 	dpst,convert(Datetime,date) date, sum(assesvalue) as actuals,area
+			from 	slsdespdata (nolock) 
+			where 	convert(Datetime,date) >= dateadd(yy,-1,@ytddate) 
+				and saletype in (0,2,5,6)
+			group by dpst,convert(Datetime,date) ,area
+		    ) AS dpstwise_actuals 
+		INNER JOIN dbo.dpstmaster_new 
+			ON dbo.dpstmaster_new.DpstCode = dpstwise_actuals.Dpst 
+		INNER JOIN dbo.AreaTmp 
+			ON dbo.AreaTmp.AreaCode = dpstwise_actuals.Area 
+		INNER JOIN (select * from TSalesMapping where organ = 'ISAAME') AS BDM_Inter 
+			ON dbo.AreaTmp.region = BDM_Inter.region 
+			and AreaTmp.areaname=BDM_inter.areaname  
+			AND dbo.dpstmaster_new.DpstCode = BDM_Inter.dpst
+
+		WHERE 	convert(Datetime,date) <=  dateadd(dd,-1,convert(datetime,convert(varchar,datepart(mm,dateadd(mm,1,dateadd(yy,-1,getdate()-1 )))) + '/01/' + datename(yy,dateadd(mm,1,dateadd(yy,-1,getdate()-1)))))  
+			and convert(Datetime,date) < @ytddate 
+			and convert(Datetime,date) >= dateadd(yy,-1,@ytddate)
+
+		GROUP BY dbo.dpstmaster_new.Division, BDM_Inter.user_names,
+			 dpstcode,dpstname,month(date),datename(mm,date),BDM_Inter.region
+	     ) AS budget
+	 GROUP BY Division, user_names,dpstcode,dpstname,budget_month,
+		  case when monthnum < 4 then monthnum + 9 else monthnum -3 end,monthnames,region
+
+	----END OF MONTH BREAKUP FOR LAST YEAR AND MONTH ACTUALS
+      ) a
+where monthnum <= @monthnum
+group by user_names,division,dpstcode,dpstname,region
+----END OF DPST BREAKUP FOR LAST YEAR AND MONTH ACTUALS
+
+)c
+
+on c.user_names = b.user_names 
+and c.division = b.division 
+and c.dpstcode = b.dpstcode 
+and c.region=b.region
+)a
+group by vertical_order,divn_order,user_names,division,dpstcode,dpstname
+
+
+)complete
+group by user_names
+order by user_names
+
+end

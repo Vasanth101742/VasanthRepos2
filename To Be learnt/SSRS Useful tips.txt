@@ -1,0 +1,21 @@
+http://www.venkateswarlu.co.in/MSBI/ssrs/ssrs_common_functions_date_time.aspx
+
+
+To remove zro values in a report
+
+=code.zero(field!xyz.value)
+
+
+To  modify date format in SSRS
+
+=format(datevalue(Fields!Tri_Dt.Value),"dd/MM/yy")
+format(datevalue(Fields!ActualDelDate.Value),"dd-MM-yy")
+
+
+
+setting background color to even number rows
+= IIf(RowNumber(Nothing) Mod 2 = 0, "White", "#ffff80")
+
+
+passing multiple values for a single parameter
+=split(join(Parameters!Segment.Value,","),",")

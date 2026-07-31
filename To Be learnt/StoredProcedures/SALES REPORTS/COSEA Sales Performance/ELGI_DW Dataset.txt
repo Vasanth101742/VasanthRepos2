@@ -1,0 +1,82 @@
+SELECT a. *,isnull(refa,'nil') as refa,address,currency,dpstname  FROM
+(
+SELECT	AL1.Company as company, 
+	AL1.OrderNum as ordernum, 
+	LTRIM(RTRIM(CONVERT(char, AL1.TranType))) + ' / ' + LTRIM(RTRIM(CONVERT(char, AL1.InvoiceNum))) AS Invoice, 
+	CONVERT(varchar, CONVERT(datetime, AL1.Date), 103) AS SlsInvdate, 
+	AL1.Dpst as dpst, 
+	AL1.CustCode as custcode, 
+	AL6.CustName1 as custname1, 
+	AL5.Description as Description, 
+	AL1.DeliveredQty as deliveredqty, 
+	AL1.AssesValue as AssesValue, 
+	--AL3.indentno as indentno,
+	AL4.AreaName as areaname, 
+	AL4.region as region, 
+	CONVERT(varchar, CONVERT(datetime, AL7.Date), 103) AS Orddate, 
+	LTRIM(RTRIM(AL1.ItemCode)) AS Itemcode, 
+	DATEDIFF(dd, CONVERT(datetime, AL7.Date), CONVERT(datetime, AL1.Date)) AS Delaydays,
+	AL1.area as area,
+	vertical1,
+	vertical2,
+	AL1.OAssesValue
+					  
+FROM    TmpSlsDespData AS AL1 
+	INNER JOIN AreaTmp AS AL4 
+		ON AL1.Area = AL4.AreaCode 
+	INNER JOIN TSalesMapping AS BDM_Inter 
+		ON AL4.areaname = BDM_Inter.areaname 
+		AND AL1.Dpst = BDM_Inter.dpst  
+	INNER JOIN period1 AS AL2 
+		ON AL1.Date = AL2.date 
+        --LEFT OUTER JOIN IdentDetail AS AL3 ON AL1.Company = AL3.Company AND AL1.OrderNum = AL3.Orderno  
+	INNER JOIN vw_item_company_osea AS AL5 
+		ON AL1.company=AL5.company 
+		and AL1.ItemCode = AL5.ItemCode 
+	INNER JOIN [vw_customer_company_osea] AS AL6 
+		ON AL1.CustCode = AL6.CustCode 
+		and AL1.Company=AL6.comp 
+		and AL6.area=AL4.AreaCode
+	LEFT OUTER JOIN TmpSlsInflowData AS AL7 
+		ON AL1.Company = AL7.Company 
+		AND AL1.OrderNum = AL7.OrderNum 
+		AND AL1.PositionNum= AL7.PositionNum 
+		AND AL1.Dpst = AL7.Dpst 
+		AND AL1.CustCode = AL7.CustCode 
+		AND AL1.ItemCode = AL7.ItemCode 
+
+WHERE	(CONVERT(datetime, AL1.Date) BETWEEN  @d1 AND  @d2) 
+	AND (AL1.SaleType IN (0, 2)) 
+	and  (LTRIM(RTRIM(AL4.Global)) = 'International') 
+	and vertical1 <> '' 
+	and BDM_Inter.organ='COSEA'   
+	and vertical1 in ('OSEA Units' ,'OSEA AS')
+)a
+
+Inner JOIN
+
+(
+SELECT isnull(custcode,CUNO) as custcode,company,ordernum,refa,
+(ltrim(rtrim(nama))+ltrim(rtrim(namb))+' '+ltrim(rtrim(namc))+' '+ltrim(rtrim(namd))+' '+ltrim(rtrim(namf))) as address,currency
+
+FROM(
+	select custcode,company,ordernum,refa,deliveryaddr,currency from TmpslsHeader
+	union all
+	select cuno,comp,orno,refa,'' ,CCUR from TmpslsHeader_aust
+	union all
+	select cuno,comp,orno,refa,'',ccur  from TmpslsHeader_indo
+	union all
+	select cuno,comp,orno,refa,'',ccur  from TmpslsHeader_chn
+    ) a 
+Left outer join deliveryaddress b
+ON a.custcode=b.CUNO and a.deliveryaddr=b.CDEL 
+
+)b
+
+on a.CustCode=b.custcode 
+and a.company=b.company 
+and a.ordernum=b.ordernum
+
+inner join dpstmaster_new dp
+on a.dpst=dp.dpstcode
+ORDER BY CustName1, Area, ItemCode

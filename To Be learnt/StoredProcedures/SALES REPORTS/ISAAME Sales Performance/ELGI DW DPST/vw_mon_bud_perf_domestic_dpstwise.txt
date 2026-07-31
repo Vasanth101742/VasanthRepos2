@@ -1,0 +1,74 @@
+--sp_helptext  vw_mon_bud_perf_domestic_dpstwise
+
+Alter  view [dbo].[vw_mon_bud_perf_domestic_dpstwise] as   
+
+select * from (  
+SELECT Description,dpstname, 
+SUM(budget_year) AS budget_year, 
+SUM(last_month_budget) AS last_month_budget, 
+SUM(ytd_budget) AS ytd_budget,   
+SUM(this_month_budget) AS this_month_budget, 
+SUM(next_month_budget) AS next_month_budget, 
+SUM(nextof_next_month_budget) AS nextof_next_month_budget  
+FROM (
+
+SELECT     
+
+--Old Method
+
+--SUM(CASE WHEN date BETWEEN '04/01/'+convert(varchar,year(getdate())) AND '03/31/'+convert(varchar,year(getdate())+1) THEN (target) / 1000000 ELSE 0 END) AS budget_year,   
+--SUM(CASE WHEN date BETWEEN '04/01/'+convert(varchar,year(getdate())) AND dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) THEN (target) / 1000000 ELSE 0 END) AS last_month_budget,   
+--SUM(CASE WHEN date BETWEEN '04/01/'+convert(varchar,year(getdate())) AND dateadd(dd, - 1, getdate()) THEN (target) / 1000000 ELSE 0 END) AS ytd_budget,   
+--SUM(CASE WHEN date BETWEEN CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1,getdate())) AND dateadd(dd, - 1, getdate()) THEN (target) / 1000000 ELSE 0 END) AS this_month_budget, 
+--SUM(CASE WHEN month(date)= datepart(mm, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) AND year(date) = datepart(yy, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) THEN (target) / 1000000 ELSE 0 END) AS next_month_budget, 
+--SUM(CASE WHEN month(date) = datepart(mm, dateadd(mm, 2, dateadd(dd, - 1,getdate()))) AND year(date) = datepart(yy, dateadd(mm, 2, dateadd(dd, - 1, getdate()))) THEN (target) / 1000000 ELSE 0 END) AS nextof_next_month_budget, 
+
+
+--New Method updated on 4 Jan 2016
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+('03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) else year(getdate()-1)+1 end )))
+THEN (target) / 1000000 ELSE 0 END) AS budget_year,   
+
+SUM(CASE WHEN date BETWEEN 
+('04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end ))) 
+AND 
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101) 
+THEN (target) / 1000000 ELSE 0 END) AS last_month_budget,   
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, getdate()) 
+THEN (target) / 1000000 ELSE 0 END) AS ytd_budget,   
+
+SUM(CASE WHEN date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1,getdate())) 
+AND 
+convert(varchar,dateadd(dd, - 1, getdate()),101) 
+THEN (target) / 1000000 ELSE 0 END) AS this_month_budget, 
+
+SUM(CASE WHEN month(date)= datepart(mm, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 1, dateadd(dd, - 1, getdate()))) 
+THEN (target) / 1000000 ELSE 0 END) AS next_month_budget, 
+
+SUM(CASE WHEN month(date) = datepart(mm, dateadd(mm, 2, dateadd(dd, - 1,getdate()))) AND 
+year(date) = datepart(yy, dateadd(mm, 2, dateadd(dd, - 1, getdate()))) 
+THEN (target) / 1000000 ELSE 0 END) AS nextof_next_month_budget, 
+
+dbo.dpstmaster_new.Description,dpstname  
+
+FROM dbo.dpstwise_target 
+INNER JOIN dbo.dpstmaster_new 
+ON dbo.dpstmaster_new.DpstCode = dbo.dpstwise_target.Dpst  
+
+WHERE (dbo.dpstmaster_new.Description IN ('Direct-Rly','After Sales', 'Dpsac', 'Compressor-Channel', 'Compressor-Direct'))  
+GROUP BY dbo.dpstmaster_new.Description,dpstname
+
+) AS budget  
+GROUP BY Description,dpstname
+)a  
+where budget_year <> 0 or ( (last_month_budget) > 0)
+

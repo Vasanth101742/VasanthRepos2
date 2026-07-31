@@ -1,0 +1,57 @@
+select max(date ) from dbo.SlsDespData  --'2015-07-08 00:00:00.000'
+select top 5 * from areaTmp
+select distinct region from dbo.AreaTmp
+--Africa                        
+--America                       
+--CIS                           
+--EastAsia                      
+--Europe                        
+--Exports                       
+--India                         
+--Indirect                      
+--Middle East & West Asia       
+--Neighbouring                  
+--Oceania                       
+--Other                         
+--South East Asia               
+select distinct organ from dbo.TsalesMapping
+--ISAAME
+--America                       
+--Europe                        
+--ID
+--Subsidiary
+--COSEA
+--India
+dbo.TsalesMapping
+
+ select distinct organ from dbo.TSalesBudget
+--	ISAAME
+--America
+--Europe
+--ID
+--Subsidiary
+--COSEA
+--India
+	dbo.AreaTmp
+	select distinct division from dbo.TSalesMapping
+	where division like 'SRILANKA%'
+
+	select distinct areaname from dbo.TSalesMapping
+	where upper(areaname) like upper('%srilanka%')
+
+	select distinct [user_names] from org_reg_dpst
+
+
+
+----------------------------------------------------------------------------------
+insert into tslsjobtime(Process_date,Process,starttime) values(getdate(),'sls2insert', getdate())
+----------------------------------------------------------------------------------
+select datepart(wk,convert(datetime,convert(varchar,DATEADD(dd, 8-(DATEPART(dw, getdate())-2), getdate()),106))) as week
+-----------------------------------------------------------------------------------------
+Storage of Saved SQL Files
+
+C:\Users\bisadmin\Documents\SQL Server Management Studio
+-----------------------------------------------------------------------------------------
+ATS Production file uploading Directory
+
+"D:\SQL2012Migration\SSIS\Packages\Production\Production UploadFiles\ATS ProductionPlan 2015-16.xls"

@@ -1,0 +1,20 @@
+and convert(Date,date) >=
+	convert(date,case when (case when @monthnum<4 then @monthnum+3 else @monthnum-9 end)-1=0 then cast(year(convert(datetime,@ytddate))-1 as varchar) else cast(year(convert(datetime,@ytddate)) as varchar) end +'-'+
+	case when (case when @monthnum<4 then @monthnum+3 else @monthnum-9 end)-1=0 then '12' else RIGHT('00'+cast((case when @monthnum<4 then @monthnum+3 else @monthnum-9 end)-1 as varchar),2) end +'-01')
+and convert(Date,date) < 
+	dateadd(mm,1,convert(date,case when (case when @monthnum<4 then @monthnum+3 else @monthnum-9 end)-1=0 then cast(year(convert(datetime,@ytddate))-1 as varchar) else cast(year(convert(datetime,@ytddate)) as varchar) end +'-'+
+	case when (case when @monthnum<4 then @monthnum+3 else @monthnum-9 end)-1=0 then '12' else RIGHT('00'+cast((case when @monthnum<4 then @monthnum+3 else @monthnum-9 end)-1 as varchar),2) end +'-01'))
+				
+
+
+
+
+convert(date,case when (case when @monthnum>=10 then @monthnum-9 else @monthnum+3 end)-1=0 then cast(year(convert(datetime,@ytddate)) as varchar) else cast(year(convert(datetime,@ytddate)) as varchar) end +'-'+
+				case when (case when @monthnum>=10 then @monthnum-9 else @monthnum+3 end)-1=0 then '12' else RIGHT('00'+cast((case when @monthnum>=10 then @monthnum-9 else @monthnum+3 end)-1 as varchar),2) end +'-01'))
+
+
+
+
+select * from ELGi_Sales_Flash_data 
+where Monthnum>(select case when month(getdate()-1)<4 then month(getdate()-1)+9 else month(getdate()-1)-3 end as FinMonth)
+and year=(select max(year) from ELGi_Sales_Flash_data)

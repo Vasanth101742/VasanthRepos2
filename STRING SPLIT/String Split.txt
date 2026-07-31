@@ -1,0 +1,25 @@
+DECLARE @place TABLE(ID INT IDENTITY(1,1), Places varchar(100))
+insert into @place (Places) values('Chennai, Banglore, Mumbai, Calcutta')
+insert into @place (Places) values('Warsow, Moskow, Berlin, Prague')
+insert into @place (Places) values('City1, City2, City3, City4')
+
+;WITH SplitSting AS
+(
+    SELECT
+        ID,LEFT(Places,CHARINDEX(',',Places)-1) AS Part
+            ,RIGHT(Places,LEN(Places)-CHARINDEX(',',Places)) AS Remainder
+        FROM @place
+        WHERE Places IS NOT NULL AND CHARINDEX(',',Places)>0
+    UNION ALL
+    SELECT
+        ID,LEFT(Remainder,CHARINDEX(',',Remainder)-1)
+            ,RIGHT(Remainder,LEN(Remainder)-CHARINDEX(',',Remainder))
+        FROM SplitSting
+        WHERE Remainder IS NOT NULL AND CHARINDEX(',',Remainder)>0
+    UNION ALL
+    SELECT
+        ID,Remainder,null
+        FROM SplitSting
+        WHERE Remainder IS NOT NULL AND CHARINDEX(',',Remainder)=0
+)
+SELECT * FROM SplitSting ORDER BY ID

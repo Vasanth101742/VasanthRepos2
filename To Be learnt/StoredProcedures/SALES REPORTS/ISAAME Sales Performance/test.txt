@@ -1,0 +1,12 @@
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) AND 
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1)-2 end )) 
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_year_sale,  
+
+
+
+
+SUM(CASE WHEN date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) AND
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1)-2 end ))
+THEN (slsdespdata.assesvalue) / 1000000 ELSE 0 END) AS last_year_sale, 

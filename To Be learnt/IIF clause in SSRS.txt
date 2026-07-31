@@ -1,0 +1,8 @@
+
+
+=iif(sum(Fields!ytd_budget.Value) = 0 ,"-NA-", 
+      (((sum( Fields!this_year_sale.Value)-sum(Fields!ytd_budget.Value))+.0000001)*100)/sum(Fields!ytd_budget.Value)
+    )
+
+
+=((sum( Fields!this_year_sale.Value)-sum(Fields!ytd_budget.Value))*100)/sum(Fields!ytd_budget.Value)

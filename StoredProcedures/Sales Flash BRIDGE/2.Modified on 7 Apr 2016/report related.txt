@@ -1,0 +1,2 @@
+=iif(Fields!ly_month_actuals.Value=0,0,
+((Fields!month_actuals.Value-Fields!ly_month_actuals.Value)/(Fields!ly_month_actuals.Value*0.0001)))*0.0001

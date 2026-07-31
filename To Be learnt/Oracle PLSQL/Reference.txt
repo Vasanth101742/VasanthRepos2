@@ -1,0 +1,4 @@
+
+1. try to learn this script
+
+http://www.thegeekstuff.com/2010/07/unix-shell-script-to-execute-oracle-sql-query/

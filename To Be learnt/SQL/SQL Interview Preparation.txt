@@ -1,0 +1,4 @@
+http://www.techonthenet.com/sql_server/index.php
+http://www.techonthenet.com/oracle/functions/listagg.php
+http://learn.bigclasses.com/sql-server-dba-interview-questions-and-answers
+http://learnsqlwithbru.com/sql-server-interview-questions-and-answers/sql-server-dba-q-and-a/

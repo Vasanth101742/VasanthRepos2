@@ -1,0 +1,47 @@
+select sum(budget_year) as budget_year,
+sum(last_month_budget) as last_month_budget,
+isnull(sum(ytd_budget),0) as ytd_budget,
+sum(this_month_budget) as this_month_budget, 
+sum(next_month_budget) as next_month_budget,
+sum(nextof_next_month_budget) as nextof_next_month_budget,
+sum(last_year_sale) as last_year_sale,
+sum(last_year_ytd) as last_year_ytd,
+sum(this_month_sale) as this_month_sale,
+sum(this_year_sale) as this_year_sale,
+sum(last_month_sale) as last_month_sale,
+user_names,division,
+sum(n1_month_sale) as n1_month_sale,
+sum(n2_month_sale) as n2_month_sale,
+sum(n3_month_sale) as n3_month_sale,
+sum(thr_month_sale) as thr_month_sale
+
+from(
+
+SELECT vw_mon_bud_perf_int_bdm.budget_year,   
+vw_mon_bud_perf_int_bdm.last_month_budget, 
+vw_mon_bud_perf_int_bdm.ytd_budget,   
+vw_mon_bud_perf_int_bdm.this_month_budget, 
+vw_mon_bud_perf_int_bdm.next_month_budget,   
+vw_mon_bud_perf_int_bdm.nextof_next_month_budget,
+vw_mon_sls_perf_int_bdm.last_year_sale, 
+case 	when   vw_mon_sls_perf_int_bdm.last_year_ytd = 0 then  0 
+	else   vw_mon_sls_perf_int_bdm.last_year_ytd end as last_year_ytd,
+vw_mon_sls_perf_int_bdm.this_year_sale,   
+vw_mon_sls_perf_int_bdm.last_month_sale, 
+vw_mon_sls_perf_int_bdm.this_month_sale,
+case	when	vw_mon_bud_perf_int_bdm.user_names is null then vw_mon_sls_perf_int_bdm.user_names 
+	else 	vw_mon_bud_perf_int_bdm.user_names end as user_names,
+case 	when 	vw_mon_bud_perf_int_bdm.division is null then vw_mon_sls_perf_int_bdm.division 
+	else	vw_mon_bud_perf_int_bdm.division end as division,
+n1_month_sale,
+n2_month_sale,
+n3_month_sale,
+thr_month_sale
+
+FROM (select * from vw_mon_bud_perf_europe_new  ) vw_mon_bud_perf_int_bdm full JOIN
+   (select * from vw_mon_sls_perf_europe_new  )   vw_mon_sls_perf_int_bdm 
+ON   vw_mon_bud_perf_int_bdm.division =   vw_mon_sls_perf_int_bdm.division
+and   vw_mon_bud_perf_int_bdm.user_names =   vw_mon_sls_perf_int_bdm.user_names
+) BDM
+group by user_names,division
+order by user_names

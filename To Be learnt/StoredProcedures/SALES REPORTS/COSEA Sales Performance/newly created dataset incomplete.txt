@@ -1,0 +1,78 @@
+SELECT a. *,isnull(refa,'nil') as refa,address,currency,dpstname  FROM
+(select 
+AL1.Company as company, 
+CONVERT(varchar, CONVERT(datetime, AL4.Date), 103) AS Orddate,
+AL1.OrderNum as ordernum, 
+CONVERT(varchar, CONVERT(datetime, AL1.Date), 103) AS SlsInvdate, 
+LTRIM(RTRIM(CONVERT(char, AL1.TranType))) + ' / ' + LTRIM(RTRIM(CONVERT(char, AL1.InvoiceNum))) AS Invoice, 
+LTRIM(RTRIM(AL1.ItemCode)) AS Itemcode, 
+AL1.Dpst as dpst, 
+AL1.CustCode as custcode,
+AL1.DeliveredQty as deliveredqty, 
+AL1.AssesValue as AssesValue, 
+AL1.OAssesValue,
+AL1.area as area,
+AL2.AreaName as areaname, 
+AL2.region as region,
+DATEDIFF(dd, CONVERT(datetime, AL4.Date), CONVERT(datetime, AL1.Date)) AS Delaydays,
+vertical1,
+vertical2
+
+	
+
+	
+	
+
+FROM 	TmpSlsDespData AL1
+	inner JOIN AreaTmp AL2
+	ON AL2.AreaCode = AL1.Area 
+	--problem in below join
+	inner JOIN  TSalesMapping AS AL3
+	ON AL2.areaname = AL3.areaname AND AL1.Dpst = AL3.dpst  
+	LEFT OUTER JOIN TmpSlsInflowData AS AL4 
+		ON AL1.Company = AL4.Company 
+		AND AL1.OrderNum = AL4.OrderNum 
+		AND AL1.PositionNum= AL4.PositionNum 
+		AND AL1.Dpst = AL4.Dpst 
+		AND AL1.CustCode = AL4.CustCode 
+		AND AL1.ItemCode = AL4.ItemCode 
+
+
+WHERE 	(AL1.Date BETWEEN '04/01/2011' AND GETDATE()) 
+	AND (AL1.SaleType IN (0, 2, 5, 6)) 
+	AND (AL1.Area IS NOT NULL) 
+	AND (LTRIM(RTRIM(AL2.Global)) = 'International') 
+	and vertical1 <> '' 
+	and AL3.organ='COSEA'  
+	)a
+
+
+Inner JOIN
+
+(
+SELECT isnull(custcode,CUNO) as custcode,company,ordernum,refa,
+(ltrim(rtrim(nama))+ltrim(rtrim(namb))+' '+ltrim(rtrim(namc))+' '+ltrim(rtrim(namd))+' '+ltrim(rtrim(namf))) as address,currency
+
+FROM(
+	select custcode,company,ordernum,refa,deliveryaddr,currency from TmpslsHeader
+	union all
+	select cuno,comp,orno,refa,'' ,CCUR from TmpslsHeader_aust
+	union all
+	select cuno,comp,orno,refa,'',ccur  from TmpslsHeader_indo
+	union all
+	select cuno,comp,orno,refa,'',ccur  from TmpslsHeader_chn
+    ) a 
+Left outer join deliveryaddress b
+ON a.custcode=b.CUNO and a.deliveryaddr=b.CDEL 
+
+)b
+
+on a.CustCode=b.custcode 
+and a.company=b.company 
+and a.ordernum=b.ordernum
+
+inner join dpstmaster_new dp
+on a.dpst=dp.dpstcode
+--ORDER BY CustName1, Area, ItemCode
+
+

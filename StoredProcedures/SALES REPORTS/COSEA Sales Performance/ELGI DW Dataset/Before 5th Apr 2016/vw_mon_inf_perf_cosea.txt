@@ -1,0 +1,59 @@
+ALTER VIEW[dbo].[vw_mon_inf_perf_cosea] as 
+
+
+SELECT vertical1 as user_names,vertical2 as Division, 
+
+--OLD Method
+--SUM(CASE WHEN Convert(datetime,date) BETWEEN '04/01/2011' AND '03/31/2012' THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END) AS last_year_inf,
+--SUM(CASE WHEN Convert(datetime,date) BETWEEN '04/01/2011' AND  dateadd(yy, - 1, dateadd(dd, - 1, getdate())) THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END) AS last_year_inf_ytd,
+--SUM(CASE WHEN Convert(datetime,date) BETWEEN '04/01/2012' AND dateadd(dd, - 1, getdate()) THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END) AS this_year_inf, 
+--SUM(CASE WHEN Convert(datetime,date) BETWEEN '04/01/2012' AND dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd		(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(dd, - 1, getdate()))) THEN (slsinflowdetails.assesvalue)/ 1000000 ELSE 0 END) AS last_month_inf, 
+
+SUM(CASE WHEN Convert(datetime,date) BETWEEN CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' +datename(yy, dateadd(dd, - 1, getdate())) AND dateadd(dd, - 1, getdate()) THEN (slsinflowdetails.assesvalue)/ 1000000 ELSE 0 END) AS this_month_inf,
+sum(case when Convert(datetime,date) between convert(datetime,convert(varchar,datepart(mm,dateadd(yy,-1,dateadd(dd,-1,getdate())))) + '/1/' + datename(yy,dateadd(yy,-1,dateadd(dd,-1,getdate())))) and dateadd(yy,-1,dateadd(dd,-1,getdate())) then (slsinflowdetails.assesvalue)/1000000 else 0 end)as last_year_this_month_inf,
+SUM(CASE WHEN Convert(datetime,date) BETWEEN  dateadd(mm, - 3, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   AND dateadd(dd, - 1,			CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END) AS thr_month_inf,
+SUM(CASE WHEN Convert(datetime,date) BETWEEN  dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    AND dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END)AS n1_month_inf,
+SUM(CASE WHEN Convert(datetime,date) BETWEEN  dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   AND dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))))THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END)AS n2_month_inf,
+SUM(CASE WHEN Convert(datetime,date) BETWEEN  dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' +datename(yy, dateadd(dd, - 1, getdate())))   AND dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))))THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END)AS n3_month_inf,
+
+
+--Newly Update on Jan 6 2016
+
+SUM(CASE WHEN Convert(datetime,date) BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) AND 
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1)-2 end ))
+THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END) AS last_year_inf,
+
+SUM(CASE WHEN Convert(datetime,date) BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end)) AND  
+dateadd(yy, - 1, dateadd(dd, - 1, getdate())) 
+THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END) AS last_year_inf_ytd,
+
+SUM(CASE WHEN Convert(datetime,date) BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) AND 
+dateadd(dd, - 1, getdate()) 
+THEN (slsinflowdetails.assesvalue) / 1000000 ELSE 0 END) AS this_year_inf, 
+
+SUM(CASE WHEN Convert(datetime,date) BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) AND 
+convert(varchar,dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))),101)
+THEN (slsinflowdetails.assesvalue)/ 1000000 ELSE 0 END) AS last_month_inf
+
+
+
+FROM 	slsinflowdetails 
+	INNER JOIN AreaTmp 
+		ON AreaTmp.AreaCode = slsinflowdetails.Area 
+	INNER JOIN reg_vert_map AS BDM_Inter 
+		ON AreaTmp.areaname = BDM_Inter.areaname 
+		AND slsinflowdetails.Dpst = BDM_Inter.dpst
+
+WHERE   (Convert(datetime,slsinflowdetails.Date) BETWEEN '04/01/2010' AND GETDATE()) 
+	AND (dbo.slsinflowdetails.inflowtype IN (0, 2, 5, 6)) 
+	AND (dbo.slsinflowdetails.Area IS NOT NULL) 
+	AND (LTRIM(RTRIM(dbo.AreaTmp.Global)) = 'International') 	
+	and vertical1 <> ''
+
+GROUP BY vertical1,vertical2
+
+

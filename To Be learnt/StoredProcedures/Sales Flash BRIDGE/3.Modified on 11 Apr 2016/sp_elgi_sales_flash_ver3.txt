@@ -1,0 +1,67 @@
+--exec sp_elgi_sales_flash_ver3
+--select * from ELGi_Sales_Flash_data
+
+
+
+Alter proc sp_elgi_sales_flash_ver3 as 
+
+begin
+
+declare @year varchar(5);
+declare @monthnum int;
+declare @ytddate varchar(20);
+declare @monthcount int
+declare @count1 int;
+declare @count2 int;
+
+set @count1 =1
+
+
+truncate table ELGi_Sales_Flash_data
+
+
+while (@count1<=3)
+
+Begin
+
+set @year=(select Year1 from (
+select Year1,row_number() over(order by Year1) year_rank from
+(
+select distinct year(convert(date,date)) Year1 from tmpslsdespdata 
+where year(convert(date,date))>=(select max(year(convert(date,date)))-2 from tmpslsdespdata )
+)a)b
+where year_rank=@count1)
+
+
+set @monthcount=(select count(distinct month(convert(date,date))) from  tmpslsdespdata where year(convert(date,date))=2016)
+
+
+
+set @ytddate='04/01/'+@year
+
+set @monthnum=1
+
+while (@monthnum<=@monthcount)
+
+begin
+
+Insert into ELGi_Sales_Flash_data
+select * from (
+select *,@year as Year,@monthnum as Monthnum from ufn_ELGi_Sales_COSEA(@ytddate,@monthnum)
+--union
+--select *,@year,@monthnum from ufn_ELGi_Sales_INDIA(@ytddate,@monthnum)
+--union
+--select *,@year,@monthnum from ufn_ELGi_Sales_ID(@ytddate,@monthnum)
+--union
+--select *,@year,@monthnum from ufn_ELGi_Sales_ISAAME(@ytddate,@monthnum)
+)a
+
+set @monthnum=@monthnum+1
+
+end
+
+set @count1=@count1+1
+
+end
+
+end

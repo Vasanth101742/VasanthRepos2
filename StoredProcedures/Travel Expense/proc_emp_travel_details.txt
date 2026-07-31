@@ -1,0 +1,252 @@
+--exec proc_emp_travel_details '19587','2016-04-01 00:00:00.000','2016-10-25 00:00:00.000'
+
+CREATE procedure proc_emp_travel_details (@Reportid varchar(10),@D1 datetime, @D2 datetime)--,@Tour varchar(2))
+as 
+set nocount on
+
+begin
+create table #expense 
+(tr_no varchar(20), empcode int, empname varchar(50),reportid int,mgrName varchar(30),appno int,
+tour_type varchar(2),region varchar(50),place varchar(max),reason varchar(max),from_date datetime,
+todate datetime,tot_days numeric(10,2),currency varchar(10),food_exp numeric(16,2),travel_exp numeric(16,2),
+hotel_exp numeric(16,2),other_exp numeric(16,2),Efood_exp numeric(16,2),Etravel_exp numeric(16,2),
+Ehotel_exp numeric(16,2),Eother_exp numeric(16,2),acc_close_dt datetime,curRate float
+)
+
+
+insert into #expense
+select m.tr_no,r.emp_code,'',0,'',r.application_no,r.tour_type,region,
+ltrim(rtrim(r.place)),ltrim(rtrim(r.reason)),r.from_date,r.to_date,r.total_days,
+currency,0,0,0,0,0,0,0,0
+,acc_close_dt,1 
+from Travel_Tour_Request r 
+inner join travel_master m on r.emp_code=m.emp_code and r.application_no=m.app_no
+where m.status='A'
+group by m.tr_no,r.emp_code,r.application_no,r.tour_type,region,ltrim(rtrim(r.place)),ltrim(rtrim(r.reason)),r.from_date,r.to_date,r.total_days,currency
+,acc_close_dt
+
+update Travel_Transaction_details set currency='INR' where isnull(currency,'') ='' and isnull(b_currency,'')=''
+
+
+--update Travel_Transaction_details set com_chgs=com_chgs*RATP
+--from TCMCS008100 con where  Travel_Transaction_details.currency=con.CCUR and month(tr_date)=month(stdt) and year(tr_date)=year(stdt)
+
+
+--Domestic Expenses
+
+update #expense set food_exp=a.com_chs,acc_close_dt=a.acc_close_dt 
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code 
+where exp_type='Food Allowance' and isnull(a.currency,b_currency)='INR' and b.region='Domestic'
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency)  ) a
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno and a.tr_no=#expense.tr_no-- and a.currency = #expense.currency
+
+
+update #expense set travel_exp=a.com_chs,acc_close_dt=a.acc_close_dt 
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code   
+where exp_type='Travel Expense' and isnull(a.currency,b_currency)='INR'  and b.region='Domestic'
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) ) a
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno and a.tr_no=#expense.tr_no -- and a.currency = #expense.currency
+
+update #expense set hotel_exp=a.com_chs,acc_close_dt=a.acc_close_dt 
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code   
+where exp_type='Hotel Expense' and isnull(a.currency,b_currency)='INR'  and b.region='Domestic'
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) ) a 
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno  and a.tr_no=#expense.tr_no-- and a.currency = #expense.currency
+
+update #expense set other_exp=a.com_chs,acc_close_dt=a.acc_close_dt  
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code  
+where exp_type='Other Expenses' and isnull(a.currency,b_currency)='INR'  and b.region='Domestic'
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) ) a
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno and a.tr_no=#expense.tr_no--  and a.currency = #expense.currency
+
+----Foreign Expenses
+
+Declare @num int=0
+while @num<5
+begin
+update #expense set Efood_exp=a.com_chs*isnull(a.RATS,1),acc_close_dt=a.acc_close_dt--,curRate=a.RATS
+from 
+(select * from 
+(select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code 
+where exp_type='Food Allowance' and isnull(a.currency,b_currency)<>'INR'-- and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency)  
+) a
+inner join TCMCS008100 b
+on a.currency=b.CCUR
+and a.acc_close_dt=dateadd(dd,@num,b.STDT) and currency not in ('','INR')
+)a
+
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno 
+and a.tr_no=#expense.tr_no and #expense.curRate=1
+
+update #expense set Etravel_exp=a.com_chs*isnull(a.RATS,1),acc_close_dt=a.acc_close_dt--,curRate=a.RATS
+from 
+(select * from 
+(select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code   
+where exp_type='Travel Expense'  and isnull(a.currency,b_currency)<>'INR'-- and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) 
+) a
+inner join TCMCS008100 b
+on a.currency=b.CCUR
+and a.acc_close_dt=dateadd(dd,@num,b.STDT) and currency not in ('','INR')
+)a
+
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno 
+and a.tr_no=#expense.tr_no and #expense.curRate=1
+
+update #expense set Ehotel_exp=a.com_chs*isnull(a.RATS,1),acc_close_dt=a.acc_close_dt--,curRate=a.RATS
+from 
+(select * from
+(select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code   
+where exp_type='Hotel Expense'  and isnull(a.currency,b_currency)<>'INR'-- and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) 
+) a 
+inner join TCMCS008100 b
+on a.currency=b.CCUR
+and a.acc_close_dt=dateadd(dd,@num,b.STDT) and currency not in ('','INR')
+)a
+Where a.emp_code=#expense.empcode and a.app_no=#expense.appno  
+and a.tr_no=#expense.tr_no  and #expense.curRate=1
+
+update #expense set Eother_exp=a.com_chs*isnull(a.RATS,1),acc_close_dt=a.acc_close_dt--,curRate=a.RATS
+from 
+(select * from
+(select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code  
+where exp_type='Other Expenses'  and isnull(a.currency,b_currency)<>'INR'-- and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) 
+) a
+inner join TCMCS008100 b
+on a.currency=b.CCUR
+and a.acc_close_dt=dateadd(dd,@num,b.STDT) and currency not in ('','INR')
+)a
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno 
+and a.tr_no=#expense.tr_no and #expense.curRate=1
+
+
+set @num=@num+1
+end
+
+
+update #expense set Efood_exp=Efood_exp+isnull(a.com_chs,0),acc_close_dt=a.acc_close_dt   
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code   
+where exp_type='Food Allowance' and isnull(a.currency,b_currency)='INR' and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) ) a
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno and a.tr_no=#expense.tr_no -- and a.currency = #expense.currency
+
+update #expense set Etravel_exp=Etravel_exp+isnull(a.com_chs,0),acc_close_dt=a.acc_close_dt   
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code   
+where exp_type='Travel Expense'  and isnull(a.currency,b_currency)='INR' and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) ) a
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno and a.tr_no=#expense.tr_no -- and a.currency = #expense.currency
+
+update #expense set Ehotel_exp=Ehotel_exp+isnull(a.com_chs,0),acc_close_dt=a.acc_close_dt   
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code   
+where exp_type='Hotel Expense'  and isnull(a.currency,b_currency)='INR' and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) ) a 
+Where a.emp_code=#expense.empcode and a.app_no=#expense.appno  and a.tr_no=#expense.tr_no-- and a.currency = #expense.currency
+
+
+update #expense set Eother_exp=Eother_exp+isnull(a.com_chs,0),acc_close_dt=a.acc_close_dt   
+from (select a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) currency,sum(com_chgs) com_chs 
+from Travel_Transaction_details a inner join Travel_Master b
+on a.tr_no=b.tr_no and a.app_no=b.app_no and a.emp_code=b.emp_code  
+where exp_type='Other Expenses'  and isnull(a.currency,b_currency)='INR' and b.region not in ('Domestic','D')  
+group by  a.emp_code,a.app_no,b.tr_no,b.acc_close_dt,isnull(a.currency,b_currency) ) a
+where a.emp_code=#expense.empcode and a.app_no=#expense.appno and a.tr_no=#expense.tr_no
+
+
+exec proc_emp_travel_new @Reportid
+
+insert into #expense
+select '',r.emp_code,empname,0,'',0,'','','','',@D1+1,@D2-1,0,'',0,0,0,0,0,0,0,0 
+,null,1
+from ftable r where emp_code not in (select empcode from #expense)
+
+insert into #expense
+select 1,emp_code,'',0,'',0,'D','Domestic','Local conveyance','consolidated amount Paid for local conveyance',@D1+1,@D2-1,0,'INR',
+sum(food_exp),sum(tra_exp),0,0,0,0,0,0
+,onduty_date,1
+from travel_local
+where onduty_date between @D1 and @D2
+group by emp_code,onduty_date
+
+update #expense set empname=e.empname,reportid=isemp_code  from emp_appr e where emp_code=empcode
+
+update #expense set mgrname=e.empname from emp_appr e where reportid=emp_code
+
+
+
+truncate table texpense
+
+insert into texpense (tr_no,empcode,empname,reportid,mgrName,appno,tour_type,region,place,reason,from_date,todate,
+tot_days,currency,food_exp,travel_exp,hotel_exp,other_exp,Efood_exp,Etravel_exp,Ehotel_exp,Eother_exp
+,acc_close_dt,curRate
+)
+select * from #expense
+
+insert into texpense (tr_no,empcode,empname,reportid,mgrName,appno,tour_type,region,place,reason,from_date,todate,
+tot_days,currency,food_exp,travel_exp,hotel_exp,other_exp,Efood_exp,Etravel_exp,Ehotel_exp,Eother_exp
+,acc_close_dt,curRate
+)
+select '' tr_no,empcode,empname,reportid,mgrName,'' appno,'' tour_type,'' region,'' place,'' reason,
+@D1 as from_date,@D2 as todate,
+0 tot_days,'' currency,0 food_exp,0 travel_exp,0 hotel_exp,
+0 other_exp,0 Efood_exp,0 Etravel_exp,0 Ehotel_exp,0 Eother_exp
+,null,1
+from texpense
+where tot_days>0 
+group by empcode,empname,reportid,mgrName
+
+
+
+--Declare @num int=0
+--while @num<31
+--begin
+--update texpense set curRate=RATS
+--from TCMCS008100 b
+--where texpense.currency=b.CCUR
+--and texpense.acc_close_dt=dateadd(dd,@num,b.STDT) and curRate=1 and currency not in ('','INR')
+--set @num=@num+1
+--end
+
+
+
+select b.empcode,b.empname,a.ordid,b.reportid,
+sum(food_exp*currate+travel_exp*currate+hotel_exp*currate+other_exp*currate) Dom_total,
+sum(Efood_exp*currate+Etravel_exp*currate+Ehotel_exp*currate+Eother_exp*currate) int_total
+from  ftable a left outer join 
+texpense b
+on a.emp_code=b.empcode
+left outer join travel_emp c on a.emp_code = c.emp_code 
+where   from_date between @D1 and @D2
+and a.emp_code<>18465
+group by b.empcode,b.empname,a.ordid,b.reportid
+order by ordid
+
+end
+
+--exec proc_emp_travel_details '101502','2014-04-01','2015-03-3
+
+

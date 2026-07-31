@@ -1,0 +1,149 @@
+1.To check  leap year:
+
+echo "Enter Year:"
+read y
+ 
+year=$y
+ 
+y=$(( $y % 4 ))
+if [ $y -eq 0 ]
+then
+    echo "$year is Leap Year!"
+else
+    echo "$year is not a Leap Year!"
+fi
+
+
+2. To check the given number is positive or not.
+
+echo "Enter a Number:"
+read n
+if [ $n -gt 0 ]
+then 
+    echo "Number is positive"
+else
+    if [ $n -eq 0 ]
+    then
+        echo "Number is Zero!"  
+    else
+        echo "Number is Negative!!"
+    fi
+fi
+
+
+
+3. comparing two strings
+
+echo "Enter First String:"
+read string1
+echo "Enter Second String:"
+read string2
+if [ $string1 -eq $string2 ]
+then
+    echo "Strings are equal!"
+else
+    echo "Strings are not equal!!"
+fi
+
+4. To calculate Simple Interest
+
+echo "Enter Amount:"
+read p
+echo "Enter Time:"
+read t
+echo "Enter ROI:"
+read r
+ 
+i=` expr $p \* $t \* $r `
+i=` expr $i / 100 `
+ 
+echo "Simple Interest is: $i"
+
+5. Shell Program to Print Multiplication Table upto Given Range
+
+echo "Enter a Number"
+read n
+ 
+echo "Enter Range"
+read r
+i=0
+while [ $i -le $r ]
+do
+    echo " $n x $i = `expr $n \* $i`"
+    i=`expr $i + 1`
+done
+ 
+6. Shell Script to reverse a number
+echo "Enter a Number:"
+read a
+ 
+rev=0
+sd=0
+or=$a
+ 
+while [ $a -gt 0 ]
+do
+        sd=`expr $a % 10`
+        temp=`expr $rev \* 10`
+        rev=`expr $temp + $sd`
+        a=`expr $a / 10`
+done
+ 
+echo "Reverse of $or is $rev"
+
+-------------------------------------------------------------------------------------------------------
+
+7. to Archive files
+
+#!/bin/bash
+
+oldfile=$1
+newfile=$2
+
+month=`date +%B`
+year=`date +%Y`
+
+prefix="frozenskys"
+
+archivefile=$prefix.$month.$year.tar
+
+# Check for existence of a compressed archive matching the naming convention
+if [ -e $archivefile.gz ]
+then
+    echo "Archive file $archivefile already exists..."
+    echo "Adding file '$oldfile' to existing tar archive..."
+
+    # Uncompress the archive, because you can't add a file to a
+    # compressed archive
+    gunzip $archivefile.gz
+
+    # Add the file to the archive
+    tar --append --file=$archivefile $oldfile
+
+    # Recompress the archive
+    gzip $archivefile
+
+# No existing archive - create a new one and add the file
+else
+    echo "Creating new archive file '$archivefile'..."
+    tar --create --file=$archivefile $oldfile
+    gzip $archivefile
+fi
+
+------------------------------------------------------------------------------------------
+
+#!/bin/bash
+myLoop=$1
+i=1
+timeTot=0
+
+while [ $i -le $myLoop ]
+do
+timeTmp=$(grep 'Run time' input | cut -c36-39)
+timeTot=`echo "$timeTot + $timeTmp" | bc`
+i=$[$i+1]
+done
+
+echo "total RunTime=" $timeTot
+avgT=`echo "$timeTot / $myLoop" | bc`
+echo "Average RunTime=" $avgT
