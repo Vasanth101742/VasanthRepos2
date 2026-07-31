@@ -1,0 +1,89 @@
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day1_bqty.Value)=0,"NP",iif(sum(Fields!day1_bqty.Value) <= sum(Fields!day1_pqty.Value), 100, (sum(Fields!day1_pqty.Value)*100)/sum(Fields!day1_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 2,iif(sum(Fields!day2_bqty.Value)=0,"NP",iif(sum(Fields!day2_bqty.Value) <= sum(Fields!day2_pqty.Value), 100, (sum(Fields!day2_pqty.Value)*100)/sum(Fields!day2_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 3,iif(sum(Fields!day3_bqty.Value)=0,"NP",iif(sum(Fields!day3_bqty.Value) <= sum(Fields!day3_pqty.Value), 100, (sum(Fields!day3_pqty.Value)*100)/sum(Fields!day3_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 4,iif(sum(Fields!day4_bqty.Value)=0,"NP",iif(sum(Fields!day4_bqty.Value) <= sum(Fields!day4_pqty.Value), 100, (sum(Fields!day4_pqty.Value)*100)/sum(Fields!day4_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 5,iif(sum(Fields!day5_bqty.Value)=0,"NP",iif(sum(Fields!day5_bqty.Value) <= sum(Fields!day5_pqty.Value), 100, (sum(Fields!day5_pqty.Value)*100)/sum(Fields!day5_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 6,iif(sum(Fields!day6_bqty.Value)=0,"NP",iif(sum(Fields!day6_bqty.Value) <= sum(Fields!day6_pqty.Value), 100, (sum(Fields!day6_pqty.Value)*100)/sum(Fields!day6_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 7,iif(sum(Fields!day7_bqty.Value)=0,"NP",iif(sum(Fields!day7_bqty.Value) <= sum(Fields!day7_pqty.Value), 100, (sum(Fields!day7_pqty.Value)*100)/sum(Fields!day7_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 8,iif(sum(Fields!day8_bqty.Value)=0,"NP",iif(sum(Fields!day8_bqty.Value) <= sum(Fields!day8_pqty.Value), 100, (sum(Fields!day8_pqty.Value)*100)/sum(Fields!day8_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 9,iif(sum(Fields!day9_bqty.Value)=0,"NP",iif(sum(Fields!day9_bqty.Value) <= sum(Fields!day9_pqty.Value), 100, (sum(Fields!day9_pqty.Value)*100)/sum(Fields!day9_bqty.Value))),"NP")
+
+=iif(First(Fields!day.Value, "dates") >= 10,iif(sum(Fields!day10_bqty.Value)=0,"NP",iif(sum(Fields!day10_bqty.Value) <= sum(Fields!day10_pqty.Value), 100, (sum(Fields!day10_pqty.Value)*100)/sum(Fields!day10_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 11,iif(sum(Fields!day11_bqty.Value)=0,"NP",iif(sum(Fields!day11_bqty.Value) <= sum(Fields!day11_pqty.Value), 100, (sum(Fields!day11_pqty.Value)*100)/sum(Fields!day11_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 12,iif(sum(Fields!day12_bqty.Value)=0,"NP",iif(sum(Fields!day12_bqty.Value) <= sum(Fields!day12_pqty.Value), 100, (sum(Fields!day12_pqty.Value)*100)/sum(Fields!day12_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 13,iif(sum(Fields!day13_bqty.Value)=0,"NP",iif(sum(Fields!day13_bqty.Value) <= sum(Fields!day13_pqty.Value), 100, (sum(Fields!day13_pqty.Value)*100)/sum(Fields!day13_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 14,iif(sum(Fields!day14_bqty.Value)=0,"NP",iif(sum(Fields!day14_bqty.Value) <= sum(Fields!day14_pqty.Value), 100, (sum(Fields!day14_pqty.Value)*100)/sum(Fields!day14_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 15,iif(sum(Fields!day15_bqty.Value)=0,"NP",iif(sum(Fields!day15_bqty.Value) <= sum(Fields!day15_pqty.Value), 100, (sum(Fields!day15_pqty.Value)*100)/sum(Fields!day15_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 16,iif(sum(Fields!day16_bqty.Value)=0,"NP",iif(sum(Fields!day16_bqty.Value) <= sum(Fields!day16_pqty.Value), 100, (sum(Fields!day16_pqty.Value)*100)/sum(Fields!day16_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 17,iif(sum(Fields!day17_bqty.Value)=0,"NP",iif(sum(Fields!day17_bqty.Value) <= sum(Fields!day17_pqty.Value), 100, (sum(Fields!day17_pqty.Value)*100)/sum(Fields!day17_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 18,iif(sum(Fields!day18_bqty.Value)=0,"NP",iif(sum(Fields!day18_bqty.Value) <= sum(Fields!day18_pqty.Value), 100, (sum(Fields!day18_pqty.Value)*100)/sum(Fields!day18_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 19,iif(sum(Fields!day19_bqty.Value)=0,"NP",iif(sum(Fields!day19_bqty.Value) <= sum(Fields!day19_pqty.Value), 100, (sum(Fields!day19_pqty.Value)*100)/sum(Fields!day19_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 20,iif(sum(Fields!day20_bqty.Value)=0,"NP",iif(sum(Fields!day20_bqty.Value) <= sum(Fields!day20_pqty.Value), 100, (sum(Fields!day20_pqty.Value)*100)/sum(Fields!day20_bqty.Value))),"NP")
+
+=iif(First(Fields!day.Value, "dates") >= 21,iif(sum(Fields!day21_bqty.Value)=0,"NP",iif(sum(Fields!day21_bqty.Value) <= sum(Fields!day21_pqty.Value), 100, (sum(Fields!day21_pqty.Value)*100)/sum(Fields!day21_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 22,iif(sum(Fields!day22_bqty.Value)=0,"NP",iif(sum(Fields!day22_bqty.Value) <= sum(Fields!day22_pqty.Value), 100, (sum(Fields!day22_pqty.Value)*100)/sum(Fields!day22_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 23,iif(sum(Fields!day23_bqty.Value)=0,"NP",iif(sum(Fields!day23_bqty.Value) <= sum(Fields!day23_pqty.Value), 100, (sum(Fields!day23_pqty.Value)*100)/sum(Fields!day23_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 24,iif(sum(Fields!day24_bqty.Value)=0,"NP",iif(sum(Fields!day24_bqty.Value) <= sum(Fields!day24_pqty.Value), 100, (sum(Fields!day24_pqty.Value)*100)/sum(Fields!day24_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 25,iif(sum(Fields!day25_bqty.Value)=0,"NP",iif(sum(Fields!day25_bqty.Value) <= sum(Fields!day25_pqty.Value), 100, (sum(Fields!day25_pqty.Value)*100)/sum(Fields!day25_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 26,iif(sum(Fields!day26_bqty.Value)=0,"NP",iif(sum(Fields!day26_bqty.Value) <= sum(Fields!day26_pqty.Value), 100, (sum(Fields!day26_pqty.Value)*100)/sum(Fields!day26_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 27,iif(sum(Fields!day27_bqty.Value)=0,"NP",iif(sum(Fields!day27_bqty.Value) <= sum(Fields!day27_pqty.Value), 100, (sum(Fields!day27_pqty.Value)*100)/sum(Fields!day27_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 28,iif(sum(Fields!day28_bqty.Value)=0,"NP",iif(sum(Fields!day28_bqty.Value) <= sum(Fields!day28_pqty.Value), 100, (sum(Fields!day28_pqty.Value)*100)/sum(Fields!day28_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 29,iif(sum(Fields!day29_bqty.Value)=0,"NP",iif(sum(Fields!day29_bqty.Value) <= sum(Fields!day29_pqty.Value), 100, (sum(Fields!day29_pqty.Value)*100)/sum(Fields!day29_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 30,iif(sum(Fields!day30_bqty.Value)=0,"NP",iif(sum(Fields!day30_bqty.Value) <= sum(Fields!day30_pqty.Value), 100, (sum(Fields!day30_pqty.Value)*100)/sum(Fields!day30_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 31,iif(sum(Fields!day31_bqty.Value)=0,"NP",iif(sum(Fields!day31_bqty.Value) <= sum(Fields!day31_pqty.Value), 100, (sum(Fields!day31_pqty.Value)*100)/sum(Fields!day31_bqty.Value))),"NP")
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day1_bqty.Value)=0,"NP",iif(sum(Fields!day1_bqty.Value) <= sum(Fields!day1_pqty.Value), 100, (sum(Fields!day1_pqty.Value)*100)/sum(Fields!day1_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day2_bqty.Value)=0,"NP",iif(sum(Fields!day2_bqty.Value) <= sum(Fields!day2_pqty.Value), 100, (sum(Fields!day2_pqty.Value)*100)/sum(Fields!day2_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 3,iif(sum(Fields!day3_bqty.Value)=0,"NP",iif(sum(Fields!day3_bqty.Value) <= sum(Fields!day3_pqty.Value), 100, (sum(Fields!day3_pqty.Value)*100)/sum(Fields!day3_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day4_bqty.Value)=0,"NP",iif(sum(Fields!day4_bqty.Value) <= sum(Fields!day4_pqty.Value), 100, (sum(Fields!day4_pqty.Value)*100)/sum(Fields!day4_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day5_bqty.Value)=0,"NP",iif(sum(Fields!day5_bqty.Value) <= sum(Fields!day5_pqty.Value), 100, (sum(Fields!day5_pqty.Value)*100)/sum(Fields!day5_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day6_bqty.Value)=0,"NP",iif(sum(Fields!day6_bqty.Value) <= sum(Fields!day6_pqty.Value), 100, (sum(Fields!day6_pqty.Value)*100)/sum(Fields!day6_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day7_bqty.Value)=0,"NP",iif(sum(Fields!day7_bqty.Value) <= sum(Fields!day7_pqty.Value), 100, (sum(Fields!day7_pqty.Value)*100)/sum(Fields!day7_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day8_bqty.Value)=0,"NP",iif(sum(Fields!day8_bqty.Value) <= sum(Fields!day8_pqty.Value), 100, (sum(Fields!day8_pqty.Value)*100)/sum(Fields!day8_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day9_bqty.Value)=0,"NP",iif(sum(Fields!day9_bqty.Value) <= sum(Fields!day9_pqty.Value), 100, (sum(Fields!day9_pqty.Value)*100)/sum(Fields!day9_bqty.Value))),"NP")
+
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day10_bqty.Value)=0,"NP",iif(sum(Fields!day10_bqty.Value) <= sum(Fields!day10_pqty.Value), 100, (sum(Fields!day10_pqty.Value)*100)/sum(Fields!day10_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day11_bqty.Value)=0,"NP",iif(sum(Fields!day11_bqty.Value) <= sum(Fields!day11_pqty.Value), 100, (sum(Fields!day11_pqty.Value)*100)/sum(Fields!day11_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day12_bqty.Value)=0,"NP",iif(sum(Fields!day12_bqty.Value) <= sum(Fields!day12_pqty.Value), 100, (sum(Fields!day12_pqty.Value)*100)/sum(Fields!day12_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day13_bqty.Value)=0,"NP",iif(sum(Fields!day13_bqty.Value) <= sum(Fields!day13_pqty.Value), 100, (sum(Fields!day13_pqty.Value)*100)/sum(Fields!day13_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day14_bqty.Value)=0,"NP",iif(sum(Fields!day14_bqty.Value) <= sum(Fields!day14_pqty.Value), 100, (sum(Fields!day14_pqty.Value)*100)/sum(Fields!day14_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day15_bqty.Value)=0,"NP",iif(sum(Fields!day15_bqty.Value) <= sum(Fields!day15_pqty.Value), 100, (sum(Fields!day15_pqty.Value)*100)/sum(Fields!day15_bqty.Value))),"NP")
+
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day16_bqty.Value)=0,"NP",iif(sum(Fields!day16_bqty.Value) <= sum(Fields!day16_pqty.Value), 100, (sum(Fields!day16_pqty.Value)*100)/sum(Fields!day16_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day17_bqty.Value)=0,"NP",iif(sum(Fields!day17_bqty.Value) <= sum(Fields!day17_pqty.Value), 100, (sum(Fields!day17_pqty.Value)*100)/sum(Fields!day17_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 1,iif(sum(Fields!day18_bqty.Value)=0,"NP",iif(sum(Fields!day18_bqty.Value) <= sum(Fields!day18_pqty.Value), 100, (sum(Fields!day18_pqty.Value)*100)/sum(Fields!day18_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 19,iif(sum(Fields!day19_bqty.Value)=0,"NP",iif(sum(Fields!day19_bqty.Value) <= sum(Fields!day19_pqty.Value), 100, (sum(Fields!day19_pqty.Value)*100)/sum(Fields!day19_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 20,iif(sum(Fields!day20_bqty.Value)=0,"NP",iif(sum(Fields!day20_bqty.Value) <= sum(Fields!day20_pqty.Value), 100, (sum(Fields!day20_pqty.Value)*100)/sum(Fields!day20_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 21,iif(sum(Fields!day21_bqty.Value)=0,"NP",iif(sum(Fields!day21_bqty.Value)<= sum(Fields!day21_pqty.Value), 100, (sum(Fields!day21_pqty.Value)*100)/sum(Fields!day21_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 22,iif(sum(Fields!day22_bqty.Value)=0,"NP",iif(sum(Fields!day22_bqty.Value) <= sum(Fields!day22_pqty.Value), 100, (sum(Fields!day22_pqty.Value)*100)/sum(Fields!day22_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 23,iif(sum(Fields!day23_bqty.Value)=0,"NP",iif(sum(Fields!day23_bqty.Value) <= sum(Fields!day23_pqty.Value), 100, (sum(Fields!day23_pqty.Value)*100)/sum(Fields!day23_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 24,iif(sum(Fields!day24_bqty.Value)=0,"NP",iif(sum(Fields!day24_bqty.Value) <= sum(Fields!day24_pqty.Value), 100, (sum(Fields!day24_pqty.Value)*100)/sum(Fields!day24_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 25,iif(sum(Fields!day25_bqty.Value)=0,"NP",iif(sum(Fields!day25_bqty.Value) <= sum(Fields!day25_pqty.Value), 100, (sum(Fields!day25_pqty.Value)*100)/sum(Fields!day25_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 26,iif(sum(Fields!day26_bqty.Value)=0,"NP",iif(sum(Fields!day26_bqty.Value) <= sum(Fields!day26_pqty.Value), 100, (sum(Fields!day26_pqty.Value)*100)/sum(Fields!day26_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 27,iif(sum(Fields!day27_bqty.Value)=0,"NP",iif(sum(Fields!day27_bqty.Value) <= sum(Fields!day27_pqty.Value), 100, (sum(Fields!day27_pqty.Value)*100)/sum(Fields!day27_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 28,iif(sum(Fields!day28_bqty.Value)=0,"NP",iif(sum(Fields!day28_bqty.Value) <= sum(Fields!day28_pqty.Value), 100, (sum(Fields!day28_pqty.Value)*100)/sum(Fields!day28_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 29,iif(sum(Fields!day29_bqty.Value)=0,"NP",iif(sum(Fields!day29_bqty.Value) <= sum(Fields!day29_pqty.Value), 100, (sum(Fields!day29_pqty.Value)*100)/sum(Fields!day29_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 30,iif(sum(Fields!day30_bqty.Value)=0,"NP",iif(sum(Fields!day30_bqty.Value) <=sum(Fields!day30_pqty.Value), 100, (sum(Fields!day30_pqty.Value)*100)/sum(Fields!day30_bqty.Value))),"NP")
+=iif(First(Fields!day.Value, "dates") >= 31,iif(sum(Fields!day31_bqty.Value)=0,"NP",iif(sum(Fields!day31_bqty.Value) <= sum(Fields!day31_pqty.Value), 100, (sum(Fields!day31_pqty.Value)*100)/sum(Fields!day31_bqty.Value))),"NP")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,94 @@
+
+--create table BI_ReportSubscriptions
+--(
+--ReportName	nvarchar(425),
+--ReportCreatorID	uniqueidentifier,
+--ReportCreatedBy nvarchar(260),
+--CreationDate	datetime,
+--ReportModifierID	uniqueidentifier,
+--ReportModifiedBy nvarchar(260),
+--ModifiedDate	datetime,
+--ReportID uniqueidentifier,
+--ScheduleID uniqueidentifier,
+--SubscriptionID uniqueidentifier,
+--ReportAction int,
+--SubscriptionOwnerID	uniqueidentifier,
+--SubscriptionOwner nvarchar(260),
+--SubscriptionModifierID	uniqueidentifier,
+--SubscriptionModifiedBy nvarchar(260),
+--SubscriptionDesc	nvarchar(512),
+--LastStatus	nvarchar(260),
+--LastRunTime	datetime,
+--ScheduleName	nvarchar(260),
+--StartDate	datetime,
+----ScheduleCreatorId	uniqueidentifier,
+----ScheduleCreatedBy  nvarchar(260),
+----EventType	nvarchar(260),
+----LastRunStatus	nvarchar(260),
+--SchNextRunTime	datetime,
+--ScheduleType	int,
+--ScheduleState	int
+--)
+
+
+--Alter table BI_ReportSubscriptions alter column SubscriptionOwner nvarchar(260)
+
+Truncate table BI_ReportSubscriptions
+
+Insert into BI_ReportSubscriptions(ReportID,ScheduleID,SubscriptionID,ReportAction)
+select ReportID,ScheduleID,SubscriptionID,ReportAction from [dbo].[ReportSchedule]
+
+
+--Insert into BI_ReportSubscriptions(ReportName,ReportCreatorID,CreationDate,
+--ReportModifierID,ModifiedDate)
+----select * into BI_ReportSubscriptions from(
+--select Name,CreatedByID,CreationDate,ModifiedByID,ModifiedDate from [dbo].[Catalog] 
+----)a
+
+update BI_ReportSubscriptions set ReportName=a.Name,
+ReportCreatorID=a.CreatedByID,
+CreationDate=a.CreationDate,
+ReportModifierID=a.ModifiedByID,
+ModifiedDate=a.ModifiedDate
+from [Catalog] a
+where BI_ReportSubscriptions.ReportID= a.ItemID
+
+update BI_ReportSubscriptions set SubscriptionOwnerID=a.OwnerID,
+SubscriptionModifierID=a.ModifiedByID,
+--SubscriptionModifiedBy
+SubscriptionDesc=a.[Description],
+LastStatus=a.LastStatus,
+LastRunTime=a.LastRunTime
+from [Subscriptions] a
+
+update BI_ReportSubscriptions set ScheduleName=a.Name,
+StartDate=a.StartDate,
+SchNextRunTime=a.NextRunTime,
+ScheduleType=a.Type,
+ScheduleState=a.State
+from
+(select c.ScheduleID,c.Name,c.StartDate,c.CreatedById,c.EventType,c.LastRunStatus,c.LastRunTime,
+c.Type,c.State,c.NextRunTime,Path
+from [dbo].[Schedule] c)a
+where BI_ReportSubscriptions.ScheduleID=a.ScheduleID
+
+
+update BI_ReportSubscriptions set ReportCreatedBy=a.UserName
+from [dbo].[Users] a
+where BI_ReportSubscriptions.ReportCreatorID=a.UserID
+
+update BI_ReportSubscriptions set ReportModifiedBy=a.UserName
+from [dbo].[Users] a
+where BI_ReportSubscriptions.ReportModifierID=a.UserID
+
+update BI_ReportSubscriptions set SubscriptionOwner=a.UserName
+from [dbo].[Users] a
+where BI_ReportSubscriptions.SubscriptionOwnerID=a.UserID
+
+update BI_ReportSubscriptions set SubscriptionModifiedBy=a.UserName
+from [dbo].[Users] a
+where BI_ReportSubscriptions.SubscriptionModifierID=a.UserID
+
+select * from BI_ReportSubscriptions
+
+

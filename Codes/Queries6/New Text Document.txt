@@ -1,0 +1,2 @@
+=iif(sum(Fields!InvAmt.Value)=0 ,sum(Fields!DueAmnt.Value) + Fields!Recv_Amt.Value,
+iif(sum(Fields!InvAmt.Value)<>0 and Fields!DueAmnt.Value =nothing ,Fields!DueAmnt_Bank.Value,Fields!DueAmnt.Value))

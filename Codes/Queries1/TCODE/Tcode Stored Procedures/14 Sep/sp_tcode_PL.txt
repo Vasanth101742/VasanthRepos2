@@ -1,0 +1,634 @@
+--exec sp_tcode_PL 12,2015
+
+Alter proc sp_tcode_PL(@FinMonthNo int,@FinYear int)
+
+as
+
+Begin
+
+declare @compcount int
+declare @count1 int
+declare @comp int
+declare @lamt_ordr_count int
+declare @count2 int
+
+set @compcount=(select count(distinct comp) from tcode_pl)
+set @lamt_ordr_count=(select count(distinct lamt_ordr) from tcode_pl)
+set @count1=1
+set @count2=1
+
+
+while (@count1<=@compcount)
+
+begin
+
+set @comp=(select comp from(
+select comp,row_number() over(order by comp) comprank from 
+(select distinct comp from tcode_pl)a)b
+where comprank=@count1)
+
+set @count2=1
+
+while (@count2<=@lamt_ordr_count)
+
+begin
+
+
+------Revenue Calculation--------------------------
+
+--Revenue from operations
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt*(-1) lamt  from Tcodeprocess where fcode=1 and slno=21 and subd=1 and ordr=5 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Less: Excise duty
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>''
+and code='PL103'
+and lamt_ordr=@count2 and comp=@comp
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=2 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--TOTAL
+
+update tcode_pl set lamt=a.lamt
+from (
+select 
+(select lamt from tcode_pl where fcode=1 and slno=1 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+-
+(select lamt from tcode_pl where fcode=1 and slno=1 and subd=1 and ordr =2 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+
+as lamt
+
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=3 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Other Income
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt*(-1) lamt from Tcodeprocess where fcode=1 and slno=22 and subd=4 and ordr=8 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo  and FinYear=@FinYear
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=4 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Total Revenue
+
+update tcode_pl set lamt=a.lamt
+from (
+select sum(lamt) lamt from tcode_pl 
+where fcode=1 and slno=1 and subd=1 and ordr in (3,4) and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=5 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+------------IV. Expenses:-----------------------------------------
+
+--Cost of materials consumed
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt from Tcodeprocess where fcode=1 and slno=23 and subd=2 and ordr=5
+and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=2 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Purchases of Traded goods
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt from Tcodeprocess where fcode=1 and slno=24 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=3 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Changes in Inventories of finished goods work-in-progress and Traded goods
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt from Tcodeprocess where fcode=1 and slno=25 and subd=2 and ordr=6 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=4 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Employee benefits Expense
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt from Tcodeprocess where fcode=1 and slno=26 and subd=1 and ordr=17 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=5 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Selling, administration and others
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt from Tcodeprocess where fcode=1 and slno=27 and subd=1 and ordr=6 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=6 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Finance Costs
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt from Tcodeprocess where fcode=1 and slno=28 and subd=1 and ordr=5 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=7 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Depreciation and Amortisation Expense
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' and code='PL222'
+and lamt_ordr=@count2 and comp=@comp
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=8 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Other Expenses
+
+update tcode_pl set lamt=a.lamt
+from (
+select lamt from Tcodeprocess where fcode=1 and slno=29 and subd=1 and ordr=55 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=9 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Total Expenses
+
+update tcode_pl set lamt=a.lamt
+from (
+select sum(lamt) lamt from tcode_pl where fcode=1 and slno=2 and subd=1 and ordr in (2,3,4,5,6,7,8,9)
+and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=10 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--V. Profit Before Exceptional and Extraordinary items and tax (III-IV)
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=1 and subd=1 and ordr =5 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+-
+(select lamt from tcode_pl where fcode=1 and slno=2 and subd=1 and ordr =10 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=3 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Special Case:updating TCODEPROCESS Table from TCODE_PL Table
+update Tcodeprocess set lamt=a.lamt
+from
+(select lamt from tcode_pl
+where fcode=1 and slno=3 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=8 and ordr=4 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Special Case: updating (h) Surplus in Tcodeprocess table 
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1 and slno=2 and subd=8 and ordr in(3,4) and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=2 and subd=8 and ordr =5 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--updating  Reserves & Surplus (Total) in Tcodeprocess table
+
+update tcodeprocess set lamt=b.lamt
+from
+(
+select
+(select sum(lamt) lamt from 
+(
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=1 and ordr =5 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=2 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=3 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=4 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=5 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=6 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=7 and ordr =4 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=8 and ordr =5 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+)a)
+-
+(select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=9 and ordr =9 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear)
+
+as lamt
+)b
+
+where fcode=1 and slno=2 and subd=9 and ordr =10 and comp=@comp and lamt_ordr=@count2
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear 
+
+-----End  of Special Case-------
+
+-----------------------------------------------------------------------------------------------------
+
+
+--VI.Exceptional Items
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>''
+and code='BS334'
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+)a
+where fcode=1 and slno=4 and subd=1 and ordr=1
+and lamt_ordr=@count2
+and comp=@comp
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--VII. Profit Before Extraordinary items and tax (V-VI)
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=3 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+-
+(select lamt from tcode_pl where fcode=1 and slno=4 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=5 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--VIII. Extraordinary items
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>''
+and code='BS335'
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--IX. Profit before Tax (VII-VIII)
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=5 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+-
+(select lamt from tcode_pl where fcode=1 and slno=6 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+
+as lamt
+)a
+where fcode=1 and slno=7 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--X. Tax Expense:
+
+--(1) Current Tax
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>''
+and code='PL185'
+and lamt_ordr=@count2 and comp=@comp
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+)a
+where fcode=1 and slno=8 and subd=1 and ordr=2 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--(2) Deffered Tax
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>''
+and code='PL186'
+and lamt_ordr=@count2 and comp=@comp
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+)a
+where fcode=1 and slno=8 and subd=1 and ordr=3 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Total
+
+update tcode_pl set lamt=a.lamt
+from (
+select sum(lamt) lamt from tcode_pl 
+where fcode=1 and slno=8 and subd=1 and ordr in (2,3) and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+)a
+where fcode=1 and slno=8 and subd=1 and ordr=4 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--XI. Profit/(Loss) for the period from continuing operations (VII-VIII)
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=7 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+-
+(select lamt from tcode_pl where fcode=1 and slno=8 and subd=1 and ordr =4 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=9 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--XII. Profit/(loss) from discontinuing operations
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>''
+and code='BS336'
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+)a
+where fcode=1 and slno=10 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--XIII. Tax Expense of discontinuing operations
+
+update tcode_pl set lamt=a.lamt
+from (
+select  distinct case 
+when @count2=1 then b.Amount_in_Reporting_currency1  
+when @count2=2 then b.Amount_in_Reporting_currency2  
+end as lamt from tcode_pl a
+inner join tcode_tb b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>''
+and code='BS337'
+and a.FinMonthNo=@FinMonthNo
+and a.FinYear=@FinYear
+and b.FinMonthNo=@FinMonthNo
+and b.FinYear=@FinYear
+)a
+where fcode=1 and slno=11 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--XIV. Profit/(loss) from discontinuing operations (after tax) (XII-XIII)
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=10 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp 
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+-
+(select lamt from tcode_pl where fcode=1 and slno=11 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=12 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear 
+-----------------------------------------------------------------------------------------------------
+
+--XV. Profit (loss) for the period (XI+XIV)
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=9 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
++
+(select lamt from tcode_pl where fcode=1 and slno=12 and subd=1 and ordr =1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=13 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--XVI. Earnings per equity share
+
+update tcode_pl set lamt=1
+where fcode=1 and slno=14 and subd=1 and ordr=1 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--Nominal value of the shares
+
+--(1) Basic
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=13 and subd=1 and ordr =1
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess where fcode=1 and slno=1 and subd=1 and ordr =7
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=14 and subd=1 and ordr=3 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--(2) Diluted
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=13 and subd=1 and ordr =1
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess where fcode=1 and slno=1 and subd=1 and ordr =7
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=14 and subd=1 and ordr=4 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+
+--XVI. Earnings per Equity Share from continuing operations
+
+--Nominal value of the shares
+
+--(1) Basic
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=13 and subd=1 and ordr =1
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess where fcode=1 and slno=1 and subd=1 and ordr =7
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=15 and subd=1 and ordr=3 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+--(2) Diluted
+
+update tcode_pl set lamt=a.lamt
+from (
+select
+(select lamt from tcode_pl where fcode=1 and slno=13 and subd=1 and ordr =1
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess where fcode=1 and slno=1 and subd=1 and ordr =7
+and lamt_ordr=@count2 and comp=@comp and FinMonthNo=@FinMonthNo and FinYear=@FinYear)
+as lamt
+)a
+where fcode=1 and slno=15 and subd=1 and ordr=4 and lamt_ordr=@count2 and comp=@comp
+and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+
+-----------------------------------------------------------------------------------------------------
+set @count2=@count2+1
+end
+
+set @count1=@count1+1
+
+end
+
+
+
+end

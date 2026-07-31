@@ -1,0 +1,11 @@
+select COMPANY,IFBP,DOCD,TTYP,NINV,LINE,ccur as Currency,RATE$1 as CurRate,
+sum(convert(numeric,isnull(AMTI,0))) as PaidAmnti, 
+SUM(convert(numeric,ISNULL(AMTH$1,0)+ISNULL(PADH$1,0)+ISNULL(DC1H$1,0)+ISNULL(CDAM$1,0))) as PaidAmnt,
+[YEAR],PROD
+from TTFACP200ALL
+where DOCN<>0
+----and concat(convert(varchar,year),RIGHT('00'+CAST(prod AS VARCHAR(2)),2))<=CONCAT(@Finyear,@Finmonth)
+----and NINV=16000577
+----and IFBP='SU1EH0004'
+----and COMPANY=465
+group by COMPANY,IFBP,DOCD,TTYP,NINV,LINE,ccur,RATE$1,[YEAR],PROD

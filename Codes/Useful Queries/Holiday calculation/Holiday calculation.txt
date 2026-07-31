@@ -1,0 +1,29 @@
+
+ 
+declare @holiday int
+	if exists(select * from CompanyCalendar where year(date)=year(getdate()) and 
+month(date)=month(getdate()) and 
+day(date) =day(getdate()) and 
+datepart(dw,getdate()) not in(1,7)
+and day_type=4)
+begin
+set @holiday=1
+end
+else
+begin
+set @holiday=0
+end
+print @holiday
+
+--------------------------------------------------------------------------
+select count(*) from CompanyCalendar where 
+date between entry_date and Exp_Dt and
+datepart(dw,getdate()) not in(1,7)
+and day_type=4
+
+
+
+(select * from CompanyCalendar where 
+date between '2015-01-01 00:00:00.000' and '2015-02-12 00:00:00.000' and
+datepart(dw,date) not in(1,7)
+and day_type=4)

@@ -1,0 +1,278 @@
+--exec sp_ELGI_HR_ATTRITION_ANALYSIS
+
+Alter proc sp_ELGI_HR_ATTRITION_ANALYSIS as
+
+begin
+
+Truncate table HR_Attrition_Analysis
+Truncate table ELGi_HR_Final_Data
+
+insert into ELGi_HR_Final_Data 
+select GLOBAL,Emp_Name,OLD_BAAN_EMPCODE,EMP_CODE,ERANK,Designation,Org_Unit,Division_Name,Function_Name,Department,
+Band,Location,Emp_Status,Reason,Seperation_Date,Transfer_Date,New_Division,New_Function,New_Department,EE_Subgroup,
+Start_Date,Data_Load_Date,num,FinMonthNo,FinMonthName,FinYear,Fin_Year,
+null as Vertical_ordr,null as vertical,null as Function2,null as Function2_ordr
+from vw_elgi_HR
+
+
+update ELGi_HR_Final_Data set Vertical_ordr=a.Vertical_ordr,vertical=a.vertical,Function2=a.Function2,Function2_ordr=a.Function2_ordr
+from(select EMP_CODE, Vertical_ordr,vertical,Function2,Function2_ordr,FinMonthNo,FinYear from ELGi_HR )a
+where ELGi_HR_Final_Data.EMP_CODE=a.EMP_CODE
+and ELGi_HR_Final_Data.FinMonthNo=a.FinMonthNo
+and ELGi_HR_Final_Data.FinYear=a.FinYear
+
+
+
+declare @FinYear int
+declare @FinMonthNo int
+declare @FinYearCnt int
+declare @FinMonthNoCnt int
+declare @ResignedCnt int
+declare @count1 int
+declare @count2 int
+declare @count3 int
+declare @OpeningBalance int
+declare @JoinedCnt int
+declare @closingbalance int =0
+declare @Function2 varchar(50)
+declare @Function2Cnt int=0
+
+
+set @FinYear=(select min(FinYear) from ELGi_HR_Final_Data)
+set @FinMonthNo=1
+set @FinYearCnt=(select count(distinct FinYear) from ELGi_HR_Final_Data)
+set @count1=1
+set @count2=1
+
+
+
+while (@count1<=@FinYearCnt)
+
+begin
+
+
+set @FinYear=(
+select finyear from 
+(select finyear ,row_number() over (order by finyear) finyearrank from
+(select distinct finyear from ELGi_HR_Final_Data)a)b
+where finyearrank=@count1)
+
+
+set @FinMonthNo=1
+set @FinMonthNoCnt=(select count(distinct FinMonthNo) from ELGi_HR_Final_Data where FinYear=@FinYear)
+
+set @count2=1
+while(@count2<=@FinMonthNoCnt)
+
+begin
+
+set @Function2Cnt=(select count(distinct Function2) from ELGi_HR_Final_Data where FinYear=@FinYear
+and FinMonthNo=@FinMonthNo)
+
+
+set @count3=1  --Under Development
+while(@count3<=@Function2Cnt) --Under Development
+begin --Under Development
+
+set @Function2=(select distinct Function2 from ELGi_HR_Final_Data where FinYear=@FinYear
+and FinMonthNo=@FinMonthNo and Function2_ordr=@count3) --Under Development
+
+
+--Part 1
+
+if((@FinMonthNo<=12 and @FinYear='2015') or (@FinMonthNo=1 and @FinYear='2016'))   ---Attrition Logic for Manual Source data from HRD
+
+begin
+
+
+--calculating Joined Counts based on difference in two months data
+
+set @JoinedCnt=
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where Band<>'0'
+and Function2=@Function2 --Under Development
+and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+
+except
+
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where Band<>'0'
+and Function2=@Function2  --Under Development
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+)a
+)
+
+--calculating Resigned Counts based on difference in two months data
+
+set @ResignedCnt =
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and Function2=@Function2  --Under Development
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+except
+
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and Function2=@Function2  --Under Development
+and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+)a
+)
+
+set @OpeningBalance =@closingbalance
+
+end
+
+--End of Part 1
+
+
+
+----Part 2
+
+else  ---Attrition Logic for SAP Source data
+
+
+begin
+
+
+set @JoinedCnt=(select count(distinct emp_code) from ELGi_HR_Final_Data 
+where band<>'0'
+and Function2=@Function2  --Under Development
+and month(Start_Date)=
+case when @FinMonthNo<10 then @FinMonthNo+3 else @FinMonthNo-9  end 
+and year(Start_Date)=
+case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+)
+
+
+set @ResignedCnt =(select count(distinct emp_code) from ELGi_HR_Final_Data 
+where band<>'0'
+and Function2=@Function2  --Under Development
+and month(Seperation_Date)=
+case when @FinMonthNo<10 then @FinMonthNo+3 else @FinMonthNo-9  end 
+and year(Seperation_Date)=
+case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+)
+
+
+set @OpeningBalance =@closingbalance --Under Development
+
+--set   @OpeningBalance=  --Under Development
+--(select sum(num) from ELGi_HR_Final_Data  --Under Development
+--where band<>'0' --Under Development
+--and Function2=@Function2  --Under Development
+--and FinMonthNo=@FinMonthNo --Under Development
+--and FinYear=@FinYear --Under Development
+--group by finyear,FinMonthNo,FinMonthName --Under Development
+--)  --Under Development
+
+end
+
+--End of Part 2
+
+
+--Part 3
+
+if(@FinMonthNo=1 and @FinYear='2015')  ---Attrition Logic for Manual Source data from HRD
+
+begin
+
+set @JoinedCnt=0
+
+set @ResignedCnt =
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and Function2=@Function2  --Under Development
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+except
+
+select distinct Emp_Code from ELGi_HR_Final_Data 
+where band <>'0'
+and Function2=@Function2  --Under Development
+and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+)a
+)
+
+
+set   @OpeningBalance= 
+(select sum(num) from ELGi_HR_Final_Data 
+where band<>'0'
+and Function2=@Function2  --Under Development
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+group by finyear,FinMonthNo,FinMonthName
+)
+
+
+
+end
+
+--End of Part 3
+
+
+
+set @closingbalance =@OpeningBalance+@JoinedCnt-@ResignedCnt
+
+
+
+insert into HR_Attrition_Analysis
+select FinYear,FinMonthNo,FinMonthName,
+@OpeningBalance,
+@JoinedCnt as Joined,
+@ResignedCnt as Resigned,
+@closingbalance as ClosingBalance,
+@Function2 as Function2,
+@count3 as Function2_ordr
+from ELGi_HR_Final_Data 
+where band<>'0'
+and FinMonthNo=@FinMonthNo
+--case when @FinMonthNo<10 then @FinMonthNo-3 else @FinMonthNo-9  end 
+and FinYear=@FinYear
+--case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+group by finyear,FinMonthNo,FinMonthName
+
+
+set   @OpeningBalance= @closingbalance
+
+
+
+set @count3=@count3+1  --Under Development
+
+
+end --End of Function2 loop  --Under Development
+
+set @FinMonthNo=@FinMonthNo+1
+set @count2=@count2+1
+
+
+end --End of Month loop
+
+
+set @count1=@count1+1
+
+end --End of Year loop
+
+end
+
+
+
+--Alter table HR_Attrition_Analysis add Function2 varchar(50)
+--Alter table HR_Attrition_Analysis add Function2_ordr int
+

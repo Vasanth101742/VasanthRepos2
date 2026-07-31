@@ -1,0 +1,36 @@
+declare @year int =2017
+declare @month int=8
+
+select ats.*,b.Monthly_plan from (
+select --date1,Description,warehouse,company,
+item,itemdescr,
+--,sum(b.fmmrp) as fmmrp,
+--sum(planned_qty) Planned,
+--sum(released_qty) Released,
+sum(Actual_qty) Actual
+--,sum(WIP_qty) WIP,
+--sum(avg_bud_price) avg_bud_price,
+--sum(sls_price) sls_price,
+--sum(Production_Qty) as Production_Qty
+from ELGi_production_details a
+full outer join 
+(select * from PFC_details where curyear=@year and curmonth=@month) b
+on a.item=b.tplcode
+
+where 
+month(a.date1) = @month 
+and year(a.date1) =@year 
+and a.date1 <=  getdate() - 1 
+and a.company like '6%'
+
+group by --date1,Description,warehouse,company,
+item,itemdescr
+--order by Description
+
+)ats
+left outer join
+(select distinct * from Ats_Production_Plan where Monthly_plan>0 and Dates='08/01/2017' )b
+on ltrim(rtrim(ats.item))=ltrim(rtrim(b.tplcode))
+
+
+where b.Monthly_plan is not null

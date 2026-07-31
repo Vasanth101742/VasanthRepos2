@@ -1,0 +1,189 @@
+Why Become a Data Analyst?
+
+
+
+? Talent Gap of Skilled Candidates: Data is expected to grow 50 times by 2020 (source: Aureus Analytics). The ability to analyze this data is not increasing proportionally, leading to a talent gap of skilled candidates in this space.
+
+? Good Salaries for Freshers: Salary Range of Data Analysts is Rs 169,126 – Rs 774,076 in India (as per payscale.com)
+
+? Great Future Growth Path: Move to senior level by specializing further in SAS, Data Modeling, R, and Big Data.
+
+?  By 2018, 300% increase in Data Analytics Jobs (Gartner)
+
+
+
+
+
+
+
+
+
+
+
+The Life of a Data Analyst
+
+
+Data analysts collect, process and perform statistical analyses of data. Their skills may not be as advanced as data scientists (e.g. they may not be able to create new algorithms), but their goals are the same – to discover how data can be used to answer questions and solve problems.
+
+Data Analyst Responsibilities
+
+Depending on their level of expertise, data analysts may:
+•Work with IT teams, management and/or data scientists to determine organizational goals
+•Mine data from primary and secondary sources
+•Clean and prune data to discard irrelevant information
+•Analyze and interpret results using standard statistical tools and techniques
+•Pinpoint trends, correlations and patterns in complicated data sets
+•Identify new opportunities for process improvement
+•Provide concise data reports and clear data visualizations for management
+•Design, create and maintain relational databases and data systems
+•Triage code problems and data-related issues
+
+Data analysts are sometimes called “junior data scientists” or “data scientists in training.” Instead of being free to create their own big data projects, they may be limited to tackling specific business tasks using existing tools, systems and data sets.
+
+However, there are plenty of companies who don’t make a clear distinction between the two roles. In some cases, a data analyst/scientist could be writing queries or addressing standard requests in the morning and building custom solutions or experimenting with relational databases, Hadoop and NoSQL in the afternoon.
+
+
+An Interview with a Real Data Analyst
+
+CBSSports
+
+We got in touch with Al Melchior, a Fantasy Sports Data Analyst for CBSSports.com, to learn more about the work being done by data analysts. Read on to find out how data analysis is used to create fantasy sports player rankings, the tools he uses on the job, and what types of people make the best data analysts. To connect with Al, follow him on Twitter.
+
+1. What kind of impact do data analysts have on the overall success of fantasy sports at CBS? 
+
+A big part of my job is creating player projections for Fantasy Baseball. These power the default rankings in our draft rooms and inform my preseason and in-season rankings of players. Our readers and customers of our Fantasy product rely on the accuracy of these projections, so it’s important to have a sound statistical basis for making them.
+
+During the season, we have a high degree of interaction with our audience, as a large part of our responsibility is to respond to questions about player value and performance. Statistical analysis informs these recommendations, whether they are made through social media platforms, written and video content, or podcasts. 
+
+2. Which skills or programming languages do you most frequently use in your work, and why? 
+
+I don’t use any programming languages, but I do make use of Minitab statistical software and Excel. They help to identify relationships — often through regression analysis — which allow me to identify the correlates of player performance. They also help me to identify and explain outliers. This is an important part of my job, as I try to help our audience to identify players who may have surprisingly high or low value over the course of the season. 
+
+3. How has the role of data analyst changed over time? How do you see it evolving moving forward? 
+
+My title is Data Analyst, but on the surface, it may be hard to tell the difference between my job and that of my colleagues who have the title of Fantasy Writer. My colleagues are making increasing use of sophisticated analytical tools and methods. Since I began at CBSSports.com more than five years ago, I have been asked to bring the results of my analyses to an increasingly broader range of forums. Initialy, I produced projections, created data visualizations and wrote columns. Now I also contribute to videos, a daily podcast and an active Twitter account.
+
+I’m not sure there is a significant difference now between my job and work process and those of my colleagues who are “writers.” We are all data journalists to some degree, and the lines between analyst and writer are getting blurred. 
+
+4. What kind of person makes the best data analyst? 
+
+Curiosity and creativity are key attributes of a good data analyst. It’s also important to have a strong grounding in statistical methods, but even more critical is having the desire to find better explanations for whatever phenomena you are studying. This will help the analyst to generate interesting research questions that will enhance our understanding of the matter at hand. Being able to convey your findings — whether it’s to an audience of readers or a small team of executives making business decisions — is also a key to success, and that’s where the creativity comes in. 
+
+5. What advice would you offer a student preparing for a position as a
+ data analyst? 
+
+Taking statistics and research methodology courses are a start. Also, it’s important to be a consumer of statistical analysis. Find some topics or issues that interest you and read whatever analytical works you can find. Sports is a natural avenue for learning about data analysis, because they are so data-oriented. Player performance is measured, and then dissected and debated. But there is probably no limit to the range of topics on which you can find solid and engaging analytical work. 
+
+Data Analyst Salaries
+
+Salary numbers are dependent on job responsibilities. A senior data analyst with the skills of a data scientist can command a high price. An entry-level data analyst with basic technical tools might be looking at anything from $35,000 – $45,000 per year.
+
+According to PayScale, the best-paying jobs in 2015 were in – you guessed it – San Francisco. There the median pay for analysts was $64,507 (25% above the national average). The silver medal went to New York, where the median pay was $58,397 (13% above the national average).
+
+Data Analyst
+
+Robert Half Technology 2015 Salary Guide
+Average Salary (2014): $67,750 – $101,000
+Average Salary (2015): $70,750 – $108,250
+
+Glassdoor
+Average Salary (2015): $62,379 per year
+Minimum: $45,000
+Maximum: $90,000
+
+PayScale
+Median Salary (2015): $52,980 per year
+Total Pay Range: $34,802 – $79,927
+
+Senior Data Analyst
+
+Glassdoor
+Average Salary (2015): $78,041 per year
+Minimum: $65,000
+Maximum: $107,000
+
+PayScale
+Median Salary (2015): $72,041 per year
+Total Pay Range: $51,172 – $102,923
+
+Data Analyst Qualifications
+
+What Kind of Degree Will I Need?
+
+Most candidates for entry-level jobs will need a bachelor’s degree in math, statistics computer science, information management, finance or economics. All of these subjects place a heavy emphasis on statistical and analytical skills.
+
+To climb the career ladder or transition to the role of a data scientist, you will probably be required to earn a master’s degree or graduate certificate in a similar field.
+
+Note: We discuss the possibilities of self-education in our section on Data Scientist Qualifications.
+
+What Kind of Skills Will I Need?
+
+Technical Skills
+•Statistical methods and packages (e.g. SPSS)
+•R and/or SAS languages
+•Data warehousing and business intelligence platforms
+•SQL databases and database querying languages
+•Programming (e.g. XML, Javascript or ETL frameworks)
+•Database design
+•Data mining
+•Data cleaning and munging
+•Data visualization and reporting techniques
+•Working knowledge of Hadoop & MapReduce
+•Machine learning techniques
+
+This is a sample list and subject to change.
+
+Business Skills
+•Analytic Problem-Solving: Employing best practices to analyze large amounts of data while maintaining intense attention to detail.
+•Effective Communication: Using reports and presentations to explain complex technical ideas and methods to an audience of laymen.
+•Creative Thinking: Questioning established business practices and brainstorming new approaches to data analysis.
+•Industry Knowledge: Understanding what drives your chosen industry and how data can contribute to the success of a company/organization strategy.
+
+What About Certifications?
+
+There are scores of big data certifications available from independent organizations and specific companies (e.g. SAS). When in doubt, ask your mentors for advice, check job listing requirements and consult articles like Tom’s IT Pro “Best Of” certification lists to determine which ones will help advance your career.
+
+Certified Analytics Professional
+
+We take a closer look at this qualification in our section on Data Scientist Certifications.
+
+Certified Data Management Professional (CDMP)
+
+Authorized by the non-profit Data Management Association International (DAMA), CDMP is intended for IT professionals who wish to become skilled in general database management. Mastery candidates must have 4+ years of database work experience; Practitioner candidates require 2+ years. Either group can substitute up to 2 years of a bachelor’s or master’s degree in an appropriate discipline for work experience.
+
+EMC: Data Science Associate (EMCDSA)
+
+We take a closer look at this qualification in our section on Data Scientist Certifications.
+
+Revolution R Enterprise Certified Specialist
+
+Created by Revolution Analytics (a subsidiary of Microsoft), Revolution R Enterprise is an enterprise-class analytics platform that supports a variety of big data statistics, predictive modeling and machine learning capabilities. It is 100% R.
+
+During the exam, candidates must prove their ability to handle strategic and practical aspects of analyzing big data using Revolution R Enterprise. Topics include the data analysis life cycle, theory and methods of advanced analytics, statistical modeling and required technological tools.
+
+SAS Certified Base Programmer for SAS 9
+
+If you’re new to SAS programming or SAS certification, this is one credential to consider. Sponsored by SAS, the certification exam tests candidates on their ability to import and export raw data files, manipulate and transform data, combine SAS data sets and identify and correct data, syntax and programming logic errors.
+
+Jobs Similar to Data Analyst
+
+“Data Analyst” is an umbrella term. In many cases, Market Research Analysts, Quantitative Analysts, Operations Analysts and similar field-specific positions can be found under its shade. You’ll also see a good deal of job crossover with Business Intelligence Analysts, Data Warehouse Analysts and Business Systems Analysts.
+
+As we’ve noted, senior data analysts are close siblings to Data Scientists and Analytics Managers. At the upper levels of management, there may be no clear distinction between the 3 roles.
+
+Analysts who grow tired of analyzing may wish to investigate data construction jobs such as:
+•Data/Big Data Engineer
+•Data/Big Data Architect
+•Hadoop Developer
+
+Data Analyst Job Outlook
+
+Today’s data analysts should be prepared for a change. Self-service business intelligence software and automation is replacing many of the regular tasks that – in the past – technical experts would have been required to handle.
+
+As Eran Levy points out, executives can now monitor KPIs, build dashboards, generate data reports and identify business strengths and weaknesses by themselves. The need for analysts to extract structured information from databases and prepare it for consumption is rapidly decreasing.
+
+On the other hand, the need for statistical gurus to handle the flood of unstructured data is rapidly increasing. These men and women are obliged to clean, filter and convert billions of diverse data points. They must employ complex modeling and predictive analytics techniques to generate useful insights and actions. Then they have to explain what they’ve discovered to rooms of confused laymen.
+
+In other words, they have to transform themselves from data analysts into data scientists.
+
+

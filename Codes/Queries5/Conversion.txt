@@ -1,0 +1,25 @@
+
+select *,sales/RATE as Sales_in_USD from (
+select *,row_number() over (partition by Company,OrderDate,ordertype,OrderNum,Trantype,invnum order by daysdiff) as Rnk from 
+(select *,datediff(dd,STDT,OrderDate) as DaysDiff from 
+(select Company,OrderDate,ordertype,OrderNum,Trantype,invnum,sales from Sales_Inflow
+where company=490 and Trantype='432' and invnum='18000778'-- and OrderNum='292004614'
+)a
+left outer join 
+(select BCUR,CCUR,STDT,RATE from TCMCS008ALL 
+where RTYP='SLS' and bcur='IND' and ccur='USD')b
+on a.OrderDate<>b.STDT
+)a
+where DaysDiff >0--is not null
+)b
+where rnk=1
+--order by DaysDiff
+--Company,OrderDate,ordertype,OrderNum,Trantype,invnum,sales,DaysDiff
+
+
+
+
+select OrderDate,Currency,t_rate_1,Foreign_currency_amount,Sales_amount,* from ELGi_Sales_Details
+where --organ='ID'and 
+Invoice_Date>='2018-04-01'
+and company=490 and Trantype='432' and Invoice='18000778'

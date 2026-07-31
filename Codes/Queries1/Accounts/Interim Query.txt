@@ -1,0 +1,76 @@
+Truncate Table MatchedInterim
+Insert into MatchedInterim 
+select company,T$link,sum(Value) Value from (
+select a.*,b.T$DESC as leac_desc From (
+select * From (
+SELECT  convert(varchar,ltrim(rtrim(T$OCMP))) AS Company,iif(T$DBCR =1,'Debit','Credit')as Type,
+T$LINK,
+convert(varchar,ltrim(rtrim(T$LEAC )))T$LEAC,
+convert(varchar,ltrim(rtrim(T$RBON)))T$RBON,
+convert(varchar,ltrim(rtrim(T$RBID)))T$RBID,
+convert(varchar,ltrim(rtrim(T$TTYP)))T$TTYP,
+convert(varchar,ltrim(rtrim(T$DOCN)))T$DOCN,
+convert(varchar,ltrim(rtrim(T$FYER)))T$FYER,
+convert(varchar,ltrim(rtrim(T$FPRD)))T$FPRD,    --,T$GUID,T$LINK,
+SUM(iif(T$DBCR=1,T$AMTH$1 ,-T$AMTH$1)) as Value
+
+fROM TTFGLD495ALL 
+where T$OCMP like '4%' 
+and T$LEAC in ('AB1901001')
+and T$FYER in (2017)
+and T$FPRD in (1,2,3,4,5)
+and concat(COMPANY,T$LINK) not in (select concat(COMPANY,T$LINK) from MatchedInterim)
+--and T$OCMP in (@comp)
+--and ltrim(rtrim(t$rbon)) = 'tdpur040'
+--and T$LINK ='c2rkWh3cEeeW1QAXpHcAqA'
+
+group by T$OCMP,iif(T$DBCR =1,'Debit','Credit'),T$LINK,T$RBON,T$TTYP,T$DOCN,T$FYER,T$FPRD,T$RBID,T$LEAC 
+--,T$GUID,T$LINK
+)a
+where Value <>0 
+)a
+
+left join TTFGLD008ALL b
+on ltrim(rtrim(a.T$LEAC)) =ltrim(rtrim(b.T$LEAC)) 
+
+)a1
+group by company,T$LINK
+having sum(Value)=0
+
+
+
+
+Truncate Table NotMatchedInterim
+
+Insert into NotMatchedInterim
+select a.*,b.T$DESC as leac_desc From (
+select * From (
+SELECT  convert(varchar,ltrim(rtrim(T$OCMP))) AS Company,iif(T$DBCR =1,'Debit','Credit')as Type,
+T$LINK,
+convert(varchar,ltrim(rtrim(T$LEAC )))T$LEAC,
+convert(varchar,ltrim(rtrim(T$RBON)))T$RBON,
+convert(varchar,ltrim(rtrim(T$RBID)))T$RBID,
+convert(varchar,ltrim(rtrim(T$TTYP)))T$TTYP,
+convert(varchar,ltrim(rtrim(T$DOCN)))T$DOCN,
+convert(varchar,ltrim(rtrim(T$FYER)))T$FYER,
+convert(varchar,ltrim(rtrim(T$FPRD)))T$FPRD,    --,T$GUID,T$LINK,
+SUM(iif(T$DBCR=1,T$AMTH$1 ,-T$AMTH$1)) as Value
+
+fROM TTFGLD495ALL 
+where T$OCMP like '4%' 
+and T$LEAC in ('AB1901001')
+and T$FYER in (2017)
+and T$FPRD in (1,2,3,4,5)
+and concat(COMPANY,T$LINK) not in (select concat(COMPANY,T$LINK) from MatchedInterim)
+--and T$OCMP in (@comp)
+--and ltrim(rtrim(t$rbon)) = 'tdpur040'
+--and T$LINK ='c2rkWh3cEeeW1QAXpHcAqA'
+
+group by T$OCMP,iif(T$DBCR =1,'Debit','Credit'),T$LINK,T$RBON,T$TTYP,T$DOCN,T$FYER,T$FPRD,T$RBID,T$LEAC 
+--,T$GUID,T$LINK
+)a
+where Value <>0 
+)a
+
+left join TTFGLD008ALL b
+on ltrim(rtrim(a.T$LEAC)) =ltrim(rtrim(b.T$LEAC)) 

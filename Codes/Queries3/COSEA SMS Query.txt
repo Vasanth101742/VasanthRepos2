@@ -1,0 +1,56 @@
+select 'ELGi-Aus'as organ,
+sum(this_month_budget) this_month_budget,
+sum(this_month_sale) this_month_sale,
+sum(budget_year) budget_year,
+sum(this_year_sale) this_year_sale,
+sum(last_month_sale) last_month_sale,
+sum(last_year_sale) last_year_sale
+from vw_bud_sls_Australia
+
+
+Select 'Indonesia'as organ,
+sum(this_month_budget) this_month_budget,
+sum(this_month_sale) this_month_sale,
+sum(budget_year) budget_year,
+sum(this_year_sale) this_year_sale,
+sum(last_month_sale) last_month_sale,
+sum(last_year_sale) last_year_sale
+from vw_bud_sls_Global
+where organ='COSEA' and AreaCode='624'
+--areaname like '%indonesia%'
+
+
+Select 'Thailand'as organ,
+sum(this_month_budget) this_month_budget,
+sum(this_month_sale) this_month_sale,
+sum(budget_year) budget_year,
+sum(this_year_sale) this_year_sale,
+sum(last_month_sale) last_month_sale,
+sum(last_year_sale) last_year_sale
+from vw_bud_sls_Global
+where organ='COSEA' and areacode='623'
+--areaname like '%Thailand%'
+
+
+select 'Other SEA'as organ,* from(
+Select 
+'Other SEA'as organ,
+areacode,areaname, 
+sum(this_month_budget) this_month_budget,
+sum(this_month_sale) this_month_sale,
+sum(budget_year) budget_year,
+sum(this_year_sale) this_year_sale,
+sum(last_month_sale) last_month_sale,
+sum(last_year_sale) last_year_sale
+from vw_bud_sls_Global
+where organ='COSEA' 
+and areacode not in ('623','624','631','635')
+group by areacode,areaname
+having sum(isnull(last_year_sale,0)+isnull(this_year_sale,0))<>0
+)a
+
+
+select * from Area_Master_Global where areaname like '%austral%'
+
+
+select * from sms4md_china_osea

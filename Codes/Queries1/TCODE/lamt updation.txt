@@ -1,0 +1,40 @@
+
+--Updating Current year amount
+
+update Tcodeprocess set lamt=AB.TB_Amount-AB.ICT_Amnt-AB.CON_ICT_Amnt
+from
+(
+select main.*,concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code))) MainCombiCode,
+A.Amount_in_Reporting_currency1 TB_Amount,B.Amount ICT_Amnt,C.Debit_Credit CON_ICT_Amnt
+from Tcodeprocess main
+left outer join TCODE_TB A
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(A.CombiCode))
+left outer join TCODE_ICT B
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(B.TCode))
+left outer join TCODE_CONS_ICT C
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(c.[Combi code]))
+where main.lamt_ordr=1
+and main.comp=100000
+)AB
+where concat(ltrim(rtrim(Tcodeprocess.comp)),ltrim(rtrim(tcodeprocess.code)))=AB.MainCombiCode
+
+
+
+--Updating Lastyear amount
+
+update Tcodeprocess set lamt=AB.TB_Amount-AB.ICT_Amnt-AB.CON_ICT_Amnt
+from
+(
+select main.*,concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code))) MainCombiCode,
+A.Amount_in_Reporting_currency2 TB_Amount,B.Amount ICT_Amnt,C.Debit_Credit CON_ICT_Amnt
+from Tcodeprocess main
+left outer join TCODE_TB A
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(A.CombiCode))
+left outer join TCODE_ICT B
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(B.TCode))
+left outer join TCODE_CONS_ICT C
+on concat(ltrim(rtrim(main.comp)),ltrim(rtrim(main.code)))=ltrim(rtrim(c.[Combi code]))
+where main.lamt_ordr=2
+and main.comp=100000
+)AB
+where concat(ltrim(rtrim(Tcodeprocess.comp)),ltrim(rtrim(tcodeprocess.code)))=AB.MainCombiCode

@@ -1,0 +1,175 @@
+Text
+CREATE PROCEDURE [dbo].[SPP3Achieved] AS
+
+
+
+DECLARE @Date DATETIME
+SET @Date = DATEADD(MM,-1,CONVERT(DATETIME,CONVERT(VARCHAR,MONTH(GETDATE())) + '/01/' + CONVERT(VARCHAR,YEAR(GETDATE()))))
+
+
+DECLARE @Nxt_Date DATETIME
+DECLARE @Cyear INT
+DECLARE @Cmonth INT
+DECLARE @Fyear INT
+DECLARE @Fmonth INT
+
+SET @Nxt_Date = DATEADD(MM,1,@Date)
+SET @Cyear = YEAR(@Date)
+SET @Cmonth = MONTH(@Date)
+SET @Fyear = YEAR(DATEADD(MM,-3,@Date))
+SET @Fmonth = MONTH(DATEADD(MM,-3,@Date))
+
+
+DELETE FROM P3_Achieved WHERE Fyear = @Fyear AND Fprd = @Fmonth 
+
+
+CREATE TABLE #P3_MIS 
+(
+
+	Vertical VARCHAR(100),
+	Ly_MQT_Act FLOAT,
+	Ly_YTD_Act FLOAT,
+	Cy_YTD_Act FLOAT,
+	Ly_Nxt_Act FLOAT,
+	Cy_Tar_Bud FLOAT,
+	Cy_YTD_Bud FLOAT,
+	Cy_Nxt_Bud FLOAT,
+	Vertical1 VARCHAR(100),
+	Vertical2 VARCHAR(100),
+	Vertical3 VARCHAR(100),
+	Ordering  INT
+)
+
+
+INSERT INTO #P3_MIS
+EXEC SP_P3_MIS @year = @Cyear, @Month = @Cmonth
+
+
+INSERT INTO P3_Achieved
+SELECT 1 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(SUM(Cy_YTD_Act),1) AS Achieved FROM #P3_MIS
+UNION ALL
+SELECT 2 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd, ROUND((SELECT SUM(Val) FROM Mdpl_70 WHERE Year = @Fyear AND Prno <= @Fmonth AND Code = 8000)*100/
+(SELECT SUM(Val) FROM Mdpl_70 WHERE Year = @Fyear AND Prno <= @Fmonth AND Code = 1100),1) AS Achieved
+UNION ALL
+SELECT 4 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,Ppm AS Achieved FROM [Vw_Ccs_Company_Abs_Ppm] WHERE YEAR(Mult_Month) = @Cyear AND MONTH(Mult_Month) = @Cmonth
+UNION ALL
+SELECT 5 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(N39+N40+N41,1) AS Achieved FROM Inven_Base 
+WHERE SUBSTRING(CONVERT(VARCHAR,MMYY),1,2) = @Cmonth AND '20'+ SUBSTRING(CONVERT(VARCHAR,MMYY),3,2) = @Cyear
+UNION ALL
+SELECT 10 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(N39,1) AS Achieved FROM Inven_Base 
+WHERE SUBSTRING(CONVERT(VARCHAR,MMYY),1,2) = @Cmonth AND '20'+ SUBSTRING(CONVERT(VARCHAR,MMYY),3,2) = @Cyear
+UNION ALL
+SELECT 11 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(N40,1) AS Achieved FROM Inven_Base 
+WHERE SUBSTRING(CONVERT(VARCHAR,MMYY),1,2) = @Cmonth AND '20'+ SUBSTRING(CONVERT(VARCHAR,MMYY),3,2) = @Cyear
+UNION ALL
+SELECT 12 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(N41,1) AS Achieved FROM Inven_Base 
+WHERE SUBSTRING(CONVERT(VARCHAR,MMYY),1,2) = @Cmonth AND '20'+ SUBSTRING(CONVERT(VARCHAR,MMYY),3,2) = @Cyear
+UNION ALL
+SELECT 7 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(SUM(Amth)*30.0/(SELECT SUM(Act) AS SaleVal FROM Elgi_Expense_Sales_Act WHERE DATEADD(MM,3,CONVERT(DATETIME,CONVERT(VARCHAR,[Month]) + '/01/' + CONVERT(VARCHAR,Years))) = @Date
+AND Description IN 
+(SELECT Salesmap FROM Elgi_Exp_Dep_Sales_Map WHERE Department_Head = 'Air Centre - Production')),1) AS P3_Payable
+FROM (
+SELECT SUM(CASE WHEN ISNULL(Amth,0) < ISNULL(P3_Amth,0) THEN ISNULL(P3_Amth,0) ELSE ISNULL(Amth,0) END) AS Amth
+FROM (
+SELECT Suno, SUM(Amth) AS Amth FROM (
+SELECT SUNO,SUM(AMTH+CDAM+DC1H+DC2H+DC3H) AS Amth --,Company
+FROM P3_ACP200 
+WHERE CONVERT(DATETIME,DOCD) < @Nxt_Date AND SUNO IN (SELECT SUNO FROM COM020 WHERE CFSG BETWEEN '001' AND '004')
+AND LEN(LTRIM(RTRIM(SUNO))) = 6 --AND Suno  NOT IN (SELECT Suno FROM VW_P3_Payable_Supp_Excl)
+AND DATEADD(MM,3,CONVERT(DATETIME,CONVERT(VARCHAR,PROD) + '/01/' + CONVERT(VARCHAR,[YEAR]))) < @Nxt_Date
+--and company = 100
+GROUP BY SUNO--,Company
+HAVING (SUM(AMTH+CDAM+DC1H+DC2H+DC3H)) >= 0.01)A
+GROUP BY Suno)A
+FULL OUTER JOIN
+(SELECT SUNO,SUM(AMTH+CDAM) AS P3_Amth
+FROM (
+SELECT P3_ACP200.*
+FROM P3_ACP200 
+INNER JOIN VW_P3_Payable_Supp_Excl 
+ON P3_ACP200.Suno = VW_P3_Payable_Supp_Excl.Suno
+WHERE CONVERT(DATETIME,DOCD) < @Nxt_Date AND CONVERT(DATETIME,DOCD) >= DATEADD(DD,-Credit_Days-1,@Nxt_Date) AND AMTH > 0 AND Tpay = 1 AND Ttyp NOT IN('ISJ','CSJ','SCJ','ISS')--AND Dapr > 0
+AND DATEADD(MM,3,CONVERT(DATETIME,CONVERT(VARCHAR,PROD) + '/01/' + CONVERT(VARCHAR,[YEAR]))) < @Nxt_Date
+UNION ALL
+SELECT P3_ACP200.*
+FROM P3_ACP200 
+INNER JOIN VW_P3_Payable_Supp_Excl 
+ON P3_ACP200.Suno = VW_P3_Payable_Supp_Excl.Suno
+WHERE CONVERT(DATETIME,DOCD) < @Nxt_Date AND CONVERT(DATETIME,DOCD) >= DATEADD(DD,-Credit_Days-1,@Nxt_Date) AND AMTH < 0  AND Ttyp IN ('LRD','ALD','MLD','ELD','ILD','CLD','IDN','SDN','ADN','ISD','CSN') AND Docn = 0--AND Tpay = 1
+AND DATEADD(MM,3,CONVERT(DATETIME,CONVERT(VARCHAR,PROD) + '/01/' + CONVERT(VARCHAR,[YEAR]))) < @Nxt_Date
+)A
+GROUP BY SUNO
+HAVING (SUM(AMTH+CDAM)) >= 0.01)B
+ON A.Suno = B.Suno
+UNION ALL
+select SUM(Iamnt*Refcntd) AS Ivalue from (
+SELECT *,CASE WHEN CONVERT(DATETIME,Apdt) >= @Nxt_Date AND YEAR(APDT) <> 9999 AND Amnt =0 THEN (Pric-Damt1) * Dqua ELSE Amnt END AS IAmnt FROM P3_PUR045 WHERE Company IN (100,102,103,104,105,150,160) AND Date <> '9999-01-01 00:00:00.000' 
+AND Suno NOT IN ('E00094','E00095','E00451','E00097','ELGS02','ELGS05','ELGS01','ELGS03','ELGS06','E00449','ELGS04','E00448','E00351') AND Spur NOT IN (2,3,4)
+AND Matc = 1 
+AND CONVERT(DATETIME,Date) < @Nxt_Date
+AND CONVERT(DATETIME,Date) >= '04/01/2000'
+UNION ALL
+SELECT *,CASE WHEN CONVERT(DATETIME,Apdt) >= @Nxt_Date AND YEAR(APDT) <> 9999 AND Amnt =0 THEN (Pric-Damt1) * Dqua ELSE Amnt END AS IAmnt FROM P3_PUR045 WHERE Company IN (100,102,103,104,105,150,160) AND Date <> '9999-01-01 00:00:00.000' 
+AND Suno NOT IN ('E00094','E00095','E00451','E00097','ELGS02','ELGS05','ELGS01','ELGS03','ELGS06','E00449','ELGS04','E00448','E00351') AND Spur NOT IN (2,3,4)
+AND Matc = 2 AND CONVERT(DATETIME,Pdat) >= @Nxt_Date AND Pdat <> '9999-01-01 00:00:00.000'
+AND Apdt <> '9999-01-01 00:00:00.000' AND CONVERT(DATETIME,Date) < @Nxt_Date
+AND CONVERT(DATETIME,Date) >= '04/01/2000'
+UNION ALL
+SELECT *,CASE WHEN CONVERT(DATETIME,Apdt) >= @Nxt_Date AND YEAR(APDT) <> 9999 AND Amnt =0 THEN (Pric-Damt1) * Dqua ELSE Amnt END AS IAmnt FROM P3_PUR045 WHERE Company IN (100,102,103,104,105,150,160) AND Date <> '9999-01-01 00:00:00.000' 
+AND Suno NOT IN ('E00094','E00095','E00451','E00097','ELGS02','ELGS05','ELGS01','ELGS03','ELGS06','E00449','ELGS04','E00448','E00351') AND Spur IN (9) --Spur NOT IN (2,3,4)
+AND Matc = 2 AND Apdt <> '9999-01-01 00:00:00.000' 
+AND Pdat IS NULL AND INVN = 0
+AND CONVERT(DATETIME,Date) < @Nxt_Date
+AND CONVERT(DATETIME,Date) >= '04/01/2000'
+)a
+WHERE IAmnt <> 0)A
+
+
+DROP TABLE #P3_MIS
+
+INSERT INTO P3_Achieved
+SELECT 6 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(SUM(BalamntHomecur)*30.0/
+(SELECT SUM(AssesValue+EDAmt+STAmt) AS Sales FROM SlsDespdata WHERE MONTH(Date) = @Cmonth AND YEAR(Date) = @Cyear AND SaleType IN (0,2)
+AND Dpst IN (SELECT  Dpstcode FROM Dpstmaster WHERE Description IN ('International','DPSAC','Compressor-Channel','Compressor-Direct','Compressor-Spares','Direct-Rly') AND DpstCode NOT IN (90100)AND DpstCode >= 90000)),1)
+AS Achieved
+FROM (
+SELECT *,CASE WHEN Duedt <= Getdate() THEN BalamntHomecur ELSE 0 END AS DueAmt,
+		 CASE WHEN Duedt > Getdate() THEN BalamntHomecur ELSE 0 END AS UnDueAmt,
+		 CASE WHEN DATEDIFF(DD,Duedt,Getdate()) BETWEEN 0 AND 30 THEN BalamntHomecur ELSE 0 END AS DueAmtHC30,	
+		 CASE WHEN DATEDIFF(DD,Duedt,Getdate()) BETWEEN 31 AND 60 THEN BalamntHomecur ELSE 0 END AS DueAmtHC31_60,	
+		 CASE WHEN DATEDIFF(DD,Duedt,Getdate()) BETWEEN 61 AND 90 THEN BalamntHomecur ELSE 0 END AS DueAmtHC61_90,	
+		 CASE WHEN DATEDIFF(DD,Duedt,Getdate()) BETWEEN 91 AND 180 THEN BalamntHomecur ELSE 0 END AS DueAmtHC91_180,
+		 CASE WHEN DATEDIFF(DD,Duedt,Getdate()) > 180 THEN BalamntHomecur ELSE 0 END AS DueAmtHCGT180	
+FROM (
+		SELECT B.Company,B.Trantyp,B.Invno,B.[Lineno],B.Custno,B.Productgrp,
+			B.Division,B.Area,B.Customergroup,B.Salrep,B.Docdt,B.Cur,B.Currate,UnlinkCrdInvCur,UnlinkCrdHomeCur,
+			B.Invamntininvcur AS Invamntininvcur,B.InvamntinHomecur AS InvamntinHomecur,
+			SUM(fdisamntinv) AS fdisamntinv,SUM(fdisamnthome) AS fdisamnthome,SUM(sdisamntinv) AS sdisamntinv,SUM				(sdisamnthome) AS sdisamnthome,SUM(tdisamntinv) AS tdisamntinv,SUM(tdisamnthome) AS tdisamnthome,					SUM(A.paydiffinv) AS paydiffinv,SUM(A.paydiff
+home) AS paydiffhome,SUM(bankcost) AS	bankcost,SUM					(bankcosthome) AS	bankcosthome,SUM(A.curdiffbas) AS curdiffbas,SUM(A.curdiffamnt) AS curdiffamnt,SUM				(A.realcurdiff) AS	realcurdiff,B.duedt,B.refrence,B.payterm,B.PayRecMeth,B.Proj,B.purno,B.FinRun
+No,B.				FinDt,B.Invamntininvcur-SUM(A.amntinv) AS Recamntinvcur,B.InvamntinHomecur-SUM(A	.amnthome+A.					curdiffamnt+A.paydiffhome) AS Recamnthomecur,0.0 AS RecAntiInvCur, 0.0 AS RecAntiHomeCur,SUM(A.amntinv)				AS Balamntinvcur,SUM(A.	amnthome+A.curdif
+famnt+A.paydiffhome) AS BalamntHomecur,0.0 AS BalAntiInvCur, 0.0			AS BalAntiHomeCur,B.Fyear,B.Fprod,B.BtNo,B.SalRepAsInACR
+		FROM AccRec (NOLOCK) A
+		INNER JOIN Ar_Daily (NOLOCK) B
+			ON A.company = B.company and A.custno = B.custno and A.invno = B.invno and A.trantyp = B.trantyp
+		WHERE A.Docdt < @Nxt_Date AND 
+			DATEADD(MM,3,CONVERT(DATETIME,CONVERT(VARCHAR,A.FPROD) + '/01/' + CONVERT(VARCHAR,A.FYEAR))) < @Nxt_Date
+		GROUP BY B.company,B.trantyp,B.invno,B.[lineno],B.custno,B.productgrp,B.division,B.area,B.customergroup,B.					salrep,B.docdt,B.cur,B.currate,B.duedt,B.refrence,B.payterm,B.purno,B.Invamntininvcur ,B.							InvamntinHomecur,UnlinkCrdInvCur,UnlinkCrdHome
+Cur,B.PayRecMeth,B.Proj,B.purno,B.FinRunNo,B.FinDt,B.					Fyear,B.Fprod,B.BtNo,B.SalRepAsInACR
+	HAVING (SUM(A.amnthome+A.curdiffamnt+A.paydiffhome ) > 1 and SUM(fdisamntinv) >= 0)
+				OR (SUM(A.amnthome+A.curdiffamnt+A.paydiffhome+ fdisamntinv) > 1 and SUM(fdisamntinv) < 0)
+		) A
+WHERE Company NOT IN (101,211,712,111,121,221,231,241,311,431,411,421,320)
+AND Custno NOT IN ('B01403','C01360','E00719','E00701','E00847','E00804','E00622','E00625','R01967','T01624'))A
+where balamnthomecur > 10
+and Productgrp IN (SELECT  Dpstcode FROM Dpstmaster WHERE Description IN ('International','DPSAC','Compressor-Channel','Compressor-Direct','Compressor-Spares','Direct-Rly') AND DpstCode NOT IN (90100))
+
+
+
+INSERT INTO P3_Achieved
+SELECT 8 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd, SUM(CASE WHEN Param_Code = 7 THEN -Achieved ELSE Achieved END) AS Achieved FROM P3_Achieved WHERE Fyear = @Fyear AND Fprd = @Fmonth AND Param_Code IN (5,6,7)
+
+INSERT INTO P3_Achieved
+SELECT 9 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(365/Achieved,1) AS Achieved FROM P3_Achieved WHERE Fyear = @Fyear AND Fprd = @Fmonth AND Param_Code = 8
+
+INSERT INTO P3_Achieved
+SELECT 3 AS Param_Code,@Fyear AS Fyear,@Fmonth AS Fprd,ROUND(AVG(Achieved),1) AS Achieved FROM P3_Achieved WHERE Fyear = @Fyear AND Fprd <= @Fmonth AND Param_Code = 9

@@ -1,0 +1,196 @@
+select *,isnull(InvAmt,0)+isnull(Recv_Amt,0) as Bal from (
+select 
+CustCode,CustName,InvDate,InvNo,InitialDocn,Schedule,
+--InvAmt,
+case when Sch_rnk_recv>1 and RecvDocn='0' then 0 else (case when Sch_rnk_Inv>1 then 0 else InvAmt end ) end as InvAmt,
+case when Sch_rnk_Due>=1 and Sch_rnk_Due2=1 then DueSch else  null end as DueSch,
+Sch_rnk_Due,Sch_rnk_Due2,
+case when Sch_rnk_Due>=1 and Sch_rnk_Due2=1 then DueDate else null end as DueDate,
+--DueAmnt,
+case when Sch_rnk_Due>=1 and Sch_rnk_Due2=1 then DueAmnt else null end as DueAmnt,
+Recv_Schedule,Recv_Date,RecvDocn,
+--Recv_Amt,
+case when Recv_Schedule is not null and RecvDocn is not null and  Sch_rnk_recv>1 then 0 else Recv_Amt end  as Recv_Amt,
+
+case when Recv_Schedule is not null and RecvDocn is not null and  Sch_rnk_recv>1 then 0 else 
+isnull((case when Sch_rnk_recv>1 and RecvDocn='0' then 0 else 
+(case when Sch_rnk_Inv>1 then 0 else InvAmt end ) end),0)+isnull(Recv_Amt,0) end  as Recv_Amt2,
+
+Line,Sch_rnk_Inv,Recv_Line,Sch_rnk_recv
+from (
+select 
+isnull(inv.CustCode,combined.CustCode) as CustCode,
+c.t_nama as CustName,
+isnull(inv.InvDate,combined.Recv_Date) as InvDate,
+isnull(inv.InvNo,combined.InvNo) as InvNo,
+inv.InitialDocn,
+inv.Line,
+inv.Schedule,
+row_number() over(partition by inv.CustCode,isnull(inv.InvNo,combined.InvNo),inv.schedule,inv.InitialDocn,inv.invamt,inv.invdate
+order by inv.CustCode,inv.InvNo,inv.schedule,inv.InitialDocn,inv.invamt,inv.invdate) as Sch_rnk_Inv,
+
+inv.InvAmt,
+--combined.InvNo,
+combined.DueSch,combined.DueDate,combined.DueAmnt,
+
+row_number() over(partition by inv.CustCode,inv.InvNo,inv.schedule,inv.InitialDocn,inv.invamt,inv.invdate,
+combined.duesch--,combined.RecvDocn
+order by inv.CustCode,inv.InvNo,inv.schedule,inv.InitialDocn,inv.invamt,inv.invdate,
+combined.duesch) as Sch_rnk_Due,
+
+row_number() over (partition by combined.CustCode,isnull(inv.InvNo,combined.InvNo),combined.duesch,combined.Recv_Schedule
+order by combined.CustCode,isnull(inv.InvNo,combined.InvNo),combined.duesch,combined.Recv_Schedule) as Sch_rnk_Due2,
+
+combined.Recv_Schedule,combined.Recv_Date,combined.RecvDocn,combined.Recv_Amt,combined.Line as Recv_Line,
+
+row_number() over(partition by combined.CustCode,isnull(inv.InvNo,combined.InvNo),inv.schedule,combined.RecvDocn,
+combined.Recv_Schedule,combined.Recv_Amt,combined.Recv_Date
+order by combined.CustCode,combined.RecvDocn,combined.Recv_Schedule,
+combined.Recv_Amt,combined.Recv_Date ) as Sch_rnk_recv
+from 
+
+(
+------------------INVOICE AMOUNT------------------------------
+select  distinct a.t_itbp as CustCode,
+a.t_docd as InvDate,
+concat(a.t_ttyp,' ',a.t_ninv) InvNo,
+t_line as Line,
+concat(a.t_tdoc,' ',a.t_docn) as InitialDocn,
+a.t_amnt as InvAmt,
+a.t_schn Schedule
+from TTFACR200200 a
+where a.t_docn=0
+and a.t_amnt>0
+and a.t_ttyp<>'237'
+and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=CONCAT(@CalYear,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+
+union
+
+select  distinct a.t_itbp as CustCode,
+a.t_docd as InvDate,
+concat(a.t_ttyp,' ',a.t_ninv) InvNo,
+t_line as Line,
+concat(a.t_tdoc,' ',a.t_docn),
+sum(a.t_amnt) as InvAmt,
+a.t_schn Schedule
+from TTFACR200200 a
+where a.t_docn<>0  
+and t_amnt>0
+and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=CONCAT(@CalYear,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by a.t_itbp,a.t_docd,a.t_ttyp,a.t_ninv,t_line,a.t_tdoc,a.t_docn,a.t_schn
+
+
+------------------- END INVOICE AMOUNT----------------------
+)Inv
+
+full  outer join
+
+(
+select 
+isnull(due.CustCode,paid.CustCode) as CustCode,
+isnull(due.InvNo,paid.InvNo) as InvNo,
+due.DueSch,paid.Recv_Schedule,
+due.DueDate,due.DueAmnt,
+paid.Line,paid.Recv_Date,paid.RecvDocn,paid.Recv_Amt 
+from 
+(
+--RECEIVED AMOUNT on Schedules
+select  t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_line as Line,
+t_docd as Recv_Date,concat(t_tdoc,' ',t_docn) as RecvDocn,
+t_schn as Recv_Schedule,sum(t_amnt) Recv_Amt
+from TTFACR200200 
+where t_docn <>0
+and t_schn<>0 
+and t_amnt<0
+and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=CONCAT(@CalYear,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn
+
+
+
+union all
+
+--ONE TIME RECEIVED AMOUNT 
+select t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_line as Line,
+t_docd,concat(t_tdoc,' ',t_docn),
+t_schn,sum(t_amnt) t_amnt
+from TTFACR200200 
+where t_docn <>0
+and t_schn=0  
+and t_amnt<0
+and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=CONCAT(@CalYear,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn
+
+
+union all
+
+
+select t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_line as Line,
+t_docd,concat(t_tdoc,' ',t_docn),
+t_schn,sum(t_amnt) t_amnt
+from TTFACR200200 
+where t_docn =0
+and t_schn=0  
+and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=CONCAT(@CalYear,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn
+having sum(t_amnt)<0
+
+union
+
+--Bank Collection
+
+select t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_line as Line,
+t_docd,concat(t_tdoc,' ',t_docn),
+t_schn,sum(t_amnt) t_amnt
+from TTFACR200200 a
+where a.t_docn=0
+and a.t_amnt>0
+and a.t_ttyp='237'
+and concat(convert(varchar,t_year),RIGHT('00'+CAST(t_prod AS VARCHAR(2)),2))<=CONCAT(@CalYear,RIGHT('00'+CAST(@CalMonth AS VARCHAR(2)),2))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn
+
+
+)paid
+
+
+full outer join
+(
+select t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_schn as DueSch,t_dued_l as DueDate,t_amnt as DueAmnt 
+from TTFACR201200
+--where concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+)Due
+on paid.CustCode=due.CustCode
+and paid.InvNo=Due.InvNo
+and paid.Recv_Schedule=due.DueSch
+
+)combined
+
+
+
+on inv.CustCode=combined.CustCode
+and inv.InvNo=combined.InvNo
+and inv.Schedule=isnull(combined.DueSch,combined.Recv_Schedule)
+and inv.Line=combined.Line
+
+
+left outer join BR_TTCCOM100200 c
+on isnull(inv.CustCode,combined.CustCode)=c.t_bpid
+
+
+)complete
+)a
+where CustCode in (@Customer)
+and InvNo in (@InvNum)
+
+order by --isnull(Line,1),isnull(Recv_Line,0),DueSch,InvDate,Recv_Date
+CustCode,InvNo,Sch_rnk_Inv,InvAmt desc,Sch_rnk_Due,Sch_rnk_recv

@@ -1,0 +1,133 @@
+Text
+CREATE PROCEDURE [dbo].[SP_AR] AS
+
+
+
+truncate table ar_daily
+
+insert into ar_daily
+select company,trantyp,invno,[lineno],custno,0 as proj,
+0,
+case when isnumeric(area) = 0 then 0 else area end as area,1,salrep,docdt,cur,currate,0.0,0.0,amntinv,amnthome,fdisamntinv,fdisamnthome,sdisamntinv,sdisamnthome,tdisamntinv,tdisamnthome,paydiffinv,paydiffhome,bankcost,bankcosthome,curdiffbas,curdiffamnt,r
+ealcurdiff,duedt,refrence,payterm,payrecmeth,proj,purno,finrunno,findt,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,fyear,fprod,btno,salrep,0.0,0.0,0.0,0.0,0.0,0.0,0.0 from accrec (nolock)
+where custno not in (select custcode from tmpcustomer where fincustgrp = '004')
+and trantyp not in ('D25','D35','2p5','3p5','2k5','3k5') and doctyp = 1 and amnthome > 0
+
+
+update ar_Daily set customergroup = fincustgrp from tmpcustomer where tmpcustomer.custcode = ar_daily.custno
+
+
+update ar_Daily
+set purno = a.ordernum
+from tmpslsdespdata a 
+where a.company = ar_Daily.company
+and a.custcode = ar_Daily.custno
+and a.trantype = ar_Daily.trantyp
+and a.invoicenum = ar_Daily.invno
+
+
+update ar_Daily set productgrp = dpst,area= tmpslsheader.area,payterm=paymentterm,salrep = tmpslsheader.salesrep from
+tmpslsheader
+where tmpslsheader.company   = ar_Daily.company
+and     tmpslsheader.OrderNum = ar_Daily.PurNo
+and     tmpslsheader.CustCode  = ar_Daily.CustNo
+
+
+
+update ar_daily set area = '0' + area where len(area) = 2
+
+delete from ar_daily where company = 101  and trantyp=	'KI1' and invno=100072 and custno='P00004'
+delete from ar_daily where company = 101  and trantyp=	'613' and invno=10001472 and custno='C00272'
+delete from ar_daily where company = 101  and trantyp=	'614' and invno=10004376 and custno='V00001'
+delete from ar_daily where company = 101  and trantyp=	'614' and invno=22000830 and custno='R00555'
+delete from ar_daily where company = 101  and trantyp=	'613' and invno=22001449 and custno='T00655'
+
+delete from ar_daily where company = 101  and trantyp=	'613' and invno=22001605 and custno='M01101'
+delete from ar_daily where company = 101  and trantyp=	'614' and invno=22002654 and custno='S03020'
+delete from ar_daily where company = 101  and trantyp=	'614' and invno=22002821 and custno='S03020'
+delete from ar_daily where company = 101  and trantyp=	'613' and invno=22002233 and custno='A01257'
+
+delete from ar_daily where company = 101  and trantyp=	'614' and invno=23001162 and custno='S01357'
+delete from ar_daily where company = 101  and trantyp=	'614' and invno=23002182 and custno='A00002'
+delete from ar_daily where company = 101  and trantyp=	'CDJ' and invno=24000047 and custno='C00669'
+delete from ar_daily where duedt = '1900-01-01 00:00:00.000' --and substring(convert(varchar,company),3,1) = 1 
+
+delete from ar_daily  where ltrim(rtrim(custno)) in ('DUMMY','EMP','E00578','S00653')  and    substring(convert(varchar,company),3,1)= 1
+
+
+update ar_daily set productgrp = convert(bigint,dpst)
+from teacr013 
+where ar_daily.company = teacr013.company 
+and   ar_daily.trantyp = teacr013.ttyp 
+and   ar_daily.invno = teacr013.ninv
+and   ar_daily.custno = teacr013.cuno
+and   productgrp = 0
+
+
+update ar_daily set productgrp = convert(bigint,dpst)
+from teacr013 
+where ar_daily.company = teacr013.company 
+and   ar_daily.trantyp = teacr013.ttyp 
+and   ar_daily.invno = teacr013.ninv
+and   productgrp = 0
+
+
+
+update ar_daily set productgrp = convert(bigint,dpst)
+from (select company,invoicenum,max(dpst) as dpst, trantype,custcode from tmpslsdespdata 
+group by company,invoicenum,trantype,custcode) tmpslsdespdata
+where ar_daily.company = tmpslsdespdata.company 
+and   ar_daily.trantyp = tmpslsdespdata.trantype 
+and   ar_daily.invno = tmpslsdespdata.invoicenum
+and   ar_daily.custno = tmpslsdespdata.custcode
+and   productgrp = 0
+
+
+
+update ar_daily set productgrp = convert(int,ltrim(rtrim(proj)))where isnumeric(ltrim(rtrim(proj))) = 1
+and len(ltrim(rtrim(proj))) = 5 and productgrp = 0 and proj not like '%e%'
+
+
+delete from ar_daily where trantyp   in (
+select distinct trantype from tmpslsdespdata where company = 101 and saletype in  (1,2)) and company  = 101
+
+
+--delete from ar_daily where  trantyp like '%c%' and trantyp not in ('CCN')and company <> 101
+
+update ar_daily set area =  tmpcustomer.area
+from tmpcustomer 
+where tmpcustomer.custcode =  ar_daily.custno 
+and ar_daily.area = ''
+
+
+update ar_daily set area =  tmpcustomer.area
+from tmpcustomer 
+where tmpcustomer.custcode =  ar_daily.custno 
+and ar_daily.area not in (select areacode from areatmp) and tmpcustomer.area <> ''
+
+
+update ar_daily set area =  tmpcustomer.area
+from tmpcustomer 
+where tmpcustomer.custcode =  ar_daily.custno 
+and ar_daily.area < '011' and tmpcustomer.area <> ''
+
+
+DELETE FROM AR_Daily where ltrim(rtrim(custno)) = 'Dummy'
+
+
+UPDATE AR_Daily Set Productgrp = 90004 where custno = 'E00679' and productgrp  in (90001,90092)
+UPDATE AR_Daily Set Productgrp = 70085 where custno = 'E00804' and productgrp  = 90231 and invno = 11008723
+and trantyp = '216'
+
+
+DELETE FROM AR_Daily where Trantyp In ('2c1','2c3','2c2','4c1','3c1','3c3','12A','22A','12c','2T1','2t2','3t1','3t2')
+
+delete from AR_daily where trantyp = '7c1' and invno = 26000002
+delete from AR_daily where trantyp = 'si1' and invno = 814941
+delete from AR_daily where trantyp = '2F1' and invno = 29000008
+delete from AR_daily where trantyp = '311' and invno = 22002615
+delete from AR_daily where trantyp = '311' and invno = 29000069
+delete from AR_daily where trantyp = '3T2' and invno = 21000001
+delete from AR_daily where trantyp = 'B01' and invno = 22000086
+delete from AR_daily where trantyp = '3T2' and invno = 21000001
+delete from AR_daily where trantyp = '2T2' and invno = 21000001

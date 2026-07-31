@@ -1,0 +1,115 @@
+sp_helptext vw_elgi_hr
+
+
+Text
+--select * from vw_elgi_HR where emp_code like '800163'
+
+
+CREATE view vw_elgi_HR as
+SELECT 	GLOBAL, 
+	A.Emp_Name,
+	OLD_BAAN_EMPCODE, 
+	CAST(coalesce (A.Emp_Code,OLD_BAAN_EMPCODE) AS INT)  EMP_CODE,
+	--a.emp_code,
+	Dense_rank() OVER(PARTITION BY LTRIM(RTRIM(A.EMP_CODE)) order by global) AS ERANK,
+	A.Designation, 
+	Org_Unit, 
+	isnull(Division_Name,' ') Division_Name, 
+	isnull(Function_Name,' ') Function_Name,
+	isnull(Department,' ') Department, 
+	isnull(ltrim(rtrim(A.Band)),' ') Band,
+	Location,
+	Emp_Status, 
+	Reason, 
+	Seperation_Date, 
+	Transfer_Date, 
+	New_Division, 
+	New_Function, 
+	New_Department, 
+	EE_Subgroup, 
+	Start_Date, 
+	Data_Load_Date, 
+	num, 
+	FinMonthNo, 
+	FinMonthName, 
+	FinYear, 
+	Fin_Year
+FROM (
+	SELECT distinct 'DOMESTIC' AS GLOBAL, 
+		Emp_Name,
+		' ' AS OLD_BAAN_EMPCODE, 
+		Emp_Code, 
+		Band, 
+		Designation, 
+		Org_Unit, 
+		Division_Name,
+		Function_Name, 
+		Department,
+		Location,
+		Emp_Status, 
+		Reason, 
+		Seperation_Date, 
+		Transfer_Date, 
+		New_Division, 
+		New_Function, 
+		New_Department, 
+		EE_Subgroup, 
+		Start_Date, 
+		Data_Load_Date, 
+		num, 
+		FinMonthNo, 
+		FinMonthName, 
+		FinYear, 
+		Fin_Year 
+
+	FROM 	HR_Master
+
+	UNION ALL
+
+	SELECT distinct 'INTERNATIONAL' AS GLOBAL, 
+		Emp_Name,
+		F.Emp_Code AS OLD_BAAN_EMPCODE, 
+		I.NEW_ECODE AS Emp_Code, 
+		Band, 
+		Designation, 
+		Org_Unit, 
+		DIVNM as Division_Name,
+		FUNNM as Function_Name, 
+		DEPNM as Department,
+		Location, 
+		Emp_Status, 
+		Reason, 
+		Seperation_Date, 
+		Transfer_Date, 
+		New_Division, 
+		New_Function, 
+		New_Department, 
+		EE_Subgroup, 
+		Start_Date, 
+		Data_Load_Date, 
+		num, 
+		FinMonthNo, 
+		FinMonthName, 
+		FinYear, 
+		Fin_Year 
+
+	FROM 	HR_EMP F 
+		left JOIN HR_OLD_NEW_EMPCODE I
+			ON F.Emp_Code=I.OLD_ECODE
+		left join
+		(
+		select 	a.ECODE,a.DIVCD,b.DIVNM,a.FUNCD,b.FUNNM,a.DEPCD,b.DEPNM 
+		from 	tthhrd113 a
+			inner join  tthhrd085 b
+				on a.DIVCD=b.DIVCD
+				and a.FUNCD=b.FUNCD
+				and a.DEPCD=b.DEPCD
+		) J
+
+		on ltrim(rtrim(I.NEW_ECODE))=ltrim(rtrim(J.ECODE))
+
+     )A
+
+
+--WHERE (Emp_Status IN (@EmpStatus))
+--WHERE Emp_Status = 'ACTIVE'

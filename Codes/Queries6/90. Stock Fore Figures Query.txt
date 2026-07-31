@@ -1,0 +1,61 @@
+--select distinct KOST from TWHINR110ALL order by KOST
+
+declare @Date date='2018-02-20'
+
+select aa.COMPANY,aa.CWAR,aa.ITEM,
+Open_QSTK,Open_RecipQty,Open_IssueQty,Open_Stock,Current_QSTK,Current_RecipQty,Current_IssueQty,
+case when Current_QSTK is null then isnull(Open_RecipQty,0)-isnull(Open_IssueQty,0) 
+when Current_QSTK is not null then  isnull(Open_Stock,0)+isnull(Current_RecipQty,0)-isnull(Current_IssueQty,0) 
+else 0 end as AvlStock
+,c.QHND
+from 
+(select isnull(a.COMPANY,b.COMPANY) COMPANY,isnull(a.CWAR,b.CWAR) CWAR ,isnull(a.ITEM,b.ITEM) ITEM,
+Open_QSTK,Open_RecipQty-Open_IssueQty as Open_Stock,Open_RecipQty,Open_IssueQty,Current_QSTK,Current_RecipQty,Current_IssueQty
+from
+(
+select COMPANY,CWAR,ITEM,sum(Open_QSTK) Open_QSTK,sum(Open_RecipQty) Open_RecipQty,sum(Open_IssueQty) Open_IssueQty from 
+(select COMPANY,CWAR,ITEM,TRDT,
+QSTK Open_QSTK,
+case when KOST=3 then QSTK
+when KOST=1 and QSTK >0 then QSTK
+else 0 end as Open_RecipQty,
+case when KOST=5 then QSTK 
+when KOST=1 and QSTK<0 then abs(QSTK)
+else 0 end as Open_IssueQty
+from TWHINR110ALL
+where convert(date,TRDT)<=@Date
+)a1
+group by COMPANY,CWAR,ITEM
+)a
+full outer join
+(
+select COMPANY,CWAR,ITEM,sum(Current_QSTK) Current_QSTK,sum(Current_RecipQty) Current_RecipQty,sum(Current_IssueQty) Current_IssueQty from 
+(select COMPANY,CWAR,ITEM,TRDT,
+QSTK as Current_QSTK,
+case when KOST=3 then QSTK
+when KOST=1 and QSTK >0 then QSTK
+else 0 end as Current_RecipQty,
+case when KOST=5 then QSTK 
+when KOST=1 and QSTK<0 then abs(QSTK)
+else 0 end as Current_IssueQty
+from TWHINR110ALL
+where convert(date,TRDT)>@Date
+)b1
+group by COMPANY,CWAR,ITEM
+)b
+on a.COMPANY=b.COMPANY
+and a.CWAR=b.CWAR
+and a.ITEM=b.ITEM
+)aa
+left outer join (select COMPANY,CWAR,ITEM,sum(QHND) QHND from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+)c
+on aa.COMPANY=c.COMPANY
+and aa.CWAR=c.CWAR
+and aa.ITEM=c.ITEM
+
+
+--select kost,count(*) Counts from TWHINR110ALL
+--where QSTK<0
+--group by KOST
+--order by KOST

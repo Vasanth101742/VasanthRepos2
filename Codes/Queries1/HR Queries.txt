@@ -1,0 +1,20 @@
+select distinct vertical,Function2,global,EMP_CODE,Emp_Name,Designation,Division_Name,Function_Name,Department,Seperation_Date
+from ELGI_HR where Emp_Status<>'ACTIVE'
+
+
+select * from HR_NewDimension2
+
+
+
+--EmployeeList
+select distinct isnull(new_emp_code,emp_code) Emp_Code,emp_name,employee_status,region_code,region_name,function_code,func_name,
+sub_function_code,sub_function_name from Employee_Details
+
+--HRDFD
+select distinct region_code,region_name,function_code,func_name,sub_function_code,sub_function_name from Employee_Details
+
+--BAANResignedData
+select ECODE,ENAME,DDATE as SeperationDate from TTHHRD031100 where ecode like '8%' and DDATE<>'9999-01-01 00:00:00.000'
+
+--BAANDFD
+select * from HR_Master_DFD

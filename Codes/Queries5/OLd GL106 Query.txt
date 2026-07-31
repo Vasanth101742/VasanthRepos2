@@ -1,0 +1,49 @@
+select a.* from (
+select 400 as Company,erpnln.ttfgld106400.* from erpnln.ttfgld106400
+union
+select 401 ,erpnln.ttfgld106401.*  from erpnln.ttfgld106401
+union
+select 411 ,erpnln.ttfgld106411.*  from erpnln.ttfgld106411
+union
+select 412 ,erpnln.ttfgld106412.*  from erpnln.ttfgld106412
+union
+select 413 ,erpnln.ttfgld106413.*  from erpnln.ttfgld106413
+union
+select 414 ,erpnln.ttfgld106414.*  from erpnln.ttfgld106414
+union
+select 415 ,erpnln.ttfgld106415.*  from erpnln.ttfgld106415
+union
+select 416 ,erpnln.ttfgld106416.*  from erpnln.ttfgld106416
+union
+select 417 ,erpnln.ttfgld106417.*  from erpnln.ttfgld106417
+union
+select 418 ,erpnln.ttfgld106418.*  from erpnln.ttfgld106418
+union
+select 419 ,erpnln.ttfgld106419.*  from erpnln.ttfgld106419
+union
+select 420 ,erpnln.ttfgld106420.*  from erpnln.ttfgld106420
+union
+select 421 ,erpnln.ttfgld106421.*  from erpnln.ttfgld106421
+union
+select 422 ,erpnln.ttfgld106422.*  from erpnln.ttfgld106422
+union
+select 423 ,erpnln.ttfgld106423.*  from erpnln.ttfgld106423
+union
+select 424 ,erpnln.ttfgld106424.*  from erpnln.ttfgld106424
+union
+select 440 ,erpnln.ttfgld106440.*  from erpnln.ttfgld106440
+union
+select 450 ,erpnln.ttfgld106450.*  from erpnln.ttfgld106450
+union
+select 465 ,erpnln.ttfgld106465.*  from erpnln.ttfgld106465
+union
+select 470 ,erpnln.ttfgld106470.*  from erpnln.ttfgld106470
+union
+select 490 ,erpnln.ttfgld106490.*  from erpnln.ttfgld106490
+)a
+where T$LEAC in 
+('AB0701002','AB0701007','AB0701008','AB0701009',
+'AB0701010','AB0701024','AB0701025','AB0701025','AB0701026',
+'LC0201000','LC0203000','AB0701000','AB0701009','AB0701039')
+and T$FYER =2018
+and T$FPRD in (6,7,8,9)

@@ -1,0 +1,31 @@
+--select sum(sales) from (
+select OrderDate,	Dpst,	Zone,	Company,	ordertype,	OrderNum,ltrim(rtrim(ItemCode)) as	ItemCode,	sales,
+case when concat(dpst,ltrim(rtrim(ItemCode))) in (select concat(dpst,ltrim(rtrim(TPL))) from India_Regionwise_Sales_TPL_Master) 
+then qty else 0 end as qty
+from Sales_Inflow 
+where ltrim(rtrim(organ))='India'
+and OrderDate  BETWEEN '04/01/2019' AND '03/31/2020'
+and concat(company,ordertype) not in (select concat(company,saleordertype) from saletype_master where Sales_Category in (1)) 
+and company in (select Company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and concat(dpst,Zone) in 
+(select distinct concat(Dpstcode,Zone) from RegionWise_Budget)
+order by OrderDate
+--)a
+
+
+
+--select sum(Sales_amount) from (
+select Invoice_Date,	dpst,	Zone,	company,	trantype,	Invoice,ltrim(rtrim(Item)) as	Item,	Sales_amount,
+case when concat(dpst,ltrim(rtrim(Item))) in (select concat(dpst,ltrim(rtrim(TPL))) from India_Regionwise_Sales_TPL_Master)
+then DeliveryQty else 0 end as DeliveryQty
+from ELGi_Sales_Details a 
+WHERE	Invoice_Date BETWEEN '04/01/2019' AND '03/31/2020'
+and organ='India'
+and sales_category not in (1)
+AND areacode IS NOT NULL
+and company in (select Company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and concat(dpst,Zone) in 
+(select distinct concat(Dpstcode,Zone) from RegionWise_Budget)
+order by Invoice_Date
+--)a
+

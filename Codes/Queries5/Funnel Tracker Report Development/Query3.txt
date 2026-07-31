@@ -1,0 +1,25 @@
+select *,
+case when DATE_OF_ENQUIRY between @Fromdate and @Todate then 'TRUE' else 'FALSE' end as MTD,
+case when DATE_OF_ENQUIRY between @FinyearStartDate and @Todate then 'TRUE' else 'FALSE' end as YTD
+
+from [FunnelTracker_Stage] a
+left outer join
+(select date,datepart(yy,DATE) as CalYear,datepart(mm,DATE) as CalMonth,datepart(wk,DATE) WeekNo,
+day(dateadd(wk,datediff(wk,0,DATE),0)) as a,
+case --when day(date)>=28 then dateadd(dd,-1,dateadd(mm,0,dateadd(mm,datediff(mm,0,DATE)+1,0))) 
+when day(date)<=3 then dateadd(MM,datediff(MM,0,DATE),0)
+else dateadd(wk,datediff(wk,0,DATE),0) end as weekFirstday ,
+case when day(date)>=28 
+then dateadd(dd,-1,dateadd(mm,0,dateadd(mm,datediff(mm,0,date)+1,0))) 
+else dateadd(wk,datediff(wk,0,DATE),4) end as weekLastday
+from companycalendar
+where datepart(dw,date) not in(1,7) and DFCA<>'4'
+and ccal='COMPANY'
+--and datepart(yy,DATE)=2018
+--and datepart(mm,DATE)=10
+--order by date
+)b
+on a.DATE_OF_ENQUIRY=b.date
+where status_of_enquiry_visit is not null
+and DATE_OF_ENQUIRY is not null
+--and a.DATE_OF_ENQUIRY>='2018-04-01'

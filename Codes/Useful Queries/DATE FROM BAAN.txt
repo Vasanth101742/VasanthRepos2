@@ -1,0 +1,192 @@
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W1FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W1FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W1FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W1FD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W1TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W1TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W1TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W1TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W2FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W2FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W2FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W2FD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W2TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W2TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W2TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W2TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W3FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W3FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W3FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W3FD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W3TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W3TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W3TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W3TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W4FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W4FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W4FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W4FD1,
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W4TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W4TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W4TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W4TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W5FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W5FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W5FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W5FD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W5TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W5TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W5TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W5TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W6FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W6FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W6FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W6FD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W6TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W6TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W6TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W6TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W7FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W7FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W7FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W7FD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W7TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W7TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W7TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W7TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W8FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W8FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W8FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W8FD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W8TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W8TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W8TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W8TD1,
+
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W9FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W9FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W9FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W9FD1,
+
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W9TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W9TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W9TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W9TD1,
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W10FD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W10FD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W10FD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W10FD1,
+
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$W10TD,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$W10TD,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$W10TD END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$W10TD1
+
+
+
+
+CAST( Coalesce ( CASE WHEN TO_CHAR(T$TRDT,'yyyy-mm-dd HH24:MI:SS') < '1900-01-01 00:00:00' OR 
+			   TO_CHAR(T$TRDT,'yyyy-mm-dd HH24:MI:SS') = '4712-01-01 00:00:00' THEN TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS') 
+		      ELSE T$TRDT END ,
+		 TO_DATE('9999-01-01 00:00:00','yyyy-mm-dd HH24:MI:SS')
+                ) AS DATE
+     )
+ as T$TRDT1,
+

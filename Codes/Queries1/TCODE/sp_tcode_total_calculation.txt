@@ -1,0 +1,102 @@
+--exec sp_TCODE_Total_calculation
+
+ALTER proc sp_TCODE_Total_calculation
+as
+Begin
+
+declare @TotalCompCount int
+declare @slnoCount int
+declare @subdcount int
+declare @comp int
+declare @slno int
+declare @subd varchar(5)
+declare @count1 int
+declare @count2 int
+declare @count3 int
+
+set @TotalCompCount=(select count(distinct comp) from tcodeprocess)
+set @count1=1
+set @count2=1
+
+
+truncate table tcode_test
+
+
+while (@count1<=@TotalCompCount) 
+
+begin
+set @comp =(select comp from(
+select comp,ROW_NUMBER() over(order by comp) comprank from
+(select distinct comp from tcodeprocess)a)b
+where comprank=@count1)
+
+
+set @slnoCount=(select count(slno) from tcodeprocess where comp=@comp)
+
+--select @comp,@slnoCount
+
+
+set @count2=1
+while (@count2<=@slnoCount) --level2 slno
+begin
+
+set @slno= (select slno from (
+select slno,ROW_NUMBER() over(order by slno) slnorank from 
+(select distinct slno from tcodeprocess
+where comp=@comp
+)a)b
+where slnorank=@count2)
+
+
+
+set @subdcount =(select  count(subd) from tcodeprocess where 
+comp=@comp
+and slno=@slno)
+
+--select @comp,@slno,@subdcount
+set @count3=1
+while (@count3<=@subdcount) --Level3 subd
+begin
+
+set @subd =(select subd from
+(select subd,row_number() over(order by subd) subdrank from 
+(select subd from tcodeprocess
+where comp=@comp
+and slno=@slno)a)b
+where subdrank=@count3)
+
+insert into tcode_test
+
+select distinct comp,slno,subd,Total from(
+select comp,slno,subd,sum(lamt) Total from tcodeprocess
+where comp=@comp
+and slno=@slno
+and subd=@subd
+group by comp,slno,subd)a
+--order by comp
+
+
+--update tcodeprocess set lamt=a.totalamt
+--from
+--(select sum(lamt) as totalamt from tcodeprocess
+--where comp=@comp
+--and slno=@slno
+--and subd=@subd)a
+--where code in ('TOTAL','TOTALS')
+
+
+
+set @count3=@count3+1
+end
+
+set @count2=@count2+1
+end
+
+set @count1=@count1+1
+end
+
+end
+
+--select sum(lamt) from tcodeprocess
+--select sum(totl) from tcode_test
+--select distinct * from tcode_test

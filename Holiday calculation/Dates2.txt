@@ -1,0 +1,43 @@
+SELECT     date, CASE WHEN month(date) < 4 THEN year(date) - 1 ELSE year(date) END AS Fin_Year, { fn CONCAT(CONVERT(varchar, CASE WHEN month(date) IN (4, 5, 6, 7, 8, 9) 
+                      THEN 1 WHEN month(date) IN (10, 11, 12, 1, 2, 3) THEN 2 END), CASE WHEN month(date) IN (4, 5, 6, 7, 8, 9) THEN 'st HalfYear' ELSE 'nd HalfYear' END) 
+                      } AS fin_Halfyear, { fn CONCAT(CONVERT(varchar, CASE WHEN month(date) IN (4, 5, 6) THEN 1 WHEN month(date) IN (7, 8, 9) THEN 2 WHEN month(date) IN (10, 11, 12)
+                       THEN 3 WHEN month(date) IN (1, 2, 3) THEN 4 END), CASE WHEN month(date) IN (4, 5, 6) THEN 'st Quarter' WHEN month(date) IN (7, 8, 9) 
+                      THEN 'nd Quarter' WHEN month(date) IN (10, 11, 12) THEN 'rd Quarter' ELSE 'th Quarter' END) } AS Fin_quarter, DATEPART(quarter, date) AS cal_Quarter, 
+                      CASE WHEN month(date) < 4 THEN month(date) + 9 ELSE month(date) - 3 END AS fin_month, DATENAME([month], date) AS monthname,  
+                      CONVERT(varchar, RIGHT({ fn CONCAT('0', CONVERT(varchar, DATEPART([day], date))) }, 2)) AS Day
+FROM         (SELECT DISTINCT CONVERT(date, Invoice_Date) AS date
+                       FROM          ELGi_Sales_Details
+                       WHERE      (CONVERT(date, Invoice_Date) >= '2017-04-01')) AS a
+
+
+
+
+
+
+
+select datepart(yy,DATE) as CalYear,datepart(mm,DATE) as CalMonth,datepart(wk,DATE) WeekNo,
+dateadd(wk,datediff(wk,0,DATE),0) as 'weekFirstday' ,
+dateadd(wk,datediff(wk,0,DATE),4) as 'weekLastday' ,
+* from companycalendar
+where datepart(dw,date) not in(1,7) and DFCA<>'4'
+and ccal='COMPANY'
+and datepart(yy,DATE)=2018
+and datepart(mm,DATE)=11
+order by date
+
+
+
+select date,datepart(yy,DATE) as CalYear,datepart(mm,DATE) as CalMonth,datepart(wk,DATE) WeekNo,
+day(dateadd(wk,datediff(wk,0,DATE),0)) as a,
+case --when day(date)>=28 then dateadd(dd,-1,dateadd(mm,0,dateadd(mm,datediff(mm,0,DATE)+1,0))) 
+when day(date)<=3 then dateadd(MM,datediff(MM,0,DATE),0)
+else dateadd(wk,datediff(wk,0,DATE),0) end as weekFirstday ,
+case when day(date)>=28 
+then dateadd(dd,-1,dateadd(mm,0,dateadd(mm,datediff(mm,0,date)+1,0))) 
+else dateadd(wk,datediff(wk,0,DATE),4) end as weekLastday
+from companycalendar
+where datepart(dw,date) not in(1,7) and DFCA<>'4'
+and ccal='COMPANY'
+--and datepart(yy,DATE)=2018
+--and datepart(mm,DATE)=10
+order by date

@@ -1,0 +1,9 @@
+--select * into Sales_Budget_bkp_30OCT2019 from Sales_Budget
+--select * into DPSTwise_Budget_bkp_30OCT2019 from DPSTwise_Budget
+--select * into Itemwise_Budget_bkp_30OCT2019 from Itemwise_Budget
+--select * into SAAME_Budget_Details_bkp_30OCT2019 from SAAME_Budget_Details
+--select * into TPLwise_Budget_bkp_30OCT2019 from TPLwise_Budg
+
+
+
+del "G:\LN\Manual_Files_Load\ELGi\Inventory\*.*" /s /f /q

@@ -1,0 +1,22 @@
+select company,trantype,warehouse,OrderNo,PositionNo,Invoice,Invoice_Date,Currency,Item,Item_desc,custcode,
+custname,dpst,dpstname,Organ,areacode,areaname,Foreign_currency_amount,UnitPrice,DeliveryQty,cal_Month,cal_year,
+Monthname,Sales_amount,SaleOrderType,Sales_USD--,Rate_USD
+from elgi_sales_details  where invoice_date>='2020-01-01' and company='711'
+
+-------------------------------------------------------------------------------------------------------------------
+
+select company,trantype,Invoice,Invoice_Date,Item,Item_desc,custcode,custname,dpst,dpstname,areacode,areaname,
+currency,t_rate_1 as CurrRate,
+sum(Sales_amount) as Sales_INR,
+Rate_USD,
+sum(Sales_USD) Sales_USD,
+Fin_year,Fin_month,Monthname,organ
+from ELGi_Sales_Details
+where Fin_year=2019
+and Vertical1 like '%china%'
+and sales_category not in (1)
+group by 
+company,trantype,Invoice,Invoice_Date,Item,Item_desc,custcode,custname,dpst,dpstname,areacode,areaname,
+currency,t_rate_1,Rate_USD,
+Fin_year,Fin_month,Monthname,organ
+order by Invoice_Date

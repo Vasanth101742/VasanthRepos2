@@ -1,0 +1,8 @@
+=switch(
+Fields!Status_of_Enquiry_Visit.Value="2 – technicals finalized, quotation sent","LightGrey" ,
+Fields!Status_of_Enquiry_Visit.Value="3 – negotiation/ finalisation","LightGrey" ,
+Fields!Status_of_Enquiry_Visit.Value="3a– negotiation/ finalisation(50-80%)","LightGrey" ,
+Fields!Status_of_Enquiry_Visit.Value="3b– negotiation/ finalisation (>80%)","LightGrey" ,
+Fields!Status_of_Enquiry_Visit.Value="I - Incoming Enquiry, not visited","LightGrey",
+"White" 
+)

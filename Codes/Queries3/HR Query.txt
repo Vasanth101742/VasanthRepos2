@@ -1,0 +1,98 @@
+Truncate table HR_Master
+insert into HR_Master(Emp_Code,Emp_Name,Band,Designation,Org_Unit,Division_Name,Function_Name,Department,
+Emp_Status,Reason,Seperation_Date,Transfer_Date,Data_Load_Date,num,FinMonthNo,FinMonthName,FinYear,Fin_Year,Start_Date,
+Location,company,Division_Code,Function_Code,Dept_Code)
+select Emp_Code,	Emp_Name,	Band,	Designation,	Org_Unit,	Division_Name,	Function_Name,	Department,	
+Emp_Status,	Reason,	Seperation_Date,	Transfer_Date,	--New_Division	New_Function	New_Department	EE_Subgroup	
+Data_Load_Date,	num,	FinMonthNo,	FinMonthName,	FinYear,	Fin_Year,	Start_Date,	--Old_Emp_Code	OrgUnitCode	PositionID	
+Location,	--DOB	
+company,	Division_Code,	Function_Code,	Dept_Code
+from [ELGI-DW].dbo.hr_master
+
+
+Truncate table ELGI_HR
+insert into  ELGI_HR(GLOBAL,Company,Emp_Name,OLD_BAAN_EMPCODE,EMP_CODE,ERANK,Designation,Org_Unit,
+Division_Name,Function_Name,Department,Band,Location,Emp_Status,Reason,
+Seperation_Date,Transfer_Date,Start_Date,Data_Load_Date,num,FinMonthNo,FinMonthName,FinYear,Fin_Year,
+Vertical_ordr,vertical,Function2,Function2_ordr,Emp_Status1)
+select GLOBAL,null as Company	,Emp_Name,	OLD_BAAN_EMPCODE,	EMP_CODE,	ERANK,	Designation,	Org_Unit,	
+Division_Name,	Function_Name,	Department,	Band,	Location,	Emp_Status,	Reason,	
+Seperation_Date,	Transfer_Date,	--New_Division, New_Function,	New_Department,	EE_Subgroup,	
+Start_Date,	Data_Load_Date,	num,	FinMonthNo,	FinMonthName,	FinYear,	Fin_Year,	
+Vertical_ordr,	vertical,	Function2,	Function2_ordr,	Emp_Status1
+from [ELGI-DW].dbo.ELGI_HR
+
+
+update ELGI_HR set company=a.company
+from
+(select distinct company,Emp_Code from HR_Master)a
+where ELGI_HR.EMP_CODE=a.Emp_Code
+
+update ELGI_HR set company=100
+where Data_Load_Date<='2019-09-30'
+and global<>'INTERNATIONAL'
+and company is null
+
+
+update ELGI_HR set company=100
+where Data_Load_Date<='2019-09-30'
+and global='INTERNATIONAL'
+and company is null
+
+
+
+
+
+------------Special Insert ------------
+
+
+insert into ELGI_HR(GLOBAL,Company,Emp_Name,OLD_BAAN_EMPCODE,EMP_CODE,ERANK,Designation,Org_Unit,Division_Name,Function_Name,Department,Band,
+Location,Emp_Status,Reason,Seperation_Date,Transfer_Date,Start_Date,
+Data_Load_Date,num,FinMonthNo,FinMonthName,FinYear,Fin_Year,
+Vertical_ordr,vertical,Function2,Function2_ordr,Emp_Status1)
+
+select 'Domestic',company,Emp_Name,Emp_Code,Emp_Code,1 as ERANK,Designation,Org_Unit,Division_Name,Function_Name,Department,Band,
+'Bangalore' as  Location,
+Emp_Status,Reason,Seperation_Date,Transfer_Date,Start_Date,
+'2019-10-31 00:00:00.000',	1,	7,	'October',	2019,	'2019-2020',
+1,	'CORPORATE',	NULL,	NULL,	'WITHDRAWN'
+from HR_Master_Stage
+where 
+--company=101 and 
+EMP_CODE in (200831)
+union
+select 'Domestic',company,Emp_Name,Emp_Code,Emp_Code,1 as ERANK,Designation,Org_Unit,Division_Name,Function_Name,Department,Band,
+'ATS-Coimbatore' as Location,
+Emp_Status,Reason,Seperation_Date,Transfer_Date,Start_Date,
+'2019-10-31 00:00:00.000',	1,	7,	'October',	2019,	'2019-2020',
+1,	'CORPORATE',	NULL,	NULL,	'WITHDRAWN'
+from HR_Master_Stage
+where 
+--company=101 and 
+EMP_CODE in (200499)
+
+
+
+------------End: Special Insert ------------
+
+
+
+
+
+
+
+select * from ELGI_HR where 
+--Data_Load_Date='2019-09-30' and 
+--global='INTERNATIONAL' and 
+company is null
+order by Data_Load_Date
+
+
+select distinct company from HR_Master
+
+select distinct company,Emp_Code from ELGI_HR where Data_Load_Date>'2019-09-30'
+
+select distinct company from ELGI_HR where Data_Load_Date>'2019-09-30'
+select distinct company from ELGI_HR_stage
+
+select distinct company from vw_elgi_HR

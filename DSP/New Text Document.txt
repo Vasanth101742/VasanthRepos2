@@ -1,0 +1,82 @@
+Also Useful for Interview Preparation
+1.power signal and energy signal practical Examples:
+
+https://www.quora.com/What-are-the-differences-between-a-power-signal-and-an-energy-signal
+
+2. Complex Numbers Introduction
+http://www.purplemath.com/modules/complex.htm
+
+3. Piecewise function
+http://www.purplemath.com/modules/fcnnot.htm#piecewise
+
+4.need for quadratic equation
+
+https://plus.maths.org/content/101-uses-quadratic-equation
+https://www.mathsisfun.com/algebra/quadratic-equation-real-world.html
+
+5. Angular Frequency i.e omega
+http://mri-q.com/angular-frequency-omega.html
+
+6. DSP Related Books 
+https://www.dsprelated.com/freebooks/mdft/Dual_Convolution_Theorem.html
+
+7. Frequency response and 3DB Bandwidth
+http://www.electronics-tutorials.ws/amplifier/frequency-response.html
+
+8. Need for Convolution in Digital Signal Processing  ******************Strong BASICS ****************
+http://www.dspguide.com/ch6/1.htm
+
+Now we come to the detailed mathematics of convolution. As used in Digital Signal Processing, convolution can be understood in two separate ways. 
+The first looks at convolution from the viewpoint of the input signal. 
+This involves analyzing how each sample in the input signal contributes to many points in the output signal. 
+The second way looks at convolution from the viewpoint of the output signal. 
+This examines how each sample in the output signal has received information from many points in the input signal.
+
+9. Sine wave Concept with graphical explanation
+
+https://betterexplained.com/articles/intuitive-understanding-of-sine-waves/
+
+
+10. relation between Radian and degree
+https://www.mathsisfun.com/geometry/radians.html
+
+
+
+Why are sinusoids used instead of, for instance, square or triangular waves? 
+Remember, there are an infinite number of ways that a signal can be decomposed. 
+The goal of decomposition is to end up with something easier to deal with than the original signal. 
+For example, impulse decomposition allows signals to be examined one point at a time, leading to the powerful technique of convolution. 
+The component sine and cosine waves are simpler than the original signal because they have a property that the original signal does not have: sinusoidal fidelity. 
+As discussed in Chapter 5, a sinusoid input to a system is guaranteed to produce a sinusoidal output. 
+Only the amplitude and phase of the signal can change; the frequency and wave shape must remain the same. 
+Sinusoids are the only waveform that have this useful property. 
+While square and triangular decompositions are possible, there is no general reason for them to be useful. 
+
+
+
+11. DSP Problems and solutions easy method
+http://eeweb.poly.edu/iselesni/EL713/zoom/ExtraProblems_Solutions.pdf
+
+
+12. ARMA Model Clear Explanation
+http://www.econ.ohio-state.edu/dejong/note2.pdf
+
+
+13. Covariance and correlation
+In short, the covariance just tells you that two variables change the same way or not, 
+while correlation reveals how a change in one variable effects a change in the other.
+
+Read more: Calculating Covariance For Stocks | Investopedia http://www.investopedia.com/articles/financial-theory/11/calculating-covariance.asp#ixzz4c2g5YiVB 
+Follow us: Investopedia on Facebook
+
+
+14. FFT, power spectral desnity calculation using MATLAB
+
+https://in.mathworks.com/help/matlab/ref/fftshift.html
+
+15 power spectral density
+http://www.mathstat.dal.ca/~stat5390/Section_4_PSD1.pdf
+
+16. FIR Filter Design
+http://www.vyssotski.ch/BasicsOfInstrumentation/SpikeSorting/Design_of_FIR_Filters.pdf
+

@@ -1,0 +1,12 @@
+--Supplier Turnover 
+
+--select * from TTDPUR406ALL
+
+select a.COMPANY,T$DDTE as Act_Recp_Date,T$ORNO as ORNO,T$PONO as PONO,T$SQNB as SQNB,T$DAMT as Amnt,
+b.SFBP,c.t_ccon
+from TTDPUR406ALL a
+left outer join TTDPUR400ALL b
+on a.COMPANY=b.COMPANY
+and a.T$ORNO=b.ORNO
+left outer join TTCCOM120400 c
+on b.IFBP=c.t_ifbp

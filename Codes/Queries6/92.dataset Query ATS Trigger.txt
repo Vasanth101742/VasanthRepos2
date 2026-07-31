@@ -1,0 +1,31 @@
+declare @D1 date= '2018-02-01 00:00:00.000'
+declare @D2 date= '2018-02-16 00:00:00.000'
+
+select * from (
+SELECT 
+a.company,
+a.itemcode, 
+convert(varchar,convert(datetime,a.I_Tri_Date),103) as Firsttriggerdate ,
+convert(varchar,convert(datetime,a.II_Tri_Date),103) as Secondtriggerdate,  
+a.suno as  SUPP, 
+a.diff, 
+null as QTY, 
+a.CEMP as COR_EMP, 
+a.emp_name as NAMA, 
+a.SUPERMARKET, 
+a.DEPARTMENT as division, 
+a.Buyername, 
+a.BUYR, 
+a.BuyerContact, 
+a.RPLT,
+b.t_dsca as description
+from vw_rpldetails_ats a 
+INNER JOIN TTCIBD001600 b
+ON ltrim(rtrim(a.itemcode)) = LTRIM(RTRIM(b.t_item)) 
+WHERE 
+a.II_Tri_Date IS NOT NULL  
+AND CONVERT(DATETIME,II_Tri_Date) BETWEEN  @D1 AND @D2 
+--AND BUYR IN(@BUYER)
+and a.diff < a.RPLT) as a 
+where Firsttriggerdate is not null 
+order by itemcode , buyr , supp

@@ -1,0 +1,7 @@
+select Company,	SalesOffice as Dpst,SalesOfficeName as	Dpstname,	
+TranType,	InvNo,	InvDate,	InvAmth	,CustCode,	CustName	,RecvDocType,	RecvDocNo,	RecvDate,	RecvAmth,
+isnull(InvAmth,0)+isnull(RecvAmth,0) as Balance--,DaysDiff
+from ACR_As_of_Date_Details
+where SalesOffice in ('90008','90022','90023','90030','90032','90093','90094')
+and isnull(InvAmth,0)+isnull(RecvAmth,0)<>0
+order by Company,TranType,InvNo,InvDate desc,RecvDate

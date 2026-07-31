@@ -1,0 +1,59 @@
+--Advance
+
+select * from (
+select a.Company,TranType,InvNo,InvDate,
+CustCode,CustName,
+SalesOffice,SalesOfficeName,AreaCode,AreaName,
+DueDate,RecvDate,Reference,
+sum(InvAmth)*(-1) InvAmth,VerticalOrdr,Vertical 
+from ACR_As_of_Date_Details a
+where RecptType='Advance'
+and a.company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+--and CalYear=@CalYear
+--and CalMonth =@CalMonth 
+
+
+group by a.Company,TranType,InvNo,InvDate,CustCode,CustName,SalesOffice,SalesOfficeName,AreaCode,AreaName,DueDate,
+RecvDate,VerticalOrdr,Vertical,Reference
+)a
+where InvAmth not between -1 and 1
+--and custcode in ('CU1E00625','CU1E00804','CU1E00880','CU1E00622','CU1E00719','CU1E00847','CRE000013')
+and InvDate>='2019-04-01'
+and areacode>='600'
+order by InvDate,RecvDate
+
+
+
+---------------------------------------------------------------------------------------------------------------------------
+--Collection
+
+
+
+select * from (
+select a.Company,TranType,InvNo,InvDate,
+CustCode,CustName,
+SalesOffice,SalesOfficeName,AreaCode,AreaName,
+DueDate,
+RecvDate,
+sum(RecvAmth)*(-1) RecvAmth,VerticalOrdr,Vertical ,RecptType
+from ACR_As_of_Date_Details a
+where RecptType in ('Collection')
+and a.company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+--and CalYear=@CalYear
+--and CalMonth =@CalMonth 
+--and Vertical in (@Vertical)
+--and AreaCode in (@Area)
+
+group by a.Company,TranType,InvNo,InvDate,CustCode,CustName,SalesOffice,SalesOfficeName,AreaCode,AreaName,
+DueDate,RecvDate,VerticalOrdr,Vertical,RecptType
+)a
+where recvamth not between -1 and 1
+and len(areaname)>2
+--and custcode in ('CU1E00625','CU1E00804','CU1E00880','CU1E00622','CU1E00719','CU1E00847','CRE000013')
+and InvDate>='2019-04-01'
+and areacode>='600'
+order by InvDate,RecvDate
+
+
+
+--select distinct RecptType from ACR_As_of_Date_Details

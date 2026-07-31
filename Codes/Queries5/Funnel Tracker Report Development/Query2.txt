@@ -1,0 +1,61 @@
+create proc sp_FunnelTracker as
+
+Begin
+
+declare @Fromdate date='2018-08-01'
+declare @Todate date='2018-08-31'
+
+select status_of_enquiry_visit,count(DATE_OF_ENQUIRY) counts,
+count(case when DATE_OF_ENQUIRY>=dateadd(MM,datediff(MM,0,getdate()-1),0) then 1 else 0 end) as MTD,
+count(case when DATE_OF_ENQUIRY>=convert(varchar,year(getdate()-1))+'-04-01' then 1 else 0 end) as YTD,
+CalYear,CalMonth,WeekNo,weekFirstday,weekLastday
+from 
+(select * from
+(select * from [FunnelTracker_Stage] where DATE_OF_ENQUIRY<@Fromdate)a
+left outer join
+(select date,datepart(yy,DATE) as CalYear,datepart(mm,DATE) as CalMonth,datepart(wk,DATE) WeekNo,
+dateadd(wk,datediff(wk,0,DATE),0) as weekFirstday ,
+dateadd(wk,datediff(wk,0,DATE),4) as weekLastday
+from companycalendar
+where datepart(dw,date) not in(1,7) and DFCA<>'4'
+and ccal='COMPANY'
+--and datepart(yy,DATE)=2018
+--and datepart(mm,DATE)=11
+--order by date
+)b
+on a.DATE_OF_ENQUIRY=b.date
+)a
+where status_of_enquiry_visit is not null
+group by status_of_enquiry_visit,CalYear,CalMonth,WeekNo,weekFirstday,weekLastday
+
+
+union
+
+
+select status_of_enquiry_visit,count(DATE_OF_ENQUIRY) counts,
+count(case when DATE_OF_ENQUIRY>=dateadd(MM,datediff(MM,0,getdate()-1),0) then 1 else 0 end) as MTD,
+count(case when DATE_OF_ENQUIRY>=convert(varchar,year(getdate()-1))+'-04-01' then 1 else 0 end) as YTD,
+CalYear,CalMonth,WeekNo,weekFirstday,weekLastday
+from 
+(select * from
+(select * from [FunnelTracker_Stage] where DATE_OF_ENQUIRY between @Fromdate and @Todate)a
+left outer join
+(select date,datepart(yy,DATE) as CalYear,datepart(mm,DATE) as CalMonth,datepart(wk,DATE) WeekNo,
+dateadd(wk,datediff(wk,0,DATE),0) as weekFirstday ,
+dateadd(wk,datediff(wk,0,DATE),4) as weekLastday
+from companycalendar
+where datepart(dw,date) not in(1,7) and DFCA<>'4'
+and ccal='COMPANY'
+--and datepart(yy,DATE)=2018
+--and datepart(mm,DATE)=11
+--order by date
+)b
+on a.DATE_OF_ENQUIRY=b.date
+)a
+where status_of_enquiry_visit is not null
+group by status_of_enquiry_visit,CalYear,CalMonth,WeekNo,weekFirstday,weekLastday
+order by CalYear,CalMonth,WeekNo
+
+
+
+end

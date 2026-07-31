@@ -1,0 +1,60 @@
+--alter table Inventory2 add Stock_955 float, Stock_215 float 
+
+--alter table Inventory_cons drop column ItemDescr Amnt,Ageing,AgeingOrdr
+
+--Drop table inv_tmp
+--select * into inv_tmp from
+--(select COMPANY,CWAR,ITEM,ItemDescr,TRDT,sum(QSKT) QSKT,sum(Stock_955) Stock_955,sum(Stock_215) Stock_215,
+--sum(Amnt) Amnt,Ageing,AgeingOrdr from Inventory2
+--group by COMPANY,CWAR,ITEM,ItemDescr,TRDT,Ageing,AgeingOrdr
+--)a
+
+Truncate table Inventory_cons
+
+insert into Inventory_cons (COMPANY,CWAR,ITEM,QSKT)
+select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$QSKT
+--T$TRDT as ReceiptDate 
+from 
+(select distinct COMPANY,T$CWAR,T$ITEM,sum(T$QSKT) T$QSKT from TWHINA112ALL
+where T$KOOR in (1,2,32,36)
+--and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+group by COMPANY,T$CWAR,T$ITEM
+)a
+
+
+
+update Inventory_cons set stock_955=a.STOC
+from 
+(select comp,WAR,ITEM,sum(STOC) STOC from Inven_eval_955_to_LN 
+group by comp,WAR,ITEM
+)a
+where Inventory_cons.COMPANY=a.COMP
+and Inventory_cons.CWAR=a.WAR
+and ltrim(rtrim(Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update Inventory_cons set stock_215=a.QHND
+from 
+(select COMPANY,CWAR,ITEM,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+where Inventory_cons.COMPANY=a.COMPANY
+and Inventory_cons.CWAR=a.CWAR
+and ltrim(rtrim(Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+
+update Inventory_cons  set Remarks='LN'
+where (qskt >= stock_955 and stock_215 <= stock_955)
+and Remarks is null
+
+update Inventory_cons  set Remarks='LN'
+where qskt >= stock_215
+and Remarks is null
+
+update Inventory_cons  set Remarks='LN'
+where isnull(stock_955,0)=0
+and Remarks is null
+
+
+----------------------------------------------

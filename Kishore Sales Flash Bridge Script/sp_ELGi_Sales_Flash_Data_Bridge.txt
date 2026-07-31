@@ -1,0 +1,231 @@
+--exec sp_ELGi_Sales_Flash_Data_Bridge
+--select * from ELGi_Sales_Flash_Data_FTMBudActDiff
+
+Alter proc sp_ELGi_Sales_Flash_Data_Bridge
+
+as
+
+begin
+
+truncate table ELGi_Sales_Flash_Data_Bridge
+
+
+
+---------------------------------------Beginning of Logic 1:--------------------------------------------------
+
+
+declare @year varchar(5);
+declare @monthnum int;
+declare @ytddate varchar(20);
+declare @monthcount int
+declare @count1 int;
+declare @count2 int;
+
+
+set @count1 =1
+
+while (@count1<=5)--since last 5 years data is considered
+
+Begin
+
+set @year=(select Year1 from (
+select Year1,row_number() over(order by Year1) year_rank from
+(
+select distinct year(convert(date,date)) Year1 from tmpslsdespdata 
+where year(convert(date,date))>=(select max(year(convert(date,date)))-4 from tmpslsdespdata )
+)a)b
+where year_rank=@count1)
+
+
+set @monthcount=(select count(distinct month(convert(date,date))) from  tmpslsdespdata where year(convert(date,date))=@year)
+
+set @ytddate='04/01/'+@year
+
+set @monthnum=1
+
+while (@monthnum<=@monthcount)
+
+begin
+
+
+
+insert into ELGi_Sales_Flash_Data_Bridge
+
+select rownum,organ,
+case when rownum<100 then sum(FTMBudActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(FTMBudActDiff) end as Initial,
+case when rownum<100 then sum(FTMBudActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(FTMBudActDiff) end as Final,
+sum(FTMBudActDiff) as FTMBudActDiff,
+case when rownum<100 then sum(YTDBudActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(YTDBudActDiff) end as Initial2,
+case when rownum<100 then sum(YTDBudActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(YTDBudActDiff) end as Final2,
+sum(YTDBudActDiff) as YTDBudActDiff,
+case when rownum<100 then sum(FTMActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(FTMActDiff) end as Initial3,
+case when rownum<100 then sum(FTMActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(FTMActDiff) end as Final3,
+sum(FTMActDiff) as FTMActDiff,
+case when rownum<100 then sum(YTDActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(YTDActDiff) end as Initial4,
+case when rownum<100 then sum(YTDActDiff)over(order by rownum  rows between UNBOUNDED PRECEDING and CURRENT ROW )
+else sum(YTDActDiff) end as Final4,
+sum(YTDActDiff) as YTDActDiff,
+FinYear,FinMonthnum
+from
+(
+select 0 as rownum,'Budget' as Organ, 
+sum(month_budget) as FTMBudActDiff,
+sum(ytd_budget) as YTDBudActDiff,
+sum(ly_month_actuals) FTMActDiff,
+sum(ly_ytd_actuals) YTDActDiff,
+FinYear,FinMonthnum 
+from ELGi_Sales_Flash_Data_Consolidated
+where finyear=@year and FinMonthnum=@monthnum
+group by FinYear,FinMonthnum
+
+union
+
+select row_number() over(order by FTMBudActDiff desc) rownum,organ,FTMBudActDiff,YTDBudActDiff,FTMActDiff,YTDActDiff,FinYear,FinMonthnum 
+from
+(select organ,
+sum(month_budget)-sum(month_actuals) as FTMBudActDiff,
+sum(ytd_budget)-sum(ytd_actuals) as YTDBudActDiff,
+sum(ly_month_actuals)-sum(month_actuals) as FTMActDiff,
+sum(ly_ytd_actuals)-sum(ytd_actuals) as YTDActDiff,
+FinYear,FinMonthnum
+from ELGi_Sales_Flash_Data_Consolidated
+where finyear=@year and FinMonthnum=@monthnum
+group by organ,FinYear,FinMonthnum
+)a
+
+union
+
+select 100 as rownum,'Actuals' as Organ, 
+sum(month_actuals) as FTMBudActDiff,
+sum(ytd_actuals) as YTDBudActDiff,
+sum(month_actuals) as FTMActDiff,
+sum(ytd_actuals) as YTDActDiff,
+FinYear,FinMonthnum 
+from ELGi_Sales_Flash_Data_Consolidated
+where finyear=@year and FinMonthnum=@monthnum
+group by FinYear,FinMonthnum
+
+
+)b
+group by organ,FTMBudActDiff,YTDBudActDiff,FTMActDiff,YTDActDiff,rownum,FinYear,FinMonthnum
+
+
+
+
+
+
+
+set @monthnum=@monthnum+1
+end
+
+set @count1=@count1+1
+end
+
+
+---------------------------------------End of Logic 1:----------------------------------------------------------
+
+
+
+
+
+
+
+
+---------------------------------------Beginning of Logic 2:--------------------------------------------------
+
+declare @rownum int
+declare @totalcnt int
+set @rownum=1
+
+set @count1 =1
+
+while (@count1<=5)
+
+Begin
+
+set @year=(select Year1 from (
+select Year1,row_number() over(order by Year1) year_rank from
+(
+select distinct year(convert(date,date)) Year1 from tmpslsdespdata 
+where year(convert(date,date))>=(select max(year(convert(date,date)))-4 from tmpslsdespdata )
+)a)b
+where year_rank=@count1)
+
+
+set @monthcount=(select count(distinct month(convert(date,date))) from  tmpslsdespdata where year(convert(date,date))=@year)
+
+set @ytddate='04/01/'+@year
+
+set @monthnum=1
+
+while (@monthnum<=@monthcount)
+
+begin
+
+set @totalcnt=(select count(rownum) from ELGi_Sales_Flash_Data_Bridge
+where finyear=@year and FinMonthnum=@monthnum)
+
+update ELGi_Sales_Flash_Data_Bridge set final=0 where rownum=0 and finyear=@year and FinMonthnum=@monthnum
+update ELGi_Sales_Flash_Data_Bridge set final=0 where rownum=100 and finyear=@year and FinMonthnum=@monthnum
+
+update ELGi_Sales_Flash_Data_Bridge set final2=0 where rownum=0 and finyear=@year and FinMonthnum=@monthnum
+update ELGi_Sales_Flash_Data_Bridge set final2=0 where rownum=100 and finyear=@year and FinMonthnum=@monthnum
+
+update ELGi_Sales_Flash_Data_Bridge set final3=0 where rownum=0 and finyear=@year and FinMonthnum=@monthnum
+update ELGi_Sales_Flash_Data_Bridge set final3=0 where rownum=100 and finyear=@year and FinMonthnum=@monthnum
+
+update ELGi_Sales_Flash_Data_Bridge set final4=0 where rownum=0 and finyear=@year and FinMonthnum=@monthnum
+update ELGi_Sales_Flash_Data_Bridge set final4=0 where rownum=100 and finyear=@year and FinMonthnum=@monthnum
+
+
+set @rownum=1
+
+while (@rownum<@totalcnt)
+begin
+update ELGi_Sales_Flash_Data_Bridge set 
+final=a.initial,
+final2=a.initial2,
+Final3=a.Initial3,
+Final4=a.initial4
+from ( select initial,initial2,initial3,initial4 from ELGi_Sales_Flash_Data_Bridge 
+where rownum=@rownum-1 and finyear=@year and FinMonthnum=@monthnum)a
+where rownum=@rownum and finyear=@year and FinMonthnum=@monthnum
+
+update ELGi_Sales_Flash_Data_Bridge set final=final+2*ftmbudactdiff
+where ftmbudactdiff<0 and rownum=@rownum and finyear=@year and FinMonthnum=@monthnum
+
+update ELGi_Sales_Flash_Data_Bridge set final2=final2+2*ytdbudactdiff
+where ytdbudactdiff<0 and rownum=@rownum and finyear=@year and FinMonthnum=@monthnum
+
+update ELGi_Sales_Flash_Data_Bridge set final3=final3+2*ftmactdiff
+where ftmactdiff<0 and rownum=@rownum and finyear=@year and FinMonthnum=@monthnum
+
+update ELGi_Sales_Flash_Data_Bridge set final4=final4+2*ytdactdiff
+where ytdactdiff<0 and rownum=@rownum and finyear=@year and FinMonthnum=@monthnum
+
+
+set @rownum=@rownum+1
+end
+
+
+set @monthnum=@monthnum+1
+end
+
+set @count1=@count1+1
+end
+
+---------------------------------------End of Logic 2:----------------------------------------------------------
+
+
+
+
+
+
+end

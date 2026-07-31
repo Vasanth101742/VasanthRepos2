@@ -1,0 +1,568 @@
+--exec sp_Tcode_BalanaceSheet_from_BAAN
+--select * from Tcode_BalanaceSheet_from_BAAN where comp=100000  order by fcode,slno,subd,ordr
+
+Alter proc sp_Tcode_BalanaceSheet_from_BAAN
+as
+begin
+
+
+update Tcode_BalanaceSheet_from_BAAN set ddate=(select distinct ddate from Tcodeprocess_from_BAAN)
+
+
+declare @compcount int
+declare @count1 int
+declare @comp int
+
+set @compcount=(select count(distinct comp) from Tcode_BalanaceSheet_from_BAAN)
+set @count1=1
+
+
+
+while (@count1<=@compcount)
+
+begin
+
+set @comp=(select comp from(
+select comp,row_number() over(order by comp) comprank from 
+(select distinct comp from Tcode_BalanaceSheet_from_BAAN)a)b
+where comprank=@count1)
+
+
+-----------------------------------------------------------------------------------
+
+--(1) Shareholders’ Funds
+
+--(a) Share Capital
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select  lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=1 and subd=1 and ordr=7
+and comp=@comp
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=2
+and comp=@comp
+
+
+--(b) Reserves & Surplus
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select  lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=2 and subd=9 and ordr=10
+and comp=@comp
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=3
+and comp=@comp
+
+--(c) Money received against share warrants
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS286'
+and comp=@comp
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=4
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------
+
+--(2) Share application money pending allotment
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select  lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=3 and subd=1 and ordr=11
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------
+
+--(3) Non Current Liabilities
+
+--(a) Long-term borrowings
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=3 and subd=1 and ordr =11
+and comp=@comp
+)a
+where fcode=1 and slno=3 and subd=1 and ordr=2
+and comp=@comp
+
+--(b) Deferred Tax liabilities (Net)
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select  lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=4 and subd=1 and ordr=2
+and comp=@comp
+)a
+where fcode=1 and slno=3 and subd=1 and ordr=3
+and comp=@comp
+
+--(c) Other Long Term liabilities
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select  lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=5 and subd=1 and ordr=9
+and comp=@comp
+)a
+where fcode=1 and slno=3 and subd=1 and ordr=4
+and comp=@comp
+
+--(d) Long-term provisions
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select  lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=6 and subd=1 and ordr=7
+and comp=@comp
+)a
+where fcode=1 and slno=3 and subd=1 and ordr=5
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------
+
+
+--(4)Current Liabilities
+
+--(a) Short-term borrowings
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=7 and subd=1 and ordr =8
+and comp=@comp
+)a
+where fcode=1 and slno=4 and subd=1 and ordr=2
+and comp=@comp
+
+--(b) Trade payables
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=8 and subd=1 and ordr =5
+and comp=@comp
+)a
+where fcode=1 and slno=4 and subd=1 and ordr=3
+and comp=@comp
+
+
+--(c) Other current liabilities
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=9 and subd=1 and ordr =17
+and comp=@comp
+)a
+where fcode=1 and slno=4 and subd=1 and ordr=4
+and comp=@comp
+
+--(d) Short-term provisions
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=10 and subd=1 and ordr =12
+and comp=@comp
+)a
+where fcode=1 and slno=4 and subd=1 and ordr=5
+and comp=@comp
+
+
+--TOTAL
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select 
+(select  sum(lamt) from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=1 and subd=1 and ordr in (2,3,4)
+and comp=@comp)
++
+(select  sum(lamt) from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=2 and subd=1 and ordr in (1)
+and comp=@comp)
++
+(select  sum(lamt) from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=3 and subd=1 and ordr in (2,3,4,5)
+and comp=@comp)
++
+(select  sum(lamt) from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=4 and subd=1 and ordr in (2,3,4,5)
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=4 and subd=1 and ordr=7
+and comp=@comp
+
+
+
+-----------------------------------------------------------------------------------
+
+
+--(1) Non Current Assets
+
+--(a) Fixed Assets
+
+--(i) Tangible Assets
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS332'
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=1 and ordr=3
+and comp=@comp
+
+
+--(ii) Intangible Assets
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS333'
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=1 and ordr=4
+and comp=@comp
+
+--(iii) Capital work-in-progress
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS284'
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=1 and ordr=5
+and comp=@comp
+
+--(iv) Intangible assets under development
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS284'
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=1 and ordr=6
+and comp=@comp
+
+--(b) Non-current investments
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=11 and subd=1 and ordr =12
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=2 and ordr=1
+and comp=@comp
+
+
+--(c) Deferred tax assets (net)
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=12 and subd=1 and ordr =2
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=3 and ordr=1
+and comp=@comp
+
+--(d) Long-term loans and advances
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=13 and subd=4 and ordr =13
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=4 and ordr=1
+and comp=@comp
+
+--(e) Other non-current assets
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=14 and subd=1 and ordr =5
+and comp=@comp
+)a
+where fcode=1 and slno=5 and subd=5 and ordr=1
+and comp=@comp
+
+
+--TOTAL
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select
+(select sum(lamt) lamt from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=5 and subd=1 and ordr in (3,4,5,6)
+and comp=@comp)
++
+(select sum(lamt) lamt from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=5 and subd in (2,3,4,5) and ordr =1
+and comp=@comp)
+
+as lamt
+
+)a
+where fcode=1 and slno=5 and subd=6 and ordr=1
+and comp=@comp
+
+
+
+-----------------------------------------------------------------------------------
+
+--(2) Current Assets
+
+--(a) Current investments
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=15 and subd=1 and ordr =9
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=2
+and comp=@comp
+
+--(b) Inventories
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=16 and subd=1 and ordr =9
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=3
+and comp=@comp
+
+--(c) Trade Receivables
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=17 and subd=3 and ordr =7
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=4
+and comp=@comp
+
+--(d) Cash and Cash equivalents
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=18 and subd=1 and ordr =13
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=5
+and comp=@comp
+
+--(e) Short Term Loans and advances
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=19 and subd=3 and ordr =7
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=6
+and comp=@comp
+
+--(f) Other current assets
+
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select lamt from Tcodeprocess_from_BAAN
+where fcode=1 and slno=20 and subd=1 and ordr =5
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=7
+and comp=@comp
+
+
+--TOTAL
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select sum(lamt) lamt from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=6 and subd=1 and ordr in(2,3,4,5,6,7)
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=8
+and comp=@comp
+
+
+--TOTAL
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from 
+(
+select 
+(select lamt from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=5 and subd =6 and ordr =1
+and comp=@comp)
++
+(select lamt from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=6 and subd =1 and ordr =8
+and comp=@comp)
+
+as lamt
+
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=10
+and comp=@comp
+
+
+--FINAL BALANCE
+
+update Tcode_BalanaceSheet_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from Tcode_BalanaceSheet_from_BAAN 
+where fcode=1 and slno=5 and subd =6 and ordr =1
+and comp=@comp)
+-
+(select lamt from Tcode_BalanaceSheet_from_BAAN
+where fcode=1 and slno=6 and subd =1 and ordr =10
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=1 and subd=0 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+set @count1=@count1+1
+end
+
+
+end

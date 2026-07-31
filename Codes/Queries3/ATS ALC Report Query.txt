@@ -1,0 +1,31 @@
+
+
+--WIP
+select COMPANY,CWAR,MITM,WIP_Date,sum(convert(float,QRDR)) WIP_Qty from 
+(
+select a.COMPANY,a.CWAR,a.MITM,b.date as WIP_Date,b.QRDR from  TTISFC001ALL a 
+left outer join
+(
+select * from (
+select company,PDNO,QRDR,convert(date,date) as date,row_number() over (partition by company,pdno order by date) dateRank 
+from TTICST151ALL
+where OSTA in (6)
+--and PDNO='230009816' --for testing Purpose
+)b1
+where dateRank=1
+)b
+on a.company=b.company
+and a.PDNO=b.PDNO
+) a
+where company='600' and CWAR='657'
+and WIP_Date>='2019-11-01'
+group by COMPANY,CWAR,MITM,WIP_Date
+order by WIP_Date
+
+
+--Closed
+select company,warehouse,item,date1,sum(Actual_qty) Actual_qty from ELGi_production_details
+where company='600' and warehouse='657'
+and date1>='2019-11-01'
+group by company,warehouse,item,date1
+order by date1,item

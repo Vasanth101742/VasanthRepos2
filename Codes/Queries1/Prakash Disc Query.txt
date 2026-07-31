@@ -1,0 +1,90 @@
+declare @odnum varchar(20)='531000497'
+--select distinct OrderDate,OrderNum,Origin from Sales_Header
+--where concat(company,OrderNum) in 
+--(
+select concat(company,OrderNum)
+,PositionNum,DiscPerc1,DiscPerc2,*
+from Sales_Lines where Company=490 --and ordernum=350000031 
+and DiscPerc1>0 and DiscPerc2>0
+and t_clyn<>1
+and OrderNum=@odnum
+--)
+--and OrderType not in ('226','246','326','346','526','546')
+--and month(convert(date,orderdate))=6 and year(convert(date,orderdate))=2017
+----and orderdate>='2017-07-01'
+--order by OrderDate
+
+
+
+select L$DISC,* from TZZSLS886ALL where LORN=@odnum order by L$ODAT 
+
+
+
+
+select a.company,OrderDate,OrderNum,b.REFR from Sales_Lines a
+left outer join TZZSLS886ALL b
+on a.Company=b.COMPANY
+and a.OrderNum=b.LORN
+ where a.Company=490 --and ordernum=350000031 
+and DiscPerc1>0 and DiscPerc2>0
+and t_clyn<>1
+and b.REFR is null
+
+
+
+http://bis-apps/atselgi/Accounts/AR/ATSCreditorsAnalysis.rdl?Web=1
+http://bis-apps/atselgi/Accounts/Collection/Ats%20collection%20.rdl?Web=1
+http://bis-apps/atselgi/Accounts/Collection/ATS%20Collection%20Details.rdl?Web=1
+http://bis-apps/atselgi/Accounts/Collection/ATS%20Daily%20Collection%20Regionwise.rdl?Web=1
+http://bis-apps/atselgi/Accounts/Collection/ATS%20Daily%20Collections.rdl?Web=1
+
+
+http://bis-apps/atselgi/Sales/SalesPerformance/ATS%20International%20Sales.rdl?Web=1
+http://bis-apps/atselgi/Sales/Summary/Inflow%20Report%20Areawise_ATS_Ln.rdl?Web=1
+http://bis-apps/atselgi/Sales/Summary/Sale%20Report%20ATS%20(%20Transactional%20)_LN.rdl?Web=1
+
+http://bis-apps/atselgi/Sales/Pending/ATS_Pending%20%20Order_Ln.rdl?Web=1
+
+http://bis-apps/atselgi/Sales/Spares/AED_Spares_OTD.rdl?Web=1
+http://bis-apps/atselgi/Sales/Spares/OTD%20ACHIEVEMENT%20-%20TRADED%20AND%20MFG.rdl?Web=1
+http://bis-apps/atselgi/Sales/Spares/OTD%20BDI%20-%20FOC%20ACHIEVEMENT%20-%20TRADED%20AND%20MFG.rdl?Web=1
+http://bis-apps/atselgi/Sales/Spares/OTD%20BDI%20-%20FOC%20FOLLOWUP%20-%20TRADED%20AND%20MFG.rdl?Web=1
+http://bis-apps/atselgi/Sales/Spares/OTD%20BDI%20-%20FOC%20TRACKING%20-%20TRADED%20AND%20MFG.rdl?Web=1
+http://bis-apps/atselgi/Sales/Spares/OTD%20FOLLOWUP%20-%20TRADED%20AND%20MFG.rdl?Web=1
+http://bis-apps/atselgi/Sales/Spares/OTD%20TRACKING%20-%20TRADED%20AND%20MFG.rdl?Web=1
+
+http://bis-apps/atselgi/Production/DailyReports/ATS%20Production%20Report.rdl?Web=1
+http://bis-apps/atselgi/Purchase/Lean/ATS%20Milk%20Run%20Stock%20Out.rdl?Web=1
+http://bis-apps/atselgi/Purchase/Lean/ATS%20Pending%20Delivery_new.rdl?Web=1
+http://bis-apps/atselgi/Purchase/Lean/ATS%20Two%20Bin%20Stock%20Out.rdl?Web=1
+
+http://bis-apps/atselgi/Quality/Hyper%20Link%20Reports/Defect%20Wise%20CTS.rdl?Web=1
+http://bis-apps/atselgi/Quality/Hyper%20Link%20Reports/Source%20Summary%20Trend.rdl?Web=1
+
+
+ATSCreditorsAnalysis
+Ats collection
+ATS Collection Details
+ATS Daily Collection Regionwise
+ATS Daily Collections
+
+ATS International Sales
+Inflow Report Areawise_ATS_Ln
+Sale Report ATS(Transactional)_LN
+ATS_Pending Order_Ln
+
+AED_Spares_OTD
+OTD ACHIEVEMENT - TRADED AND MFG
+OTD BDI - FOC ACHIEVEMENT - TRADED AND MFG
+OTD BDI - FOC FOLLOWUP - TRADED AND MFG
+OTD BDI - FOC TRACKING - TRADED AND MFG
+OTD FOLLOWUP - TRADED AND MFG
+OTD TRACKING - TRADED AND MFG
+
+ATS Production Report
+ATS Milk Run Stock Out
+ATS Pending Delivery_new
+ATS Two Bin Stock Out
+
+Defect Wise CTS
+Source Summary Trend

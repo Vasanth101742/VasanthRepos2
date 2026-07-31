@@ -1,0 +1,10 @@
+select * from 
+(select * from TTDPCG031ALL
+where COMPANY=490
+--and PRBK='SAL000056'
+and EXDT='9999-01-01 00:00:00.000')a
+inner join
+(select * from TTDISA001ALL)b
+on ltrim(rtrim(b.T$ITEM))=ltrim(rtrim(a.ITEM))
+and QTUN<>PRUN
+

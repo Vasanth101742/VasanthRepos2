@@ -1,0 +1,142 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--alter table ACP_Creditors alter column SuppAreaCode varchar(10) null
+--declare @AS_OF_DATE date='2017-06-30'
+--exec sp_ACP_Creditors '2017-06-30'
+
+CREATE proc sp_ACP_Creditors(@AS_OF_DATE date) as 
+
+
+Begin
+
+Declare @Finyear varchar(10)=case when month(@AS_OF_DATE)<4 then year(@AS_OF_DATE)-1 else year(@AS_OF_DATE) end
+declare @Finmonth varchar(10) =case when month(@AS_OF_DATE)<4 then month(@AS_OF_DATE)+9 else month(@AS_OF_DATE)-3 end
+
+
+truncate table ACP_Creditors
+
+Insert into ACP_Creditors
+
+
+select DocDt,COMPANY,TranType,InvNo,SuppCode,SuppName,SuppAreaCode,SuppAreaName,DPST,DPSTName,Description,
+convert(numeric,InvAmnt) InvAmnt,sum(PaidAmnt) PaidAmnt,
+sum(
+case when ltrim(rtrim(a.CurRate)) not in ('IND','INR') and  (abs(a.InvAmnti)-abs(isnull(PaidAmnti,0)))<>0 and  PaidAmnt <>0 then (abs(a.InvAmnt)-abs(isnull(PaidAmnt,0))) 
+when PaidAmnt <>0 then (abs(a.InvAmnt)-abs(isnull(PaidAmnt,0)))
+when PaidAmnt =0 then a.InvAmnt
+when PaidAmnt is null then a.InvAmnt 
+end
+) BalanceAmt,DueDate,Ageing,AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency ,convert(numeric,InvAmnti),sum(PaidAmnti) PaidAmnti
+from (
+select a.DOCD as DocDt,a.COMPANY,a.TTYP as TranType,a.NINV as InvNo,
+a.IFBP as SuppCode,null as SuppName,
+null as SuppAreaCode,null as SuppAreaName,
+null as DPST, null as DPSTName,
+null as Description,
+a.InvAmnt,b.PaidAmnt,
+a.DueDate,
+case when a.DueDate='9999-01-01 00:00:00.000' then 'NA'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) <30 then 'LessThan30' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 30 and 60 then '30-60'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 60 and 90 then '60-90'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 90 and 120 then '90-120'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 120 and 150 then '120-150'
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) between 150 and 180 then '150-180' 
+when a.DueDate<>'9999-01-01 00:00:00.000' and  datediff(dd,a.DueDate,getdate()-1) >180 then 'GreaterThan180' end as Ageing,
+null as AgeingOrdr,
+FinYear,FinMonth,CalYear,CalMonth,a.Currency,a.CurRate,a.InvAmnti,b.PaidAmnti
+from
+(select COMPANY,TTYP,NINV,TDOC,DOCD,DOCN,IFBP,ISUP,
+CCUR as Currency,RATE$1 as CurRate,sum(convert(numeric,AMTI)) as InvAmnti,
+sum(convert(numeric,AMTH$1)) as InvAmnt,
+YEAR as FinYear,PROD as FinMonth,null as CalYear,null as CalMonth,
+case when DUED='9999-01-01 00:00:00.000' then DOCD
+else DUED end as DueDate from TTFACP200ALL
+where DOCN=0
+--and NINV=17000003
+--and IFBP='SU1S02374'
+--and COMPANY=411
+group by COMPANY,TTYP,NINV,LINE,TDOC,DOCD,DOCN,IFBP,ISUP,CCUR,RATE$1,AMTI,YEAR,PROD,DUED
+)a
+left outer join
+(select COMPANY,IFBP,TTYP,NINV,
+--LINE,TDOC,DOCN,LINO,IFBP,ISUP,CCUR,RATE$1,
+--YEAR as FinYear,PROD as FinMonth,null as CalYear,null as CalMonth,
+sum(convert(numeric,isnull(AMTI,0))) as PaidAmnti, 
+sum(convert(numeric,isnull(AMTH$1,0))) as PaidAmnt
+from TTFACP200ALL
+where DOCN<>0
+and concat(convert(varchar,year),convert(varchar,prod))<=CONCAT(@Finyear,@Finmonth)
+--and NINV=17000003
+--and IFBP='SU1S02374'
+--and COMPANY=411
+group by COMPANY,IFBP,TTYP,NINV,year,PROD
+)b
+on a.company=b.company
+and a.NINV=b.NINV
+and a.TTYP=b.TTYP
+and a.IFBP=b.IFBP
+)a
+--where BalanceAmt<>0
+--and Ageing='GreaterThan180'
+--and NINV=17000001
+--and ttyp='OSA'
+--and company=400
+
+
+group by DocDt,COMPANY,TranType,InvNo,InvAmnt,SuppCode,SuppName,SuppAreaCode,SuppAreaName,DPST,DPSTName,Description,
+DueDate,Ageing,AgeingOrdr,FinYear,FinMonth,CalYear,CalMonth,CurRate,Currency,InvAmnti
+order by DocDt
+
+
+--BalanceAmnt Correction
+
+update ACP_Creditors set BalanceAmt=(abs(InvAmnt)-abs(isnull(PaidAmnt,0))) where PaidAmnt <>0
+update ACP_Creditors set BalanceAmt=InvAmnt where  PaidAmnt =0 
+update ACP_Creditors set BalanceAmt=InvAmnt where  PaidAmnt is null 
+
+
+
+update ACP_Creditors set suppname=v.custname1,SuppAreaCode=v.CustAreaCode
+from vw_business_partner v
+where ACP_Creditors.suppcode=v.custcode
+
+update ACP_Creditors set suppAreaName =v.AreaName
+from vw_AREA_MASTER v
+where ACP_Creditors.SuppAreaCode=v.Areacode
+
+update ACP_Creditors set SuppAreaCode=null where SuppAreaCode =''
+
+update ACP_Creditors set AgeingOrdr=1 where Ageing= 'LessThan30' 
+update ACP_Creditors set AgeingOrdr=2 where Ageing= '30-60'
+update ACP_Creditors set AgeingOrdr=3 where Ageing= '60-90'
+update ACP_Creditors set AgeingOrdr=4 where Ageing= '90-120'
+update ACP_Creditors set AgeingOrdr=5 where Ageing= '120-150'
+update ACP_Creditors set AgeingOrdr=6 where Ageing= '150-180' 
+update ACP_Creditors set AgeingOrdr=7 where Ageing= 'GreaterThan180'
+update ACP_Creditors set AgeingOrdr=8 where Ageing='NA'
+
+
+update ACP_Creditors set CalMonth=FinMonth+3 where FinMonth<=9
+update ACP_Creditors set CalMonth=FinMonth-9 where FinMonth>9
+
+update ACP_Creditors set CalYear=FinYear where FinMonth<=9
+update ACP_Creditors set CalMonth=FinYear+1 where FinMonth>9
+
+
+
+
+end
+
+
+--Select * from ACP_Creditors
+
+--select * from TTFACP200ALL
+--alter table ACP_Creditors add FinYear int,FinMonth int,CalYear int,CalMonth int
+
+
+
+--Alter table ACP_Creditors add InvAmnti numeric,PaidAmnti numeric
+
+

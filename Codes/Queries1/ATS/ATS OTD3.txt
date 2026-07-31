@@ -1,0 +1,78 @@
+SELECT A.*,b.nama,description,
+CONVERT(VARCHAR,orderdate,101) AS orderdate1,
+convert(varchar,plandeldate,101) as plandeldate1,
+isnull(CONVERT(VARCHAR,T$DATE,101),'-') AS T$DATE1,
+ROW_NUMBER() OVER(ORDER BY (DELQTY1-orderqty1)) as ranks, 
+CASE WHEN  plandelqty=orderqty1 then 'Ontime Delivery'  
+when DELQTY1=orderqty1 and outplandelqty != 0  then 'Delivered Not Ontime'  
+when DELQTY1!=0 and DELQTY1!=orderqty1 then 'Partially Executed' 
+when DELQTY1=0 then 'Not Delivered' end as status,
+CASE WHEN  plandelqty=orderqty1 then 4  
+when DELQTY1=orderqty1 and outplandelqty != 0   then 3  
+when DELQTY1!=0 and DELQTY1!=orderqty1 then 2 
+when DELQTY1=0 then 1 end
+
+FROM
+(SELECT SUM(isnull(withplandate,0)) AS DELQTY1,
+SUM(CASE WHEN T$DATE <= Plandeldate THEN withplandate ELSE 0 END ) AS plandelqty,
+SUM(CASE WHEN T$DATE > Plandeldate THEN withplandate ELSE 0 END) AS outplandelqty,
+convert(datetime,plandeldate) as plandeldate,CONVERT(datetime,max(T$DATE)) AS T$DATE,
+T$PONO,orderqty,orderqty1,ordernum,suppcode,itemcode as itemcode ,
+CONVERT(datetime,orderdate) AS orderdate,convert(varchar,T$cwar) as T$cwar
+FROM
+(
+SELECT a.T$DQUA AS withplandate,isnull(a.T$CWAR ,b.WareHouse) T$cwar,b.OrderNum,b.SuppCode,
+b.ItemCode,b.OrderDate,b.PlanDelDate,a.T$DATE,a.T$DDTB,b.OrderQty,b.orderqty1 as orderqty1,
+isnull(T$PONO,positionnum) as T$PONO 
+FROM 
+(select a.T$ORNO,b.SFBP,b.ITEM,a.T$DDTE,(a.T$QIDL-a.T$QIAP) as QIDL,b.DDTB,a.T$PONO,b.CWAR from TTDPUR406ALL a
+left outer join TTDPUR401ALL b
+on a.company=b.COMPANY
+and a.T$ORNO=b.ORNO
+and a.T$PONO=b.PONO
+and a.T$SQNB=b.SQNB
+WHERE a.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and T$SRNB >0 
+and b.cwar in ( @warhouse)
+)a
+
+RIGHT OUTER JOIN
+(
+--SELECT ordernum,suppcode,itemcode,plandeldate,orderdate,orderqty,positionnum,warehouse,
+--case when backordqty =0 and delqty !=0 and delqty < orderqty then delqty else orderqty end as orderqty1
+--FROM tmppurlinesbaan 
+--WHERE MONTH(plandeldate) =@month  
+--and year(plandeldate)=@year  
+--and orgcompany=101 
+--and convert(nvarchar,left(ordernum,3)) in (@order)  
+--and warehouse in (@warhouse) 
+
+
+select a.ORNO,a.SFBP,b.ITEM,--a.dd 
+a.ODAT,a.ODTY,b.PONO,b.CWAR,b.DDTA,b.PONO,b.CWAR
+--,b.dqu
+from TTDPUR400ALL a
+left outer join TTDPUR401ALL b
+on a.COMPANY=b.COMPANY
+and a.ORNO=b.ORNO
+where a.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+)b
+ON T$Orno=ordernum 
+and T$SUNO=suppcode 
+and ltrim(rtrim(T$Item))= ltrim(rtrim(itemcode)) 
+and T$PONO=positionnum
+--GROUP BY ordernum,suppcode,itemcode,orderqty,orderdate,orderqty1,T$PONO,plandeldate,T$cwar,T$DATE,T$DDTB,positionnum
+)a
+
+GROUP BY ordernum,suppcode,itemcode,orderqty,orderdate,orderqty1,T$PONO,plandeldate,T$cwar
+)A
+
+LEFT OUTER JOIN com020 b 
+ON B.SUNO=A.suppcode
+
+LEFT OUTER JOIN (SELECT ITEMCODE,description FROM COMITEMDATA WHERE COMPANY=101 )C
+ON A.itemcode=C.ITEMCODE
+
+
+

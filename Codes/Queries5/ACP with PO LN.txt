@@ -1,0 +1,81 @@
+--Alter table TTFGLD482ALL_LN add T$PONO varchar(10)
+--Alter table TTFGLD482ALL_LN add T$SRNO varchar(10)
+
+
+
+update TTFGLD482ALL_LN set T$PONO=substring(T$obre,1,CHARINDEX('/',T$obre)-1) where T$rbon in ('tdpur040','tdsls040')
+update TTFGLD482ALL_LN set T$SRNO=substring(T$obre,CHARINDEX('/',T$obre)+1,[ELGi_LN].dbo.ufn_CHARINDEX2('/',T$obre,2)-CHARINDEX('/',T$obre)-1)
+where T$rbon in ('tdpur040','tdsls040')
+
+Truncate table ACP_With_PO_Part1_LN
+Insert into ACP_With_PO_Part1_LN
+--select * into ACP_With_PO_Part1_LN from(
+select a.company as company_106,a.T$OTYP as OTYP_106,
+a.T$ODOC as ODOC_106,a.T$BPID SUNO_106,b.T$TTYP as TTYP_482,b.T$DOCN DOCN_482,
+b.T$ORNO as ORNO_482,b.T$PONO as PONO_482,b.T$SRNO as SRNO_482,b.T$LINO as LINO_482,
+c.ITYP as TTYP_046,c.IDOC as INVN_046,
+d.TTYP as TTYP_ACP ,d.NINV as NINV_ACP,d.TDOC as TDOC_ACP,d.DOCN as DOCN_ACP,
+sum(d.T$AMTH) T$AMTH,a.T$LEAC 
+from
+(select company,T$OTYP ,T$ODOC,T$BPID ,T$OLIN,T$LEAC from ttfgld106ALL_LN
+where ltrim(rtrim(T$BPID)) <> '' and T$intt=1
+)a
+left outer join 
+(
+select T$fcom as company,T$TTYP,T$DOCN,T$BPID, T$rbid as T$ORNO,T$obre,T$PONO,T$SRNO,T$LINO
+--substring(T$obre,1,CHARINDEX('/',T$obre)-1) as T$PONO,
+--substring(T$obre,CHARINDEX('/',T$obre)+1,[ELGi_LN].dbo.ufn_CHARINDEX2('/',T$obre,2)-CHARINDEX('/',T$obre)-1) as T$SRNO,
+from TTFGLD482ALL_LN
+where --T$BPID=' ' and
+T$rbon in ('tdpur040','tdsls040')
+)b
+on a.company=b.company
+and a.T$OTYP=b.T$TTYP
+and a.T$ODOC=b.T$DOCN
+and a.T$OLIN=b.T$LINO
+and a.T$BPID=b.T$BPID
+left outer join 
+(select ICOM as COMPANY,IFBP,ORNO,PONO,SQNB,ITYP,
+IDOC from [ELGi_LN].dbo.TTFACP251ALL)c
+on b.company=c.COMPANY
+and b.T$BPID= c.IFBP
+and b.T$ORNO=c.ORNO
+and b.T$PONO =c.PONO
+and b.T$SRNO=c.SQNB
+left outer join 
+(select company,TTYP,NINV,TDOC,DOCN ,sum(AMTH$1) T$AMTH from [ELGi_LN].dbo.TTFACP200ALL
+where LINO < 100 and  ltrim(rtrim(TDOC)) <> ''
+group by company,TTYP,NINV,TDOC,DOCN
+)d
+on c.company=d.company
+and c.ITYP=d.TTYP
+and c.IDOC=d.NINV
+--where OTYP='PPU' and ODOC='11000003' and a.company=240 and suno='E00440' and OLIN=1
+group by
+a.company,a.T$OTYP,a.T$ODOC,a.T$BPID,b.T$TTYP,b.T$DOCN,
+b.T$ORNO,b.T$PONO,b.T$SRNO,b.T$LINO,c.ITYP,c.IDOC,
+d.TTYP,d.NINV,d.TDOC,d.DOCN,T$LEAC
+--)a
+
+
+--------------------------------------------------------------------
+
+select * from ACP_With_PO_Part1_LN a
+left outer join
+(select distinct COMPANY,T$OTYP,T$ODOC,T$FTYP,T$FDOC from TTFGLD106ALL2_LN) b
+on a.company_106=b.COMPANY
+and a.TDOC_ACP=b.T$OTYP
+and a.DOCN_ACP=b.T$ODOC
+left outer join (select distinct custcode as  SuppCode, custname1 as SuppName1,Currency from [ELGI_LN].dbo.[vw_Business_Partner]
+where len(ltrim(rtrim(custcode)))>4
+) c
+on ltrim(rtrim(a.SUNO_106))=ltrim(rtrim(c.SuppCode))
+left outer join (select distinct COMPANY,T$OTYP,T$ODOC,T$LEAC from TTFGLD106ALL2_LN) d
+on a.company_106=d.COMPANY
+and a.OTYP_106=d.T$OTYP
+and a.ODOC_106=d.T$ODOC
+
+--where a.OTYP='PPU' and a.ODOC='11000003' and a.company=240
+order by a.company_106,a.TTYP_046,a.INVN_046,a.TDOC_ACP,a.DOCN_ACP
+
+

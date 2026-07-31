@@ -1,0 +1,18 @@
+select  a.*,b.category,b.productline from
+(select Organ,company,Invoice_Date,trantype,Invoice,dpst,dpstname,areacode,areaname,
+custcode,custname,Item,Item_desc,Sales_amount Sales_INR,Rate_USD,Sales_USD,Fin_year,Fin_month
+from elgi_sales_details
+where organ='ID'
+and sales_category not in (1)
+and Invoice_Date>='2013-04-01')a
+left outer join 
+(
+select * from(
+select itemcode,category,productline,
+row_number() over (partition by itemcode order by itemcode) as Rnk
+from ItemMaster_ID)a
+where Rnk=1
+) b
+on --a.company=b.Company and 
+ltrim(rtrim(a.Item))=ltrim(rtrim(b.ItemCode))
+order by Invoice_Date

@@ -1,0 +1,41 @@
+SELECT     RPLDATA.ITEM, 
+CONVERT(varchar(10), CONVERT(datetime, RPLDATA.ENTRY_DATE), 103) AS ENTRY_DATE,
+RPLDATA.SUPP, 
+CONVERT(varchar(10), CONVERT(datetime, RPLDATA.GT_INW_DT), 103) AS GT_INW_DT, 
+LEAN_MASTER.BUYR, 
+LEAN_MASTER.RPLT, 
+DATEDIFF(dd, RPLDATA.ENTRY_DATE,RPLDATA.GT_INW_DT) AS Noofdays, 
+LEAN_MASTER.SQTY AS BinQty, 
+CASE WHEN rplt >= datediff(dd, entry_date, gt_inw_dt) THEN 100 ELSE 0 END AS Perc, 
+Materials_Dept.DEPARTMENT,
+MATERIALS_SUPERMARKET.SUPERMARKET,
+BAAN_Emp_Master.empname, 
+PurSupplier.NAMA, 
+ComItemData.Description, 
+lean_groupleader.group_leader,
+'Elgi' AS elgi
+
+FROM lean_groupleader 
+INNER JOIN BAAN_Emp_Master 
+INNER JOIN LEAN_MASTER 
+	ON BAAN_Emp_Master.empcode = LEAN_MASTER.BUYR 
+	ON lean_groupleader.buyer = LEAN_MASTER.BUYR 
+LEFT OUTER JOIN ComItemData 
+INNER JOIN RPLDATA 
+INNER JOIN MATERIALS_SUPERMARKET 
+	ON RPLDATA.DEPT = MATERIALS_SUPERMARKET.ID 
+INNER JOIN PurSupplier 
+	ON RPLDATA.SUPP = PurSupplier.SupplierNum 
+	ON LTRIM(RTRIM(ComItemData.ItemCode)) = LTRIM(RTRIM(RPLDATA.ITEM)) 
+INNER JOIN Materials_Dept 
+	ON RPLDATA.DIV = Materials_Dept.ID 
+	ON LEAN_MASTER.DEPT = RPLDATA.DEPT 
+	AND LEAN_MASTER.DIVI = RPLDATA.DIV 
+	AND LTRIM(RTRIM(LEAN_MASTER.ITEM)) = LTRIM(RTRIM(RPLDATA.ITEM))
+
+WHERE (RPLDATA.ENTRY_DATE <> '-9999-01-01 00:00:00') AND (CONVERT(datetime, RPLDATA.ENTRY_DATE) BETWEEN @d1 AND @d2) AND 
+                      (RPLDATA.GT_INW_DT <> '-9999-01-01 00:00:00') AND (ComItemData.company = 100) AND (BAAN_Emp_Master.COMPANY = 100)
+
+
+
+																						select * from lean_groupleader

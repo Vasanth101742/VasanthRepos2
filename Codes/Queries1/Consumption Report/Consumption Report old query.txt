@@ -1,0 +1,43 @@
+select a.*
+,c.Buyer as BUYRCODE,v.empname as BUYER_NAME,c.Supplier SUPPCODE,p.NAMA as SUPP_NAME,c.Description 
+from 
+(select TRDT,company,item,sum(Sales_Consumption) Sales_Consumption ,sum(Production_Consumption) Production_Consumption
+from 
+(select TRDT,company,item,sum(quan) Sales_Consumption,0 as Production_Consumption
+from TDINV700_Sales_issue
+where concat(RIGHT('00'+CAST(month(TRDT) AS VARCHAR(2)),2),cast(year(TRDT) as varchar(4))) in (@MMYYYY)
+group by TRDT,company,item
+union
+select TRDT,company,item,0,sum(quan) Production_Consumption
+from TDINV700_prod_issue
+where concat(RIGHT('00'+CAST(month(TRDT) AS VARCHAR(2)),2),cast(year(TRDT) as varchar(4))) in (@MMYYYY)
+group by TRDT,company,item)a
+group by TRDT,company,item)a
+
+--left outer join
+--(select company,ITEM,sum(MMAX) MMAX from tepur246 where updt=(select max(updt) from tepur246)
+--group by company,ITEM)b
+--on a.COMPANY=b.company
+--and a.ITEM=b.item
+
+inner join (
+select ItemCode,Description,Buyer,Supplier from
+(select distinct ItemCode,Description,Buyer,Supplier,ROW_NUMBER() over (partition by itemcode order by description desc) Rownum from ComItemData
+where ltrim(rtrim(ItemCode)) in
+(select distinct ltrim(rtrim(item)) from
+(select distinct item from TDINV700_Sales_issue
+union
+select distinct item from TDINV700_prod_issue)a))b
+where rownum=1
+)c
+on ltrim(rtrim(A.ITEM))=ltrim(rtrim(C.ItemCode)) 
+
+left outer join 	(select distinct empcode,empname from baan_emp_master) V
+ON c.Buyer=V.empcode
+LEFT OUTER JOIN PurSupplier P
+ON P.SupplierNum=c.Supplier
+
+where a.TRDT is not null
+and a.company in (150,108)
+
+order by TRDT,a.COMPANY,a.item

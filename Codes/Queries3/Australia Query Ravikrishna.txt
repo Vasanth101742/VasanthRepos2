@@ -1,0 +1,67 @@
+-------------------------------------------------------------------------------------------------------
+--Australia Sales AUD(K)
+
+--select sum(Sales_AUD) Sales_AUD,sum(Sales_USD) Sales_USD from (
+select Organ,company,trantype,Invoice,Invoice_Date,Item,--Item_desc,
+dpst,dpstname,areacode,areaname,
+custcode,custname,Currency,t_rate_1 as currencyRate,
+sum(DeliveryQty) DeliveryQty,sum(Sales_amount) as Sales_INR,
+--Rate_USD,sum(Sales_USD) Sales_USD,
+null as Rate_USD,null as Sales_USD,
+sum(Foreign_currency_amount) as Sales_AUD,
+Fin_year,Fin_month,Monthname 
+from  	
+ELGi_Sales_Details a 
+WHERE	(a.Invoice_Date BETWEEN '04/01/2018' AND GETDATE()) 
+and organ='COSEA'
+and areaname like '%Australia%'
+and a.sales_category not in (1)
+--AND a.SaleOrderType in (
+--select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select '' as SaleOrderType from SaleType_Master
+--)
+--AND areaname like '%Australia%'
+--and dpst not in ('70022','70095')
+--and Dpst='70085'
+--and CustCode in ('CU1P00009')-- ('CU1A00019')
+group by Organ,company,trantype,Invoice,Invoice_Date,Item,--Item_desc,
+dpst,dpstname,areacode,areaname,custcode,custname,Currency,t_rate_1,--Rate_USD,
+Fin_year,Fin_month,Monthname 
+--order by Invoice_Date
+--)a
+
+
+---------------------------------------------------------------------------------------------------------
+--ELGI Billing to Australia
+
+--select sum(Sales_AUD) Sales_AUD,sum(Sales_USD) Sales_USD from (
+select Organ,company,trantype,Invoice,Invoice_Date,Item,--Item_desc,
+dpst,dpstname,areacode,areaname,
+custcode,custname,Currency,t_rate_1 as currencyRate,
+sum(DeliveryQty) DeliveryQty,
+sum(Sales_amount) as Sales_INR,
+Rate_USD,sum(Sales_USD) Sales_USD,
+--sum(Foreign_currency_amount) as Sales_AUD,
+null as Sales_AUD,
+Fin_year,Fin_month,Monthname 
+from  	
+ELGi_Sales_Details a 
+WHERE	(a.Invoice_Date BETWEEN '04/01/2018' AND GETDATE()) 
+and organ='Subsidiary'
+and Division like '%Austra%'
+and a.sales_category not in (1)
+--AND a.SaleOrderType in (
+--select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select '' as SaleOrderType from SaleType_Master
+--)
+--AND areaname like '%Australia%'
+--and dpst not in ('70022','70095')
+--and Dpst='70085'
+--and CustCode in ('CU1P00009')-- ('CU1A00019')
+group by Organ,company,trantype,Invoice,Invoice_Date,Item,--Item_desc,
+dpst,dpstname,areacode,areaname,
+custcode,custname,Currency,t_rate_1,Rate_USD,Fin_year,Fin_month,Monthname 
+--order by Invoice_Date
+--)a

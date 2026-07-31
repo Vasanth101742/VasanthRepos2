@@ -1,0 +1,8 @@
+exec sp_TCODE_PROCESS
+exec sp_tcode_PL
+exec sp_Tcode_BalanaceSheet
+
+
+exec sp_TCODE_PROCESS_from_BAAN
+exec sp_tcode_PL_from_BAAN
+exec sp_Tcode_BalanaceSheet_from_BAAN

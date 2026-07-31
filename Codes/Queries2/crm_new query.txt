@@ -1,0 +1,107 @@
+select distinct L3_ID,L3_Team,L4_User_ID,Engg_User_ID,Engg_Name,b.*  from tb3 a
+inner join
+CRM_Conversion_rate_fact b
+
+on a.L3_ID=b.section_id
+and a.L4_User_ID=b.user_id
+where L3_ID is null
+
+
+
+select tb3a.*,
+--tb4a_ver2.Segment_id,tb4a_ver2.Segment,
+--tb4a_ver2.Country_id,tb4a_ver2.Country,
+--tb4a_ver2.State_id,tb4a_ver2.StateName,
+--tb4a_ver2.Area_id,tb4a_ver2.Area,
+--tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+--tb4a_ver2.City_id,tb4a_ver2.City,
+--tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+tb4a_ver2.act_count,tb4a_ver2.
+from tb3a
+inner join CRM_Conversion_rate_fact 
+on 
+tb3a.L5_ID=tb4a_ver2.section_id and 
+tb3a.engg_user_id=tb4a_ver2.user_id 
+
+group by 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+tb3a.Engg_User_ID,Engg_Name,Engg_Email
+--Segment_id,Segment,Country_id,Country,State_id,StateName,
+--Area_id,Area,SubArea_id,SubArea,City_id,City,Ordering,Metrics_levels
+
+order by L1_ID,L2_id,L3_id,L4_id,L5_id,Engg_user_id,ordering
+
+
+
+select * from tb4_ver2
+
+
+sp_helptext sp_crm_parent_child
+
+
+
+select * from CRM_Conversion_rate_fact
+
+
+select * from 
+(
+select a.section_id,a.user_id,a.id as lead_id ,a.stage_id,
+case when a.type  ='lead' and a.stage_id  =1 then 'Prospects'
+when a.stage_id  =4 and a.type  ='opportunity' then 'Enquiry Generation'
+when a.stage_id  =5 and a.type  ='opportunity' then 'Enquiry Conversion'
+when a.stage_id  =7 and a.type  ='opportunity' then 'Order_won'
+when a.stage_id  =8 and a.type  ='opportunity' then 'Order_lost'
+when a.stage_id  =6 and a.type  ='opportunity' then 'Order_dropped'
+end as Metrics_levels,
+enquiry_date as prospects_date,b.date_order as ec_date,b.date_confirm as won_date,
+b.state,
+--case when b.state='progress'then 'won' else 'EC'end as status
+case when enquiry_date is not null and date_order is not null and date_confirm is not null and b.state in ('progress','manual') then 'WON'
+when  enquiry_date is not null and date_order is not null and date_confirm is not null and b.state in ('draft','sent') then 'TobeWon'
+when  enquiry_date is not null and date_order is not null and date_confirm is not null and b.state in ('lost','drop','cancel') then 'NotWon'
+when  enquiry_date is not null and date_order is not null and date_confirm is null then 'EC'
+when  enquiry_date is not null and date_order is null and date_confirm is null then 'Prospects'
+end as Status,
+--datediff(dd,enquiry_date,isnull(date_order,enquiry_date)) as Prospects_to_EC_Days,
+case when date_order is not null then 
+case when datediff(dd,enquiry_date,date_order) < 0 then datediff(dd,enquiry_date,date_order)*(-1)
+else datediff(dd,enquiry_date,date_order) end
+else '-9999'
+end
+as Prospects_to_EC_Days,
+case when date_confirm is not null then 
+case when datediff(dd,date_order,date_confirm) <0 then datediff(dd,date_order,date_confirm)*(-1)
+else datediff(dd,date_order,date_confirm) end
+else '-9999'
+end
+as EC_to_Won_Days
+from Crm_Lead a
+left join sale_order b
+on ltrim(rtrim(a.id))=ltrim(rtrim(b.opportunity_id ))
+
+where a.stage_id in(1,4,5,6,7,8)
+and a.user_id in(select distinct id from res_users where active=1)
+)b
+
+on a.L2_ID=b.section_id
+and a.Engg_User_ID=b.user_id
+where L4_ID is null
+
+
+--where status is null
+--where prospects_to_EC_days<0
+--and prospects_to_EC_days<>-9999
+--where stage_id=4
+--order by a.section_id,a.user_id,status 
+
+
+--select *  from sale_order
+--where state = 'cancel'
+--'progress'
+--in ('draft','sent','drop','manual')
+
+

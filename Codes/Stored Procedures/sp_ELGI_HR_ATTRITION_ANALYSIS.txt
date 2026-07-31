@@ -1,0 +1,218 @@
+--exec sp_ELGI_HR_ATTRITION_ANALYSIS
+--select * from hr_attrition_analysis
+
+CREATE proc sp_ELGI_HR_ATTRITION_ANALYSIS as
+
+begin
+
+
+Truncate table HR_Attrition_Analysis
+
+
+declare @FinYear int
+declare @FinMonthNo int
+declare @FinYearCnt int
+declare @FinMonthNoCnt int
+declare @ResignedCnt int
+declare @count1 int
+declare @count2 int
+declare @OpeningBalance int
+declare @JoinedCnt int
+declare @closingbalance int =0
+
+
+set @FinYear=(select min(FinYear) from HR_MASTER)
+set @FinMonthNo=1
+set @FinYearCnt=(select count(distinct FinYear) from HR_MASTER)
+set @FinMonthNoCnt=12
+set @count1=1
+set @count2=1
+
+
+while (@count1<=@FinYearCnt)
+
+begin
+
+
+set @FinMonthNo=1
+set @count2=1
+
+
+set @FinYear=(
+select finyear from 
+(select finyear ,row_number() over (order by finyear) finyearrank from
+(select distinct finyear from vw_elgi_HR)a)b
+where finyearrank=@count1)
+
+
+
+while(@count2<=@FinMonthNoCnt)
+
+begin
+
+--Logic 1---------------------------
+--if(@FinMonthNo<12 and @FinYear='2015' or @FinMonthNo<2 and @FinYear='2016')
+
+--begin
+
+
+--calculating Joined Counts based on difference in two months data
+
+set @JoinedCnt=
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from vw_elgi_HR 
+where Band<>'0'
+and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+
+except
+
+select distinct Emp_Code from vw_elgi_HR 
+where Band<>'0'
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+)a
+
+
+)
+
+
+set @ResignedCnt =
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from vw_elgi_HR 
+where band <>'0'
+and FinMonthNo=@FinMonthNo 
+and FinYear=@FinYear
+
+except
+
+select distinct Emp_Code from vw_elgi_HR 
+where band <>'0'
+and FinMonthNo=case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+)a
+)
+
+set @OpeningBalance =@closingbalance
+
+--end
+
+--else
+
+--begin
+
+--set @JoinedCnt=(select count(distinct emp_code) from vw_elgi_HR 
+--where band<>'0'
+--and month(Start_Date)=
+--case when @FinMonthNo<10 then @FinMonthNo+3 else @FinMonthNo-9  end 
+--and year(Start_Date)=
+--case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+--)
+
+
+--set @ResignedCnt =(select count(distinct emp_code) from vw_elgi_HR 
+--where band<>'0'
+--and month(Seperation_Date)=
+--case when @FinMonthNo<10 then @FinMonthNo+3 else @FinMonthNo-9  end 
+--and year(Seperation_Date)=
+--case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+--)
+
+----set   @OpeningBalance= @closingbalance
+
+--end
+
+
+
+
+if(@FinMonthNo=1 and @FinYear='2015')
+
+begin
+
+set   @OpeningBalance= 
+(select sum(num) from vw_elgi_HR 
+where band<>'0'
+and FinMonthNo=@FinMonthNo
+and FinYear=@FinYear
+group by finyear,FinMonthNo,FinMonthName
+)
+set @JoinedCnt=0
+set @ResignedCnt =
+(
+select case when count(*)>1000 then 0 else count(*) end as ResignedCnt from
+(
+select distinct Emp_Code from vw_elgi_HR 
+where band <>'0'
+and FinMonthNo=
+@FinMonthNo 
+and FinYear=
+@FinYear
+
+except
+
+select distinct Emp_Code from vw_elgi_HR 
+where band <>'0'
+and FinMonthNo=
+case when @FinMonthNo+1 =13 then 1 else @FinMonthNo+1 end 
+and FinYear=
+case when @FinMonthNo+1 =13 then @FinYear+1 else @FinYear end
+)a
+)
+
+
+
+
+
+end
+
+
+
+set @closingbalance =@OpeningBalance+@JoinedCnt-@ResignedCnt
+
+
+
+insert into HR_Attrition_Analysis
+select FinYear,FinMonthNo,FinMonthName,
+@OpeningBalance,
+@JoinedCnt as Joined,
+@ResignedCnt as Resigned,
+--@OpeningBalance + count(case when month(Start_Date)=@FinMonthNo and year(Start_Date)=@FinYear then 1 end)- @ResignedCnt as ClosingBalance
+--@OpeningBalance +@JoinedCnt-@ResignedCnt as ClosingBalance
+@closingbalance as ClosingBalance
+--sum(num) as ClosingBalance
+from vw_elgi_HR 
+where band<>'0'
+and FinMonthNo=@FinMonthNo
+--case when @FinMonthNo<10 then @FinMonthNo-3 else @FinMonthNo-9  end 
+and FinYear=@FinYear
+--case when @FinMonthNo<10 then @FinYear else @FinYear+1 end
+group by finyear,FinMonthNo,FinMonthName
+
+
+--set @closingbalance =(select 
+--sum(num) as ClosingBalance
+--from vw_elgi_HR where Band<>'0'
+--and FinMonthNo=@FinMonthNo and FinYear=@FinYear
+--group by finyear,FinMonthNo,FinMonthName)
+
+set   @OpeningBalance= @closingbalance
+
+set @FinMonthNo=@FinMonthNo+1
+set @count2=@count2+1
+
+
+end
+
+
+set @count1=@count1+1
+
+end
+
+end
+
+

@@ -1,0 +1,39 @@
+=runningValue(cdbl(Fields!sales_amount.Value/1000000),Sum,"fin_year")
+
+
+
+declare @CalMonth int=8
+declare @CalYear int=2017
+
+select isnull(a.organ,b.organ) as Organ,
+--isnull(a.dpst,b.Dpstcode) as Dpstcode,
+--isnull(a.area,b.Areacode) as AreaCode,
+sum(AprBud) AprBud,sum(MayBud) MayBud,sum(JunBud) JunBud,sum(JulBud) JulBud,sum(AugBud) AugBud,sum(SepBud) SepBud,
+sum(OctBud) OctBud,sum(NovBud) NovBud,sum(DecBud) DecBud,sum(JanBud) JanBud,sum(FebBud) FebBud,sum(MarBud) MarBud,
+sum(AprSales) AprSales,sum(MaySales) MaySales,sum(JunSales) JunSales,sum(JulSales) JulSales,sum(AugSales) AugSales,
+sum(SepSales) SepSales,sum(OctSales) OctSales,sum(NovSales) NovSales,sum(DecSales) DecSales,sum(JanSales) JanSales,
+sum(FebSales) FebSales,sum(MarSales) MarSales,
+sum(AprSalesLYr) AprSalesLYr,sum(MaySalesLYr) MaySalesLYr,sum(JunSalesLYr) JunSalesLYr,sum(JulSalesLYr) JulSalesLYr,
+sum(AugSalesLYr) AugSalesLYr,sum(SepSalesLYr) SepSalesLYr,sum(OctSalesLYr) OctSalesLYr,sum(NovSalesLYr) NovSalesLYr,
+sum(DecSalesLYr) DecSalesLYr,sum(JanSalesLYr) JanSalesLYr,sum(FebSalesLYr) FebSalesLYr,sum(MarSalesLYr) MarSalesLYr
+from
+(select * from ufn_bud_global(@CalMonth,@CalYear) where organ='COSEA')a
+full outer join
+(select * from ufn_sls_global(@CalMonth,@CalYear) where organ='COSEA')b
+on a.dpst=b.Dpstcode
+and a.area=b.Areacode
+and a.item_code=b.Item
+
+full outer join
+
+(select e.icode,e.line as linecode,f.line from (
+select *,case when Market='India and India Like' then 1
+when Market='Subsidiary' then 2 end as MarketID from
+(select *,case when itype=4 then 'Subsidiary' else 'India and India Like' end as Market from [ELGI-DW].dbo.TESFC087)temp) e
+left outer join (select distinct line,linevalue from [ELGI-DW].dbo.ALC_Line) f
+on ltrim(rtrim(f.linevalue))=ltrim(rtrim(e.line))
+)line
+on ltrim(rtrim(isnull(a.item_code,b.Item)))=ltrim(rtrim(line.icode))
+
+
+group by isnull(a.organ,b.organ)

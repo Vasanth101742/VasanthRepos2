@@ -1,0 +1,278 @@
+--declare @CalMonth int=4
+--Declare @CalYear int=2018
+--select convert(date,CONVERT(varchar, @CalMonth) + '/1/' + CONVERT(varchar,@CalYear-1)),
+--dateadd(dd,-1,dateadd(mm,1,convert(date,CONVERT(varchar, @CalMonth) + '/1/'+  CONVERT(varchar,@CalYear-1))))
+--CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/'+  CONVERT(varchar,@CalYear-1)
+
+
+CREATE FUNCTION ufn_sls_Domestic_Regionwise (@CalMonth int,@CalYear int)
+
+RETURNS @ufn_sls_Domestic_Regionwise TABLE 
+
+(
+zone	varchar(100),
+Dpstcode	nvarchar(20),
+dpstname	varchar(100),
+description	varchar(50),
+ondate_sale	float,
+last_year_sale	float,
+last_year_ytd	float,
+this_year_sale	float,
+last_month_sale	float,
+last_year_this_month_sale	float,
+this_month_sale	float,
+thr_month_sale	float,
+n1_month_sale	float,
+n2_month_sale	float,
+n3_month_sale	float,
+inflow	float,
+Ondate_Inflow	float,
+YTD_INFLOW	float,
+last_month_inflow	float,
+last_month_inflow_Qty	float,
+Inflow_Qty	float,
+this_month_Sale_Qty	float,
+YTD_INFLOW_Qty	float,
+n1_month_inflow	float,
+n2_month_inflow	float,
+n3_month_inflow	float,
+INFLOW_Opening	float
+)
+
+AS
+
+BEGIN
+
+WITH CTE_sls_Domestic_Regionwise
+(
+zone,Dpstcode,dpstname,description,
+ondate_sale,last_year_sale,last_year_ytd,this_year_sale,last_month_sale,last_year_this_month_sale,
+this_month_sale,thr_month_sale,n1_month_sale,n2_month_sale,n3_month_sale,
+inflow,Ondate_Inflow,YTD_INFLOW,last_month_inflow,
+last_month_inflow_Qty,Inflow_Qty,this_month_Sale_Qty,YTD_INFLOW_Qty,
+n1_month_inflow,n2_month_inflow,n3_month_inflow,INFLOW_Opening
+) -- CTE name and columns
+
+AS (
+
+
+select *
+--,case when row_number() over(partition by user_names order by user_names ) =1 then sp else 0 end as Sales_Plan
+from (
+SELECT coalesce(inf.zone,sls.zone) zone,
+--coalesce(b.Areacode,sls.areacode,inf.areacode) as Areacode,b.AreaName, 
+coalesce(d.Dpstcode,sls.dpst,inf.dpst) as Dpstcode ,d.dpstname,d.description,
+ondate_sale,last_year_sale,last_year_ytd,this_year_sale,last_month_sale,last_year_this_month_sale,this_month_sale,
+thr_month_sale,n1_month_sale,n2_month_sale,n3_month_sale,
+inflow,Ondate_Inflow,YTD_INFLOW,last_month_inflow,last_month_inflow_Qty,Inflow_Qty,this_month_Sale_Qty,YTD_INFLOW_Qty,
+n1_month_inflow,n2_month_inflow,n3_month_inflow,INFLOW_Opening
+from vw_DPST_MASTER d
+
+
+full outer join
+
+(
+select Dpst,Zone,--AreaCode,
+
+
+
+SUM(CASE WHEN month(a.OrderDate) =@CalMonth
+and year(a.OrderDate) =@CalYear
+THEN (a.sales) / 1000000 ELSE 0 END) AS Inflow,
+
+sum(CASE WHEN day(a.OrderDate)=day(getdate()-1)and month(a.OrderDate)=@CalMonth
+and year(a.OrderDate)=@CalYear THEN (a.sales) / 1000000 ELSE 0 END) AS Ondate_Inflow,
+
+
+SUM(CASE WHEN a.OrderDate BETWEEN 
+convert(date,'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end )))
+AND 
+convert(date,CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/' + CONVERT(varchar,@CalYear))
+THEN (a.sales) / 1000000 ELSE 0 END) AS YTD_INFLOW,   
+
+
+SUM(CASE WHEN a.OrderDate BETWEEN 
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.sales) / 1000000 ELSE 0 END) AS last_month_inflow,
+
+SUM(CASE WHEN a.OrderDate BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))
+THEN (a.sales) / 1000000 ELSE 0 END)AS n1_month_inflow,
+
+SUM(CASE WHEN a.OrderDate BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.sales) / 1000000 ELSE 0 END)AS n2_month_inflow,
+
+SUM(CASE WHEN a.OrderDate BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.sales) / 1000000 ELSE 0 END)AS n3_month_inflow,
+
+
+SUM(CASE WHEN a.OrderDate BETWEEN 
+convert(date,'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end )))
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.qty) ELSE 0 END) AS last_month_inflow_Qty,
+
+
+SUM(CASE WHEN OrderDate  BETWEEN select CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND getdate()-1 
+THEN qty ELSE 0 END) AS Inflow_Qty,
+
+
+SUM(CASE WHEN OrderDate  BETWEEN '04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND getdate()-1  
+THEN qty ELSE 0 END) AS YTD_INFLOW_Qty
+
+from 
+(select OrderDate,Dpst,Zone,sales,
+case when concat(dpst,ltrim(rtrim(ItemCode))) in (select concat(dpst,ltrim(rtrim(TPL))) from India_Regionwise_Sales_TPL_Master) 
+then qty else 0 end as qty
+from Sales_Inflow 
+where ltrim(rtrim(organ))='India' and 
+concat(company,ordertype) not in (select concat(company,saleordertype) from saletype_master where Sales_Category in (1) ) 
+
+)a
+group by Dpst,Zone--,AreaCode
+)inf
+on d.DPSTcode=inf.Dpst
+
+
+full outer join
+
+(select dpst,Zone,--areacode,
+
+sum(CASE WHEN day(a.invoice_date)=day(getdate()-1)and month(a.invoice_date)=@CalMonth
+and year(a.invoice_date)=@CalYear THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS ondate_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 2 else @CalYear-1 end )) 
+AND 
+'03/31/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear-1 else @CalYear end ))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_sale, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 2 else @CalYear-1 end )) )
+AND 
+convert(date,CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/' + CONVERT(varchar,@CalYear-1))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_ytd, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,'04/01/' + convert(varchar,(case when @CalMonth between 1 and 3 then @CalYear - 1 else @CalYear end )))
+AND 
+convert(date,CONVERT(varchar, @CalMonth) + '/'+convert(varchar,day(getdate()-1))+'/' + CONVERT(varchar,@CalYear))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_year_sale,   
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_month_sale,
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+convert(date,CONVERT(varchar, @CalMonth) + '/1/' + CONVERT(varchar,@CalYear-1))
+AND 
+dateadd(dd,-1,dateadd(mm,1,convert(date,CONVERT(varchar, @CalMonth) + '/1/'+  CONVERT(varchar,@CalYear-1))))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS last_year_this_month_sale,
+
+
+SUM(CASE WHEN month(a.Invoice_Date) =@CalMonth
+and year(a.Invoice_Date) =@CalYear
+THEN (a.Sales_amount) / 1000000 ELSE 0 END) AS this_month_sale,
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear)) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS thr_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n1_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n2_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, @CalMonth) + '/1/' + convert(varchar,@CalYear))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, @CalMonth) +'/1/' + convert(varchar,@CalYear))) 
+THEN (a.Sales_amount) / 1000000 ELSE 0 END)AS n3_month_sale,
+
+
+SUM(CASE WHEN month(a.Invoice_Date) =@CalMonth
+and year(a.Invoice_Date) =@CalYear
+THEN (a.DeliveryQty) ELSE 0 END) AS this_month_Sale_Qty
+
+
+FROM 	
+(select Invoice_Date,dpst,Zone,Sales_amount,
+case when concat(dpst,ltrim(rtrim(Item))) in (select concat(dpst,ltrim(rtrim(TPL))) from India_Regionwise_Sales_TPL_Master)
+then DeliveryQty else 0 end as DeliveryQty
+from ELGi_Sales_Details a 
+WHERE	(Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+and organ='India'
+and sales_category not in (1)
+AND areacode IS NOT NULL
+)a
+group by dpst,Zone--,areacode
+)sls
+on sls.dpst=d.DPSTCode
+and sls.Zone=inf.Zone
+
+
+
+
+--left outer join (select Vertical1,Cal_Month,cal_year,sum([plan]) as Sales_Plan from ISAAME_SALES_PLAN 
+--where Cal_Month=month(getdate()-1) and cal_year=year(getdate()-1)
+--and organ1='SAAME'
+--group by Vertical1,Cal_Month,cal_year
+--)Sls_plan
+--on ltrim(rtrim(c.User_names))=ltrim(rtrim(Sls_plan.Vertical1))
+----where c.User_names ='Africa-Spares'
+)a
+
+where concat(a.Dpstcode,Zone) in 
+(select distinct concat(Dpst,Zone) from Sales_Inflow
+union
+select distinct concat(dpst,Zone) from ELGi_Sales_Details
+)
+and isnull(last_month_sale,0)+isnull(this_year_sale,0)<>0
+
+)
+
+
+
+INSERT @ufn_sls_Domestic_Regionwise
+
+SELECT zone,Dpstcode,dpstname,description,
+ondate_sale,last_year_sale,last_year_ytd,this_year_sale,last_month_sale,last_year_this_month_sale,
+this_month_sale,thr_month_sale,n1_month_sale,n2_month_sale,n3_month_sale,
+inflow,Ondate_Inflow,YTD_INFLOW,last_month_inflow,
+last_month_inflow_Qty,Inflow_Qty,this_month_Sale_Qty,YTD_INFLOW_Qty,
+n1_month_inflow,n2_month_inflow,n3_month_inflow,INFLOW_Opening
+FROM CTE_sls_domestic_dpstwise
+
+RETURN
+
+END;
+
+
+
+

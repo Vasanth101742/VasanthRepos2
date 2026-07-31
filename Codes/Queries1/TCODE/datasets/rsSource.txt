@@ -1,0 +1,9 @@
+SELECT    *
+-- fcode, slno, subd, htyp, ordr, tdesc, code, comp, ddate, 
+--case when code='NOVAL' then ''
+--else lamt end as
+-- lamt
+FROM         tcodeprocess
+WHERE     (comp IN (@rpCompany)) 
+--AND (ddate = @rpPeriod)
+ORDER BY slno, subd, ordr

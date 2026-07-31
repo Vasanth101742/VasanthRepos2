@@ -1,0 +1,59 @@
+select Organ,DPSTCode,DPSTName,AreaCode,AreaName,--Category,ProductLine,
+ItemCode,--Item_desc,
+sum(BudQty) BudQty,
+sum(SalesQty) SalesQty,
+sum(Budget) Budget_INR,
+sum(Sales_amount) Sales_amount_INR,
+sum(Budget_USD) Budget_USD,
+sum(Sales_USD) Sales_USD,
+sum(Budget_Foreign_Currency) Budget_Foreign_Currency,
+sum(Sales_Foreign_currency) Sales_Foreign_currency,
+sum(case when areacode='631' then isnull(Budget_Foreign_Currency,0) else isnull(Budget_USD,0) end )/1000 as budget,
+sum(case when areacode='631' then isnull(Sales_Foreign_currency,0) else isnull(Sales_USD,0) end )/1000 as sales_amount,
+Cal_year,Cal_month,Fin_year,Fin_month,substring(datename(mm,dateadd(mm,Cal_month,-1)),1,3) as Month_Name
+from Bud_sales_Inflow_COSEA 
+where Fin_year>=2017
+--and itemcode='S011292'
+group by Organ,DPSTCode,DPSTName,AreaCode,AreaName,Category,ProductLine,ItemCode,Item_desc,
+Cal_year,Cal_month,Fin_year,Fin_month
+order by Fin_year,Fin_month
+
+
+
+select sum(sales_usd) from (
+select dpst,item, sum(sales_usd) sales_usd  from ELGi_Sales_Details 
+where organ='COSEA'
+and fin_year=2019
+and sales_category not in (1)
+--and dpst='70296' and areaname like '%indo%'
+group by dpst,item
+)a
+
+select sum(sales_usd) from (
+select dpstcode,itemcode, sum(sales_usd) sales_usd from Bud_sales_Inflow_COSEA 
+where organ='COSEA'
+and fin_year=2019
+	--and dpstcode='70296' and areaname like '%indo%'
+group by dpstcode,itemcode
+)a
+
+
+select sum(Budget_USD) Budget_USD from (
+select dpstcode,itemcode, sum(Budget_USD) Budget_USD from Bud_sales_Inflow_COSEA 
+where organ='COSEA'
+and fin_year=2019
+and dpstcode='90231' 
+and areaname like '%singa%'
+group by dpstcode,itemcode
+)a
+
+
+
+
+select sum(Budget_USD) from Itemwise_Budget where date between '2019-04-01' and '2020-03-31' and dpst='90231' and area='621'
+select sum(Budget_USD) from Sales_Budget where date between '2019-04-01' and '2020-03-31' and dpst='90231' and area='621'
+
+
+
+select * from Itemwise_Budget where date between '2019-04-01' and '2020-03-31' and dpst='90231' and area='621'
+select * from Sales_Budget where date between '2019-04-01' and '2020-03-31' and dpst='90231' and area='621'

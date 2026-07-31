@@ -1,0 +1,54 @@
+select --RecptType,SalesOffice,SalesOfficeName,AreaCode,AreaName,Vertical,
+round(sum(Billing_YTD)/1000000,2) Billing_YTD,
+round(sum(Received_YTD)/1000000,2) Received_YTD,
+round(sum(OverDue_YTD)/1000000,2) OverDue_YTD,
+round(sum(Balance_YTD)/1000000,2) Balance_YTD,
+round(sum(Total_Billing)/1000000,2) Total_Billing,
+round(sum(Total_Received)/1000000,2) Total_Received,
+round(sum(Total_Balance)/1000000,2) Total_Balance,
+round(sum(Received_against_OverDue)/1000000,2) Received_against_OverDue,
+round(sum(Total_OverDue)/1000000,2) Total_OverDue,
+
+round(sum(Received_against_WithinDue)/1000000,2) Received_against_WithinDue,
+round(sum(Total_WithinDue)/1000000,2)  Total_WithinDue
+from (
+select --RecptType,SalesOffice,SalesOfficeName,AreaCode,AreaName,Vertical,
+abs(sum(case when EntryDate between convert(date,convert(varchar,year(dateadd(mm,-3,getdate()-1)))+'-04-01') and getdate()-1 
+and RecptType ='SalesInvoice' then InvAmth end )) as Billing_YTD,
+abs(sum(case when EntryDate between convert(date,convert(varchar,year(dateadd(mm,-3,getdate()-1)))+'-04-01') and getdate()-1 
+and DueStatus='OverDue' then DueBalh end )) as OverDue_YTD,
+abs(sum(case when EntryDate between convert(date,convert(varchar,year(dateadd(mm,-3,getdate()-1)))+'-04-01') and getdate()-1
+then recvamth end )) as Received_YTD,
+abs(sum(case when EntryDate between convert(date,convert(varchar,year(dateadd(mm,-3,getdate()-1)))+'-04-01') and getdate()-1 
+then InvBalh end )) as Balance_YTD,
+
+abs(sum(InvAmth)) as Total_Billing,
+abs(sum(DueAmth)) Total_Due,
+abs(sum(RecvAmth)) as Total_Received,
+abs(sum(InvBalh)) as Total_Balance,
+abs(sum(case when DueStatus='OverDue' then RecvAmth end )) as Received_against_OverDue,
+abs(sum(case when DueStatus='OverDue' then DueAmth end )) as Total_OverDueAmtAmt,
+abs(sum(case when DueStatus='WithinDue' then RecvAmth end )) as Received_against_WithinDue,
+abs(sum(case when DueStatus='WithinDue' then DueAmth end )) as Total_WithinDueAmt
+
+
+from ACR_As_of_Date_Details
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+--group by RecptType,SalesOffice,SalesOfficeName,AreaCode,AreaName,Vertical
+)a
+--group by RecptType,SalesOffice,SalesOfficeName,AreaCode,AreaName,Vertical
+
+
+
+select 
+sum(InvAmth) InvAmth,
+sum(DueAmth) DueAmth,
+sum(RecvAmth) RecvAmth,
+sum(InvBalh) InvBalh,
+sum(duebalh) duebalh,
+sum(case when duestatus='OverDue' then DueAmth  else null end) as OverDueAmth,
+sum(case when duestatus='OverDue' then RecvAmth  else null end) as Received_OverDueAmth,
+sum(case when duestatus='WithinDue' then DueAmth  else null end) as WithinDueAmth,
+sum(case when duestatus='WithinDue' then RecvAmth  else null end) as Received_WithinDueAmth
+from ACR_As_of_Date_Details
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')

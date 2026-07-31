@@ -1,0 +1,58 @@
+
+declare @Date date=convert(date,getdate()+22)
+
+select Prev_Working_Day,@Date,datepart(dw,@Date)  From (
+select Date as Prev_Working_Day,ROW_NUMBER()over(order by date desc) as rno  From companycalendar where ccal='COMPANY' and DFCA =1 and convert(date,DATE) <=convert(date,@date))a
+where rno=
+case when @date in (select distinct date From companycalendar where ccal='COMPANY' and DFCA =1)then 3 else 2 end
+
+
+
+declare @Date date=convert(date,getdate()+22)
+
+--Query To be corrected
+select max(date)  ALCDate--,@Date,datepart(dw,@Date) 
+from CompanyCalendar 
+where datepart(dw,date) not in(1,7)
+and DFCA<>'4'
+and CCAL='COMPANY'
+and convert(date,DATE)<=
+(select case 
+when datepart(dw,dateadd(dd,0,@Date)) =1 then dateadd(dd,0,@Date)
+when datepart(dw,dateadd(dd,0,@Date)) =2 then dateadd(dd,-1,@Date)
+when datepart(dw,dateadd(dd,0,@Date)) =3 then dateadd(dd,-2,@Date) 
+when datepart(dw,dateadd(dd,0,@Date)) in (4,5,6,7) then dateadd(dd,-2,@Date) 
+end)
+
+
+
+
+--select datepart(dw,@Date),@Date
+
+
+
+
+-------------------------------------------------------------
+--------------------------------------------------------------
+
+
+
+--Find Previous and next workig day:
+----------------------------
+declare @date date='2018-12-27'
+select * From (
+select Date as Prev_Working_Day,ROW_NUMBER()over(order by date desc) as rno  From companycalendar where ccal='COMPANY' and DFCA =1 and convert(date,DATE) <=convert(date,@date))a
+where rno=
+case when @date in (select distinct date From companycalendar where ccal='COMPANY' and DFCA =1)then 3 else 2 end
+
+
+
+select * From (
+select Date as Next_Working_Day,ROW_NUMBER()over(order by date) as rno  From companycalendar where ccal='COMPANY' and DFCA =1 and convert(date,DATE) >=convert(date,@date))a
+where rno=case when @date in (select distinct date From companycalendar where ccal='COMPANY' and DFCA =1)then 2 else 1 end
+
+
+
+select * From (
+select Date as Current_Working_Day,ROW_NUMBER()over(order by date) as rno  From companycalendar where ccal='COMPANY' and DFCA =1 and convert(date,DATE) >=convert(date,@date))a
+where rno=1

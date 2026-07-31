@@ -1,0 +1,176 @@
+Alter VIEW vw_sls_Global_Foreign_Currency as   
+
+select *,
+case when row_number() over(partition by user_names order by user_names ) =1 then sp else 0 end as Sales_Plan
+ from (
+SELECT b.global,c.organ,c.region,c.Zone,c.user_names,c.Division as Division,c.Vertical1,
+coalesce(b.Areacode,sls.areacode,inf.areacode) as Areacode,b.AreaName, 
+coalesce(d.Dpstcode,sls.dpst,inf.dpst) as Dpstcode ,d.dpstname,d.description,
+--coalesce(inf.custcode,sls.custcode) as CustCode,coalesce(inf.custname,sls.custname) as CustName,
+ondate_sale,last_year_sale,last_year_ytd,this_year_sale,last_month_sale,last_year_this_month_sale,this_month_sale,
+thr_month_sale,n1_month_sale,n2_month_sale,n3_month_sale,
+inflow,Ondate_Inflow,YTD_INFLOW,n1_month_inflow,n2_month_inflow,n3_month_inflow,INFLOW_Opening,Sls_plan.Sales_Plan as sp
+--case when row_number() over(partition by c.user_names order by c.user_names ) =1 then Sls_plan.Sales_Plan else 0 end as Sales_Plan,
+--row_number() over(partition by c.user_names,Sls_plan.vertical1 order by c.user_names,c.dpstcode,c.areacode )as rnk
+from vw_SALESMAPPING_MASTER c
+left outer JOIN vw_AREA_MASTER b 
+ON 	ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode)) 
+left outer join vw_DPST_MASTER d
+on ltrim(rtrim(d.DpstCode))=ltrim(rtrim(c.DPSTCode))
+
+--	--Newly added on 18 Dec 2017
+
+full outer join
+
+(
+select Dpst,AreaCode,
+--CustCode,CustName,
+
+SUM(CASE WHEN OrderDate  BETWEEN CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND getdate()-1 THEN (Foreign_currency_amount/1000) ELSE 0 END) AS Inflow,
+
+SUM(CASE WHEN convert(date,OrderDate) =convert(date,getdate()-1) THEN (Foreign_currency_amount/1000) ELSE 0 END) AS Ondate_Inflow,
+
+SUM(CASE WHEN OrderDate  BETWEEN '04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND getdate()-1  THEN (Foreign_currency_amount)/1000  ELSE 0 END) AS YTD_INFLOW ,
+
+SUM(CASE WHEN OrderDate  BETWEEN '04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND (dateadd(dd,- day(getdate()),convert(date,getdate())))  THEN (Foreign_currency_amount)/1000  ELSE 0 END) AS INFLOW_Opening,
+
+SUM(CASE WHEN OrderDate  BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (Foreign_currency_amount) / 1000 ELSE 0 END)AS n1_month_inflow,
+
+SUM(CASE WHEN OrderDate BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (Foreign_currency_amount) / 1000 ELSE 0 END)AS n2_month_inflow,
+
+SUM(CASE WHEN OrderDate BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (Foreign_currency_amount) / 1000 ELSE 0 END)AS n3_month_inflow
+
+ from Sales_Inflow 
+	where ltrim(rtrim(organ))<>'India' and 
+	concat(company,ordertype) in (select concat(company,saleordertype) from saletype_master where Sales_Category not in (1) ) 
+--and month(OrderDate)=month(getdate()-1) and year(OrderDate)=year(getdate()-1)
+group by Dpst,AreaCode
+--,CustCode,CustName
+)inf
+on c.DPSTcode=inf.Dpst
+and c.areacode=inf.AreaCode
+
+full outer join
+
+(select dpst,areacode,
+--CustCode,CustName,
+sum(CASE WHEN day(a.invoice_date)=day(getdate()-1)and month(a.invoice_date)=month(getdate()-1)
+and year(a.invoice_date)=year(getdate()-1)THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END) AS ondate_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+'03/31/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1)-1 else year(getdate()-1) end ))
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END) AS last_year_sale, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 2 else year(getdate()-1)-1 end )) 
+AND 
+dateadd(yy, - 1, dateadd(dd, - 1, getdate())) 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END) AS last_year_ytd, 
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+getdate() 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END) AS this_year_sale,   
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 4 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(dd, - 1, getdate()))) 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END) AS last_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+ CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy,dateadd(yy,-1, dateadd(dd, - 1, getdate()))) 
+AND 
+ dateadd(yy,-1,dateadd(dd, - 1, convert(date,getdate())))
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END) AS last_year_this_month_sale,
+
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN 
+CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND 
+getdate() 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END) AS this_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END)AS thr_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))    
+AND 
+dateadd(dd, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate()))) 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END)AS n1_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 1, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END)AS n2_month_sale,
+
+SUM(CASE WHEN a.Invoice_Date BETWEEN  
+dateadd(mm, - 3, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())))   
+AND 
+dateadd(dd,-1,dateadd(mm, - 2, CONVERT(varchar, datepart(mm,dateadd(dd, - 1, getdate()))) +'/1/' + datename(yy, dateadd(dd, - 1, getdate())))) 
+THEN (a.Foreign_currency_amount) / 1000 ELSE 0 END)AS n3_month_sale
+
+
+
+
+FROM 	
+ELGi_Sales_Details a 
+WHERE	(a.Invoice_Date BETWEEN '04/01/2016' AND GETDATE()) 
+and organ<>'India'
+--AND a.SaleOrderType in (
+--select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select '' as SaleOrderType from SaleType_Master
+--)
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+
+group by dpst,areacode
+--,CustCode,CustName
+)sls
+on sls.dpst=c.DPSTCode
+and sls.areacode=c.Areacode
+--and inf.CustCode=sls.custcode
+
+
+
+left outer join (select Vertical1,Cal_Month,cal_year,sum([plan]) as Sales_Plan from ISAAME_SALES_PLAN 
+where Cal_Month=month(getdate()-1) and cal_year=year(getdate()-1)
+and organ1='SAAME'
+group by Vertical1,Cal_Month,cal_year
+)Sls_plan
+on ltrim(rtrim(c.User_names))=ltrim(rtrim(Sls_plan.Vertical1))
+
+--where c.User_names ='Africa-Spares'
+)a
+where concat(a.Dpstcode,Areacode) in 
+(select distinct concat(Dpst,Areacode) from Sales_Inflow
+union
+select distinct concat(dpst,areacode) from ELGi_Sales_Details
+)
+
+
+

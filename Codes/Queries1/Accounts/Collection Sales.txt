@@ -1,0 +1,111 @@
+
+truncate table Acc_years
+
+insert into Acc_years 
+select CalYear, row_number() over (partition by CalYear order by CalYear) as YearRank from
+(select distinct year(docdt) as CalYear from Acc_collection)a
+
+--select * from Acc_years
+
+
+declare @Count1 int=1
+declare @Count2 int=1
+declare @CalYear int=(select CalYear from Acc_years where YearRank=@Count1)
+
+truncate table Acc_Month
+
+Insert into Acc_Month
+select CalMonth, row_number() over (order by CalMonth) as MonthRank from
+(select distinct month(docdt) as CalMonth from Acc_collection where year(docdt)=@CalYear
+)a
+
+select * from Acc_Month
+
+Declare @YearsCnt int=select count(*) from Acc_years
+Declare @MonthsCnt int=select count(*) from Acc_Month 
+
+
+
+
+
+
+
+
+
+
+
+select distinct month(docdt) as CalMonth from Acc_collection
+
+select distinct month(docdt) as month, upper(datename(mm,docdt)) as monthname, year(docdt) as year from 
+Acc_collection
+order by year(docdt) , month(docdt) 
+
+declare @CalMonth int =8
+
+
+
+select 
+coalesce(Desc1,Desc2,Desc3) as Description,
+--coalesce(DPST1,DPST2,DPST3) as DPSTCode,
+--coalesce(DPSTName1,DPSTName2,DPSTName3) as DPSTName,
+sum(this_month_sale) as this_month_sale,
+sum(this_month_collection) as this_month_collection,
+sum(this_month_Advance) as this_month_Advance
+
+
+from 
+(select ltrim(rtrim(Description)) as Desc1,DPSTcode as DPST1,ltrim(rtrim(dpstname)) as DPSTName1,
+sum(ondate_sale) as ondate_sale,sum(last_year_sale) as last_year_sale,sum(last_year_ytd) as last_year_ytd,
+sum(this_year_sale) as this_year_sale,sum(last_month_sale) as last_month_sale,sum(this_month_sale) as this_month_sale,
+sum(thr_month_sale) as thr_month_sale,sum(n1_month_sale) as n1_month_sale,sum(n2_month_sale) as n2_month_sale,
+sum(n3_month_sale) as n3_month_sale,sum(last_year_this_month_sale) as last_year_this_month_sale 
+
+from ufn_sls_domestic_dpstwise(@CalMonth,@CalYear)
+group by ltrim(rtrim(Description)),DPSTcode,ltrim(rtrim(dpstname))
+
+union
+
+select ltrim(rtrim(Description)),DPSTcode,ltrim(rtrim(dpstname)),sum(ondate_sale) as ondate_sale,
+sum(last_year_sale) as last_year_sale,sum(last_year_ytd) as last_year_ytd,sum(this_year_sale) as this_year_sale,
+sum(last_month_sale) as last_month_sale,sum(this_month_sale) as this_month_sale,sum(thr_month_sale) as thr_month_sale,
+sum(n1_month_sale) as n1_month_sale,sum(n2_month_sale) as n2_month_sale,sum(n3_month_sale) as n3_month_sale,
+sum(last_year_this_month_sale) as last_year_this_month_sale 
+
+from ufn_sls_global (@CalMonth,@CalYear) where global<>'Domestic' and organ is not null
+group by ltrim(rtrim(Description)),DPSTcode,ltrim(rtrim(dpstname))
+
+
+)Sales
+
+full outer join 
+
+(select ltrim(rtrim(description)) as Desc2,dpstcode  as DPST2,ltrim(rtrim(dpstname))  as DPSTName2,
+sum(collection)/1000000 as this_month_collection from Acc_Collection
+where month(docdt)=month(getdate()) and year(docdt)=year(getdate())
+group by ltrim(rtrim(description)),dpstcode,ltrim(rtrim(dpstname))
+
+union
+
+select ltrim(rtrim(description)) as Desc2,dpstcode  as DPST2,ltrim(rtrim(dpstname))  as DPSTName2,
+sum(collection)/1000000 as this_month_collection from Acc_Collection_Others
+where month(docdt)=month(getdate()) and year(docdt)=year(getdate())
+group by ltrim(rtrim(description)),dpstcode,ltrim(rtrim(dpstname))
+)Collection
+
+on isnull(Sales.Desc1,'0')=isnull(collection.Desc2,'0')
+and isnull(sales.DPST1,'0')=isnull(collection.DPST2,'0')
+
+full outer join 
+
+(select isnull(ltrim(rtrim(description)),'Others') as Desc3,isnull(dpst,'Others')  as DPST3,isnull(ltrim(rtrim(dpstname)),'Others') as DPSTName3,
+sum(collection)/1000000 as this_month_Advance from Acc_Advance
+where month(docdt)=month(getdate()) and year(docdt)=year(getdate())
+group by ltrim(rtrim(description)),dpst,ltrim(rtrim(dpstname))
+)Advance
+
+on isnull(Sales.Desc1,'0')=isnull(Advance.Desc3,'0')
+and isnull(sales.DPST1,'0')=isnull(Advance.DPST3,'0')
+
+where coalesce(Desc1,Desc2,Desc3) not in ('To Elgi Belair')
+
+group by coalesce(Desc1,Desc2,Desc3)--,coalesce(DPST1,DPST2,DPST3),coalesce(DPSTName1,DPSTName2,DPSTName3)

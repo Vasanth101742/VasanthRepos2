@@ -1,0 +1,19 @@
+select *,datename(MM,t_docd) as Month_Name
+from (
+select company,t_ttyp,t_ninv,t_itbp,t_docd,t_tdoc,t_docn,t_ccur,t_rate_1,t_amth_1,
+case when month(t_docd)<4 then year(t_docd)-1 else year(t_docd) end as FinYear,
+case when month(t_docd)<4 then month(t_docd)+9 else month(t_docd)-3 end as FinMonthNo
+from (
+select * from ttfacr200all where ltrim(rtrim(t_itbp)) in 
+('CU1E00622','CU1E00625','CU1E00701','CU1E00719','CU1E00804','CU1E00847','CU1E00880','CU1P02970','CU1R01967')
+and t_docn<>0 
+and t_trec in (2,8)
+union
+select * from ttfacr200all where ltrim(rtrim(t_itbp)) in 
+('CU1E00622','CU1E00625','CU1E00701','CU1E00719','CU1E00804','CU1E00847','CU1E00880','CU1P02970','CU1R01967')
+and t_docn=0 
+and t_trec in (9,10,11)
+)a
+)b
+where finyear=2017
+order by FinYear,FinMonthNo

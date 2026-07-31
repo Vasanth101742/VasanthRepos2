@@ -1,0 +1,10 @@
+select Date,Company,TranType,InvoiceNum,ItemCode,Dpst,b.DPSTName,Area,c.AreaName,DeliveredQty,AssesValue from TmpSlsDespData_baan a
+left outer join vw_DPST_MASTER b
+on a.Dpst=b.DPSTcode
+left outer join vw_AREA_MASTER c
+on a.Area=c.Areacode
+where SaleType in (0,2,5,7)
+and AssesValue<>0
+and Dpst in ('90091','90092')
+order by Date
+

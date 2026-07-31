@@ -1,0 +1,9 @@
+
+select company,warehouse,item,itemdescr,Description,Prodorderno,
+sum(Planned_qty) as Planned_qty,
+sum(Released_qty) Released_qty,
+sum(Actual_qty) as Actual_qty,
+sum(WIP_qty) as WIP_qty
+from ELGi_production_details where date1='2017-09-08' and Description='Sepsac'
+group by  company,warehouse,item,itemdescr,Description,Prodorderno
+having sum(WIP_qty)>0

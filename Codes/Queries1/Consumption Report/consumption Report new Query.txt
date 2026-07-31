@@ -1,0 +1,72 @@
+PRAVEENTIWARI@ATS-ELGI.COM;balass@ats-elgi.com;NAVEENMATTOO@ATS-ELGI.COM;arunprasad@ats-elgi.com;prakashj@ats-elgi.com;SANTHOSHKN@ATS-ELGI.COM
+
+
+declare @MMYYYY varchar(20)='092017'
+
+
+select a.*
+,c.new_emp_code as BUYRCODE,c.emp_name as BUYER_NAME,d.custcode as SUPPCODE,d.custname1 as SUPP_NAME,b.t_dsca as Description 
+from 
+
+(
+select TRDT,company,item,sum(Sales_Consumption) Sales_Consumption ,sum(Production_Consumption) Production_Consumption,
+case when COMPANY not in (465,470,490) then 400 else company end as company2
+from 
+(
+select convert(date,TRDT) as TRDT,company,item,sum(QSTK) Sales_Consumption,0 as Production_Consumption
+from TWHINR110ALL
+where kost=5
+and koor=3
+and company like '4%'
+and concat(RIGHT('00'+CAST(month(TRDT) AS VARCHAR(2)),2),cast(year(TRDT) as varchar(4))) in (@MMYYYY)
+group by convert(date,TRDT),company,item
+
+union
+select convert(date,TRDT) as TRDT,company,item,0,sum(QSTK) Production_Consumption
+from TWHINR110ALL
+where kost=5
+and koor=1
+and company like '4%'
+and concat(RIGHT('00'+CAST(month(TRDT) AS VARCHAR(2)),2),cast(year(TRDT) as varchar(4))) in (@MMYYYY)
+group by convert(date,TRDT),company,item)a
+group by TRDT,company,item
+
+
+)a
+
+
+left outer join 
+
+(
+select distinct a.COMPANY,a.t_item,a.t_dsca,b.BUYR,b.OTBP from
+(select 400 as Company,t_item,t_dsca from ttcibd001400
+union
+select 465,item,dsca from TTCIBD001465
+union
+select 470,item,dsca from ttcibd001470
+union
+select 490,item,dsca from TTCIBD001490
+) a
+left outer join (
+select distinct case when COMPANY not in (465,470,490) then 400 else company end as company ,item,BUYR,OTBP from ttdipu001all 
+where company like '4%' and 
+len(ltrim(rtrim(concat(BUYR,otbp))))>2
+) b
+on ltrim(rtrim(a.t_item))=ltrim(rtrim(b.ITEM))
+and a.Company= b.company
+)b
+on a.company2=b.COMPANY
+and a.ITEM=b.t_item
+
+
+Left OUTER JOIN (select emp_code,new_emp_code,emp_name from employee_details) c
+ON c.new_emp_code = b.BUYR
+
+LEFT OUTER JOIN vw_Business_Partner d
+ON d.custcode=b.otbp
+
+
+--where a.TRDT is not null
+--and a.company in (150,108)
+
+--order by TRDT,a.COMPANY,a.item

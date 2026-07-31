@@ -1,0 +1,414 @@
+--exec sp_NonMovingInventory
+CREATE proc sp_NonMovingInventory as 
+
+begin
+
+
+Truncate table NonMovingInventory
+
+--Alter table NonMovingInventory alter column RecpAge varchar(20), IssueAge varchar(20)
+
+Insert into NonMovingInventory (Company,WareHouse,ItemCode,QHND,Amnt,ReceiptDate_CW,IssueDate_CW)
+select a.company,a.cwar,a.ITEM,
+avg(isnull(a.QHND,0)) QHND,
+--sum(b.QSKT) QSKT,
+--sum(c.amnt) amnt
+(sum(c.amnt)/sum(b.QSTK))*sum(b.QSKT) as amnt
+--,convert(date,b.T$TRDT),b.T$SEQN,b.T$INWP,convert(date,c.T$TRDT),c.T$SEQN,c.T$INWP--,c.CPCP_rnk
+from 
+(select COMPANY,CWAR,ITEM,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$QSTK) as QSTK,sum(T$QSKT) QSKT from TWHINA112ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP
+having sum(T$QSKT)>0)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.T$CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.T$ITEM))
+
+left  outer join
+
+(select * from
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$cpcp,
+dense_rank() over (partition by company,T$cwar,T$item order by T$cpcp) as CPCP_rnk,
+sum(T$AMNT$1) amnt 
+from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,T$cpcp)c
+--where CPCP_rnk=1
+)c
+on b.COMPANY=c.COMPANY
+and b.T$CWAR=c.T$CWAR
+and b.T$ITEM=c.T$ITEM
+and b.T$TRDT=c.T$TRDT
+and b.T$SEQN=c.T$SEQN
+and b.T$INWP=c.T$INWP
+
+--where a.COMPANY=@Company and a.CWAR =@War and ltrim(rtrim(a.ITEM))=@ItemCode
+group by a.company,a.cwar,a.ITEM
+--,convert(date,b.T$TRDT),b.T$SEQN,b.T$INWP,convert(date,c.T$TRDT),c.T$SEQN,c.T$INWP--,c.CPCP_rnk
+
+
+
+
+--------------------------------Special Case: ISSUE DATE UPDATIONS------------------------------------
+
+
+----special Case for ATS: on First day of LN Implementation,Adjustments order to be considered.
+--Step 1: Data from Manual File Load
+update NonMovingInventory set IssueDate_C=a.issuedate
+from ATS_Initial_Inv_Adjustments a
+where NonMovingInventory.Company=a.company
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.ItemCode))
+
+update NonMovingInventory set IssueDate_CW=a.issuedate
+from ATS_Initial_Inv_Adjustments a
+where NonMovingInventory.Company=a.company
+and ltrim(rtrim(NonMovingInventory.WareHouse))=ltrim(rtrim(a.war))
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.ItemCode))
+
+---------------------------------End of Special Case------------------------------------------------
+
+
+update NonMovingInventory set IssueDate_CW=a.CTDT
+from
+(
+select COMPANY,T$CWAR,T$ITEM,max(T$CTDT) as CTDT FROM (
+select COMPANY,T$CWAR,T$ITEM,T$CTDT,SUM(T$QSTK) AS T$QSTK from TWHINA114ALL
+where T$KOOR in (1,3)
+group by COMPANY,T$CWAR,T$ITEM,T$CTDT
+HAVING SUM(T$QSTK)>0
+)a
+group by COMPANY,T$CWAR,T$ITEM
+)a
+where NonMovingInventory.Company=a.COMPANY
+and NonMovingInventory.WareHouse=a.T$CWAR
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.T$ITEM))
+
+
+update NonMovingInventory set IssueDate_C=a.CTDT
+from
+(
+select COMPANY,ltrim(rtrim(T$ITEM)) T$ITEM,max(CTDT) CTDT from (
+select isnull(a.COMPANY,b.company) as COMPANY,isnull(a.T$ITEM,b.ItemCode) as T$ITEM ,
+--max(T$CTDT) T$CTDT,b.IssueDate,
+isnull(max(T$CTDT),b.IssueDate) as CTDT 
+FROM (
+select COMPANY,T$ITEM,T$CTDT,SUM(T$QSTK) AS T$QSTK from TWHINA114ALL
+where T$KOOR in (1,3)
+--and ltrim(rtrim(T$ITEM))='48IMM70551FT' --For Testing Purpose
+group by COMPANY,T$ITEM,T$CTDT
+--HAVING SUM(T$QSTK)>0
+)a
+full outer join 
+(
+select * from ATS_Initial_Inv_Adjustments 
+--where ltrim(rtrim(ItemCode))='48IMM70551FT'  --For Testing Purpose
+) b
+on a.Company=b.company
+and ltrim(rtrim(a.T$ITEM))=ltrim(rtrim(b.ItemCode))
+--where ltrim(rtrim(a.T$ITEM))='48IMM70551FT'  --For Testing Purpose
+group by isnull(a.COMPANY,b.company),isnull(a.T$ITEM,b.ItemCode),b.IssueDate
+
+union
+select COMPANY,ItemCode,IssueDate from ATS_Initial_Inv_Adjustments 
+--where ltrim(rtrim(ItemCode))='48IMM70551FT'  --For Testing Purpose
+)a1
+
+group by COMPANY,ltrim(rtrim(T$ITEM))
+
+)a
+where NonMovingInventory.Company=a.COMPANY
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.T$ITEM))
+
+-----------------------------------
+
+
+----------------------------------RECEIPT DATE UPDATIONS----------------------------------------------
+
+----special Case for ATS: on First day of LN Implementation,Adjustments order to be considered.
+--Step 1: Data from Manual File Load
+update NonMovingInventory set ReceiptDate_C=a.ReceiptDate
+from ATS_Initial_Inv_Adjustments a
+where NonMovingInventory.Company=a.company
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.ItemCode))
+
+--Step 2: Consider Adjustment Orders
+update NonMovingInventory set ReceiptDate_CW=a.TRDT
+from
+(select COMPANY,T$CWAR,T$ITEM,case when convert(date,T$TRDT) in ('2017-04-05','2017-04-06' ,'2017-04-07' ,'2017-04-08')
+then convert(date,T$TRDT) else null end as TRDT from TWHINA112ALL
+where T$KOOR in (52)
+and company like '6%'
+)a
+where NonMovingInventory.Company=a.COMPANY
+and NonMovingInventory.WareHouse=a.T$CWAR
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.T$ITEM))
+and ReceiptDate_CW is null
+
+update NonMovingInventory set ReceiptDate_C=a.TRDT
+from
+(select COMPANY,T$CWAR,T$ITEM,case when convert(date,T$TRDT) in ('2017-04-05','2017-04-06' ,'2017-04-07' ,'2017-04-08')
+then convert(date,T$TRDT) else null end as TRDT
+from TWHINA112ALL
+where T$KOOR in (52)
+and company like '6%'
+)a
+where NonMovingInventory.Company=a.COMPANY
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.T$ITEM))
+and ReceiptDate_C is null
+
+---------------------------------End of Special Case------------------------------------------------
+
+
+
+
+update NonMovingInventory set ReceiptDate_CW=a.TRDT
+from
+(
+select COMPANY,T$CWAR,T$ITEM,max(T$TRDT) as TRDT,SUM(T$QSKT) AS T$QSKT FROM (
+select COMPANY,T$CWAR,T$ITEM,T$TRDT,SUM(T$QSKT) AS T$QSKT from TWHINA112ALL
+where T$KOOR in (1,2)
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT
+HAVING SUM(T$QSKT)>0
+)A
+group by COMPANY,T$CWAR,T$ITEM
+
+)a
+where NonMovingInventory.Company=a.COMPANY
+and NonMovingInventory.WareHouse=a.T$CWAR
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.T$ITEM))
+
+
+update NonMovingInventory set ReceiptDate_C=a.TRDT
+from
+(
+select COMPANY,T$ITEM,max(T$TRDT) as TRDT,SUM(T$QSKT) AS T$QSKT FROM (
+select COMPANY,T$CWAR,T$ITEM,T$TRDT,SUM(T$QSKT) AS T$QSKT from TWHINA112ALL
+where T$KOOR in (1,2)
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT
+HAVING SUM(T$QSKT)>0
+)A
+group by COMPANY,T$ITEM
+
+)a
+where NonMovingInventory.Company=a.COMPANY
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.T$ITEM))
+
+
+
+---ATS: Issue Date and Receipt Date of 600 Company to be updated for other Companies for matching items
+
+update NonMovingInventory set IssueDate_C=a.IssueDate_C
+from (select * from NonMovingInventory where Company=600) a
+where ltrim(rtrim(NonMovingInventory.ItemCode)) =ltrim(rtrim(a.ItemCode))
+and NonMovingInventory.Company in (select company from ELGI_Companies_Master where CompanyGroup='ATS' and Company<>600)
+
+
+update NonMovingInventory set ReceiptDate_C=a.ReceiptDate_C
+from (select * from NonMovingInventory where Company=600) a
+where ltrim(rtrim(NonMovingInventory.ItemCode)) =ltrim(rtrim(a.ItemCode))
+and NonMovingInventory.Company in (select company from ELGI_Companies_Master where CompanyGroup='ATS' and Company<>600)
+
+----------------------------------------
+--IssueAge and RecpAge Updations
+
+--ATS
+
+update NonMovingInventory set IssueAge ='LessThan30' where DATEDIFF(dd,issueDate_C,getdate()-1)<30 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='30-60' where DATEDIFF(dd,issueDate_C,getdate()-1) between 30 and 60 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='61-90' where DATEDIFF(dd,issueDate_C,getdate()-1) between 61 and 90 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='91-120' where DATEDIFF(dd,issueDate_C,getdate()-1) between 91 and 120
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='121-150' where DATEDIFF(dd,issueDate_C,getdate()-1) between 121 and 150
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='151-180' where DATEDIFF(dd,issueDate_C,getdate()-1) between 151 and 180
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='181-365' where DATEDIFF(dd,issueDate_C,getdate()-1) between 181 and 365
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='GreaterThan_1Year' where DATEDIFF(dd,issueDate_C,getdate()-1) between 366 and 730
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='GreaterThan_2Years' where DATEDIFF(dd,issueDate_C,getdate()-1) between 731 and 1095
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='GreaterThan_3Years' where DATEDIFF(dd,issueDate_C,getdate()-1) between 1096 and 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set IssueAge ='GreaterThan_4Years' where DATEDIFF(dd,issueDate_C,getdate()-1) > 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+update NonMovingInventory set RecpAge ='LessThan30' where DATEDIFF(dd,ReceiptDate_C,getdate()-1)<30
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='30-60' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 30 and 60
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='61-90' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 61 and 90
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='91-120' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 91 and 120
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='121-150' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 121 and 150
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='151-180' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 151 and 180
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='181-365' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 181 and 365
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='GreaterThan_1Year' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 366 and 730
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='GreaterThan_2Years' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 731 and 1095
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='GreaterThan_3Years' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) between 1096 and 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+update NonMovingInventory set RecpAge ='GreaterThan_4Years' where DATEDIFF(dd,ReceiptDate_C,getdate()-1) > 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+--ELGI
+
+update NonMovingInventory set IssueAge ='LessThan30' where DATEDIFF(dd,IssueDate_CW,getdate()-1)<30 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='30-60' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 30 and 60 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='61-90' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 61 and 90 
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='91-120' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 91 and 120
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='121-150' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 121 and 150
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='151-180' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 151 and 180
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='181-365' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 181 and 365
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='GreaterThan_1Year' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 366 and 730
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='GreaterThan_2Years' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 731 and 1095
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='GreaterThan_3Years' where DATEDIFF(dd,IssueDate_CW,getdate()-1) between 1096 and 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set IssueAge ='GreaterThan_4Years' where DATEDIFF(dd,IssueDate_CW,getdate()-1) > 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+
+
+update NonMovingInventory set RecpAge ='LessThan30' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1)<30
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='30-60' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 30 and 60
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='61-90' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 61 and 90
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='91-120' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 91 and 120
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='121-150' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 121 and 150
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='151-180' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 151 and 180
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='181-365' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 181 and 365
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='GreaterThan_1Year' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 366 and 730
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='GreaterThan_2Years' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 731 and 1095
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='GreaterThan_3Years' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) between 1096 and 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+update NonMovingInventory set RecpAge ='GreaterThan_4Years' where DATEDIFF(dd,ReceiptDate_CW,getdate()-1) > 1460
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+
+
+
+
+--------------------------------------
+--Item Description Updations
+
+update NonMovingInventory set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where NonMovingInventory.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(NonMovingInventory.Itemcode))=ltrim(rtrim(a.t_item))
+
+
+update NonMovingInventory set item_desc=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where NonMovingInventory.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(NonMovingInventory.Itemcode))=ltrim(rtrim(a.ITEM))
+
+
+update NonMovingInventory set item_desc=ltrim(rtrim(a.DSCA))
+from ttcibd001470 a
+where NonMovingInventory.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(NonMovingInventory.Itemcode))=ltrim(rtrim(a.ITEM))
+
+update NonMovingInventory set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where NonMovingInventory.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(NonMovingInventory.Itemcode))=ltrim(rtrim(a.item))
+
+
+update NonMovingInventory set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where NonMovingInventory.company in 
+(select  company from ELGI_Companies_Master where Company in (551,552) )
+and ltrim(rtrim(NonMovingInventory.Itemcode))=ltrim(rtrim(a.item))
+
+
+update NonMovingInventory set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where NonMovingInventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(NonMovingInventory.Itemcode))=ltrim(rtrim(a.t_item))
+
+
+update NonMovingInventory set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where NonMovingInventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(NonMovingInventory.Itemcode))=ltrim(rtrim(a.item))
+
+
+delete from NonMovingInventory where COMPANY=600 and WareHouse in (
+'025','180','183','184','185','186','187','188','189','190','191',   
+'306','648','669','683','699','751','AED','COR','181')
+
+
+update NonMovingInventory set BuyerCode=BUYR,SuppCode=OTBP
+from TTDIPU001ALL a
+where NonMovingInventory.Company=a.COMPANY
+and ltrim(rtrim(NonMovingInventory.ItemCode))=ltrim(rtrim(a.ITEM))
+
+
+update NonMovingInventory set BuyerName=emp_name
+from Employee_Details a
+where BuyerCode=a.emp_code
+
+update NonMovingInventory set BuyerName=emp_name
+from Employee_Details a
+where BuyerCode=a.new_emp_code
+and BuyerName is null
+
+
+update NonMovingInventory set SuppName=a.custname1
+from vw_Business_Partner a
+where ltrim(rtrim(SuppCode))=ltrim(rtrim(a.custcode))
+
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,50 @@
+select Organ,Invoice_Date,company,trantype,Invoice,dpst,dpstname,areacode,areaname,custcode,custname,
+sum(sales_amount) sales_INR,Currency,rate_usd,
+sum(Sales_USD) Sales_USD,Fin_year,Fin_month,Monthname
+FROM 	
+ELGi_Sales_Details a 
+WHERE	(a.Invoice_Date BETWEEN '04/01/2019' AND GETDATE()-1) 
+--and organ='ID'
+--AND (a.areacode IS NOT NULL) 
+--AND a.SaleOrderType in (
+--select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+--union all
+--select '' as SaleOrderType from SaleType_Master
+--)
+and a.sales_category not in (1)
+and Dpst='90231'
+and areacode='634'
+group by Organ,Invoice_Date,company,trantype,Invoice,dpst,dpstname,areacode,areaname,custcode,custname,Currency,rate_usd,Fin_year,Fin_month,Monthname
+order by Invoice_Date
+
+
+
+
+select * from vw_sls_Global_USD where organ='ID'
+select Dpstcode,areacode,sum(this_year_sale) from vw_sls_Global_USD where organ='ID'
+and Dpstcode='90231'
+and areacode='634'
+group by Dpstcode,areacode
+having sum(isnull(this_year_sale,0))<>0
+order by Dpstcode,areacode
+
+
+
+select * from vw_sls_Global_USD where organ='ID'
+and Dpstcode='90231'
+and areacode='634'
+--group by Dpstcode,areacode
+--having sum(isnull(this_year_sale,0))<>0
+--order by Dpstcode,areacode
+
+
+select DPSTCode,Areacode,count(distinct Organ) from SalesMapping_Global 
+--where dpstcode='90231' and areacode='634'
+group by DPSTCode,Areacode
+having count(distinct Organ)>1
+
+
+select * from SalesMapping_Global 
+where DPSTCode in ('90231','90252','90257')
+and areacode='634'
+and organ='ID'

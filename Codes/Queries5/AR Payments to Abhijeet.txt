@@ -1,0 +1,6 @@
+select Company,InvDate,TranType,InvNo,InvAmth,DueDate,DueAmth,RecvDate,RecvDocType,RecvDocNo,RecvAmth,CustCode,CustName from ACR_As_of_Date_Details
+where EntryDate>='2019-04-01'
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+and concat(Company,trantype,InvNo) in ( select concat(company,TranType,Invoice) from ELGi_Sales_Details where organ in ('India','SAAME'))
+
+order by Company,trantype,InvNo,DueDate,RecvDate

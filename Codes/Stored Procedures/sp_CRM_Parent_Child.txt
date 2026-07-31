@@ -1,0 +1,721 @@
+Text
+--exec sp_CRM_Parent_Child
+--select * from crm_parent_child where p_name like '%dhinesh%'
+
+
+CREATE proc sp_CRM_Parent_Child as
+
+begin
+
+
+truncate table tb1;
+truncate table tb2;
+truncate table tb3;
+truncate table tb3a;
+truncate table tb4;
+truncate table tb5;
+truncate table level1;
+truncate table level2;
+truncate table level3;
+truncate table level4;
+truncate table level5;
+truncate table members;
+truncate table crm_parent_child;
+truncate table crm_Parent_entry_child_no_entry;
+truncate table All_Metrics1;
+truncate table All_Metrics2;
+truncate table tb4a;
+
+
+with crm_hierarchy as
+(
+select id,user_id,name,complete_name, parent_id, 1 as level from crm_case_section
+where parent_id is null
+
+union all
+
+select a.id,a.user_id,a.name,a.complete_name,a.parent_id, b.level+1 from crm_case_section a
+inner join crm_hierarchy b
+on a.parent_id=b.id
+)
+
+insert into tb1 
+select distinct * from crm_hierarchy 
+order by level,parent_id,id
+
+insert into tb2
+select distinct a.id,a.user_id,a.name as Team_Name,a.complete_name as Complete_Team_Name,a.parent_id,a.level,c.name Emp_Name,c.email from tb1 a 
+inner join res_users b
+on a.user_id=b.id
+inner join res_partner c
+on b.partner_id=c.id
+where b.active=1
+
+insert into level1 
+select distinct parent_id,id,Team_Name,Complete_Team_Name,user_id,Emp_name,email from tb2 where level=1
+order by parent_id,id
+
+insert into level2
+select distinct parent_id,id,Team_Name,Complete_Team_Name,user_id,Emp_name,email from tb2 where level=2
+order by parent_id,id
+
+insert into level3
+select distinct parent_id,id,Team_Name,Complete_Team_Name,user_id,Emp_name,email from tb2 where level=3
+order by parent_id,id
+
+insert into level4
+select distinct parent_id,id,Team_Name,Complete_Team_Name,user_id,Emp_name,email from tb2 where level=4
+order by parent_id,id
+
+insert into level5
+select distinct parent_id,id,Team_Name,Complete_Team_Name,user_id,Emp_name,email from tb2 where level=5
+order by parent_id,id
+
+
+----Old method
+--insert into members
+--select a.*,c.name,c.email 
+--from sale_member_rel a 
+--inner join res_users b
+--on a.member_id=b.id
+--inner join res_partner c
+--on b.partner_id=c.id
+
+
+--New Method
+
+insert into members
+select distinct a.section_id,a.user_id,c.name,c.email 
+from crm_lead a 
+inner join res_users b
+on a.user_id=b.id 
+inner join res_partner c
+on b.partner_id=c.id
+where b.active=1
+order by a.user_id
+
+
+--Mapping Level5 team Members with crm lead
+
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+level2.id as L2_ID,level2.Team_Name as L2_Team,level2.Complete_Team_Name as L2_Complete_Team,level2.user_id as L2_User_ID,level2.Emp_name as L2_Name,level2.email as L2_Email,
+level3.id as L3_ID,level3.Team_Name as L3_Team,level3.Complete_Team_Name as L3_Complete_Team,level3.user_id as L3_User_ID,level3.Emp_name as L3_Name,level3.email as L3_Email,
+level4.id as L4_ID,level4.Team_Name as L4_Team,level4.Complete_Team_Name as L4_Complete_Team,level4.user_id as L4_User_ID,level4.Emp_name as L4_Name,level4.email as L4_Email,
+level5.id as L5_ID,level5.Team_Name as L5_Team,level5.Complete_Team_Name as L5_Complete_Team,level5.user_id as L5_User_ID,level5.Emp_name as L5_Name,level5.email as L5_Email,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+
+from level1 
+left outer join level2 
+on level1.id=level2.parent_id
+left outer join level3
+on level2.id=level3.parent_id
+left outer join level4
+on level3.id=level4.parent_id
+left outer join level5
+on level4.id=level5.parent_id
+left outer join members a
+on level5.id=a.section_id 
+order by level1.id,level2.id,level3.id,level4.id,level5.id
+
+--Mapping Level4 team Members (who doesn't have Level5 team Members but contains Engineers working under them) with crm lead
+
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+level2.id as L2_ID,level2.Team_Name as L2_Team,level2.Complete_Team_Name as L2_Complete_Team,level2.user_id as L2_User_ID,level2.Emp_name as L2_Name,level2.email as L2_Email,
+level3.id as L3_ID,level3.Team_Name as L3_Team,level3.Complete_Team_Name as L3_Complete_Team,level3.user_id as L3_User_ID,level3.Emp_name as L3_Name,level3.email as L3_Email,
+level4.id as L4_ID,level4.Team_Name as L4_Team,level4.Complete_Team_Name as L4_Complete_Team,level4.user_id as L4_User_ID,level4.Emp_name as L4_Name,level4.email as L4_Email,
+level5.id as L5_ID,level5.Team_Name as L5_Team,level5.Complete_Team_Name as L5_Complete_Team,level5.user_id as L5_User_ID,level5.Emp_name as L5_Name,level5.email as L5_Email,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+
+from level1 
+left outer join level2 
+on level1.id=level2.parent_id
+left outer join level3
+on level2.id=level3.parent_id
+left outer join level4
+on level3.id=level4.parent_id
+left outer join level5
+on level4.id=level5.parent_id
+left outer join members a
+on level4.id=a.section_id --old method
+--on level3.id=a.section_id 
+
+where level5.id is null --and a.user_id is not null
+order by level1.id,level2.id,level3.id,level4.id,level5.id
+
+--Special Case: Mapping L4 team Managers with Engineers who doesn't come under L5 Managers working for that L4 Manager
+
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+level2.id as L2_ID,level2.Team_Name as L2_Team,level2.Complete_Team_Name as L2_Complete_Team,level2.user_id as L2_User_ID,level2.Emp_name as L2_Name,level2.email as L2_Email,
+level3.id as L3_ID,level3.Team_Name as L3_Team,level3.Complete_Team_Name as L3_Complete_Team,level3.user_id as L3_User_ID,level3.Emp_name as L3_Name,level3.email as L3_Email,
+level4.id as L4_ID,level4.Team_Name as L4_Team,level4.Complete_Team_Name as L4_Complete_Team,level4.user_id as L4_User_ID,level4.Emp_name as L4_Name,level4.email as L4_Email,
+null,null,null,null,null,null,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+
+from level1 
+left outer join level2 
+on level1.id=level2.parent_id
+left outer join level3
+on level2.id=level3.parent_id
+left outer join level4
+on level3.id=level4.parent_id
+left outer join members a
+on level4.id=a.section_id 
+where a.user_id not in (select user_id from level5 where parent_id=level4.id)
+order by level1.id,level2.id,level3.id,level4.id
+
+--Mapping Level3 team Members (who doesn't have Level4 and level5 team Members but contains Engineers working under them) with crm lead
+
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+level2.id as L2_ID,level2.Team_Name as L2_Team,level2.Complete_Team_Name as L2_Complete_Team,level2.user_id as L2_User_ID,level2.Emp_name as L2_Name,level2.email as L2_Email,
+level3.id as L3_ID,level3.Team_Name as L3_Team,level3.Complete_Team_Name as L3_Complete_Team,level3.user_id as L3_User_ID,level3.Emp_name as L3_Name,level3.email as L3_Email,
+level4.id as L4_ID,level4.Team_Name as L4_Team,level4.Complete_Team_Name as L4_Complete_Team,level4.user_id as L4_User_ID,level4.Emp_name as L4_Name,level4.email as L4_Email,
+level5.id as L5_ID,level5.Team_Name as L5_Team,level5.Complete_Team_Name as L5_Complete_Team,level5.user_id as L5_User_ID,level5.Emp_name as L5_Name,level5.email as L5_Email,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+
+from level1 
+left outer join level2 
+on level1.id=level2.parent_id
+left outer join level3
+on level2.id=level3.parent_id
+left outer join level4
+on level3.id=level4.parent_id
+left outer join level5
+on level4.id=level5.parent_id
+left outer join members a
+on level3.id=a.section_id --old method
+--on level2.id=a.section_id 
+where level4.id is null and level5.id is null
+order by level1.id,level2.id,level3.id,level4.id,level5.id
+
+--Special Case: Mapping L3 team Managers with Engineers who doesn't come under L4 or L5 Managers working for that L3 Manager
+
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+level2.id as L2_ID,level2.Team_Name as L2_Team,level2.Complete_Team_Name as L2_Complete_Team,level2.user_id as L2_User_ID,level2.Emp_name as L2_Name,level2.email as L2_Email,
+level3.id as L3_ID,level3.Team_Name as L3_Team,level3.Complete_Team_Name as L3_Complete_Team,level3.user_id as L3_User_ID,level3.Emp_name as L3_Name,level3.email as L3_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+
+from level1 
+left outer join level2 
+on level1.id=level2.parent_id
+left outer join level3
+on level2.id=level3.parent_id
+left outer join members a
+on level3.id=a.section_id 
+where a.user_id not in (select user_id from level4 where parent_id=level3.id)
+order by level1.id,level2.id,level3.id
+
+
+--Mapping Level2 team Members (who doesn't have Level3,Level4 and Level5 team Members but contains Engineers working under them) with crm lead
+
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+level2.id as L2_ID,level2.Team_Name as L2_Team,level2.Complete_Team_Name as L2_Complete_Team,level2.user_id as L2_User_ID,level2.Emp_name as L2_Name,level2.email as L2_Email,
+level3.id as L3_ID,level3.Team_Name as L3_Team,level3.Complete_Team_Name as L3_Complete_Team,level3.user_id as L3_User_ID,level3.Emp_name as L3_Name,level3.email as L3_Email,
+level4.id as L4_ID,level4.Team_Name as L4_Team,level4.Complete_Team_Name as L4_Complete_Team,level4.user_id as L4_User_ID,level4.Emp_name as L4_Name,level4.email as L4_Email,
+level5.id as L5_ID,level5.Team_Name as L5_Team,level5.Complete_Team_Name as L5_Complete_Team,level5.user_id as L5_User_ID,level5.Emp_name as L5_Name,level5.email as L5_Email,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+
+from level1 
+left outer join level2 
+on level1.id=level2.parent_id
+left outer join level3
+on level2.id=level3.parent_id
+left outer join level4
+on level3.id=level4.parent_id
+left outer join level5
+on level4.id=level5.parent_id
+
+left outer join members a
+on level2.id=a.section_id 
+where level3.id is null and level4.id is null and level5.id is null
+order by level1.id,level2.id,level3.id,level4.id,level5.id
+
+--Mapping Level1 team Members (who doesn't have Level2,Level3,Level4 and Level5 team Members but contains Engineers working under them) with crm lead
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+--level2.id as L2_ID,level2.Team_Name as L2_Team,level2.Complete_Team_Name as L2_Complete_Team,level2.user_id as L2_User_ID,level2.Emp_name as L2_Name,level2.email as L2_Email,
+--level3.id as L3_ID,level3.Team_Name as L3_Team,level3.Complete_Team_Name as L3_Complete_Team,level3.user_id as L3_User_ID,level3.Emp_name as L3_Name,level3.email as L3_Email,
+--level4.id as L4_ID,level4.Team_Name as L4_Team,level4.Complete_Team_Name as L4_Complete_Team,level4.user_id as L4_User_ID,level4.Emp_name as L4_Name,level4.email as L4_Email,
+--level5.id as L5_ID,level5.Team_Name as L5_Team,level5.Complete_Team_Name as L5_Complete_Team,level5.user_id as L5_User_ID,level5.Emp_name as L5_Name,level5.email as L5_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+
+from level1 
+left outer join level2 
+on level1.id=level2.parent_id
+left outer join level3
+on level2.id=level3.parent_id
+left outer join level4
+on level3.id=level4.parent_id
+left outer join level5
+on level4.id=level5.parent_id
+left outer join members a
+on level1.id=a.section_id 
+where --level2.id is null and level3.id is null and level4.id is null and level5.id is null and 
+a.user_id is not null
+order by level1.id--,level2.id,level3.id,level4.id,level5.id
+
+
+
+
+
+--Mapping Level1 team Member's individual performance with crm lead (Usually No records will be available)
+insert into tb3
+select distinct
+level1.id as L1_ID,level1.Team_Name as L1_Team,level1.Complete_Team_Name as L1_Complete_Team,level1.user_id as L1_User_ID,level1.Emp_name as L1_Name,level1.email as L1_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+a.user_id as Engg_User_ID,a.name as Engg_Name,a.email as Engg_Email
+from level1
+inner join tb3  on 
+level1.id=tb3.L1_ID
+inner join members a
+on level1.user_id=a.user_id
+
+--Mapping Level2 team Member's individual performance with crm lead (Usually No records will be available)
+insert into tb3
+select distinct 
+tb3.L1_ID,tb3.L1_Team,tb3.L1_Complete_Team,tb3.L1_User_ID,tb3.L1_Name,tb3.L1_Email,
+tb3.L2_ID,tb3.L2_Team,tb3.L2_Complete_Team,tb3.L2_User_ID,tb3.L2_Name,tb3.L2_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null
+from level2
+inner join tb3  on 
+level2.id=tb3.L2_ID
+inner join members a
+on level2.user_id=a.user_id
+
+
+--Mapping Level3 team Member's individual performance with crm lead (Usually No records will be available)
+insert into tb3
+select distinct
+tb3.L1_ID,tb3.L1_Team,tb3.L1_Complete_Team,tb3.L1_User_ID,tb3.L1_Name,tb3.L1_Email,
+tb3.L2_ID,tb3.L2_Team,tb3.L2_Complete_Team,tb3.L2_User_ID,tb3.L2_Name,tb3.L2_Email,
+tb3.L3_ID,tb3.L3_Team,tb3.L3_Complete_Team,tb3.L3_User_ID,tb3.L3_Name,tb3.L3_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null
+from level3
+inner join tb3  on 
+level3.id=tb3.L4_ID
+inner join members a
+on level3.user_id=a.user_id
+
+--Mapping Level4 team Member's individual performance with crm lead
+insert into tb3
+select distinct
+tb3.L1_ID,tb3.L1_Team,tb3.L1_Complete_Team,tb3.L1_User_ID,tb3.L1_Name,tb3.L1_Email,
+tb3.L2_ID,tb3.L2_Team,tb3.L2_Complete_Team,tb3.L2_User_ID,tb3.L2_Name,tb3.L2_Email,
+tb3.L3_ID,tb3.L3_Team,tb3.L3_Complete_Team,tb3.L3_User_ID,tb3.L3_Name,tb3.L3_Email,
+tb3.L4_ID,tb3.L4_Team,tb3.L4_Complete_Team,tb3.L4_User_ID,tb3.L4_Name,tb3.L4_Email,
+null,null,null,null,null,null,
+null,null,null
+from level4
+inner join tb3  on 
+level4.id=tb3.L4_ID
+inner join members a
+on level4.user_id=a.user_id
+--where tb3.L4_User_ID=92
+
+--Mapping Level5 team Member's individual performance with crm lead
+insert into tb3
+select distinct
+tb3.L1_ID,tb3.L1_Team,tb3.L1_Complete_Team,tb3.L1_User_ID,tb3.L1_Name,tb3.L1_Email,
+tb3.L2_ID,tb3.L2_Team,tb3.L2_Complete_Team,tb3.L2_User_ID,tb3.L2_Name,tb3.L2_Email,
+tb3.L3_ID,tb3.L3_Team,tb3.L3_Complete_Team,tb3.L3_User_ID,tb3.L3_Name,tb3.L3_Email,
+tb3.L4_ID,tb3.L4_Team,tb3.L4_Complete_Team,tb3.L4_User_ID,tb3.L4_Name,tb3.L4_Email,
+tb3.L5_ID,tb3.L5_Team,tb3.L5_Complete_Team,tb3.L5_User_ID,tb3.L5_Name,tb3.L5_Email,
+null,null,null
+from level5
+inner join tb3  on 
+level5.id=tb3.L5_ID
+inner join members a
+on level5.user_id=a.user_id
+
+insert into tb3a
+select distinct * from tb3
+
+--New Method
+insert into tb4
+select isnull(section_id,0) as section_id,Engg_User_id,Metrics_levels,ordering,Act_Count
+from(
+select section_id, Engg_User_id,Metrics_levels, count(Metrics_levels) as Act_Count,
+case when Metrics_levels='Prospects' then 1
+when Metrics_levels='Enquiry Generation' then 2
+when Metrics_levels='Enquiry Conversion' then 3
+when Metrics_levels='Order_won' then 4
+when Metrics_levels='Order_lost' then 5
+when Metrics_levels='Order_dropped' then 6 end as ordering
+from (
+select a.section_id,a.user_id Engg_User_id,
+case when a.type  ='lead' and a.stage_id  =1 then 'Prospects'
+when a.stage_id  =4 and a.type  ='opportunity' then 'Enquiry Generation'
+when a.stage_id  =5 and a.type  ='opportunity' then 'Enquiry Conversion'
+when a.stage_id  =7 and a.type  ='opportunity' then 'Order_won'
+when a.stage_id  =8 and a.type  ='opportunity' then 'Order_lost'
+when a.stage_id  =6 and a.type  ='opportunity' then 'Order_dropped'
+end as Metrics_levels
+                        
+from crm_lead a
+where a.stage_id in(1,4,5,6,7,8)
+--and a.section_id=4 for analysis purpose
+)a
+group by section_id,Engg_User_id,Metrics_levels
+)b
+order by section_id,Engg_User_id,ordering
+
+----------------------------------------------------------------
+--since Source data doesnt have all metrics like prospects,EG,EC,Order won,Order lost, Order dropped by default
+--for each sales person, below strategy is used to get all metrics for each person
+--in order to avoid to Cumulative count mismatch between Managers data and sum of his subordinates data.
+
+declare @counts int
+declare @section_id int
+declare @Engg_User_id int
+declare @rownum int=1
+
+set @counts=
+(select count(*) as counts from (
+select * from(
+select *,row_number() over(order by engg_user_id) Rownum from
+(select distinct section_id,engg_user_id from tb4 )a
+)b
+)c
+)
+
+
+insert into All_Metrics1
+select *  from(
+select *,row_number() over(order by engg_user_id) Rownum from
+(select distinct section_id,engg_user_id from tb4 )a
+)b
+
+
+while (@rownum<=@counts)
+begin
+set @section_id =(select section_id from All_Metrics1 where rownum=@rownum)
+set @Engg_User_id =(select Engg_User_id from All_Metrics1 where rownum=@rownum)
+--select @section_id
+insert into  All_Metrics2(section_id,Engg_User_id,ordering,Metrics_levels) values
+(@section_id,@Engg_User_id,1,'Prospects'),
+(@section_id,@Engg_User_id,2,'Enquiry Generation'),
+(@section_id,@Engg_User_id,3,'Enquiry Conversion'),
+(@section_id,@Engg_User_id,4,'Order_won'),
+(@section_id,@Engg_User_id,5,'Order_lost'),
+(@section_id,@Engg_User_id,6,'Order_dropped')
+
+
+update All_Metrics2 set section_id=0
+where section_id is null and Engg_User_id=@Engg_User_id
+
+set @rownum=@rownum+1
+
+end
+
+insert into tb4a
+select a.section_id,a.Engg_User_id,a.ordering,a.Metrics_levels,isnull(b.act_count,0) act_count from All_Metrics2 a 
+left outer join tb4 b
+on 
+a.section_id=b.section_id 
+and a.Engg_User_id=b.Engg_User_id
+and a.ordering=b.ordering
+
+---------------------------------------------------------------
+
+--Loading the  Counts of Engineers working under L5 Team.
+insert into tb5
+select distinct tb3.*,tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from tb3
+left outer join tb4a 
+on 
+tb3.L5_ID=tb4a.section_id and 
+tb3.engg_user_id=tb4a.engg_user_id 
+order by L1_ID,L2_id,L3_id,L4_id,L5_id,Engg_user_id,ordering
+
+--Loading the  Counts of Engineers working directly under L4 Team.
+insert into tb5
+select  distinct
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+null,null,null,null,null,null,
+tb3.Engg_User_ID,tb3.Engg_Name,tb3.Engg_Email,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from tb3
+inner join tb4a 
+on 
+tb3.L4_ID=tb4a.section_id and 
+tb3.engg_user_id=tb4a.engg_user_id 
+order by L1_ID,L2_id,L3_id,L4_id,tb3.Engg_User_ID,ordering
+
+
+--Loading the  Counts of Engineers working under L3 Team.
+insert into tb5
+select  distinct
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+tb3.Engg_User_ID,tb3.Engg_Name,tb3.Engg_Email,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from tb3
+inner join tb4a 
+on 
+tb3.L3_ID=tb4a.section_id and 
+tb3.engg_user_id=tb4a.engg_user_id 
+order by L1_ID,L2_id,L3_id,tb3.Engg_User_ID,ordering
+
+--Loading the  Counts of Engineers working under L2 Team.
+
+insert into tb5
+
+select  distinct
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+tb3.Engg_User_ID,tb3.Engg_Name,tb3.Engg_Email,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from tb3
+inner join tb4a 
+on 
+tb3.L2_ID=tb4a.section_id and 
+tb3.engg_user_id=tb4a.engg_user_id 
+order by L1_ID,L2_id,ordering
+
+--Loading the  Counts of Engineers working under L1 Team.
+insert into tb5
+select  distinct
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+tb3.Engg_User_ID,tb3.Engg_Name,tb3.Engg_Email,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from tb3
+inner join tb4a 
+on 
+tb3.L1_ID=tb4a.section_id and 
+tb3.engg_user_id=tb4a.engg_user_id 
+order by L1_ID,ordering
+
+--Loading the  individual Counts of L5 Team Members working under L4 Team and managing L5 Team.
+insert into tb5
+select L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+null,null,null,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from (select distinct * from tb3) tb3
+left outer join tb4a 
+on 
+tb3.L4_ID=tb4a.section_id and 
+tb3.L5_User_ID=tb4a.engg_user_id 
+where L5_User_ID is not null and tb3.Engg_User_ID is null
+order by L1_ID,L2_id,L3_id,L4_id,L5_ID,L5_User_ID,ordering
+
+--Loading the  individual Counts of L4 Team Members working under L3 Team and managing L4 Team.
+insert into tb5
+select  
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+null,null,null,null,null,null,
+null,null,null,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from (select distinct * from tb3) tb3
+left outer join tb4a 
+on 
+tb3.L3_ID=tb4a.section_id and
+tb3.L4_User_ID=tb4a.engg_user_id 
+where L4_User_ID is not null and L5_User_ID is null and tb3.Engg_User_ID is null
+order by L1_ID,L2_id,L3_id,L4_id,L4_User_ID,ordering
+
+--insert into tb5
+--select  
+--L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+--L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+--L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+--L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+--null,null,null,null,null,null,
+--null,null,null,
+--tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from tb3
+--left outer join tb4a 
+--on 
+--tb3.L4_ID=tb4a.section_id and
+--tb3.L4_User_ID=tb4a.engg_user_id 
+--where L4_User_ID is not null and L5_User_ID is null and tb3.Engg_User_ID is null
+--order by L1_ID,L2_id,L3_id,L4_id,L4_User_ID,ordering
+
+
+--Loading the  individual Counts of L3 Team Members working under L2 Team and managing L3 Team.
+insert into tb5
+select  
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from (select distinct * from tb3) tb3
+left outer join tb4a 
+on 
+tb3.L2_ID=tb4a.section_id and 
+tb3.L3_User_ID=tb4a.engg_user_id 
+where L3_User_ID is not null and L4_User_ID is null and L5_User_ID is null and tb3.Engg_User_ID is null
+order by L1_ID,L2_id,L3_User_ID,ordering
+
+--Loading the  individual Counts of L2 Team Members working under L1 Team and managing L2 Team.
+insert into tb5
+select distinct 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+null,null,null,null,null,null,
+null,null,null,null,null,null,
+null,null,null,
+tb4a.ordering,tb4a.Metrics_levels,tb4a.Act_Count from (select distinct * from tb3) tb3
+left outer join tb4a 
+on 
+tb3.L1_ID=tb4a.section_id and 
+tb3.L2_User_ID=tb4a.engg_user_id 
+--where L3_User_ID is null and L4_User_ID is null and L5_User_ID is null and tb3.Engg_User_ID is null
+order by L1_ID,L2_User_ID,ordering
+
+--To load L1 Team Leader's subordinates data ,below insert query is used
+insert into CRM_Parent_Child 
+select 
+L1_id as P_ID,L1_Team as P_Team,L1_Complete_Team as P_Complete_Team,L1_user_id as P_User_ID,L1_Name as P_Name,L1_email as P_Email,
+L2_id as C_ID,L2_Team as C_Team,L2_Complete_Team as C_Complete_Team,L2_user_Id as C_User_ID,L2_Name as C_Name,L2_email as C_Email,ordering,metrics_levels,Act_Count from tb5
+where  L2_ID is not null --and L3_ID is not null and L4_ID is not null and L5_ID is not null and Engg_User_ID is not null
+
+
+--since L1 Team Leader directly manages some engineers,below insert query is used
+insert into CRM_Parent_Child 
+select 
+L1_id as P_ID,L1_Team as P_Team,L1_Complete_Team as P_Complete_Team,L1_user_id as P_User_ID,L1_Name as P_Name,L1_email as P_Email,
+L1_ID as C_ID,'Sales','Sales',Engg_User_ID as C_User_ID,Engg_Name as C_Name,Engg_Email as C_Email,ordering,metrics_levels,Act_Count from tb5
+where  L2_ID is null and L3_ID is null and L4_ID is null and L5_ID is null
+and Engg_User_ID is not null
+
+
+--since L1 Team Leader directly works on sales operations,below insert query is used
+insert into CRM_Parent_Child 
+select 
+L1_id as P_ID,L1_Team as P_Team,L1_Complete_Team as P_Complete_Team,L1_user_id as P_User_ID,L1_Name as P_Name,L1_email as P_Email,
+L1_id as C_ID,null,null,L2_user_Id as C_User_ID,L2_Name as C_Name,L2_email as C_Email,ordering,metrics_levels,Act_Count from tb5
+where  L2_ID is null and L3_ID is null and L4_ID is null and L5_ID is null and Engg_User_ID is null
+
+
+--To load L2 Team Leader's subordinates data ,below insert query is used
+insert into crm_parent_child 
+select 
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,ordering,Metrics_levels,Act_Count from tb5 
+where  L2_ID is not null and L3_ID is not null --and L4_ID is not null and L5_ID is not null and Engg_User_ID is not null
+
+--since L2 Team Leader directly manages some engineers,below insert query is used
+insert into crm_parent_child 
+select 
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L2_ID,'Sales','Sales',Engg_User_ID,Engg_Name,Engg_Email,ordering,Metrics_levels,Act_Count from tb5 
+where  L2_ID is not null and L3_ID is null and L4_ID is null and L5_ID is null and Engg_User_ID is not null
+
+--since L2 Team Leader directly works on sales operations,below insert query is used
+insert into crm_parent_child 
+select 
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L2_ID,null,null,L3_User_ID,L3_Name,L3_Email,ordering,Metrics_levels,Act_Count from tb5 
+where  L2_ID is not null and L3_ID is null and L4_ID is null and L5_ID is null and Engg_User_ID is null
+
+
+--To load L3 Team Leader's subordinates data ,below insert query is used
+
+insert into crm_parent_child 
+select 
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,ordering,Metrics_levels,Act_Count from tb5 
+where L3_ID is not null and L4_ID is not null --and L5_ID is not null and Engg_User_ID is not null
+
+--since L3 Team Leader directly manages some engineers,below insert query is used
+insert into crm_parent_child 
+select 
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L3_ID,'Sales','Sales',Engg_User_ID,Engg_Name,Engg_Email,ordering,Metrics_levels,Act_Count from tb5 
+where L3_ID is not null and L4_ID is null and L5_ID is null and Engg_User_ID is not null
+
+--since L3 Team Leader directly works on sales operations,below insert query is used
+
+insert into crm_parent_child 
+select 
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L3_ID,null,null,L4_User_ID,L4_Name,L4_Email,ordering,Metrics_levels,Act_Count from tb5 
+where L3_ID is not null and L4_ID is null and L5_ID is null and Engg_User_ID is null
+
+
+--To load L4 Team Leader's subordinates data ,below insert query is used
+insert into crm_parent_child 
+select 
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,ordering,Metrics_levels,Act_Count from tb5 
+where L4_ID is not null and L5_ID is not null --and Engg_User_ID is not null
+--where ordering is not null
+
+
+--since L4 Team Leader directly manages some engineers,below insert query is used
+insert into crm_parent_child 
+select 
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L4_ID,'Sales','Sales',Engg_User_ID,Engg_Name,Engg_Email,ordering,Metrics_levels,Act_Count from tb5 
+where L4_ID is not null and L5_ID is null and Engg_User_ID is not null
+
+--since L4 Team Leader directly works on sales operations,below insert query is used
+insert into crm_parent_child 
+select 
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L4_ID,null,null,Engg_User_ID,Engg_Name,Engg_Email,ordering,Metrics_levels,Act_Count from tb5 
+where L4_ID is not null and L5_ID is null and Engg_User_ID is null
+
+--To load L5 Team Leader's subordinates data ,below insert query is used
+insert into crm_parent_child 
+select 
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+L5_ID,'Sales','Sales',Engg_user_ID,Engg_Name,Engg_Email,ordering,Metrics_levels,Act_Count from tb5
+where Engg_user_ID is not null
+
+--since L5 Team Leader directly works on sales operations,below insert query is used
+insert into crm_parent_child 
+select 
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+L5_ID,null,null,Engg_user_ID,Engg_Name,Engg_Email,ordering,Metrics_levels,Act_Count from tb5
+where Engg_user_ID is null
+
+insert into crm_parent_child (P_ID,P_User_ID,P_Name,P_Email,ordering,metrics_levels,Act_Count)
+select 
+L5_ID,Engg_user_ID,Engg_Name,Engg_Email,ordering,Metrics_levels,Act_Count from tb5 
+
+end
+
+
+

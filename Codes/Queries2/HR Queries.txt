@@ -1,0 +1,170 @@
+select [Pers#No#] as Emp_Code,
+Char80 as Emp_Name,
+[Ps Group] as Band,
+[object name] as Designation,
+[Org#Unit text] as Org_Unit,
+[Division Name] as Division_Name,
+[Function Name] as Function_Name,
+[Department Name] as Department,
+[Status] as Emp_Status,
+[Reason f#action text] as Reason,
+CASE WHEN [Seperation Date] IS NULL THEN '' ELSE [Seperation Date] END as Seperation_Date,
+case  when  [Trasf Date] is null then '' else [Trasf Date] end as Transfer_Date,
+[New Division] as New_Division,
+[new Function] as New_Function,
+[New Department] as New_Department,
+[Name of EE subgroup] as EE_Subgroup,
+case when convert(date,[Start Date])='' or convert(date,[Start Date]) is null then ''
+else convert(date,[Start Date]) end as Start_Date,
+getdate() as Data_Load_Date,
+1 as num,
+case when month(getdate()) between 1 and 3 then month(getdate()) + 9 else month(getdate()) - 3 end as FinMonthNo,
+datename(mm,getdate())  as FinMonthName,
+case when month(getdate()) between 1 and 3 then year(getdate()) - 1 else year(getdate())  end as FinYear,
+CASE WHEN month(getdate()) > 3 THEN (CONVERT(varchar, year(getdate())) + '-' + CONVERT(varchar, year(getdate()) + 1)) 
+                      ELSE (CONVERT(varchar, year(getdate()) - 1) + '-' + CONVERT(varchar, year(getdate()))) END AS Fin_Year
+
+from Hr_master_stage
+
+
+
+
+select [Pers#No#] as Emp_Code,
+Char80 as Emp_Name,
+[Ps Group] as Band,
+[object name] as Designation,
+[Org#Unit text] as Org_Unit,
+[Division Name] as Division_Name,
+[Function Name] as Function_Name,
+[Department Name] as Department,
+[Status] as Emp_Status,
+[Reason f#action text] as Reason,
+CASE WHEN [Seperation Date] IS NULL THEN '' 
+WHEN [Seperation Date] ='1899-12-30 00:00:00' then ''
+ELSE [Seperation Date] END as Seperation_Date,
+case  when  [Trasf Date] is null then '' 
+when  [Trasf Date] ='1899-12-30 00:00:00' then '' 
+else [Trasf Date] end as Transfer_Date,
+[New Division] as New_Division,
+[new Function] as New_Function,
+[New Department] as New_Department,
+[Name of EE subgroup] as EE_Subgroup,
+case when convert(date,[Start Date])='' or convert(date,[Start Date]) is null then ''
+else convert(date,[Start Date]) end as Start_Date,
+'2016-02-29 00:00:00.000' as Data_Load_Date,
+1 as num,
+case when month('2016-02-29 00:00:00.000') between 1 and 3 then month('2016-02-29 00:00:00.000') + 9 else month('2016-02-29 00:00:00.000') - 3 end as FinMonthNo,
+datename(mm,'2016-02-29 00:00:00.000')  as FinMonthName,
+case when month('2016-02-29 00:00:00.000') between 1 and 3 then year('2016-02-29 00:00:00.000') - 1 else year('2016-02-29 00:00:00.000')  end as FinYear,
+CASE WHEN month('2016-02-29 00:00:00.000') > 3 THEN (CONVERT(varchar, year('2016-02-29 00:00:00.000')) + '-' + CONVERT(varchar, year('2016-02-29 00:00:00.000') + 1)) 
+                      ELSE (CONVERT(varchar, year('2016-02-29 00:00:00.000') - 1) + '-' + CONVERT(varchar, year('2016-02-29 00:00:00.000'))) END AS Fin_Year
+
+from Hr_master_stage
+where Status='ACTIVE'
+
+delete from HR_MASTER where FinMonthNo=11 and finyear=2015 and Seperation_Date <'2016-02-01 00:00:00'
+
+
+select * from hr_emp_stage
+
+
+
+select 	T$ENAME AS Emp_Name, 
+	T$ECODE AS Emp_Code, 
+	T$BAND AS Band, 
+	T$DESIG AS Designation, 
+	'' AS Org_Unit, 
+	case T$UCODE 
+		when '31' then 'GULF'
+		when '32' then 'THAILAND'
+		WHEN '33' THEN 'BANGLADESH'
+		WHEN '34' THEN 'NIGERIA'
+		WHEN '35' THEN 'INDONESIA'
+		WHEN '38' THEN 'MALAYSIA'
+		WHEN '39' THEN 'KENYA'
+		WHEN '40' THEN 'CHINA'
+		WHEN '41' THEN 'FRANCE'
+		WHEN '42' THEN 'USA'
+		WHEN '43' THEN 'BRAZIL'
+		WHEN '44' THEN 'AUSTRALIA'
+		WHEN '46' THEN 'ITALY'
+		WHEN '47' THEN 'TAIWAN'
+		WHEN '48' THEN 'VIETNAM'
+		WHEN '49' THEN 'PATTONS'
+		WHEN '50' THEN 'PHILIPPINES'
+		ELSE ' ' END AS COUNTRY,
+	' ' AS Function_Name, 
+	' ' AS Department, 
+	CASE WHEN T$SDATE='9999-01-01 00:00:00.000' THEN 'ACTIVE' ELSE 'WITHDRAWN' END AS Emp_Status, 
+	' ' AS Reason, 
+	T$SDATE AS Seperation_Date, 
+	' ' AS Transfer_Date, 
+	' ' AS New_Division, 
+	' ' AS New_Function, 
+	' ' AS New_Department, 
+	' ' AS EE_Subgroup, 
+	T$JDATE AS Start_Date, 
+	'2016-02-29 00:00:00.000' as Data_Load_Date,
+1 as num,
+case when month('2016-02-29 00:00:00.000') between 1 and 3 then month('2016-02-29 00:00:00.000') + 9 else month('2016-02-29 00:00:00.000') - 3 end as FinMonthNo,
+datename(mm,'2016-02-29 00:00:00.000')  as FinMonthName,
+case when month('2016-02-29 00:00:00.000') between 1 and 3 then year('2016-02-29 00:00:00.000') - 1 else year('2016-02-29 00:00:00.000')  end as FinYear,
+CASE WHEN month('2016-02-29 00:00:00.000') > 3 THEN (CONVERT(varchar, year('2016-02-29 00:00:00.000')) + '-' + CONVERT(varchar, year('2016-02-29 00:00:00.000') + 1)) 
+                      ELSE (CONVERT(varchar, year('2016-02-29 00:00:00.000') - 1) + '-' + CONVERT(varchar, year('2016-02-29 00:00:00.000'))) END AS Fin_Year
+
+from HR_EMP_STAGE
+
+where T$UCODE in ('31','32','33','34','35','38','39','40','41','42','43','44','46','47','48','49','50')
+
+
+
+
+
+
+alter table Hr_master_stage alter column Pers#No#	float
+alter table Hr_master_stage alter column Char80	varchar(255)
+alter table Hr_master_stage alter column [PS Group]	varchar(255)
+alter table Hr_master_stage alter column [Object name]	varchar(255)
+alter table Hr_master_stage alter column [Org#Unit text]	varchar(255)
+alter table Hr_master_stage alter column [Division Name]	varchar(255)
+alter table Hr_master_stage alter column [Function Name] varchar(255)
+alter table Hr_master_stage alter column [Department Name]	varchar(255)
+alter table Hr_master_stage alter column Status	varchar(255)
+alter table Hr_master_stage alter column [Reason f#action text]	varchar(255)
+alter table Hr_master_stage alter column [Seperation Date]	datetime
+alter table Hr_master_stage alter column [Trasf Date]	datetime
+alter table Hr_master_stage alter column [New Division]	varchar(255)
+alter table Hr_master_stage alter column [New Function]	varchar(255)
+alter table Hr_master_stage alter column [New Department]	varchar(255)
+alter table Hr_master_stage alter column [Name of EE subgroup]	varchar(255)
+alter table Hr_master_stage alter column [Start Date]	datetime
+
+
+alter table Hr_master alter column Emp_Code	float
+alter table Hr_master alter column Emp_Name	varchar(255)
+alter table Hr_master alter column Band	varchar(255)
+alter table Hr_master alter column Designation	varchar(255)
+alter table Hr_master alter column Org_Unit	varchar(255)
+alter table Hr_master alter column Division_Name	varchar(255)
+alter table Hr_master alter column Function_Name	varchar(255)
+alter table Hr_master alter column Department	varchar(255)
+alter table Hr_master alter column Emp_Status	varchar(255)
+alter table Hr_master alter column Reason	varchar(255)
+alter table Hr_master alter column Seperation_Date	varchar(255)
+alter table Hr_master alter column Transfer_Date	varchar(255)
+alter table Hr_master alter column New_Division	varchar(255)
+alter table Hr_master alter column New_Function	varchar(255)
+alter table Hr_master alter column New_Department	varchar(255)
+alter table Hr_master alter column EE_Subgroup	varchar(255)
+alter table Hr_master alter column Data_Load_Date	datetime
+alter table Hr_master alter column num	int
+alter table Hr_master alter column FinMonthNo	int
+alter table Hr_master alter column FinMonthName	nvarchar(510)
+alter table Hr_master alter column FinYear	int
+alter table Hr_master alter column Fin_Year	varchar(255)
+alter table Hr_master alter column Start_Date	date
+alter table Hr_master alter column Old_Emp_Code	int
+alter table Hr_master alter column OrgUnitCode	varchar(255)
+alter table Hr_master alter column PositionID	varchar(255)
+alter table Hr_master alter column Location	varchar(255)
+alter table Hr_master alter column DOB	datetime

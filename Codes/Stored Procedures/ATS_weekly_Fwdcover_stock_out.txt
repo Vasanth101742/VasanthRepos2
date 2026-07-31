@@ -1,0 +1,330 @@
+Text
+    
+
+CREATE PROCEDURE [dbo].[ATS_weekly_Fwdcover_stock_out] as    
+
+    
+
+Declare @count as int    
+
+Declare @loop_value as int    
+
+Declare @item as varchar(50)    
+
+Declare @bqty as float    
+
+Declare @weekstart as datetime     
+
+Declare @weekend as datetime    
+
+set nocount on    
+
+BEGIN    
+
+----------------------------------------------------------------------------------------------------------------    
+
+--ATS Forward cover Weekly BOM Extraction    
+
+----------------------------------------------------------------------------------------------------------------    
+
+    
+
+SET @weekstart=convert(datetime,convert(varchar,DATEADD(dd, 7-(DATEPART(dw, getdate())-2), getdate()),106))    
+
+SET @weekend= convert(datetime,convert(varchar,DATEADD(dd, 17-(DATEPART(dw, getdate())), getdate()),106))    
+
+     
+
+IF Datepart(dw,getdate()) =6    
+
+    
+
+BEGIN    
+
+    
+
+WHILE (@weekstart <=@weekend)    
+
+BEGIN    
+
+SET @count=(SELECT count(tplcode) FROM ats_prod_bud_ondate  WHERE bqty > 0 and date = convert(VARCHAR,@weekstart,101))    
+
+    
+
+SET @loop_value=1    
+
+    
+
+create table ats_bom_temp1 (Parent varchar(50),    
+
+QANA float,SITM varchar(50))    
+
+    
+
+WHILE (@loop_value <=@count)    
+
+BEGIN    
+
+    
+
+SET @item=(SELECT tplcode FROM (SELECT tplcode,row_number()OVER( ORDER BY tplcode) AS rank FROM ats_prod_bud_ondate     
+
+WHERE   bqty > 0 and date = convert(VARCHAR,@weekstart,101))a WHERE rank =@loop_value);    
+
+    
+
+SET @bqty=(SELECT sum(bqty) FROM (SELECT bqty,row_number()OVER( ORDER BY tplcode) AS rank FROM ats_prod_bud_ondate     
+
+WHERE   bqty > 0 and date = convert(VARCHAR,@weekstart,101))a WHERE rank =@loop_value);    
+
+    
+
+WITH Items AS    
+
+(    
+
+  SELECT ig.MITM as parent,    
+
+   ig.QANA AS multi_QANA,    
+
+   ig.QANA,              
+
+         ig.SITM,    
+
+   ig.exdt, 0 AS Level,ig.MITM    
+
+     FROM ats_bom ig    
+
+   WHERE ltrim(rtrim(ig.MITM)) = @item and exdt >=@weekstart and INDT <=@weekstart    
+
+   UNION ALL     
+
+  SELECT ig.MITM,    
+
+         ig.QANA*Items.multi_QANA ,    
+
+         ig.QANA,    
+
+         ig.SITM,    
+
+   ig.exdt,level+1,parent       
+
+    FROM Items    
+
+   INNER JOIN ats_bom ig      
+
+      ON ltrim(rtrim(ig.MITM)) = ltrim(rtrim(Items.SITM))    
+
+ WHERE  ig.exdt >= @weekstart and ig.INDT <= @weekstart    
+
+)    
+
+    
+
+INSERT INTO ats_bom_temp1     
+
+select ltrim(rtrim(parent)),Multi_QANA,ltrim(rtrim(SITM)) from     
+
+items a inner join (select * from ats_inventory_fwdcover where hist_date=(select max(hist_date) from ats_inventory_fwdcover))b    
+
+on ltrim(rtrim(SITM))=ltrim(rtrim(item))    
+
+    
+
+INSERT INTO ats_bom_item_count_weekly    
+
+SELECT @item,a.SITM,sum(QANA) AS QANA,sum(QANA*@bqty) AS total,@bqty,@weekstart,    
+
+case when datepart(wk,@weekend) = DATEPART( wk, @weekstart) then  DATEPART( wk, @weekstart)-1 else  DATEPART( wk, @weekstart) end as week    
+
+    
+
+ FROM ats_bom_temp1 a    
+
+inner join    
+
+(select * from (select distinct b.SITM,a.SITM  as Par from    
+
+(SELECT distinct a.SITM   FROM ats_bom_temp1 a ,ats_bom_temp1 b WHERE a.SITM = b.parent) a    
+
+full join    
+
+(select distinct SITM  from ats_bom_temp1 )b on a.SITM = b.SITM)a where par is null)b    
+
+on a.SITM=b.SITM    
+
+group by a.SITM    
+
+    
+
+delete from ats_bom_temp1    
+
+    
+
+set @loop_value=@loop_value+1    
+
+end    
+
+drop table ats_bom_temp1    
+
+SET @weekstart=@weekstart+1    
+
+END    
+
+END    
+
+----------------------------------------------------------------------------------------------------------------    
+
+--ATS Subcontract Weekly BOM Extraction    
+
+----------------------------------------------------------------------------------------------------------------    
+
+SET @weekstart= convert(datetime,convert(varchar,DATEADD(dd, 7-(DATEPART(dw, getdate())-2), getdate()),106))    
+
+SET @weekend= convert(datetime,convert(varchar,DATEADD(dd, 16-(DATEPART(dw, getdate())), getdate()),106))    
+
+     
+
+IF Datepart(dw,getdate()) =6    
+
+    
+
+BEGIN    
+
+    
+
+WHILE (@weekstart <=@weekend)    
+
+BEGIN    
+
+SET @count=(SELECT count(tplcode) FROM ats_prod_bud_ondate  WHERE bqty > 0 and date = convert(VARCHAR,@weekstart,101))    
+
+    
+
+SET @loop_value=1    
+
+    
+
+create table ats_bom_temp1 (Parent varchar(50),    
+
+QANA float,SITM varchar(50))    
+
+    
+
+WHILE (@loop_value <=@count)    
+
+BEGIN    
+
+    
+
+SET @item=(SELECT tplcode FROM (SELECT tplcode,row_number()OVER( ORDER BY tplcode) AS rank FROM ats_prod_bud_ondate     
+
+WHERE   bqty > 0 and date = convert(VARCHAR,@weekstart,101))a WHERE rank =@loop_value);    
+
+    
+
+SET @bqty=(SELECT sum(bqty) FROM (SELECT bqty,row_number()OVER( ORDER BY tplcode) AS rank FROM ats_prod_bud_ondate     
+
+WHERE   bqty > 0 and date = convert(VARCHAR,@weekstart,101))a WHERE rank =@loop_value);    
+
+    
+
+WITH Items AS    
+
+(    
+
+  SELECT ig.MITM as parent,    
+
+   ig.QANA AS multi_QANA,    
+
+   ig.QANA,              
+
+         ig.SITM,    
+
+   ig.exdt, 0 AS Level,ig.MITM    
+
+     FROM ats_bom ig    
+
+   WHERE ltrim(rtrim(ig.MITM)) = @item and exdt >=@weekstart and INDT <=@weekstart    
+
+   UNION ALL     
+
+  SELECT ig.MITM,    
+
+         ig.QANA*Items.multi_QANA ,    
+
+         ig.QANA,    
+
+         ig.SITM,    
+
+   ig.exdt,level+1,parent       
+
+    FROM Items    
+
+   INNER JOIN ats_bom ig      
+
+      ON ltrim(rtrim(ig.MITM)) = ltrim(rtrim(Items.SITM))    
+
+ WHERE  ig.exdt >= @weekstart and ig.INDT <= @weekstart    
+
+)    
+
+    
+
+INSERT INTO ats_bom_temp1     
+
+select ltrim(rtrim(parent)),Multi_QANA,ltrim(rtrim(SITM)) from     
+
+items a inner join (select * from ats_subcontract_item_list)b    
+
+ --where hist_date=(select max(hist_date) from ats_inventory_fwdcover)    
+
+    
+
+on ltrim(rtrim(SITM))=ltrim(rtrim(item))    
+
+    
+
+INSERT INTO ats_bom_item_count_weekly_subcontract    
+
+SELECT @item,a.SITM,sum(QANA) AS QANA,sum(QANA*@bqty) AS total,@bqty,@weekstart,    
+
+case when datepart(wk,@weekend) = DATEPART( wk, @weekstart) then  DATEPART( wk, @weekstart)-1 else  DATEPART( wk, @weekstart) end as week    
+
+FROM ats_bom_temp1 a    
+
+inner join    
+
+(select * from (select distinct b.SITM,a.SITM  as Par from    
+
+(SELECT distinct a.SITM   FROM ats_bom_temp1 a ,ats_bom_temp1 b WHERE a.SITM = b.parent) a    
+
+full join    
+
+(select distinct SITM  from ats_bom_temp1 )b on a.SITM = b.SITM)a where par is null)b    
+
+on a.SITM=b.SITM    
+
+group by a.SITM    
+
+    
+
+delete from ats_bom_temp1    
+
+    
+
+set @loop_value=@loop_value+1    
+
+end    
+
+drop table ats_bom_temp1    
+
+SET @weekstart=@weekstart+1    
+
+END    
+
+END    
+
+    
+
+END 

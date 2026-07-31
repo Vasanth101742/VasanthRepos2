@@ -1,0 +1,56 @@
+--select * from RPLDATA_ats
+
+
+--CREATE VIEW vw_rpltriggerdiff_ats  as
+SELECT 
+LEAN_MASTER.Company, 
+a_1.DIVI, a_1.DEPT, 
+LTRIM(RTRIM(a_1.ITEM)) AS itemcode, 
+a_1.a AS I_Tri_date,a_1.DATE AS II_Tri_Date,
+CASE WHEN a IS NULL THEN 0 ELSE DATEDIFF(dd, a, DATE) END AS diff, 
+a_1.SUNO, 
+--a_1.QTY, 
+LEAN_MASTER.CEMP, 
+vw_buyer.emp_name, 
+
+MATERIALS_DEPT_MASTER.Dept_Name as SUPERMARKET, 
+Materials_Division_MASTER.DIVISION_NAME as DEPARTMENT, 
+vw_buyer.emp_name AS Buyername, 
+LEAN_MASTER.BUYR, vw_buyer.emp_name AS BuyerContact, LEAN_MASTER.RPLT
+
+FROM (select * from TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) as lean_master 
+INNER JOIN Employee_Details vw_buyer
+ON LEAN_MASTER.BUYR=vw_buyer.new_emp_code
+
+RIGHT OUTER JOIN 
+(
+SELECT DIVI, DEPT, ITEM, DATE,
+(SELECT MAX(DATE) AS Expr1 
+FROM (select * from TZZPUR014ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) AS b
+WHERE DATE <> '9999-01-01 00:00:00.000'
+and isdate(DATE)<> 0 
+AND a.DIVI = DIVI 
+AND a.DEPT = DEPT 
+AND a.SUNO = SUNO 
+AND a.ITEM = ITEM
+AND DATE < a.DATE 
+) AS a, 
+SUNO --,BUYER, QTY
+FROM (select * from TZZPUR014ALL where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) AS a 
+WHERE (DATE <> '9999-01-01 00:00:00.000') 
+and isdate(date)<> 0 
+) AS a_1 
+
+ON LTRIM(RTRIM(LEAN_MASTER.ITEM)) = LTRIM(RTRIM(a_1.ITEM)) 
+AND LTRIM(RTRIM(LEAN_MASTER.DEPT)) = LTRIM(RTRIM(a_1.DEPT)) 
+AND LTRIM(RTRIM(LEAN_MASTER.SUNO1)) = LTRIM(RTRIM(a_1.SUNO)) 
+LEFT OUTER JOIN MATERIALS_DEPT_MASTER 
+ON a_1.DEPT = MATERIALS_DEPT_MASTER.Dept_code
+LEFT OUTER JOIN Materials_Division_MASTER 
+ON a_1.DIVI = Materials_Division_MASTER.DIVISION_CODE
+LEFT OUTER JOIN vw_Business_Partner
+ON LTRIM(RTRIM(a_1.SUNO)) = LTRIM(RTRIM(vw_Business_Partner.custcode))
+
+WHERE isdate(a_1.DATE) = 1
+
+

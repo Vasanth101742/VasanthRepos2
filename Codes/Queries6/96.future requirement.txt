@@ -1,0 +1,91 @@
+--Alter table Future_Reqmt alter column ordernum varchar(50)
+Truncate table Future_Reqmt
+
+
+
+insert into Future_Reqmt (company,itemcode,ordernum,No_of_lines,DeliveryDate,
+weekno,monthno,year,OrderQty,DelQty,PendQty)
+--,SuppName,Buyer,BuyerName,OrderValue
+select company,itemcode,ordernum,
+count(OrderNum) No_of_lines,DeliveryDate,DATEPART(WK,deliverydate) weekno,month(DeliveryDate) monthno,year(DeliveryDate) year,
+sum(t_qoor) OrderQty,
+sum(t_qidl) as DelQty,
+sum(t_qoor)-sum(t_qidl) as PendQty  
+from Sales_Lines 
+--where Company=102
+--and itemcode='         B738207'
+group by company,itemcode,DeliveryDate,ordernum
+having sum(t_qoor)-sum(t_qidl)<>0
+
+--Item Updations
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.t_item))
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.ITEM))
+
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.DSCA))
+from ttcibd001470 a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.ITEM))
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where Future_Reqmt.company =551
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where Future_Reqmt.company =552
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.t_item))
+
+
+update Future_Reqmt set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+--Supplierwise Price
+
+update Future_Reqmt set Supplier=ltrim(rtrim(a.OTBP)),UnitPrice=a.BAPR
+from TTDPCG031ALL a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,500,581,600) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+update Future_Reqmt set Supplier=ltrim(rtrim(a.OTBP)),UnitPrice=a.BAPR
+from (select * from TTDPCG031ALL where company in (465,470,490,500,581,600)) a
+where Future_Reqmt.company in 
+(select  company from ELGI_Companies_Master where Company in (465,470,490,500,581,600) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Future_Reqmt.itemcode))=ltrim(rtrim(a.item))
+
+
+
+
+select * from Future_Reqmt
+
+--select * from TTDPCG031ALL order by company
+--select distinct company from TTDPCG031ALL order by company
+

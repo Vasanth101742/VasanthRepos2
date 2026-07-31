@@ -1,0 +1,141 @@
+declare @CalYear varchar(10) ='2018'
+declare @CalMonth varchar(10) ='02'
+
+truncate table Brazil_ar
+
+--Alter table Brazil_ar add inv_Line int
+--Alter table Brazil_ar alter column Recv_Amt2 float null
+--Alter table Brazil_ar alter column Bal float null
+
+--sp_rename 'Brazil_ar.Schedule','InvSchedule'
+
+--Drop Table Brazil_AR
+
+--select * into BR_AR from (
+--select CustCode,CustName,InvDate,InvNo,InitialDocn,inv_Line,InvSchedule,InvAmt,
+--DueSch,DueDate,DueAmnt,
+--Recv_Date,RecvDocn,Recv_Line,Recv_Schedule,Recv_Amt
+--from Brazil_ar)a
+
+--select * into Brazil_AR from BR_AR
+--Drop Table Br_AR
+
+
+insert into Brazil_ar(CustCode,
+--CustName,
+InvDate,InvNo,inv_Line,InitialDocn,InvAmt,InvSchedule)
+--DueSch,Sch_rnk_Due,Sch_rnk_Due2,DueDate,DueAmnt,DueAmnt_Bank,Recv_Schedule,Recv_Date,RecvDocn,Recv_Amt,Recv_Amt2,Line,Sch_rnk_Inv,Recv_Line,Sch_rnk_recv,Bal)
+
+------------------INVOICE AMOUNT------------------------------
+select  distinct a.t_itbp as CustCode,
+a.t_docd as InvDate,
+concat(a.t_ttyp,' ',a.t_ninv) InvNo,
+t_line as Line,
+concat(a.t_tdoc,' ',a.t_docn) as InitialDocn,
+a.t_amnt as InvAmt,
+a.t_schn Schedule
+from TTFACR200200 a
+where a.t_docn=0
+and a.t_amnt>0
+and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+
+union
+
+select  distinct a.t_itbp as CustCode,
+a.t_docd as InvDate,
+concat(a.t_ttyp,' ',a.t_ninv) InvNo,
+t_line as Line,
+concat(a.t_tdoc,' ',a.t_docn),
+sum(a.t_amnt) as InvAmt,
+a.t_schn Schedule
+from TTFACR200200 a
+where a.t_docn<>0  
+and t_amnt>0
+and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+group by a.t_itbp,a.t_docd,a.t_ttyp,a.t_ninv,t_line,a.t_tdoc,a.t_docn,a.t_schn
+
+
+
+--Due and Received
+
+insert into Brazil_ar(CustCode,
+InvNo,DueSch,Recv_Schedule,DueDate,DueAmnt,Line,Recv_Date,RecvDocn,Recv_Amt)
+
+
+select 
+isnull(due.CustCode,paid.CustCode) as CustCode,
+isnull(due.InvNo,paid.InvNo) as InvNo,
+due.DueSch,paid.Recv_Schedule,
+due.DueDate,due.DueAmnt,
+paid.Line,paid.Recv_Date,paid.RecvDocn,paid.Recv_Amt 
+from 
+(
+--RECEIVED AMOUNT on Schedules
+select  t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_line as Line,
+t_docd as Recv_Date,concat(t_tdoc,' ',t_docn) as RecvDocn,
+t_schn as Recv_Schedule,sum(t_amnt) Recv_Amt
+from TTFACR200200 
+where t_docn <>0
+and t_schn<>0 
+and t_amnt<0
+and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn
+
+
+
+union all
+
+--ONE TIME RECEIVED AMOUNT 
+select t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_line as Line,
+t_docd,concat(t_tdoc,' ',t_docn),
+t_schn,sum(t_amnt) t_amnt
+from TTFACR200200 
+where t_docn <>0
+and t_schn=0  
+and t_amnt<0
+and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn
+
+
+union all
+
+
+select t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_line as Line,
+t_docd,concat(t_tdoc,' ',t_docn),
+t_schn,sum(t_amnt) t_amnt
+from TTFACR200200 
+where t_docn =0
+and t_schn=0  
+and convert(int,concat(convert(varchar,t_year),convert(varchar,t_prod)))<=convert(int,CONCAT(@CalYear,@CalMonth))
+--and concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+group by t_itbp,t_ttyp,t_ninv,t_line,t_schn,t_docd,t_tdoc,t_docn
+having sum(t_amnt)<0
+
+)paid
+
+
+full outer join
+(
+select t_itbp as CustCode,concat(t_ttyp,' ',t_ninv) InvNo,
+t_schn as DueSch,t_dued_l as DueDate,t_amnt as DueAmnt 
+from TTFACR201200
+--where concat(t_itbp,'/',concat(t_ttyp,' ',t_ninv))=@Trandata
+)Due
+on paid.CustCode=due.CustCode
+and paid.InvNo=Due.InvNo
+and paid.Recv_Schedule=due.DueSch
+
+update Brazil_ar set DueAmnt=invAmnt where invno like '%237%' and ltrim(rtrim(initialDocn))='0'
+
+
+select * from Brazil_ar
+where custcode='PN0000031'
+--and invno='FCR 10002280'
+and invno like '%237%'
+order by invno,duedate,recv_date

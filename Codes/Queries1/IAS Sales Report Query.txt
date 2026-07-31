@@ -1,0 +1,104 @@
+select null as Company,null as CustCode,null as CustName,null as AreaCode,null as AreaName,
+null as OrderNum,null as PositionNum,'Upto' as TranType,
+case when day(getdate()-1)=1 then convert(date,getdate()-1) else convert(date,getdate()-2) end as InvDate,
+null as InvNo,
+sum(OrderQty) OrderQty,--null BudQty,
+sum(DeliveredQty) DeliveredQty,null UnitPrice,sum(SalesValue) SalesValue,
+null as REFA,null as REFB,null as CPAY,null as odat,null as CCUR,null as CREP,null as CFCG,null as DDAT,
+null as ItemCode,null as ItemDesc
+from
+(
+select a.Company,a.CustCode,c.CustName,f.AreaCode,f.AreaName,
+a.OrderNum,b.PositionNum,
+b.t_invd as InvDate,b.invnum as InvNo,b.TranType,
+b.t_qoor as OrderQty,
+--b.BQUA as BudQty,
+b.t_qidl as DeliveredQty,
+b.Price as UnitPrice,(b.t_qidl*b.Price) as SalesValue,
+a.REFA,a.REFB,a.PaymentTerm as cpay,a.OrderDate as ODAT,a.Currency as CCUR,
+a.SalesRep as CREP,e.FinCustGrp as CFCG,b.DeliveryDate as DDAT,b.ItemCode
+from 
+(select * from Sales_Header where company=951)a
+left outer join (select * from Sales_Lines where company=951)b
+on a.OrderNum=b.OrderNum
+left outer join (select BPID as CUNO,ltrim(rtrim(NAMA)) as CustName from TTCCOM100951)c
+on a.CustCode=c.CUNO
+left outer join (select distinct item,ltrim(rtrim(DSCA)) as ItemDesc from TTCIBD001951)d
+on ltrim(rtrim(b.ItemCode))=ltrim(rtrim(d.ITEM))
+left outer join vw_Business_Partner_IAS e
+on a.CustCode=e.CustCode
+left outer join vw_AREA_MASTER f
+on e.custareacode=f.AreaCode
+
+where b.invnum is not null
+
+
+union
+
+select '987' as Company,a.t_itbp,c.CustName1,c.CustAreaCode,null as AreaName,
+null as ordernum,null as Positionnum,
+a.t_docd,a.t_ninv,t_ttyp,
+null as orderQty,
+--null as BudQty,
+null as DeliveredQty,
+null as unitprice,t_amth_1,t_refr,null as refb,
+t_cpay,a.t_docd as orderdate,
+t_ccur,t_crep,null as cfcg,null as ddat,
+null as itemcode
+from (select * from TTFACR200ALL where company=951) a
+left outer join (select * from vw_Business_Partner_IAS)c
+on a.t_itbp=c.custcode
+where t_ttyp='csr' and t_docn=0
+)a
+where InvDate between CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+AND dateadd(dd, - 2, getdate()) 
+
+
+union 
+
+select Company,CustCode,CustName,AreaCode,AreaName,OrderNum,PositionNum,TranType,InvDate,InvNo,
+sum(OrderQty) OrderQty,--sum(BudQty) BudQty,
+sum(DeliveredQty) DeliveredQty,sum(UnitPrice) UnitPrice,sum(SalesValue) SalesValue,
+REFA,REFB,CPAY,odat,CCUR,CREP,CFCG,DDAT,ItemCode,ItemDesc
+from
+(
+select a.Company,a.CustCode,c.CustName1 as CustName,c.custareacode as AreaCode,
+e.AreaName,a.OrderNum,b.PositionNum,
+b.t_invd as InvDate,b.invnum as InvNo,b.TranType,b.t_qoor as OrderQty,
+--b.BQUA as BudQty,
+b.t_qidl as DeliveredQty,
+b.Price as UnitPrice,(b.t_qidl*b.Price) as SalesValue,a.REFA,a.REFB,
+a.PaymentTerm as cpay,a.OrderDate as ODAT,a.Currency as  CCUR,a.SalesRep as CREP,
+c.FinCustGrp as CFCG,b.DeliveryDate as DDAT,b.ItemCode,d.ItemDesc
+from 
+(select * from Sales_Header where company=951)a
+left outer join (select * from Sales_Lines where company=951)b
+on a.OrderNum=b.OrderNum
+left outer join (select * from vw_Business_Partner_IAS)c
+on a.CustCode=c.custcode
+left outer join (select distinct item,ltrim(rtrim(DSCA)) as ItemDesc from TTCIBD001951)d
+on ltrim(rtrim(b.ItemCode))=ltrim(rtrim(d.ITEM))
+left outer join vw_AREA_MASTER e
+on c.custareacode=e.AreaCode
+where b.invnum is not null
+)a
+where convert(date,InvDate) = convert(date,dateadd(dd, - 1, getdate()) )
+group by Company,CustCode,CustName,AreaCode,AreaName,OrderNum,PositionNum,InvDate,InvNo,TranType,REFA,REFB,CPAY,odat,CCUR,CREP,CFCG,DDAT,ItemCode,ItemDesc
+
+
+union
+
+select '987' as Company,a.t_itbp as CUNO,c.custname1,c.CustAreaCode,null as AreaName,
+null as ordernum,null as Positionnum,t_ttyp,
+a.t_docd,a.t_ninv,
+null as orderQty,--null as BudQty,
+null as DeliveredQty,null as unitprice,t_amth_1,
+t_refr,null as refb,t_cpay,
+a.t_docd as orderdate,
+t_ccur,t_crep,null as cfcg,null as ddat,
+null as itemcode,null as Itemdescr
+from (select * from TTFACR200ALL where company=951) a
+left outer join (select * from vw_Business_Partner)c
+on a.t_itbp=c.custcode
+where t_ttyp='csr' and t_docn=0
+and convert(date,a.t_docd) = convert(date,dateadd(dd, - 1, getdate()) )

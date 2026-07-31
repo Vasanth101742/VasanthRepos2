@@ -1,0 +1,16 @@
+select a.Date as BudDate,b.User_names as Vertical,a.Dpst,b.DPSTName,a.Area,b.AreaName,a.[Target] as Bud_in_Mn from 
+(select * from Sales_Budget
+where concat(Dpst,Area) in 
+(select concat(DPSTCode,Areacode) from SalesMapping_Global where organ='SAAME'
+and User_names in ('Africa-Units','Africa-Spares','GULF TO CUST - SPARES','GULF TO CUST - UNITS','ME-Spares','ME-Units'))
+and Date>='2019-04-01'
+)a
+left outer join
+(select * from SalesMapping_Global where organ='SAAME'
+and User_names in ('Africa-Units','Africa-Spares','GULF TO CUST - SPARES','GULF TO CUST - UNITS','ME-Spares','ME-Units'))b
+on a.Dpst=b.dpstcode
+and a.Area=b.areacode
+
+order by Date,Dpst,Area
+
+

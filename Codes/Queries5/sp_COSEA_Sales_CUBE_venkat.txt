@@ -1,0 +1,159 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--SELECT * fROM COSEA_Sales_CUBE where custcode is NOT null order by date desc
+--exec sp_COSEA_Sales_CUBE
+CREATE proc sp_COSEA_Sales_CUBE
+as 
+Begin
+
+truncate table COSEA_Sales_CUBE
+insert into COSEA_Sales_CUBE
+
+select * From (
+select date,year(date)as Year,month(date)as month,DATENAME(mm,date)as Monthname, 
+concat(
+case when month(date)<4 then convert(varchar,year(date)-1) else convert(varchar,year(date))end,' - ',
+case when month(date)<4 then convert(varchar,year(date)) else convert(varchar,year(date)+1)end)as Fin_Year,
+case when month(date)<4 then month(date)+9 else month(date)-3 end as Fin_month,
+organ,division,Vertical1,Area as areacode,areaname,dpst as Dpstcode,DPSTName,concat(area,' - ',areaname)as Area,concat(dpst,' - ',DPSTName)as Dpst,
+sum(isnull(year_bud_2011,0))budget_2011,sum(isnull(year_bud_2012,0))budget_2012,sum(isnull(year_bud_2013,0))budget_2013,sum(isnull(year_bud_2014,0))budget_2014,
+sum(isnull(year_bud_2015,0))budget_2015,sum(isnull(year_bud_2016,0))budget_2016,sum(isnull(year_bud_2017,0))budget_2017,
+sum(isnull(year_sale_2011,0))sales_2011,sum(isnull(year_sale_2012,0))sales_2012,sum(isnull(year_sale_2013,0))sales_2013,sum(isnull(year_sale_2014,0))sales_2014,
+sum(isnull(year_sale_2015,0))sales_2015,sum(isnull(year_sale_2016,0))sales_2016,sum(isnull(year_sale_2017,0))sales_2017,
+null as custcode,null as custName 
+from (
+select 
+--ISNULL(budget.global,sales.Global) as Global,
+ISNULL(budget.organ ,sales.organ) as organ,
+--ISNULL(budget.region,sales.region) as region,
+--ISNULL(budget.user_names,sales.user_names) as user_names,
+ISNULL(budget.Division,sales.Division) as Division,
+ISNULL(budget.Vertical1,sales.Vertical1) as Vertical1,
+ISNULL(budget.Area,sales.Areacode) as Area,
+ISNULL(budget.areaname,sales.areaname) as areaname,
+ISNULL(budget.dpst,sales.DPSTcode) as dpst,
+ISNULL(budget.DPSTName,sales.DPSTName) as DPSTName,
+ISNULL(budget.date,sales.date) as date, 
+budget.year_bud_2011,budget.year_bud_2012,budget.year_bud_2013,budget.year_bud_2014,budget.year_bud_2015,budget.year_bud_2016,budget.year_bud_2017,
+sales.year_sale_2011,sales.year_sale_2012,sales.year_sale_2013,sales.year_sale_2014,sales.year_sale_2015,sales.year_sale_2016,sales.year_sale_2017
+
+
+
+ FROM (
+
+SELECT	ltrim(rtrim(b.Global)) Global,date,
+case when ltrim(rtrim(isnull(a.organ,c.organ)))='ISAAME' then 'SAAME' else ltrim(rtrim(isnull(a.organ,c.organ))) end as organ,
+ltrim(rtrim(c.region)) region,
+ltrim(rtrim(c.user_names)) user_names,
+ltrim(rtrim(c.Division)) as Division,
+ltrim(rtrim(c.Vertical1)) as Vertical1,
+a.Area,ltrim(rtrim(c.areaname)) areaname,c.DPSTCode as dpst,c.DPSTName,
+
+round(SUM(CASE WHEN Date BETWEEN '04/01/2011'AND '03/31/2012'THEN (a.target)  ELSE 0 END),2) AS year_bud_2011,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2012'AND '03/31/2013'THEN (a.target) ELSE 0 END),2) AS year_bud_2012,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2013'AND '03/31/2014'THEN (a.target) ELSE 0 END),2) AS year_bud_2013,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2014'AND '03/31/2015'THEN (a.target) ELSE 0 END),2) AS year_bud_2014,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2015'AND '03/31/2016'THEN (a.target) ELSE 0 END),2) AS year_bud_2015,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2016'AND '03/31/2017'THEN (a.target) ELSE 0 END),2) AS year_bud_2016,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2017'AND '03/31/2018'THEN (a.target) ELSE 0 END),2) AS year_bud_2017
+
+FROM	(select * from Sales_Budget where organ ='cosea')a
+	INNER JOIN vw_AREA_MASTER b
+		ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.Area))
+	INNER JOIN vw_SALESMAPPING_MASTER c
+		ON ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode))    
+		and ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+
+GROUP BY date,ltrim(rtrim(b.Global)),ltrim(rtrim(isnull(a.organ,c.organ))),
+ltrim(rtrim(c.region)),ltrim(rtrim(c.user_names)),ltrim(rtrim(c.Division)),ltrim(rtrim(c.Vertical1)),
+a.Area,ltrim(rtrim(c.areaname)),c.DPSTCode,c.DPSTName
+) AS budget    
+
+full join 
+(
+select * From (
+SELECT a.date ,b.global,c.organ,c.region,c.user_names,c.Division as Division,c.Vertical1,
+b.Areacode,b.AreaName, d.Dpstcode,d.dpstname,d.description,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2011'AND '03/31/2012'THEN (a.sales) / 1000000 ELSE 0 END),2) AS year_sale_2011,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2012'AND '03/31/2013'THEN (a.sales) / 1000000 ELSE 0 END),2) AS year_sale_2012,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2013'AND '03/31/2014'THEN (a.sales) / 1000000 ELSE 0 END),2) AS year_sale_2013,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2014'AND '03/31/2015'THEN (a.sales) / 1000000 ELSE 0 END),2) AS year_sale_2014,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2015'AND '03/31/2016'THEN (a.sales) / 1000000 ELSE 0 END),2) AS year_sale_2015,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2016'AND '03/31/2017'THEN (a.sales) / 1000000 ELSE 0 END),2) AS year_sale_2016,
+round(SUM(CASE WHEN Date BETWEEN '04/01/2017'AND '03/31/2018'THEN (a.sales) / 1000000 ELSE 0 END),2) AS year_sale_2017
+ FROM 
+(select distinct COMPANY,'' as SaleOrderType,convert(date,date)date,year(date)as year,month(date)as Month,dpst,Area as areacode,sum(AssesValue)as sales  From [ELGi_LN].dbo.TmpSlsDespData_baan 
+where Company not like '6%' and convert(date,date) between '2011-04-01' and '2017-03-31' and SaleType in (0,2) 
+and dpst is not null
+and area is not null
+group by  COMPANY,date,year(date),month(date),dpst,Area
+--order by year(date),month(date) 
+union 
+select distinct COMPANY,SaleOrderType,convert(date,invoice_date)as date,year(Invoice_Date)as year,month(Invoice_Date)as Month,dpst,areacode,sum(Sales_amount)as sales  From [ELGi_LN].dbo.ELGi_Sales_Details 
+where Company not like '6%' and convert(date,Invoice_Date)>='2017-04-01' and sales_category not in (1) 
+and dpst is not null
+and dpst not like '%[a-z]%'
+and areacode is not null
+and Organ is not null
+and Organ <>''
+and Organ ='cosea'
+AND concat(company,SaleOrderType) in (
+select concat(company,SaleOrderType) from SaleType_Master where Sales_Category not in (1))
+group by COMPANY,SaleOrderType,invoice_date,year(Invoice_Date),month(Invoice_Date),dpst,areacode) a 
+	
+	left outer JOIN vw_AREA_MASTER b ON ltrim(rtrim(b.AreaCode)) = ltrim(rtrim(a.areacode))
+	left outer JOIN vw_SALESMAPPING_MASTER c
+	ON 	ltrim(rtrim(b.Areacode))=ltrim(rtrim(c.Areacode)) 
+	AND ltrim(rtrim(a.Dpst)) = ltrim(rtrim(c.DPSTCode))
+	left outer join vw_DPST_MASTER d
+	on ltrim(rtrim(d.DpstCode))=ltrim(rtrim(c.DPSTCode))
+
+GROUP BY a.date,b.global,c.organ,c.region,c.user_names,c.Division,c.Vertical1,b.Areacode,b.AreaName,d.Dpstcode,d.dpstname,d.Description 
+)a
+where organ ='cosea'
+)sales
+on budget.dpst =sales.DPSTcode
+and budget.Area =sales.areacode 
+and budget.Date =sales.date 
+  
+)a
+group by organ,division,Vertical1,Area,areaname,dpst,DPSTName,date--,custcode 
+)A
+--where vertical1 not in ('EZL TO CUST','MED & AIRENDS')
+--where concat(Year,month) <=concat(convert(varchar,year(GETDATE())),convert(varchar,month(GETDATE())) ) 
+
+
+update COSEA_Sales_CUBE set custcode =a.custcode from (select distinct dpst,area,custcode  From [ELGi_LN].dbo.TmpSlsDespData_baan 
+where Company not like '6%' and convert(date,date) between '2011-04-01' and '2017-03-31' and SaleType in (0,2))a 
+where COSEA_Sales_CUBE.areacode =a.Area 
+and COSEA_Sales_CUBE.Dpstcode =a.Dpst 
+and COSEA_Sales_CUBE.date <'2017-04-01'  
+
+
+update COSEA_Sales_CUBE set custcode =concat('CU1',convert(varchar,custcode))
+WHERE COSEA_Sales_CUBE.date <'2017-04-01'  
+AND COSEA_Sales_CUBE.custcode IS NOT NULL
+
+update COSEA_Sales_CUBE set custcode =a.custcode from (select distinct dpst,areacode,custcode  From ELGi_Sales_Details 
+where Company not like '6%' and convert(date,Invoice_Date)>='2017-04-01' and sales_category not in (1) 
+and dpst is not null
+and dpst not like '%[a-z]%'
+and areacode is not null
+and Organ is not null
+and Organ <>''
+and Organ ='cosea')a
+where COSEA_Sales_CUBE.areacode =a.areacode 
+and COSEA_Sales_CUBE.Dpstcode =a.Dpst 
+and COSEA_Sales_CUBE.date >='2017-04-01'  
+
+update COSEA_Sales_CUBE set custname = 'Customer' where custcode is not null
+
+update COSEA_Sales_CUBE set custname =CONCAT(a.CustCode,' - ',a.CustName)  from DealerMaster_COSEA a
+where COSEA_Sales_CUBE .custcode =a.CustCode 
+
+
+end
+
+
+
+

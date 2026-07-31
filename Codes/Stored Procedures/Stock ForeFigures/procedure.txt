@@ -1,0 +1,77 @@
+--exec sp_Stock_ForeFigures
+Alter proc sp_Stock_ForeFigures as
+
+begin
+
+Truncate Table Stock_ForeFigures
+
+Insert into Stock_ForeFigures
+--select * into Stock_ForeFigures from (
+select coalesce(a.COMPANY,b.company,c.company) as Company,
+coalesce(a.CWAR,b.T$cwar,c.T$cwar) as CWAR,
+coalesce(a.ITEM,b.T$item,c.T$item) as ITEM,
+row_number() over (partition by a.COMPANY,a.CWAR,a.ITEM order by a.COMPANY,a.CWAR,a.ITEM) as rnk1,
+a.QHND,
+b.Pur_month,b.Pur_year,
+row_number() over (partition by a.COMPANY,a.CWAR,a.ITEM,b.Pur_year,b.Pur_month 
+--b.COMPANY,b.T$CWAR,b.T$ITEM,b.Pur_month,b.Pur_year 
+order by  a.COMPANY,a.CWAR,a.ITEM,b.Pur_year,b.Pur_month 
+--b.COMPANY,b.T$CWAR,b.T$ITEM,b.Pur_month,b.Pur_year
+) as rnk2,
+b.QSKT ToBe_ConsQty,b.QSTK as RecvdQty,
+c.Issue_month,c.Issue_year,
+row_number() over (partition by a.COMPANY,a.CWAR,a.ITEM,c.Issue_year,c.Issue_month
+--c.COMPANY,c.T$CWAR,c.T$ITEM,c.Issue_month,c.Issue_year 
+order by a.COMPANY,a.CWAR,a.ITEM,c.Issue_year,c.Issue_month
+--c.COMPANY,c.T$CWAR,c.T$ITEM,c.Issue_month,c.Issue_year
+) as rnk3,
+c.QSTK as IssueQty
+from 
+(select COMPANY,CWAR,ITEM,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+full outer join
+(--Purchase Items
+select COMPANY,T$CWAR,T$ITEM,month(T$TRDT) as Pur_month,year(T$TRDT) as Pur_year,
+sum(T$QSTK) QSTK,
+sum(T$QSKT) QSKT 
+from TWHINA112ALL
+group by COMPANY,T$CWAR,T$ITEM,month(T$TRDT),year(T$TRDT)
+having sum(T$QSKT)>0
+)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.T$CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.T$ITEM))
+
+full outer join 
+(--Production and Sales Issue Items
+select COMPANY,T$CWAR,T$ITEM,month(T$TRDT) as Issue_month,year(T$TRDT) as Issue_year,
+sum(T$QSTK) QSTK
+from TWHINA114ALL
+group by COMPANY,T$CWAR,T$ITEM,month(T$TRDT),year(T$TRDT)
+having sum(T$QSTK)>0
+)c
+on a.COMPANY=c.COMPANY
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(c.T$CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(c.T$ITEM))
+--and b.Pur_month=c.Issue_month
+--and b.Pur_year=c.Issue_year
+
+--where a.company=400	
+--and ltrim(rtrim(a.CWAR))='005'
+--and ltrim(rtrim(a.ITEM))='000900009'
+--order by a.COMPANY,CWAR,item,Pur_year,Pur_month,Issue_year,Issue_month
+
+--)a
+
+update Stock_ForeFigures set QHND=null where rnk1>1
+update Stock_ForeFigures set ToBe_ConsQty=null,RecvdQty=null where rnk2>1
+update Stock_ForeFigures set IssueQty=null where rnk3>1
+
+end
+
+
+select * from Stock_ForeFigures
+order by company,CWAR,ITEM,Pur_year,Pur_month,Issue_year,Issue_month

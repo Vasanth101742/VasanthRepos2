@@ -1,0 +1,268 @@
+create proc sp_EBSMetrics_ver3
+as
+begin
+
+-------------Breakup Data Table--------------------
+
+--Step 1: Inserting metrics Actuals
+
+truncate table EBSMetrics_Details
+
+Insert into EBSMetrics_Details
+(linevalue,line,MarketID,Market,efdt,trgdt,cmdt,MonthNo,yyyy,metric,pdno,mitem,Description,ALC_inTime,Total,
+ason,wip_counts,FTR_Total,Pend_counts,Date1,ctod)
+
+-----ALC BREAKUP DATA----------
+
+select f.linevalue,f.line,e.MarketID,e.Market,b.efdt,b.trgdt,b.cmdt,month(a.wrkdt) as mm,a.yyyy,a.metric,
+b.pdno,b.mitem,g.Description,
+b.ALC_inTime,b.Total,null as ason ,null as wip_counts,null as FTR,null as Pend_counts,a.wrkdt,ctod
+
+
+from 
+(select *,'ALC' as Metric from cmpcal where yyyy>=2016)a
+left outer join 
+(select  efdt,cmdt,trgdt,pdno,mitem,cmp,
+(case when cmdt<=trgdt then count(pdno) else 0 end ) as ALC_inTime,count(pdno) Total
+from ALC_COMPLETED 
+where substring(convert(varchar,pdno),1,3) in (select convert(varchar,series) from alp_poseries where dept in (1,39))
+--where efdt='2016-11-02 00:00:00.000' --For testing purpose
+group by efdt,pdno,cmdt,trgdt,pdno,mitem,cmp)b
+on a.wrkdt=b.efdt
+Left outer join
+(select * from alp_poseries where dept in (1,39)) c
+on substring(convert(varchar,b.pdno),1,3)=convert(varchar,c.series)
+left outer join alp_pline d
+on c.dept=d.pline
+left outer join (
+select *,case when Market='India and India Like' then 1
+when Market='Subsidiary' then 2 end as MarketID from
+(select *,case when itype=4 then 'Subsidiary' else 'India and India Like' end as Market from TESFC087)temp) e
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(e.icode))
+left outer join (select distinct line,linevalue from ALC_Line) f
+on ltrim(rtrim(f.linevalue))=ltrim(rtrim(e.line))
+left outer join (select distinct company,itemcode,Description from ComItemData)g
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(g.ItemCode))
+and ltrim(rtrim(b.cmp))=ltrim(rtrim(g.company))
+
+-----End of ALC BREAKUP---
+union
+
+-----WIP Breakup Data--------------
+
+select f.linevalue,f.line,e.MarketID,e.Market,null efdt,null trgdt,null cmdt,month(a.wrkdt) as mm,a.yyyy,a.metric,
+b.pdno,b.mitem,g.Description,
+null as ALC_inTime,null as Total,ason ,wip_counts,null as FTR,null as Pend_counts,a.wrkdt,ctod
+
+from 
+(select *,'WIP' as Metric from cmpcal where yyyy>=2016)a
+left outer join 
+(select ason ,pdno,mitem,cmp,count(pdno) as wip_counts from WIP_PENDING
+where substring(convert(varchar,pdno),1,3) in (select series from alp_poseries where dept in (1,39))
+--and ason='2016-11-02 00:00:00.000' --For testing purpose
+group  by ason,pdno,mitem,cmp)b
+on a.wrkdt=b.ason
+Left outer join
+(select * from alp_poseries where dept in (1,39)) c
+on substring(convert(varchar,b.pdno),1,3)=convert(varchar,c.series)
+left outer join alp_pline d
+on c.dept=d.pline
+left outer join (
+select *,case when Market='India and India Like' then 1
+when Market='Subsidiary' then 2 end as MarketID from
+(select *,case when itype=4 then 'Subsidiary' else 'India and India Like' end as Market from TESFC087)temp) e
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(e.icode))
+left outer join (select distinct line,linevalue from ALC_Line) f
+on ltrim(rtrim(f.linevalue))=ltrim(rtrim(e.line))
+left outer join (select distinct company,itemcode,Description from ComItemData)g
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(g.ItemCode))
+and ltrim(rtrim(b.cmp))=ltrim(rtrim(g.company))
+
+-----END of WIP Breakup Data-------
+
+union
+
+------FTR_Total Breakup Data-------------
+
+select f.linevalue,f.line,e.MarketID,e.Market,efdt,trgdt,cmdt,month(a.wrkdt) as mm,a.yyyy,a.metric,
+b.pdno,b.mitem,g.Description,
+null as ALC_inTime,null as Total,null as ason ,null wip_counts,
+FTR_Total,
+null as Pend_counts,a.wrkdt,ctod
+
+from 
+(select *,'FTR' as Metric from cmpcal where yyyy>=2016)a
+left outer join
+(
+select 'FTR' as Metric ,efdt,cmdt,trgdt,pdno,mitem,cmp,
+count(pdno) as FTR_Total 
+from ALC_COMPLETED 
+where substring(convert(varchar,pdno),1,3) in (select convert(varchar,series) from alp_poseries where dept in (1,39))
+--and efdt='2016-11-02 00:00:00.000' --For testing purpose
+group by cmp,mitem,efdt,cmdt,trgdt,pdno,mitem,cmp
+)b
+on a.wrkdt=b.efdt
+Left outer join
+(select * from alp_poseries where dept in (1,39)) c
+on substring(convert(varchar,b.pdno),1,3)=convert(varchar,c.series)
+left outer join alp_pline d
+on c.dept=d.pline
+left outer join (
+select *,case when Market='India and India Like' then 1
+when Market='Subsidiary' then 2 end as MarketID from
+(select *,case when itype=4 then 'Subsidiary' else 'India and India Like' end as Market from TESFC087)temp) e
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(e.icode))
+left outer join (select distinct line,linevalue from ALC_Line) f
+on ltrim(rtrim(f.linevalue))=ltrim(rtrim(e.line))
+left outer join (select distinct company,itemcode,Description from ComItemData)g
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(g.ItemCode))
+and ltrim(rtrim(b.cmp))=ltrim(rtrim(g.company))
+
+-------END of FTR_Total Breakup Data-----
+
+union
+
+---------P2D Breakup Data----------
+
+select f.linevalue,f.line,e.MarketID,e.Market,null efdt,null trgdt,null cmdt,month(a.wrkdt) as mm,a.yyyy,a.metric,
+b.pdno,b.mitem,g.Description,
+null as ALC_inTime,null as Total,ason ,null wip_counts,null FTR,Pend_counts,a.wrkdt,ctod
+
+from 
+(select *,'P2D' as Metric from cmpcal where yyyy>=2016)a
+left outer join 
+(
+select ason ,pdno,mitem,cmp,count(pdno) as Pend_counts from ALC_2Days
+where substring(convert(varchar,pdno),1,3) in (select series from alp_poseries where dept in (1,39))
+--and ason='2016-11-02 00:00:00.000' --For testing purpose
+group  by ason,pdno,mitem,cmp
+)b
+on a.wrkdt=b.ason
+Left outer join
+(select * from alp_poseries where dept in (1,39)) c
+on substring(convert(varchar,b.pdno),1,3)=convert(varchar,c.series)
+left outer join alp_pline d
+on c.dept=d.pline
+left outer join (
+select *,case when Market='India and India Like' then 1
+when Market='Subsidiary' then 2 end as MarketID from
+(select *,case when itype=4 then 'Subsidiary' else 'India and India Like' end as Market from TESFC087)temp) e
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(e.icode))
+left outer join (select distinct line,linevalue from ALC_Line) f
+on ltrim(rtrim(f.linevalue))=ltrim(rtrim(e.line))
+left outer join (select distinct company,itemcode,Description from ComItemData)g
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(g.ItemCode))
+and ltrim(rtrim(b.cmp))=ltrim(rtrim(g.company))
+
+
+---End of P2D Breakup Data---------
+
+
+
+
+--Step 2 Updating FTR Metrics 
+
+
+--Updating FTR Column
+
+update EBSMetrics_Details set FTR=a.FTR
+from
+(
+select f.linevalue,f.line,MarketID,Market,efdt,pdno,mitem,Description,FTR
+from
+(
+select efdt,pdno,mitem,cmp,
+count(pdno) as FTR from ALC_COMPLETED 
+where pdno in (select pdno from PRODUCTION_ORDER where fabno in (select fabno from QMS_Details))
+and substring(convert(varchar,pdno),1,3) in (select convert(varchar,series) from alp_poseries where dept in (1,39))
+group by efdt,pdno,mitem,cmp)b
+Left outer join
+(select * from alp_poseries where dept in (1,39)) c
+on substring(convert(varchar,b.pdno),1,3)=convert(varchar,c.series)
+left outer join alp_pline d
+on c.dept=d.pline
+left outer join (
+select distinct icode,line,market,case when Market='India and India Like' then 1
+when Market='Subsidiary' then 2 end as MarketID from
+(select *,case when itype=4 then 'Subsidiary' else 'India and India Like' end as Market from TESFC087)temp) e
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(e.icode))
+left outer join (select distinct line,linevalue from ALC_Line) f
+on ltrim(rtrim(f.linevalue))=ltrim(rtrim(e.line))
+left outer join (select distinct company,itemcode,Description from ComItemData)g
+on ltrim(rtrim(b.mitem))=ltrim(rtrim(g.ItemCode))
+and ltrim(rtrim(b.cmp))=ltrim(rtrim(g.company))
+
+)a 
+where Date1=a.efdt
+and metric='FTR'
+and isnull(EBSMetrics_Details.MarketID,0)=isnull(a.MarketID,0)
+and isnull(EBSMetrics_details.line,0)=isnull(a.line,0)
+and isnull(EBSMetrics_details.pdno,0)=isnull(a.pdno,0)
+and isnull(EBSMetrics_Details.mitem,0)=isnull(a.mitem,0)
+
+
+--Step 3: Updating Targtes and CLimits
+
+update EBSMetrics_Details set 
+india_target=c.india_target,
+subs_target=c.subs_target,
+overall_target=c.overall_target,
+india_cl=c.india_cl,
+subs_cl=c.subs_cl,
+overall_cl=c.overall_cl
+from
+(
+select distinct a.Date1,--b.wrkdt,
+a.metric,--b.metric,
+a.line,--b.assembly,
+b.india_target,b.subs_target,b.overall_target,
+b.india_cl,b.subs_cl,b.overall_cl from 
+(select * from EBSMetrics )a
+left outer join
+(select * from cmpcal a
+left outer join ALC_Metrics b
+on a.wrkdt between b.fdate and b.tdate
+where yyyy>=2016 
+)b
+on a.metric=b.metric
+and a.Date1=b.wrkdt
+and a.line=b.assembly
+--where a.wrkdt='2016-11-07 00:00:00.000' --for testing purpose
+)c
+where EBSMetrics_Details.metric=c.metric
+and EBSMetrics_Details.Date1=c.Date1
+and EBSMetrics_Details.line=c.line
+
+
+--Step 4: Deleting Calender dates greater than today
+
+delete from EBSMetrics_Details where date1>=getdate()
+--select * from EBSMetrics_Details where india_target is null
+
+
+--Step 5: Replicating to get overall Count
+
+insert into EBSMetrics_Details
+select linevalue,line,3 as MarketID,'Overall' as Market,efdt,trgdt,cmdt,MonthNo,yyyy,metric,pdno,mitem,Description,ALC_inTime,
+Total,ason,wip_counts,FTR_Total,Pend_counts,Date1,ctod,FTR,india_target,subs_target,overall_target,india_cl,subs_cl,overall_cl 
+from EBSMetrics_Details
+
+
+--------------End of Breakup Data Table----------------------------------------------------------------------
+
+
+Truncate table EBS_Consolidated_ver2
+Insert into EBS_Consolidated_ver2
+--select * into EBS_Consolidated_ver2 from (
+select MarketID,Market,linevalue,line,Date1,ctod,MonthNo,yyyy,metric,efdt,
+sum(isnull(ALC_inTime,0)) ALC_inTime ,sum(isnull(Total,0)) Total,
+sum(isnull(FTR,0)) FTR,sum(isnull(FTR_Total,0)) FTR_Total,
+ason,sum(isnull(wip_counts,0)) wip_counts,sum(isnull(Pend_counts,0)) Pend_counts,
+avg(isnull(india_target,0)) india_target,avg(isnull(subs_target,0)) subs_target,avg(isnull(overall_target,0)) overall_target,
+avg(isnull(india_cl,0)) india_cl,avg(isnull(subs_cl,0)) subs_cl,avg(isnull(overall_cl,0)) overall_cl
+from EBSMetrics_Details 
+group by MarketID,Market,linevalue,line,Date1,ctod,MonthNo,yyyy,metric,efdt,ason
+--)a
+
+end
+

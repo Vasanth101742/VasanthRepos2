@@ -1,0 +1,16 @@
+
+select * --sum(QSKT) 
+from Inventory 
+where COMPANY=450 and  CWAR= '251' and ltrim(rtrim(ITEM))=	'A990050'
+--where COMPANY=450 and  CWAR= '251' and ltrim(rtrim(ITEM))=	'A060005'
+--where COMPANY=450 and  CWAR= '251' and ltrim(rtrim(ITEM))=	'A039028'
+--where COMPANY=440 and  CWAR= '297' and ltrim(rtrim(ITEM))=	'00041150A'
+--where COMPANY=440 and  CWAR= '391' and ltrim(rtrim(ITEM))=	'000906146'
+--where COMPANY=401 and  CWAR= '253' and ltrim(rtrim(ITEM))=	'B010301230002'
+--where COMPANY=401 and  CWAR= 'L46' and ltrim(rtrim(ITEM))=	'B009401070002'
+--where COMPANY=401 and  CWAR= '553' and ltrim(rtrim(ITEM))=	'A070051'
+--where COMPANY=401 and  CWAR= '253' and ltrim(rtrim(ITEM))=	'B001406190018' 
+--where COMPANY=401 and  CWAR= '253' and ltrim(rtrim(ITEM))=	'008901007' 
+--where COMPANY=401 and  CWAR= '212' and ltrim(rtrim(ITEM))=	'B009606360014' 
+
+

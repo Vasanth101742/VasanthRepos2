@@ -1,0 +1,30 @@
+--Productgroup missing in Sales Table
+
+select distinct b.DPSTcode,b.DPSTName,a.Item,c.ProductGroups from ATS_Sales_Details a
+inner  join  (select DPSTcode,DPSTName from DPST_Master_ATS where description<>'Exports') b 
+on ltrim(rtrim(a.dpst)) =ltrim(rtrim(b.DPSTcode))  
+left outer join ATS_prd_master c 
+on ltrim(rtrim(a.item)) =ltrim(rtrim(c.item))  
+where 
+dpst not in ('90043','90046','90047','90049','90053')  
+and Invoice_Date between '04/01/2016' and  dateadd(dd,-1,convert(date,getdate()))
+AND a.SaleOrderType in (select SaleOrderType from SaleType_Master_ats where Sales_Category in (0,2,5,6))
+and c.ProductGroups is null
+--order by b.DPSTcode,b.DPSTName,a.Item
+
+union
+
+select b.DPSTcode,b.DPSTName,a.ItemCode,c.ProductGroups
+from (select * from vw_Sales_Inflow where company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')) a
+inner  join  (select DPSTcode,DPSTName from DPST_Master_ATS where description<>'Exports') b 
+on ltrim(rtrim(a.dpst)) =ltrim(rtrim(b.DPSTcode))  
+left outer join ATS_prd_master c 
+on ltrim(rtrim(a.itemcode)) =ltrim(rtrim(c.item))  
+
+where 
+a.Dpst not in ('90046','90047','90049','90053')  
+and a.OrderDate between '04/01/2016' and  dateadd(dd,-1,getdate()) 
+AND a.ordertype in (select SaleOrderType from SaleType_Master_ats where Sales_Category in (0,2,5,6))
+and c.ProductGroups is null
+--order by b.DPSTcode,b.DPSTName,a.ItemCode
+

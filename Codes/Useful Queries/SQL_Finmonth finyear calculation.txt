@@ -1,0 +1,19 @@
+1. Financial year  to be shown as 2014-2015
+
+select distinct datepart(yy,dateadd(mm,-3,convert(Datetime,date))) as ytdyear,
+datename(yy,dateadd(mm,-3,convert(Datetime,date))) + '-' + substring(datename(yy,dateadd(yy,1,dateadd(mm,-3,convert(Datetime,date)))),3,2) as ytdyear1
+from period1 where date >= '04/01/2007' and date <= getdate() -1
+order by datepart(yy,dateadd(mm,-3,convert(Datetime,date))) desc
+
+
+
+select case when month(Data_Load_Date) between 1 and 3 then month(Data_Load_Date) + 9 else month(Data_Load_Date) - 3 end as FinMonthNo,
+	datename(mm,Data_Load_Date)  as FinMonthName,
+	case when month(Data_Load_Date) between 1 and 3 then year(Data_Load_Date) - 1 else year(Data_Load_Date)  end as FinYear,
+	CASE WHEN month(Data_Load_Date) > 3 THEN (CONVERT(varchar, year(Data_Load_Date)) + '-' + CONVERT(varchar, year(Data_Load_Date) + 1)) 
+                      ELSE (CONVERT(varchar, year(Data_Load_Date) - 1) + '-' + CONVERT(varchar, year(Data_Load_Date))) END AS Fin_Year
+																				
+from (select *,
+dateadd(d,-1,convert(datetime,convert(varchar,year(getdate()))+'-'+RIGHT('00'+CAST(month(getdate()) AS VARCHAR(2)),2)+'-01')) as Data_Load_Date 
+--'2016-10-30 00:00:00.000'  as Data_Load_Date
+from hr_recruitment1_stage) hr_recruitment1_stage

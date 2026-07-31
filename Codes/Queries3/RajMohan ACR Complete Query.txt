@@ -1,0 +1,10 @@
+
+--exec sp_acr_debtors '2020-02-29'
+
+
+select Vertical1,Company,Trantyp,InvNo,CustNo,CustName,FinCustGrp,DPST,DpstName,	
+AreaCode,AreaName,InvDate,DueDate,Currency,CurRate,InvAmt,PaidAmt,BalanceAmt,CalYear,CalMonth
+from ACR_Debtors_complete
+where Company like '4%'
+and BalanceAmt <>0
+order by InvDate

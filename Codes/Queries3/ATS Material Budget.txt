@@ -1,0 +1,22 @@
+--select * into MatBudget_Percentage_bkp_10_Dec_2019 from MatBudget_Percentage
+
+select * from MatBudget_Percentage
+
+--delete from MatBudget_Percentage
+--Insert into MatBudget_Percentage(company,DPST,Itemcode,Itemdesc,Percentage) values
+--('600','90042','NEW TPL 1','TRAMGAUGE - 2D',0.7),
+--('600','90040','NEW TPL 2','HLBA - NEW MODEL',0.6),
+--('600','90042','NEW TPL 3','TOOL TROLLEY - NEW',0.7),
+--('600','90042','NEW TPL 4','DENT LINER',0.7),
+--('600','90042','NEW TPL 5','HUNGER - DRY SANDING SYS,1 SANDER',0.7),
+--('600','90042','NEW TPL 6','DENT LINER',0.7),
+--('600','90042','NEW TPL 7','HUNGER - DRY SANDING SYS',0.7),
+--('600','90040','NEW TPL 8','FURNITURE BOOTH',0.6),
+--('600','90040','NEW TPL 9','BUS BOOTH',0.6),
+--('600','90042','NEW TPL 10','EES - REGEN PV',0.7),
+--('600','90040','NEW TPL 11','Bus Paint Booth',0.6),
+--('600','90040','NEW TPL 12','Mobile Service Unit',0.7),
+--('600','90044',null,null,0.8
+
+
+<html><font face="verdana" size=2.5> <body> Dear All, <br><br> Please find the SAAME Sales Performance Report attached. In case of any Queries, Please contact BI Support bisupport@elgi.com<br> <br>Regards,<br>BI Support.<br></body><br></font></html>

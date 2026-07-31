@@ -1,0 +1,39 @@
+select a.Company,b.Dpst,b.Dpstname,a.TranType,a.InvNo,a.InvDate,a.InvAmth,
+a.CustCode,a.CustName,a.RecvDocType,a.RecvDocNo,a.RecvDate,a.RecvAmth,a.DaysDiff
+from 
+(select Company,TranType,InvNo,InvDate,
+--InvLine,InvSchedule,InitialDocTyp,InitialDocNo,Currency,CurRate,
+--sum(isnull(InvAmti,0)) InvAmti,
+sum(isnull(InvAmth,0)) InvAmth,
+CustCode,CustName,
+RecvDocType,RecvDocNo,RecvDate,--Recvline,RecvSchedule,
+--sum(isnull(RecvAmti,0)) RecvAmti,
+sum(isnull(RecvAmth,0)) RecvAmth,
+--sum(isnull(InvAmti,0))+sum(isnull(RecvAmti,0)) as InvBali,
+sum(isnull(InvAmth,0))+sum(isnull(RecvAmth,0)) as InvBalh,
+datediff(dd,InvDate,RecvDate) as DaysDiff
+--,EntryDate
+--,row_number() over (partition by Suppcode,invdate,invno,InvLine,InvSchedule,InitialDocTyp,InitialDocNo--duedate 
+--order by suppcode,invdate,invno,PaidDate,Paidline,PaidSchedule,PaidDocType,PaidDocNo) as Rnk
+from ACR_As_of_Date_Details
+where 
+--concat(CustCode,trantype,invno)='CU1A0195621117003121' and 
+company like '4%'
+and company<>400
+group by Company,TranType,InvNo,InvDate,
+CustCode,CustName,RecvDocType,RecvDocNo,RecvDate
+having sum(InvBalh)<>0
+)a
+inner join (select distinct company,trantype,Invoice,dpst,dpstname from ELGi_Sales_Details
+--where dpst in ('90073','90091','90092')
+)b
+on a.Company=b.company
+and a.TranType=b.trantype
+and a.InvNo=b.Invoice
+where InvAmth > -0.000001 
+and RecvAmth < 0.000001 
+and a.trantype not in ('251','351','451','551','252','352','452','552','852','256','356','456','556','255','455','855')
+order by a.Company,a.CustCode,a.InvDate,a.TranType,a.InvNo,a.RecvDate
+--,RecvDate,RecvDocType,RecvDocNo
+
+

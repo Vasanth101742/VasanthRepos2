@@ -1,0 +1,20 @@
+--Test Query
+select suppcode,--currency,
+sum(value) value,sum(Balance) Balance,sum(Diff) Diff from (
+select a.suppcode,--Currency,
+value,Balance,abs(value)-abs(Balance) as Diff from 
+(select suppcode,sum(value) value from tbdatanew
+group by suppcode) a
+left outer join
+(select suppcode,--Currency,
+sum(balanceamt) Balance from acp_creditors_consolidated
+where company like '4%'
+--and suppcode='SU1T00743'
+group by suppcode--,currency
+)b
+on ltrim(rtrim(a.suppcode))=ltrim(rtrim(b.suppcode))
+)a
+where --suppcode='CU1A00851' and 
+diff >100 or diff <-100 and diff<>0
+
+group by suppcode--,Currency

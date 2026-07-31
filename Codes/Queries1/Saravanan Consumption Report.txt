@@ -1,0 +1,55 @@
+Declare @MMYYYY varchar(10)='092017'
+
+truncate table Consumption
+
+insert into Consumption (COMPANY,ItemCode,Production_Consumption,Sales_Consumption)
+select a.COMPANY,ITEM,a.Production_Consumption,a.Sales_Consumption
+
+from 
+(
+select convert(date,TRDT) as TRDT,company,item,sum(QSTK) Sales_Consumption,0 as Production_Consumption
+from TWHINR110ALL
+where kost=5
+and koor=3
+and company like '4%'
+and concat(RIGHT('00'+CAST(month(TRDT) AS VARCHAR(2)),2),cast(year(TRDT) as varchar(4))) in (@MMYYYY)
+group by convert(date,TRDT),company,item
+
+union
+select convert(date,TRDT) as TRDT,company,item,0,sum(QSTK) Production_Consumption
+from TWHINR110ALL
+where kost=5
+and koor=1
+and company like '4%'
+and concat(RIGHT('00'+CAST(month(TRDT) AS VARCHAR(2)),2),cast(year(TRDT) as varchar(4))) in (@MMYYYY)
+group by convert(date,TRDT),company,item
+
+)a
+
+
+
+update Consumption set ItemDescr=a.DSCA
+from TTCIBD001465 a
+where ltrim(rtrim(Consumption.ItemCode))=ltrim(rtrim(a.ITEM))
+and Consumption.COMPANY=465
+
+update Consumption set ItemDescr=a.DSCA
+from ttcibd001470 a
+where ltrim(rtrim(Consumption.ItemCode))=ltrim(rtrim(a.ITEM))
+and Consumption.COMPANY=470
+
+update Consumption set ItemDescr=a.DSCA
+from TTCIBD001490 a
+where ltrim(rtrim(Consumption.ItemCode))=ltrim(rtrim(a.ITEM))
+and Consumption.COMPANY=490
+
+update Consumption set ItemDescr=a.t_dsca
+from TTCIBD001400 a
+where ltrim(rtrim(Consumption.ItemCode))=ltrim(rtrim(a.t_item))
+and Consumption.ItemDescr is null
+
+
+
+--select distinct COMPANY from Consumption where ItemDescr is null
+
+select * from Consumption

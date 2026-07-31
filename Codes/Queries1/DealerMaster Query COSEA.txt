@@ -1,0 +1,74 @@
+
+
+create table Dealer_Master_COSEA
+(
+DealerCode nvarchar(18),
+DealerName nvarchar(70),
+ContactPerson nvarchar(25),
+Email nvarchar(50),
+CountryCode nvarchar(10),
+CountryName nvarchar(15)
+)
+
+--select * from vw_Business_Partner_552 where custcode like '%U00004%'
+
+--insert into Dealer_Master_COSEA values
+--('CU1F00001','PT.FADNOV AIRTECH','Jajuli','jajuli.asyari@fadnovairtech.com','624','INDONESIA'),
+--('CU1A00004','PT. AGYA MAKMUR','Anto','anto@agyamakmur.co.id','624','INDONESIA'),
+--('CU1M00004','PT. Multi Mekanika Solutions','Tommy','tommysaputra@multimekanika.com','624','INDONESIA'),
+--('CU1K00002','PT. KUSUMA TEKNIK PERSADA','Murdani','murdani_t@kusumateknik.co.id','624','INDONESIA'),
+--('CU1U00004','PT. UNGGUL SEMESTA','Frans','frans.b@unggulsemesta.com','624','INDONESIA')
+
+select * from vw_Business_Partner_551 where custcode in 
+('CU1A00014','CU1A00010','CU1C00001','CU1C00014','CU1F00001','CU1Q00003','CU1T00001')
+
+select * from vw_area_master  where areaname like '%austra%'
+
+--insert into Dealer_Master_COSEA values
+--('CU1C00014'	,'CTQ-COMPRESSOR TECHNOLOGY','Mul Chand','service@ctqgroup.com.au','631','AUSTRALIA'),
+--('CU1A00014'	,'AFM Gas Solutions Pty Ltd','Michael Procter','michael.procter@afmgassolutions.com.au','631','AUSTRALIA'),
+--('CU1T00001'	,'TOTAL AIR SUPPLIES PTY LTD','Arthur Stow','sales@totalair.net.au','631','AUSTRALIA'),
+--('CU1C00001'	,'COMPRESSORS AUSTRALIA (CA)','Mark James','Mark@compressorsaustralia.com.au','631','AUSTRALIA'),
+--('CU1F00001'	,'FINNCO COMPRESSORS LTD','Jason Light','jason@finnco.co.nz','631','AUSTRALIA'),
+--('CU1Q00003'	,'QUANTUM COMPRESSORS','Chris McQuade','chris@quantumaircompressors.net.au','631','AUSTRALIA'),
+--('CU1A00010'	,'Allied Air Products And Services','Raymond Han','rhan@alliedaps.com.au','631','AUSTRALIA')
+
+
+select * from vw_Business_Partner where custcode in 
+('CU1C01251','CU1A03464','CU1S09412')
+
+select * from vw_area_master where areacode ='623'
+
+insert into Dealer_Master_COSEA values
+('CU1C01251',	'C POINT TECHNOLOGY CO LTD','K Worawit','info@c-pointtechnology.com','623','THAILAND'),
+('CU1S09412',	'STAR-DYNAMIC (THAILAND) CO  LTD','K Aganit','aganit@star-dynamic.com','623','THAILAND'),
+('CU1A03464',	'AIR SERVICE SUPPLY COMPANY LIMITED','K Nuchanart','nuchanart@airservicessupply.com','623','THAILAND')
+
+
+
+--select * from vw_Business_Partner where custcode in('CU1P02910') ('CU1M03798','CU1R02532','CU1P02473','CU1A03273')
+
+insert into Dealer_Master_COSEA values
+('CU1P02473',	'PREMIERSUN ENGINEERIG SDN BHD','Mr. Leong','leong@premiersun.com.my','622',	'MALAYSIA'),
+('CU1M03798',	'MAVEEK INDUSTRIAL SERVICES SDN BHD','Mr. Sachi','mvkindustrialservices@gmail.com','622',	'MALAYSIA'),
+('CU1R02532',	'R P SERVICE','Mr. Param','rpservice2010@yahoo.com','622',	'MALAYSIA'),
+('CU1A03273',	'AED KOMPRESSOREN(M)SDN BHD','Mr.Desmond','desmond@apexair.com.my','622',	'MALAYSIA')
+
+insert into Dealer_Master_COSEA values
+('CU1P02910',	'PSI VIETNAM INDUSTRY JOINT STCOK','Nguyen Thanh Long','thanhlong.nguyen@psi-vn.com','625','VIETNAM')
+
+select * from vw_business_partner where custcode in  ('CU1P02221','CU1A03773','CU1H00605')
+
+insert into Dealer_Master_COSEA values
+('CU1H00605',	'HUNDREDFOLDS INDUSTRIES CORP','Romeo','rbsonico@mac.com','637'	,'PHILLIPINES'),
+('CU1A03773', 'AIR DRIVE  INDUSTRIAL PARTS','Elizer','sales@airdriveindustrial.com','637'	,'PHILLIPINES'),
+('CU1P02221',	'MA PEARLROUS CONST AND DEV CORP','Pebs','pebleaalfaro@yahoo.com','637'	,'PHILLIPINES')
+
+
+
+select distinct CountryName  from Dealer_Master_COSEA
+
+
+select * from vw_AREA_MASTER where Areacode='637'
+
+

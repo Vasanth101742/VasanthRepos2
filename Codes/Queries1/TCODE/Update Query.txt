@@ -1,0 +1,979 @@
+--exec sp_TCODE_PROCESS
+--select * from tcodeprocess where comp=100000
+--order by fcode,slno,subd,ordr
+
+Alter procedure sp_TCODE_PROCESS
+as
+Begin
+
+--1.Share Capital
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=1
+and subd=1
+and ordr in(2,6)
+and comp=100000
+)a
+where fcode=1
+and slno=1
+and subd=1
+and ordr =7
+and comp=100000
+
+---------------------------------------------------------
+--2. Reserves & Surplus
+--(a) Capital reserve account
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=1
+and ordr in(3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=1
+and ordr =5
+and comp=100000
+
+
+--(b) Capital Redemption reserve
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=2
+and ordr in(2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=2
+and ordr =4
+and comp=100000
+
+
+--(c) Revaluation reserve
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=3
+and ordr in(2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=3
+and ordr =4
+and comp=100000
+
+
+--(d) Statutory reserve
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=4
+and ordr in(2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=4
+and ordr =4
+and comp=100000
+
+--(e) Securities premium account
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=5
+and ordr in(2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=5
+and ordr =4
+and comp=100000
+
+--(f) General reserve account
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=6
+and ordr in(2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=6
+and ordr =4
+and comp=100000
+
+--(g) Foreign currency translation reserve account
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=7
+and ordr in(2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=7
+and ordr =4
+and comp=100000
+
+--(h) Surplus
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=8
+and ordr in(3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=8
+and ordr =5
+and comp=100000
+
+--(i) Appropriations
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=2
+and subd=9
+and ordr in(3,4,5,6,7,8)
+and comp=100000
+)a
+where fcode=1
+and slno=2
+and subd=9
+and ordr =9
+and comp=100000
+
+--2. Reserves & Surplus (Total)
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from 
+(
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=1 and ordr =5 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=2 and ordr =4 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=3 and ordr =4 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=4 and ordr =4 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=5 and ordr =4 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=6 and ordr =4 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=7 and ordr =4 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=8 and ordr =5 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=2 and subd=9 and ordr =9 and comp=100000
+
+
+)a
+)b
+where fcode=1
+and slno=2
+and subd=9
+and ordr =10
+and comp=100000
+
+---------------------------------------------------------
+--3.Long Term Borrowings
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=3
+and subd=1
+and ordr in(2,4,5,6,7,8,9,10)
+and comp=100000
+)a
+where fcode=1
+and slno=3
+and subd=1
+and ordr =11
+and comp=100000
+
+---------------------------------------------------------
+--4A. Deferred Tax Liabilities (Net)
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=4
+and subd=1
+and ordr in(1)
+and comp=100000
+)a
+where fcode=1
+and slno=4
+and subd=1
+and ordr =2
+and comp=100000
+
+
+---------------------------------------------------------
+--5. Other Long Term liabilities
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=5
+and subd=1
+and ordr in(2,4,5,6,7,8)
+and comp=100000
+)a
+where fcode=1
+and slno=5
+and subd=1
+and ordr =9
+and comp=100000
+
+---------------------------------------------------------
+--6. Long-term provisions
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=6
+and subd=1
+and ordr in(3,6)
+and comp=100000
+)a
+where fcode=1
+and slno=6
+and subd=1
+and ordr =7
+and comp=100000
+
+---------------------------------------------------------
+--7. Short term borrowings
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=7
+and subd=1
+and ordr in(3,4,5,6,7)
+and comp=100000
+)a
+where fcode=1
+and slno=7
+and subd=1
+and ordr =8
+and comp=100000
+
+
+---------------------------------------------------------
+--8. Trade payables
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=8
+and subd=1
+and ordr in(2,3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=8
+and subd=1
+and ordr =5
+and comp=100000
+
+---------------------------------------------------------
+--9. Other current liabilities
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=9
+and subd=1
+and ordr in (2,3,4,5,6,8,9,10,11,12,13,14,15,16)
+and comp=100000
+)a
+where fcode=1
+and slno=9
+and subd=1
+and ordr =17
+and comp=100000
+
+---------------------------------------------------------
+--10. Short Term provisions
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=10
+and subd=1
+and ordr in (3,5,6,7,8,9,10,11)
+and comp=100000
+)a
+where fcode=1
+and slno=10
+and subd=1
+and ordr =12
+and comp=100000
+
+
+---------------------------------------------------------
+--11.Non Current investments
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=11
+and subd=1
+and ordr in (2,3,4,5,6,7,8,9,10,11)
+and comp=100000
+)a
+where fcode=1
+and slno=11
+and subd=1
+and ordr =12
+and comp=100000
+
+
+
+---------------------------------------------------------
+--14. Deferred Tax Assets (Net)
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=12
+and subd=1
+and ordr in (1)
+and comp=100000
+)a
+where fcode=1
+and slno=12
+and subd=1
+and ordr =2
+and comp=100000
+
+---------------------------------------------------------
+--15. Long Term Loans and advances
+
+--(a) Capital Advances
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=1
+and ordr in (3,4,5,6)
+and comp=100000
+)a
+where fcode=1
+and slno=13
+and subd=1
+and ordr =7
+and comp=100000
+
+-- (b) Security Deposits
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=2
+and ordr in (2,3,4,5)
+and comp=100000
+)a
+where fcode=1
+and slno=13
+and subd=2
+and ordr =6
+and comp=100000
+
+--(c) Loans and advances to related parties 
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=3
+and ordr in (2,3,4,5)
+and comp=100000
+)a
+where fcode=1
+and slno=13
+and subd=3
+and ordr =6
+and comp=100000
+
+--(d) Other loans and advances 
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=13
+and subd=4
+and ordr in (2,3,5,6,7,8,9,10,11)
+and comp=100000
+)a
+where fcode=1
+and slno=13
+and subd=4
+and ordr =12
+and comp=100000
+
+---------------------------------------------------------
+--14. Other Non-Current Assets
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=14
+and subd=1
+and ordr in (2,3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=14
+and subd=1
+and ordr =5
+and comp=100000
+
+
+---------------------------------------------------------
+--15. Current Investments
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=15
+and subd=1
+and ordr in (2,3,4,5,6,7,8)
+and comp=100000
+)a
+where fcode=1
+and slno=15
+and subd=1
+and ordr =9
+and comp=100000
+
+
+---------------------------------------------------------
+--16. Inventories
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=16
+and subd=1
+and ordr in (2,3,4,5,6,7,8)
+and comp=100000
+)a
+where fcode=1
+and slno=16
+and subd=1
+and ordr =9
+and comp=100000
+
+---------------------------------------------------------
+--17. Trade Receivables
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=17
+and subd=1
+and ordr in (4,5,6,7)
+and comp=100000
+)a
+where fcode=1
+and slno=17
+and subd=1
+and ordr =8
+and comp=100000
+
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=17
+and subd=2
+and ordr in (4,5,6,7)
+and comp=100000
+)a
+where fcode=1
+and slno=17
+and subd=2
+and ordr =8
+and comp=100000
+
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=17
+and subd=3
+and ordr in (3,4,5)
+and comp=100000
+)a
+where fcode=1
+and slno=17
+and subd=3
+and ordr =6
+and comp=100000
+
+
+--17. Trade Receivables (Total)
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from( 
+select lamt from tcodeprocess where 
+fcode=1 and slno=17 and subd=1 and ordr =8 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=17 and subd=2 and ordr =8 and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=17 and subd=3 and ordr =6 and comp=100000
+)a)b
+where fcode=1
+and slno=17
+and subd=3
+and ordr =7
+and comp=100000
+
+---------------------------------------------------------
+--18.Cash and Cash equivalents
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=18
+and subd=1
+and ordr in (2,3,4,5,6,9,10,12)
+and comp=100000
+)a
+where fcode=1
+and slno=18
+and subd=1
+and ordr =13
+and comp=100000
+
+
+---------------------------------------------------------
+--19.Short Term Loans and advances
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=19 and subd =1 and ordr in (3,4,5,6) and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=19 and subd =2 and ordr in (2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18) and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=19 and subd =3 and ordr in (3,4,5,6) and comp=100000
+)a)b
+where fcode=1
+and slno=19
+and subd=3
+and ordr =7
+and comp=100000
+
+
+
+---------------------------------------------------------
+--20.Other current assets
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=20
+and subd=1
+and ordr in (2,3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=20
+and subd=1
+and ordr =5
+and comp=100000
+
+
+---------------------------------------------------------
+--21.Revenue from Operations
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=21
+and subd=1
+and ordr in (2,3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=21
+and subd=1
+and ordr =5
+and comp=100000
+
+
+---------------------------------------------------------
+--22.Other Income
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =1 and ordr in (2,3) and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =2 and ordr in (2,3) and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =3 and ordr in (2,3,4) and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=22 and subd =4 and ordr in (2,3,4,5,7) and comp=100000
+)a)b
+where fcode=1
+and slno=22
+and subd=4
+and ordr =8
+and comp=100000
+
+---------------------------------------------------------
+--23.Cost of material consumed
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=23
+and subd=1
+and ordr in (2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=23
+and subd=1
+and ordr =4
+and comp=100000
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=23
+and subd=2
+and ordr in (1,2,3)
+and comp=100000
+)a
+where fcode=1
+and slno=23
+and subd=2
+and ordr =4
+and comp=100000
+
+
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=23 and subd =1 and ordr in (4) and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=23 and subd =2 and ordr in (4) and comp=100000
+)a)b
+where fcode=1
+and slno=23
+and subd=2
+and ordr =5
+and comp=100000
+
+
+---------------------------------------------------------
+--25.Changes in Inventory
+
+--Opening inventory
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=25
+and subd=1
+and ordr in (3,4,5)
+and comp=100000
+)a
+where fcode=1
+and slno=25
+and subd=1
+and ordr =6
+and comp=100000
+
+
+--Closing inventory
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=25
+and subd=2
+and ordr in (2,3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=25
+and subd=2
+and ordr =5
+and comp=100000
+
+
+
+update tcodeprocess set lamt=b.lamt
+from
+(select sum(lamt) lamt from (
+select lamt from tcodeprocess where 
+fcode=1 and slno=25 and subd =1 and ordr in (6) and comp=100000
+union
+select lamt from tcodeprocess where 
+fcode=1 and slno=25 and subd =2 and ordr in (5) and comp=100000
+)a)b
+where fcode=1
+and slno=25
+and subd=2
+and ordr =6
+and comp=100000
+
+
+---------------------------------------------------------
+--26.Employee Benefit Expenses
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=26
+and subd=1
+and ordr in (3,4,5,8,9,10,12,13,15,16)
+and comp=100000
+)a
+where fcode=1
+and slno=26
+and subd=1
+and ordr =17
+and comp=100000
+
+
+---------------------------------------------------------
+--27.SELLING, ADMINISTRATION AND OTHERS
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=27
+and subd=1
+and ordr in (3,4,5)
+and comp=100000
+)a
+where fcode=1
+and slno=27
+and subd=1
+and ordr =6
+and comp=100000
+
+
+---------------------------------------------------------
+--28.FINANCE COSTS
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=28
+and subd=1
+and ordr in (2,3,4)
+and comp=100000
+)a
+where fcode=1
+and slno=28
+and subd=1
+and ordr =5
+and comp=100000
+
+---------------------------------------------------------
+--29.OTHER EXPENSES
+
+--Payment to the auditors
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=29
+and subd=1
+and htyp='L'
+and ordr in (3,4,5,6)
+and comp=100000
+)a
+where fcode=1
+and slno=29
+and subd=1
+and htyp='H'
+and ordr =6
+and comp=100000
+
+
+
+update tcodeprocess set lamt=a.lamt
+from
+(select sum(lamt) lamt from tcodeprocess 
+where 
+fcode=1
+and slno=29
+and subd=1
+and htyp='L'
+and ordr in 
+(7,8,9,10,
+11,12,13,14,15,16,17,18,19,20,
+21,22,23,24,25,26,27,28,29,30,
+31,32,33,34,35,36,37,38,39,40,
+41,42,43,44,45,46,47,48,49,50,
+51,52,53,54)
+and comp=100000
+)a
+where fcode=1
+and slno=29
+and subd=1
+and htyp='H'
+and ordr =55
+and comp=100000
+
+end
+
+
+--select * from sms_sales_entry where region not in ('COSEA','INDIA','SAAME','ID')
+--select * from elgi_sales_flash

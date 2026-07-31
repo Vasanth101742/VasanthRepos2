@@ -1,0 +1,119 @@
+
+select a.CUNO,nama as CustName,sum(BalanceAmt) from (
+select 
+a.TTYP,a.NINV,a.LINE,TDOC,DOCN,LINO,a.CUNO,a.Invdate,TREC,CCUR,RATE,RATF,SPOT,
+--AMNT,AMTI,
+VATC,CVAT,VATA,VATI,VATH,SVAM,SVAH,LPDT,
+LAPA,LAPI,LAPH,DID1,DC1A,DC1I,DC1H,DID2,DC2A,DC2I,DC2H,DID3,DC3A,DC3I,DC3H,PADA,PADI,PADH,BACO,BACA,BASI,CDAM,TORE,DUED,
+REFR,CCRS,CPAY,OTYP,OINV,PAYM,PROJ,ORNO,PROB,PROP,PREF,BANK,LETT,POST,PDAT,BALC,BALH,BALA,BAHC,STAT,YEAR,PROD,BTNO,VATY,
+VATP,CREP,LIQD,ADRS,LAMT,STEP,RCPT,DOUB,CAIN,LVAT,TYPA,DOCA,PCUN,TEXT,CREG,
+
+avg(invAmt) as invAmt,
+sum(isnull(PaidAmt,0)) as PaidAmt,
+avg(invAmt)+sum(isnull(PaidAmt,0)) as BalanceAmt
+from
+(select 
+TTYP,NINV,LINE,TDOC,DOCN,LINO,CUNO,DOCD as Invdate,TREC,CCUR,RATE,RATF,SPOT,AMNT,AMTI,AMTH as invAmt ,VATC,CVAT,VATA,VATI,VATH,SVAM,SVAH,LPDT,
+LAPA,LAPI,LAPH,DID1,DC1A,DC1I,DC1H,DID2,DC2A,DC2I,DC2H,DID3,DC3A,DC3I,DC3H,PADA,PADI,PADH,BACO,BACA,BASI,CDAM,TORE,DUED,
+REFR,CCRS,CPAY,OTYP,OINV,PAYM,PROJ,ORNO,PROB,PROP,PREF,BANK,LETT,POST,PDAT,BALC,BALH,BALA,BAHC,STAT,YEAR,PROD,BTNO,VATY,
+VATP,CREP,LIQD,ADRS,LAMT,STEP,RCPT,DOUB,CAIN,LVAT,TYPA,DOCA,PCUN,TEXT,CREG
+from acr_987 where docn=0
+and convert(date,DOCD)<='2017-06-30'
+)a
+left outer join
+(select CUNO,TTYP,NINV,LINE,DOCD as Invdate,sum(AMTH) as PaidAmt from acr_987 where docn<>0
+and convert(date,DOCD)<='2017-06-30'
+group by CUNO,TTYP,NINV,LINE,DOCD
+
+)b
+on a.CUNO=b.CUNO
+and a.TTYP=b.TTYP
+and a.NINV=b.NINV
+and a.LINE=b.LINE
+group by 
+a.TTYP,a.NINV,a.LINE,TDOC,DOCN,LINO,a.CUNO,a.Invdate,TREC,CCUR,RATE,RATF,SPOT,
+--AMNT,AMTI,
+VATC,CVAT,VATA,VATI,VATH,SVAM,SVAH,LPDT,
+LAPA,LAPI,LAPH,DID1,DC1A,DC1I,DC1H,DID2,DC2A,DC2I,DC2H,DID3,DC3A,DC3I,DC3H,PADA,PADI,PADH,BACO,BACA,BASI,CDAM,TORE,DUED,
+REFR,CCRS,CPAY,OTYP,OINV,PAYM,PROJ,ORNO,PROB,PROP,PREF,BANK,LETT,POST,PDAT,BALC,BALH,BALA,BAHC,STAT,YEAR,PROD,BTNO,VATY,
+VATP,CREP,LIQD,ADRS,LAMT,STEP,RCPT,DOUB,CAIN,LVAT,TYPA,DOCA,PCUN,TEXT,CREG
+----order by a.Invdate
+
+)a
+left outer join CustomerMaster_987 b
+on a.CUNO=b.CUNO
+group by a.CUNO,NAMA
+
+
+
+--------------------------------------------------------------------------------------------------------------
+
+
+
+select a.CUNO,CustName1,
+sum(BalanceAmt) from (
+select 
+a.t_ttyp,a.t_ninv,a.t_line,t_tdoc,t_docn,t_lino,a.CUNO,a.Invdate,t_trec,t_ccur,t_rate_1,t_ratf_1,
+--AMNT,AMTI,
+t_vatc,t_cvat,t_vata,t_vati,t_vath_1,t_svam,t_svah_1,t_lpdt,
+t_lapa,t_lapi,t_laph_1,t_did1,t_dc1a,t_dc1i,t_dc1h_1,t_did2,t_dc2a,t_dc2i,
+t_dc2h_1,t_did3,t_dc3a,t_dc3i,t_dc3h_1,t_pada,t_padi,t_padh_1,t_baco,t_baca_1,
+t_basi,t_cdam_1,t_tore_1,t_dued,t_refr,t_ccrs,t_cpay,t_otyp,t_oinv,t_paym,
+t_proj,t_orno,t_prob,t_prop,t_pref,t_bank,t_lett,t_post,t_pdat,t_balc,t_balh_1,
+t_bala,t_bahc_1,t_stat,t_year,t_prod,t_btno,t_vaty,
+t_vatp,t_crep,t_liqd,t_adrs,t_lamt,t_step,t_rcpt,t_doub,t_cain,t_lvat,t_typa,t_doca,t_text,
+
+avg(invAmt) as invAmt,
+sum(isnull(PaidAmt,0)) as PaidAmt,
+avg(invAmt)+sum(isnull(PaidAmt,0)) as BalanceAmt
+from
+(select 
+t_ttyp,t_ninv,t_line,t_tdoc,t_docn,t_lino,t_itbp as CUNO,
+t_docd as Invdate,t_trec,t_ccur,t_rate_1,t_ratf_1,t_amnt,t_amti,
+t_amth_1 as invAmt ,t_vatc,t_cvat,t_vata,t_vati,t_vath_1,t_svam,t_svah_1,t_lpdt,
+t_lapa,t_lapi,t_laph_1,t_did1,t_dc1a,t_dc1i,t_dc1h_1,t_did2,t_dc2a,t_dc2i,
+t_dc2h_1,t_did3,t_dc3a,t_dc3i,t_dc3h_1,t_pada,t_padi,t_padh_1,t_baco,t_baca_1,
+t_basi,t_cdam_1,t_tore_1,t_dued,t_refr,t_ccrs,t_cpay,t_otyp,t_oinv,t_paym,
+t_proj,t_orno,t_prob,t_prop,t_pref,t_bank,t_lett,t_post,t_pdat,t_balc,t_balh_1,
+t_bala,t_bahc_1,t_stat,t_year,t_prod,t_btno,t_vaty,
+t_vatp,t_crep,t_liqd,t_adrs,t_lamt,t_step,t_rcpt,t_doub,t_cain,t_lvat,t_typa,t_doca,t_text
+from TTFACR200ALL where
+Company=951
+and t_docn=0
+and convert(date,t_docd)<='2017-06-30'
+)a
+left outer join
+(select t_itbp as CUNO,t_ttyp,t_ninv,t_line,t_docd as Invdate,sum(t_amth_1) as PaidAmt 
+from TTFACR200ALL where
+Company=951
+and t_docn<>0
+and convert(date,t_docd)<='2017-06-30'
+group by t_itbp,t_TTYP,t_NINV,t_LINE,t_DOCD
+
+)b
+on a.CUNO=b.CUNO
+and a.t_ttyp=b.t_ttyp
+and a.t_ninv=b.t_ninv
+and a.t_line=b.t_line
+group by 
+a.t_ttyp,a.t_ninv,a.t_line,t_tdoc,t_docn,t_lino,a.CUNO,a.Invdate,t_trec,t_ccur,t_rate_1,t_ratf_1,
+--AMNT,AMTI,
+t_vatc,t_cvat,t_vata,t_vati,t_vath_1,t_svam,t_svah_1,t_lpdt,
+t_lapa,t_lapi,t_laph_1,t_did1,t_dc1a,t_dc1i,t_dc1h_1,t_did2,t_dc2a,t_dc2i,
+t_dc2h_1,t_did3,t_dc3a,t_dc3i,t_dc3h_1,t_pada,t_padi,t_padh_1,t_baco,t_baca_1,
+t_basi,t_cdam_1,t_tore_1,t_dued,t_refr,t_ccrs,t_cpay,t_otyp,t_oinv,t_paym,
+t_proj,t_orno,t_prob,t_prop,t_pref,t_bank,t_lett,t_post,t_pdat,t_balc,t_balh_1,
+t_bala,t_bahc_1,t_stat,t_year,t_prod,t_btno,t_vaty,
+t_vatp,t_crep,t_liqd,t_adrs,t_lamt,t_step,t_rcpt,t_doub,t_cain,t_lvat,t_typa,t_doca,t_text
+
+----order by a.Invdate
+
+)a
+left outer join vw_Business_Partner_IAS b
+on a.CUNO=b.custcode
+
+group by a.CUNO,CustName1
+order by a.CUNO,CustName1
+
+
+

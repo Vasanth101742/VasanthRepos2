@@ -1,0 +1,118 @@
+--exec sp_Employee_Punch_details
+CREATE proc sp_Employee_Punch_details as
+
+Begin
+
+Truncate table Employee_Punch_details
+
+
+Insert into Employee_Punch_details(attendance_date,emp_code,shift_code,
+in1,out1,in2,out2,in3,out3,in4,out4,details,new_emp_code)
+select * from Employee_Punch_details_stage
+
+update Employee_Punch_details set in1=null where in1=0
+update Employee_Punch_details set in2=null where in2=0
+update Employee_Punch_details set in3=null where in3=0
+update Employee_Punch_details set in4=null where in4=0
+update Employee_Punch_details set out1=null where out1=0
+update Employee_Punch_details set out2=null where out2=0
+update Employee_Punch_details set out3=null where out3=0
+update Employee_Punch_details set out4=null where out4=0
+
+
+--Alter table Employee_Punch_details add InTime datetime
+--Alter table Employee_Punch_details add OutTime datetime
+--Alter table Employee_Punch_details add Hrs varchar(5)
+--Alter table Employee_Punch_details add Mins varchar(5)
+
+
+Update Employee_Punch_details set AttendDate=convert(date,substring(attendance_date,5,4)+'-'+substring(attendance_date,1,2)+'-'+substring(attendance_date,3,2))
+
+Update Employee_Punch_details set InTime=
+convert(datetime,substring(attendance_date,5,4)+'-'+substring(attendance_date,1,2)+'-'+substring(attendance_date,3,2)+' '+
+substring(coalesce(in1,in2,in3,in4),1,2)+':'+substring(coalesce(in1,in2,in3,in4),3,2)+':'+'00.000')
+
+Update Employee_Punch_details set OutTime=
+convert(datetime,substring(attendance_date,5,4)+'-'+substring(attendance_date,1,2)+'-'+substring(attendance_date,3,2)+' '+
+substring(coalesce(out4,out3,out2,out1),1,2)+':'+substring(coalesce(out4,out3,out2,out1),3,2)+':'+'00.000')
+
+Update Employee_Punch_details set Mins=datediff(MINUTE,InTime,OutTime)
+Update Employee_Punch_details set Hrs=Mins/60
+Update Employee_Punch_details set Mins=datediff(MINUTE,InTime,OutTime)%60
+
+
+--Alter table Employee_Punch_details add Gender varchar(50)
+--Alter table Employee_Punch_details add EmpName varchar(100)
+--Alter table Employee_Punch_details add NewEmpCode int
+
+Update Employee_Punch_details set NewEmpCode=a.new_emp_code,EmpName=a.emp_name,
+Gender=a.sex,Band=a.band,ucode=a.ucode,uname=a.uname
+from 
+(select emp_code,new_emp_code,emp_name,sex,band,ucode,uname from Employee_Details)a
+where Employee_Punch_details.emp_code=a.emp_code
+
+Update Employee_Punch_details set NewEmpCode=a.new_emp_code,EmpName=a.emp_name,
+Gender=a.sex,Band=a.band,ucode=a.ucode,uname=a.uname
+from 
+(select emp_code,new_emp_code,emp_name,sex,band,ucode,uname from Employee_Details)a
+where Employee_Punch_details.emp_code=a.new_emp_code
+and  Employee_Punch_details.empname is null
+
+
+Update Employee_Punch_details set AttendStatus='Present'
+where InTime is not null and OutTime is not null
+
+Update Employee_Punch_details set AttendStatus='Absent'
+where InTime is null
+
+Update Employee_Punch_details set AttendStatus='Others'
+where InTime is not null and OutTime is null
+
+
+Update Employee_Punch_details set AttendStatusOrdr=1 where AttendStatus='Present'
+Update Employee_Punch_details set AttendStatusOrdr=2 where AttendStatus='Absent'
+Update Employee_Punch_details set AttendStatusOrdr=3 where AttendStatus='Others'
+
+end
+
+--Alter table Employee_Punch_details add AttendStatusOrdr int
+
+select top 2 * from Employee_Punch_details order by AttendDate
+
+select emp_code,applied_date,--from_date,to_date,
+count(*) from (
+select emp_code,shift_code,from_date,to_date,convert(date,applied_date) applied_date from Employee_onduty_request
+where convert(date,applied_date)>=(select min(attenddate) from Employee_Punch_details)
+)a
+group by emp_code,applied_date--,from_date,to_date
+order by emp_code,applied_date
+
+select * from 
+(select emp_code,attenddate from Employee_Punch_details
+where emp_code='105'
+)a
+left outer join
+(select emp_code,shift_code,convert(date,from_date) from_date,convert(date,to_date) to_date
+--,convert(date,applied_date) applied_date 
+from Employee_onduty_request
+where convert(date,applied_date)>=(select min(attenddate) from Employee_Punch_details)
+and emp_code='105' and applied_date='2018-11-26'
+)b
+on a.emp_code=b.emp_code
+and a.AttendDate between b.from_date and b.to_date
+
+
+
+select *from Employee_onduty_request
+where emp_code=101929 and convert(date,applied_date)='2019-01-21'
+
+
+select * from Employee_onduty_request
+where convert(date,from_date)<>convert(date,to_date) and year(from_date) =2019
+
+
+select min(attenddate) from Employee_Punch_details order by AttendDate
+where attenddate between '2019-04-01 00:00:00.000' and '2019-04-02 00:00:00.000'
+
+--select * from Employee_onduty_breakups
+

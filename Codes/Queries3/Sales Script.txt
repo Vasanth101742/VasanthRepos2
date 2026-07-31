@@ -1,0 +1,54 @@
+Alter table LN_Sales_Details_ver2 add DeliveryTerms varchar(10)
+Alter table LN_Sales_Details_ver2 add DelvDesc varchar(50)
+Alter table LN_Sales_Details_ver2 add CarrierCode varchar(10)
+Alter table LN_Sales_Details_ver2 add CarrierDesc varchar(50)
+Alter table LN_Sales_Details_ver2 add PaymentTerms varchar(10)
+Alter table LN_Sales_Details_ver2 add PaymentDesc varchar(50)
+
+
+Alter table ELGi_Sales_Details add DeliveryTerms varchar(10)
+Alter table ELGi_Sales_Details add DelvDesc varchar(50)
+Alter table ELGi_Sales_Details add CarrierCode varchar(10)
+Alter table ELGi_Sales_Details add CarrierDesc varchar(50)
+Alter table ELGi_Sales_Details add PaymentTerms varchar(10)
+Alter table ELGi_Sales_Details add PaymentDesc varchar(50)
+
+
+Alter table ATS_Sales_Details add DeliveryTerms varchar(10)
+Alter table ATS_Sales_Details add DelvDesc varchar(50)
+Alter table ATS_Sales_Details add CarrierCode varchar(10)
+Alter table ATS_Sales_Details add CarrierDesc varchar(50)
+Alter table ATS_Sales_Details add PaymentTerms varchar(10)
+Alter table ATS_Sales_Details add PaymentDesc varchar(50)
+
+
+Alter table IAS_Sales_details add DeliveryTerms varchar(10)
+Alter table IAS_Sales_details add DelvDesc varchar(50)
+Alter table IAS_Sales_details add CarrierCode varchar(10)
+Alter table IAS_Sales_details add CarrierDesc varchar(50)
+Alter table IAS_Sales_details add PaymentTerms varchar(10)
+Alter table IAS_Sales_details add PaymentDesc varchar(50)
+
+
+Alter table LN_SALES_BDI add DeliveryTerms varchar(10)
+Alter table LN_SALES_BDI add DelvDesc varchar(50)
+Alter table LN_SALES_BDI add CarrierCode varchar(10)
+Alter table LN_SALES_BDI add CarrierDesc varchar(50)
+Alter table LN_SALES_BDI add PaymentTerms varchar(10)
+Alter table LN_SALES_BDI add PaymentDesc varchar(50)
+
+
+Alter table auction_sales add DeliveryTerms varchar(10)
+Alter table auction_sales add DelvDesc varchar(50)
+Alter table auction_sales add CarrierCode varchar(10)
+Alter table auction_sales add CarrierDesc varchar(50)
+Alter table auction_sales add PaymentTerms varchar(10)
+Alter table auction_sales add PaymentDesc varchar(50)
+
+
+Alter table FRT_Sales add DeliveryTerms varchar(10)
+Alter table FRT_Sales add DelvDesc varchar(50)
+Alter table FRT_Sales add CarrierCode varchar(10)
+Alter table FRT_Sales add CarrierDesc varchar(50)
+Alter table FRT_Sales add PaymentTerms varchar(10)
+Alter table FRT_Sales add PaymentDesc varchar(50)

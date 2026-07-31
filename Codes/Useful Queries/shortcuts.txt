@@ -1,0 +1,10 @@
+
+1. cntrl+k c --to comment selected area in sql server
+   cntrl+k u --to uncomment the selected area in sql server
+
+2. windows shortcut
+    windowskey +r --run terminal
+    windowskey +e --to view the c,d,f drives
+    windowskey +d -- to return to desktop
+
+3. Alt + F11 --to open a password protected macro

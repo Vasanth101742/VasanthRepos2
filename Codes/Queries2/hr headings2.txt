@@ -1,0 +1,7 @@
+="HR Training Dashboard"+monthname(month(max(Fields!Data_Load_Date.Value)))+"-"+year(max(Fields!Data_Load_Date.Value))
+
+
+Recruitment details with current Status - Sorted by current lead time
+
+
+=mid(monthname(month(Fields!Month.Value)),1,3)

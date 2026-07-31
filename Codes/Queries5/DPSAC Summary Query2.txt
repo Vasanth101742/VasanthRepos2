@@ -1,0 +1,113 @@
+select distinct Description,company,warehouse,item,itemdescr from ELGi_production_details
+where Description='DPSAC'
+and ltrim(rtrim(item))='S03202'
+
+
+select * from Production_Summary where ltrim(rtrim(item))='S03229' and warehouse='D57'
+
+select warehouse,sum(plan_qty) plan_qty,sum(Backlog_qty) Backlog_qty,
+sum(WIP_qty) WIP_qty
+from Production_Summary 
+group by warehouse
+
+select distinct prd_from,prd_to from ELGi_Production_Master a
+left outer join ELGi_AssemblyLine_Master b
+on b.code = a.assemblycode
+where Description='dpsac'
+
+--Planned Qty(till this Month end)
+
+
+select company,warehouse,item,date1,Prodorderno,
+sum(Planned_qty) Planned_qty
+--,sum(Actual_qty) Actual_qty
+from ELGi_production_details 
+where Prodorderno between'230000000'	and '239999999' and 
+date1 between dateadd(MM,datediff(MM,0,getdate()-1),0)  and EOMONTH(getdate()-1)
+and Planned_qty<>0
+group by company,warehouse,item,date1,Prodorderno
+
+
+
+--Backlog Qty (Less than Current Date)
+
+select company,warehouse,item,date1,Prodorderno,
+sum(Planned_qty) Planned_qty
+--,sum(Actual_qty) Actual_qty
+from ELGi_production_details 
+where Prodorderno between'230000000'	and '239999999' and 
+date1 <getdate()-1
+group by company,warehouse,item,date1,Prodorderno
+having sum(Actual_qty) <>0
+--and sum(Planned_qty)<>0
+
+
+--WIP Qty (Current date)
+
+select company,warehouse,item,date1,Prodorderno,
+sum(WIP_qty) WIP_qty
+from ELGi_production_details 
+where Prodorderno between'230000000'	and '239999999' and 
+date1 <getdate()-1
+group by company,warehouse,item,date1,Prodorderno
+having sum(WIP_qty) <>0
+
+--MTD_sls_qty (From 1st to Current Date of the Current Month)
+
+select company,warehouse,Item,Invoice_Date,sum(DeliveryQty) DeliveryQty from ELGi_Sales_Details 
+where Invoice_Date>=dateadd(dd,-day(EOMONTH(getdate()-1))+1,EOMONTH(getdate()-1))
+group by company,warehouse,Item,Invoice_Date
+order by Invoice_Date
+
+
+update Production_Summary set Avg_Sales_amount=a.Avg_Sales_amount
+from (
+select company,Item,sum(Sales_amount)/(sum(DeliveryQty)+0.01) Avg_Sales_amount 
+from ELGi_Sales_Details 
+group by company,Item
+)a
+where Production_Summary.company=a.COMPANY
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+
+
+
+--FG Qty (Current Date)
+
+update Production_Summary set FG_qty=a.QHND
+from (
+select COMPANY,CWAR,ITEM,sum(QHND) QHND from TWHLTC500ALL
+where convert(date,IDAT)=convert(date,GETDATE()-1)
+group by COMPANY,CWAR,ITEM
+)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.CWAR
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+
+
+
+update Production_Summary set plan_qty=a.Planned_qty
+from 
+(select company,warehouse,item,sum(Planned_qty) Planned_qty 
+from (select * from ELGi_production_details where Planned_qty<>0 and date1<=getdate()-1)a
+group by company,warehouse,item)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+
+
+update Production_Summary set WIP_qty=a.WIP_qty
+from 
+(select company,warehouse,item,sum(WIP_qty) WIP_qty
+from (select * from ELGi_production_details where WIP_qty<>0 and date1=getdate()-1)a
+group by company,warehouse,item)a
+where Production_Summary.company=a.COMPANY
+and Production_Summary.warehouse=a.warehouse
+and ltrim(rtrim(Production_Summary.item))=ltrim(rtrim(a.Item))
+
+update Production_Summary set Backlog_value=(Avg_Sales_amount * Backlog_qty)/1000000
+update Production_Summary set MTD_sls_value=(Avg_Sales_amount * MTD_sls_qty)/1000000
+update Production_Summary set FG_value=(Avg_Sales_amount * FG_qty)/1000000
+update Production_Summary set plan_value=(Avg_Sales_amount * plan_qty)/1000000
+update Production_Summary set WIP_value=(Avg_Sales_amount * WIP_qty)/1000000
+
+

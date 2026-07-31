@@ -1,0 +1,49 @@
+select *,isnull(a.CWAR,b.warehouse) as FinalwH from 
+(select INVType,Vertical,COMPANY,CWAR,--ltrim(rtrim(ITEM)) ITEM,ItemDescr,
+sum(QSTK) QSTK,sum(Amnt) Amnt,
+sum(Amnt2) Amnt2,sum(Amnt3) Amnt3,--FrtRate,MultiplyFactor,
+sum(Amnt4) Amnt4
+from InventoryDetails where company=600 and cwar not in ('621')
+group by INVType,Vertical,COMPANY,CWAR--,ltrim(rtrim(ITEM)),ItemDescr
+)a
+full outer join 
+(select company,warehouse,--ltrim(rtrim(Item)) Item,
+sum(Sales_amount) Sales_amount from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and ltrim(rtrim(Item))<>'FRT'
+group by company,warehouse--,ltrim(rtrim(Item))
+)b
+on a.COMPANY=b.company
+and a.CWAR=b.warehouse
+--and a.ITEM=b.Item
+
+
+
+union
+
+select 'RM','RM',company,warehouse,--ltrim(rtrim(Item)) Item,
+null,null,null,null,null,company,warehouse,sum(Sales_amount) Sales_amount,warehouse from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and ltrim(rtrim(Item))<>'FRT'
+and warehouse in ('657','664','661','694')
+group by company,warehouse--,ltrim(rtrim(Item))
+
+
+
+union
+
+select 'WIP','WIP',company,warehouse,--ltrim(rtrim(Item)) Item,
+null,null,null,null,null,company,warehouse,sum(Sales_amount) Sales_amount,warehouse from ATS_Sales_Details
+where cal_year=year(getdate()-1)
+and cal_Month=month(getdate()-1)
+AND SaleOrderType not in (select SaleOrderType from saletype_master_ATS where Sales_Category in (1))
+and ltrim(rtrim(Item))<>'FRT'
+and warehouse in ('657','664','661')
+group by company,warehouse--,ltrim(rtrim(Item))
+
+
+--select * from Inventory_Targetdays_Master

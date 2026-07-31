@@ -1,0 +1,30 @@
+select company,CWAR,ITEM,
+--sum(isnull(ToBe_ConsQty,0)) ToBe_ConsQty,
+sum(isnull(RecvdQty,0)) RecvdQty,
+sum(isnull(IssueQty,0)) IssueQty ,
+sum(isnull(QHND,0)) QHND, 
+sum(isnull(RecvdQty,0)) -sum(isnull(IssueQty,0)) Diff
+from Stock_ForeFigures
+where company=400	
+and ltrim(rtrim(CWAR))='005'	         
+and ltrim(rtrim(ITEM))= '000900007'
+group by company,CWAR,ITEM
+order by company,CWAR,ITEM
+
+--select * from Stock_ForeFigures
+--where company=400	
+--and ltrim(rtrim(CWAR))='005'	         
+--and ltrim(rtrim(ITEM))= '000900007'
+--order by rnk1,rnk2,Pur_year,Pur_month,Issue_year,Issue_month
+
+
+
+select COMPANY,T$CWAR,T$ITEM,month(T$TRDT) as Issue_month,year(T$TRDT) as Issue_year,
+convert(date,T$Trdt) T$Trdt,T$koor,
+sum(T$QSTK) QSTK
+from TWHINA114ALL
+where company=400	
+and ltrim(rtrim(T$CWAR))='005'	         
+and ltrim(rtrim(T$ITEM))= '000900007'
+group by COMPANY,T$CWAR,T$ITEM,month(T$TRDT),year(T$TRDT),convert(date,T$Trdt),T$koor
+having sum(T$QSTK)>0

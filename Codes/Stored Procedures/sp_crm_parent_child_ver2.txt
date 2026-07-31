@@ -1,0 +1,741 @@
+--exec sp_crm_parent_child_ver2
+
+CREATE proc sp_crm_parent_child_ver2
+as
+Begin
+
+truncate table tb4_ver2
+truncate table All_Metrics1_ver2
+truncate table All_Metrics2_ver2
+truncate table tb4a_ver2
+truncate table tb5_ver2
+truncate table crm_parent_child_ver2
+
+insert into tb4_ver2
+select Section_id,Engg_User_id,Segment_id,Productline_id,
+Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,
+crm_lead_id,
+Metrics_levels,ordering,Act_Count
+from(
+select section_id, Engg_User_id,segment_id,Productline_id,
+Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,
+crm_lead_id,
+Metrics_levels, count(Metrics_levels) as Act_Count,
+case when Metrics_levels='Prospects' then 1
+when Metrics_levels='Enquiry Generation' then 2
+when Metrics_levels='Enquiry Conversion' then 3
+when Metrics_levels='Order_won' then 4
+when Metrics_levels='Order_lost' then 5
+when Metrics_levels='Order_dropped' then 6 end as ordering
+from (
+select 
+isnull(a.section_id,0) as Section_id,
+isnull(a.user_id,0) as Engg_User_id,
+isnull(a.categ_ids,0) as Segment_id,
+isnull(a.id,0) as Productline_id,
+isnull(a.country_id,0) as Country_id,
+isnull(a.state_id,0) as State_id,
+isnull(a.area_id,0) as Area_id,
+isnull(a.sub_area_id,0) as SubArea_id,
+isnull(a.city_area_id,0) as CityArea_id,
+isnull(a.city_id,0) as City_id,
+id as crm_lead_id,
+case when a.type  ='lead' and a.stage_id  =1 then 'Prospects'
+when a.stage_id  =4 and a.type  ='opportunity' then 'Enquiry Generation'
+when a.stage_id  =5 and a.type  ='opportunity' then 'Enquiry Conversion'
+when a.stage_id  =7 and a.type  ='opportunity' then 'Order_won'
+when a.stage_id  =8 and a.type  ='opportunity' then 'Order_lost'
+when a.stage_id  =6 and a.type  ='opportunity' then 'Order_dropped'
+end as Metrics_levels
+                          
+from crm_lead a
+where a.stage_id in(1,4,5,6,7,8)
+
+--and a.section_id=4 for analysis purpose
+
+)a
+group by section_id,Engg_User_id,segment_id,Productline_id,
+Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,crm_lead_id,
+Metrics_levels
+)b
+order by section_id,Engg_User_id,segment_id,Productline_id,
+Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,crm_lead_id,
+ordering
+
+----------------------------------------------------------------
+--since Source data doesnt have all metrics like prospects,EG,EC,Order won,Order lost, Order dropped by default
+--for each sales person, below strategy is used to get all metrics for each person
+--in order to avoid to Cumulative count mismatch between Managers data and sum of his subordinates data.
+
+
+declare @counts int
+declare @section_id int
+declare @Engg_User_id int
+declare @segment_id int
+declare @Productline_id int
+declare @Country_id int
+declare @State_id int
+declare @Area_id int
+declare @SubArea_id int
+declare @CityArea_id int
+declare @City_id int
+declare @crm_lead_id int
+declare @rownum int=1
+
+set @counts=
+(select count(*) as counts from (
+select * from(
+select *,row_number() over(order by 
+engg_user_id,segment_id,Productline_id,Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,crm_lead_id) Rownum from
+(select distinct section_id,engg_user_id,segment_id,Productline_id,Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,crm_lead_id from tb4_ver2 )a
+)b
+)c
+)
+
+
+insert into All_Metrics1_ver2
+select * from(
+select *,row_number() over(order by engg_user_id,segment_id,
+Productline_id,Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id) Rownum from
+(select distinct section_id,engg_user_id,segment_id,Productline_id,Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,crm_lead_id from tb4_ver2 )a
+)b
+
+while (@rownum<=@counts)
+begin
+set @section_id =(select distinct section_id from All_Metrics1_ver2 where rownum=@rownum)
+set @Engg_User_id =(select distinct Engg_User_id from All_Metrics1_ver2 where rownum=@rownum)
+set @segment_id=(select distinct segment_id from All_Metrics1_ver2 where rownum=@rownum)
+set @Productline_id=(select distinct Productline_id from All_Metrics1_ver2 where rownum=@rownum)
+set @Country_id=(select distinct Country_id from All_Metrics1_ver2 where rownum=@rownum)
+set @State_id=(select distinct State_id from All_Metrics1_ver2 where rownum=@rownum)
+set @Area_id=(select distinct Area_id from All_Metrics1_ver2 where rownum=@rownum)
+set @SubArea_id=(select distinct SubArea_id from All_Metrics1_ver2 where rownum=@rownum)
+set @CityArea_id=(select distinct CityArea_id from All_Metrics1_ver2 where rownum=@rownum)
+set @City_id=(select distinct City_id from All_Metrics1_ver2 where rownum=@rownum)
+set @crm_lead_id=(select distinct Crm_lead_id from All_Metrics1_ver2 where rownum=@rownum)
+
+
+insert into  All_Metrics2_ver2
+(section_id,Engg_User_id,segment_id,Productline_id,Country_id,State_id,Area_id,SubArea_id,CityArea_id,City_id,crm_lead_id,ordering,Metrics_levels) values
+(@section_id,@Engg_User_id,@segment_id,@Productline_id,@Country_id,@State_id,@Area_id,@SubArea_id,@CityArea_id,@City_id,@crm_lead_id,1,'Prospects'),
+(@section_id,@Engg_User_id,@segment_id,@Productline_id,@Country_id,@State_id,@Area_id,@SubArea_id,@CityArea_id,@City_id,@crm_lead_id,2,'Enquiry Generation'),
+(@section_id,@Engg_User_id,@segment_id,@Productline_id,@Country_id,@State_id,@Area_id,@SubArea_id,@CityArea_id,@City_id,@crm_lead_id,3,'Enquiry Conversion'),
+(@section_id,@Engg_User_id,@segment_id,@Productline_id,@Country_id,@State_id,@Area_id,@SubArea_id,@CityArea_id,@City_id,@crm_lead_id,4,'Order_won'),
+(@section_id,@Engg_User_id,@segment_id,@Productline_id,@Country_id,@State_id,@Area_id,@SubArea_id,@CityArea_id,@City_id,@crm_lead_id,5,'Order_lost'),
+(@section_id,@Engg_User_id,@segment_id,@Productline_id,@Country_id,@State_id,@Area_id,@SubArea_id,@CityArea_id,@City_id,@crm_lead_id,6,'Order_dropped')
+
+
+--select * into All_Metrics2_ver2 from (
+--select 11 as section_id,123  Engg_User_id,112 segment_id,123456 Productline_id,123 Country_id,123 State_id,123 Area_id,123 SubArea_id,123 CityArea_id,123 City_id,1234567 crm_lead_id,1 ordering ,'Prospects' Metrics_levels
+--union all
+--select 11,123,112,123456,123,123,123,123,123,123,1234567,2,'Enquiry Generation'
+--union all
+--select 11,123,112,123456,123,123,123,123,123,123,1234567,3,'Enquiry Conversion'
+--union all
+--select 11,123,122,123456,123,123,123,123,123,123,1234567,4,'Order_won'
+--union all
+--select 11,123,112,123456,123,123,123,123,123,123,1234567,5,'Order_lost'
+--union all
+--select 11,123,123,123456,123,123,123,123,123,123,1234567,6,'Order_dropped'
+--)a
+
+
+--update All_Metrics2_ver1 set section_id=0
+--where section_id is null and Engg_User_id=@Engg_User_id
+
+set @rownum=@rownum+1
+
+end
+
+
+
+
+insert into tb4a_ver2
+select 
+isnull(a.Section_id,0) as Section_id,
+isnull(a.Engg_User_id,0) as Engg_User_id,
+isnull(a.Segment_id,0) as Segment_id,isnull(a1.name,'[000] Others') as Segment,
+--a.productline_id,product.Product_id,product.ProductName,
+isnull(a.Country_id,0) as Country_id ,isnull(a2.name,'Others') as Country,
+isnull(a.state_id,0) as State_id,isnull(a3.name,'Others') as StateName,
+isnull(a.area_id,0) as Area_id,isnull(a4.name,'Others') as Area,
+isnull(a.SubArea_id,0) as SubArea_id,isnull(a5.name,'Others') as SubArea,
+isnull(a.city_id,0) as City_id,isnull(a6.name,'Others') as City,
+a.crm_lead_id,
+a.Ordering,a.Metrics_levels,isnull(b.act_count,0) act_count
+from All_Metrics2_ver2 a 
+
+left outer join crm_case_categ a1
+on isnull(a.segment_id,0)=isnull(a1.id,0)
+
+--left outer join 
+--(select isnull(name,0) as Productline_id,
+--isnull(items,0) as Product_id,
+--b.name_template as ProductName 
+--from product_line a inner join product_master b
+--on a.items=b.id) Product
+--on isnull(a.productline_id,0)=isnull(product.Productline_id,0)
+
+left outer join res_country a2
+on isnull(a.Country_id,0)=isnull(a2.id,0)
+
+left outer join [res_country_state ] a3
+on isnull(a.state_id,0)=a3.id
+
+left outer join res_area a4
+on  isnull(a.area_id,0)=a4.id
+
+left outer join res_sub_area a5
+on isnull(a.SubArea_id,0)=a5.id
+
+left outer join res_city a6
+on isnull(a.city_id,0)=a6.id
+
+left outer  join  tb4_ver2 b
+on 
+isnull(a.section_id,0)=isnull(b.section_id ,0)
+and isnull(a.Engg_User_id,0)=isnull(b.Engg_User_id,0)
+and isnull(a.segment_id,0)=isnull(b.segment_id,0)
+and isnull(a.productline_id,0)=isnull(b.productline_id,0)
+and isnull(a.country_id,0)=isnull(b.country_id,0)
+and isnull(a.state_id,0)=isnull(b.state_id,0)
+and isnull(a.Area_id,0)=isnull(b.Area_id,0)
+and isnull(a.SubArea_id,0)=isnull(b.SubArea_id,0)
+and isnull(a.CityArea_id,0)=isnull(b.CityArea_id,0)
+and isnull(a.City_id,0)=isnull(b.City_id,0)
+and isnull(a.ordering,0)=isnull(b.ordering,0)
+
+--left outer join Crm_Lead c --Added to add create_date column intentionally
+--on a.section_id=c.section_id
+--and a.Engg_User_id=c.user_id
+
+order by section_id,Engg_User_id,segment_id,ordering
+
+
+
+--select * into tb5_ver2_dev from tb5_ver2
+--alter table tb5_ver2 drop column crm_lead_id
+--truncate table tb5_ver2
+
+--Loading the  Counts of Engineers working under L5 Team.
+insert into tb5_ver2
+
+select tb3a.*,
+tb4a_ver2.Segment_id,tb4a_ver2.Segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,tb4a_ver2.crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+from tb3a
+inner join tb4a_ver2 
+on 
+tb3a.L5_ID=tb4a_ver2.section_id and 
+tb3a.engg_user_id=tb4a_ver2.engg_user_id 
+
+group by 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+tb3a.Engg_User_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,
+Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+Ordering,Metrics_levels
+order by L1_ID,L2_id,L3_id,L4_id,L5_id,Engg_user_id,ordering
+
+
+
+--Loading the  Counts of Engineers working directly under L4 Team.
+insert into tb5_ver2
+select 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+null as L5_ID,null as L5_Team,null as L5_Complete_Team,null as L5_User_ID,null as L5_Name,null as L5_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.Segment_id,tb4a_ver2.Segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+--from tb3a
+from (select distinct * from tb3a where L5_ID is null)   tb3a
+inner join tb4a_ver2
+on 
+tb3a.L4_ID=tb4a_ver2.section_id and 
+tb3a.engg_user_id=tb4a_ver2.engg_user_id 
+
+group by 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.Segment_id,tb4a_ver2.Segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+order by L1_ID,L2_id,L3_id,L4_id,tb3a.Engg_User_ID,ordering
+
+
+
+--Loading the  Counts of Engineers working under L3 Team.
+
+insert into tb5_ver2
+select 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+null as L4_ID,null as L4_Team,null as L4_Complete_Team,null as L4_User_ID,null as L4_Name,null as L4_Email,
+null as L5_ID,null as L5_Team,null as L5_Complete_Team,null as L5_User_ID,null as L5_Name,null as L5_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+--from tb3a
+from (select distinct * from tb3a where L4_ID is null and L5_ID is null)   tb3a
+inner join tb4a_ver2
+on 
+tb3a.L3_ID=tb4a_ver2.section_id and
+tb3a.engg_user_id=tb4a_ver2.engg_user_id 
+group by
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+
+order by L1_ID,L2_id,L3_id,Engg_User_ID,ordering
+
+
+--Loading the  Counts of Engineers working under L2 Team.
+insert into tb5_ver2
+select 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+null as L3_ID,null as L3_Team,null as L3_Complete_Team,null as L3_User_ID,null as L3_Name,null as L3_Email,
+null as L4_ID,null as L4_Team,null as L4_Complete_Team,null as L4_User_ID,null as L4_Name,null as L4_Email,
+null as L5_ID,null as L5_Team,null as L5_Complete_Team,null as L5_User_ID,null as L5_Name,null as L5_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+from tb3a
+inner join tb4a_ver2 
+on 
+tb3a.L2_ID=tb4a_ver2.section_id and 
+tb3a.engg_user_id=tb4a_ver2.engg_user_id 
+
+group by 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+order by L1_ID,L2_id,ordering
+
+
+
+--Loading the  Counts of Engineers working under L1 Team.
+
+insert into tb5_ver2
+select
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+null as L2_ID,null as L2_Team,null as L2_Complete_Team,null as L2_User_ID,null as L2_Name,null as L2_Email,
+null as L3_ID,null as L3_Team,null as L3_Complete_Team,null as L3_User_ID,null as L3_Name,null as L3_Email,
+null as L4_ID,null as L4_Team,null as L4_Complete_Team,null as L4_User_ID,null as L4_Name,null as L4_Email,
+null as L5_ID,null as L5_Team,null as L5_Complete_Team,null as L5_User_ID,null as L5_Name,null as L5_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+from tb3a
+inner join tb4a_ver2
+on 
+tb3a.L1_ID=tb4a_ver2.section_id and 
+tb3a.engg_user_id=tb4a_ver2.engg_user_id 
+
+group by
+
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+tb3a.Engg_User_ID,tb3a.Engg_Name,tb3a.Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+order by L1_ID,ordering
+
+
+
+
+--Loading the  individual Counts of L5 Team Members working under L4 Team and managing L5 Team.
+insert into tb5_ver2
+select 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+null as Engg_User_ID,null as Engg_Name,null as Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+from tb3a
+left outer join tb4a_ver2
+on 
+tb3a.L4_ID=tb4a_ver2.section_id and 
+tb3a.L5_User_ID=tb4a_ver2.engg_user_id 
+where L5_User_ID is not null and tb3a.Engg_User_ID is null
+
+group by
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+order by L1_ID,L2_id,L3_id,L4_id,L5_ID,L5_User_ID,ordering
+
+
+--Loading the  individual Counts of L4 Team Members working under L3 Team and managing L4 Team.
+insert into tb5_ver2
+select  
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+null as L5_ID,null as L5_Team,null as L5_Complete_Team,null as L5_User_ID,null as L5_Name,null as L5_Email,
+null as Engg_User_ID,null as Engg_Name,null as Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+from tb3a
+left outer join tb4a_ver2
+on 
+tb3a.L3_ID=tb4a_ver2.section_id and
+tb3a.L4_User_ID=tb4a_ver2.engg_user_id 
+where L4_User_ID is not null and L5_User_ID is null and tb3a.Engg_User_ID is null
+--and Ordering is not null
+group by
+
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+
+order by L1_ID,L2_id,L3_id,L4_id,L4_User_ID,ordering
+
+
+--Loading the  individual Counts of L3 Team Members working under L2 Team and managing L3 Team.
+insert into tb5_ver2
+select  
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+null as L4_ID,null as L4_Team,null as L4_Complete_Team,null as L4_User_ID,null as L4_Name,null as L4_Email,
+null as L5_ID,null as L5_Team,null as L5_Complete_Team,null as L5_User_ID,null as L5_Name,null as L5_Email,
+null as Engg_User_ID,null as Engg_Name,null as Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count) Act_Count
+
+from tb3a
+left outer join tb4a_ver2
+on 
+tb3a.L2_ID=tb4a_ver2.section_id and 
+tb3a.L3_User_ID=tb4a_ver2.engg_user_id 
+where L3_User_ID is not null and L4_User_ID is null and L5_User_ID is null and tb3a.Engg_User_ID is null
+--and ordering is not null
+group by 
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+
+order by L1_ID,L2_id,L3_User_ID,ordering
+
+
+
+--Loading the  individual Counts of L2 Team Members working under L1 Team and managing L2 Team.
+insert into tb5_ver2
+select  
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+null as L4_ID,null as L4_Team,null as L4_Complete_Team,null as L4_User_ID,null as L4_Name,null as L4_Email,
+null as L5_ID,null as L5_Team,null as L5_Complete_Team,null as L5_User_ID,null as L5_Name,null as L5_Email,
+null as Engg_User_ID,null as Engg_Name,null as Engg_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels,sum(tb4a_ver2.Act_Count)
+
+from tb3a
+left outer join tb4a_ver2
+on 
+tb3a.L1_ID=tb4a_ver2.section_id and 
+tb3a.L2_User_ID=tb4a_ver2.engg_user_id 
+--where L3_User_ID is null and L4_User_ID is null and L5_User_ID is null and tb3a.Engg_User_ID is null
+--where ordering is not null
+group by
+L1_ID,L1_Team,L1_Complete_Team,L1_User_ID,L1_Name,L1_Email,
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+tb4a_ver2.segment_id,tb4a_ver2.segment,
+tb4a_ver2.Country_id,tb4a_ver2.Country,
+tb4a_ver2.State_id,tb4a_ver2.StateName,
+tb4a_ver2.Area_id,tb4a_ver2.Area,
+tb4a_ver2.SubArea_id,tb4a_ver2.SubArea,
+tb4a_ver2.City_id,tb4a_ver2.City,crm_lead_id,
+tb4a_ver2.ordering,tb4a_ver2.Metrics_levels
+
+order by L1_ID,L2_User_ID,ordering
+
+
+
+
+
+--To load L1 Team Leader's subordinates data ,below insert query is used
+insert into CRM_Parent_Child_ver2
+select 
+L1_id as P_ID,L1_Team as P_Team,L1_Complete_Team as P_Complete_Team,L1_user_id as P_User_ID,L1_Name as P_Name,L1_email as P_Email,
+L2_id as C_ID,L2_Team as C_Team,L2_Complete_Team as C_Complete_Team,L2_user_Id as C_User_ID,L2_Name as C_Name,L2_email as C_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,metrics_levels,Act_Count 
+from (select distinct * from tb5_ver2) tb5_ver2
+where  L2_ID is not null --and L3_ID is not null and L4_ID is not null and L5_ID is not null and Engg_User_ID is not null
+
+
+--since L1 Team Leader directly manages some engineers,below insert query is used
+insert into CRM_Parent_Child_ver2 
+select 
+L1_id as P_ID,L1_Team as P_Team,L1_Complete_Team as P_Complete_Team,L1_user_id as P_User_ID,L1_Name as P_Name,L1_email as P_Email,
+L1_ID as C_ID,'Sales','Sales',Engg_User_ID as C_User_ID,Engg_Name as C_Name,Engg_Email as C_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,metrics_levels,Act_Count 
+from (select distinct * from tb5_ver2) tb5_ver2
+where  L2_ID is null and L3_ID is null and L4_ID is null and L5_ID is null
+and Engg_User_ID is not null
+
+
+
+--since L1 Team Leader directly works on sales operations,below insert query is used
+insert into CRM_Parent_Child_ver2
+select 
+L1_id as P_ID,L1_Team as P_Team,L1_Complete_Team as P_Complete_Team,L1_user_id as P_User_ID,L1_Name as P_Name,L1_email as P_Email,
+L1_id as C_ID,null,null,L2_user_Id as C_User_ID,L2_Name as C_Name,L2_email as C_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,metrics_levels,Act_Count 
+from (select distinct * from tb5_ver2) tb5_ver2
+where  L2_ID is null and L3_ID is null and L4_ID is null and L5_ID is null and Engg_User_ID is null
+
+
+
+--To load L2 Team Leader's subordinates data ,below insert query is used
+insert into CRM_Parent_Child_ver2 
+select 
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from (select distinct * from tb5_ver2) tb5_ver2
+where  L2_ID is not null and L3_ID is not null --and L4_ID is not null and L5_ID is not null and Engg_User_ID is not null
+
+
+
+--since L2 Team Leader directly manages some engineers,below insert query is used
+insert into crm_parent_child_ver2
+select 
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L2_ID,'Sales','Sales',Engg_User_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from (select distinct * from tb5_ver2) tb5_ver2
+where  L2_ID is not null and L3_ID is null and L4_ID is null and L5_ID is null and Engg_User_ID is not null
+
+--since L2 Team Leader directly works on sales operations,below insert query is used
+
+insert into crm_parent_child_ver2 
+select 
+L2_ID,L2_Team,L2_Complete_Team,L2_User_ID,L2_Name,L2_Email,
+L2_ID,null,null,L3_User_ID,L3_Name,L3_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from (select distinct * from tb5_ver2) tb5_ver2
+where  L2_ID is not null and L3_ID is null and L4_ID is null and L5_ID is null and Engg_User_ID is null
+
+--To load L3 Team Leader's subordinates data ,below insert query is used
+insert into crm_parent_child_ver2
+select 
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2
+where L3_ID is not null and L4_ID is not null --and L5_ID is not null and Engg_User_ID is not null
+
+
+
+--since L3 Team Leader directly manages some engineers,below insert query is used
+insert into crm_parent_child_ver2
+select 
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L3_ID,'Sales','Sales',Engg_User_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2
+where L3_ID is not null and L4_ID is null and L5_ID is null and Engg_User_ID is not null
+
+
+
+--since L3 Team Leader directly works on sales operations,below insert query is used
+
+insert into crm_parent_child_ver2
+select 
+L3_ID,L3_Team,L3_Complete_Team,L3_User_ID,L3_Name,L3_Email,
+L3_ID,null,null,L4_User_ID,L4_Name,L4_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2 
+where L3_ID is not null and L4_ID is null and L5_ID is null and Engg_User_ID is null
+
+
+
+--To load L4 Team Leader's subordinates data ,below insert query is used
+
+insert into crm_parent_child_ver2 
+select 
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2
+where L4_ID is not null and L5_ID is not null --and Engg_User_ID is not null
+--where ordering is not null
+
+
+
+--since L4 Team Leader directly manages some engineers,below insert query is used
+insert into crm_parent_child_ver2
+select 
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L4_ID,'Sales','Sales',Engg_User_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2 
+where L4_ID is not null and L5_ID is null and Engg_User_ID is not null
+
+
+--since L4 Team Leader directly works on sales operations,below insert query is used
+insert into crm_parent_child_ver2
+select 
+L4_ID,L4_Team,L4_Complete_Team,L4_User_ID,L4_Name,L4_Email,
+L4_ID,null,null,Engg_User_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2
+where L4_ID is not null and L5_ID is null and Engg_User_ID is null
+
+
+
+--To load L5 Team Leader's subordinates data ,below insert query is used
+insert into crm_parent_child_ver2
+select 
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+L5_ID,'Sales','Sales',Engg_user_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2
+where Engg_user_ID is not null
+
+
+--since L5 Team Leader directly works on sales operations,below insert query is used
+insert into crm_parent_child_ver2
+select 
+L5_ID,L5_Team,L5_Complete_Team,L5_User_ID,L5_Name,L5_Email,
+L5_ID,null,null,Engg_user_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2--(select distinct * from tb5_ver2) tb5_ver2
+where Engg_user_ID is null
+
+
+insert into crm_parent_child_ver2 (P_ID,P_User_ID,P_Name,P_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,metrics_levels,Act_Count)
+select 
+L5_ID,Engg_user_ID,Engg_Name,Engg_Email,
+Segment_id,Segment,Country_id,Country,State_id,StateName,Area_id,Area,SubArea_id,SubArea,City_id,City,crm_lead_id,
+ordering,Metrics_levels,Act_Count 
+from tb5_ver2
+
+end

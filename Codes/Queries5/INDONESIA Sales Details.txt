@@ -1,0 +1,16 @@
+--select company,sum(Sales_USD) from(
+Select company,trantype,Invoice,Invoice_Date,OrderDate,SaleOrderType,OrderNo,item,Item_desc,dpst,areacode,areaname,custcode,custname,
+Organ,Sales_amount as Sales_INR,Sales_USD, cal_year,cal_Month
+FROM ELGi_Sales_Details a 
+where areaname like '%indone%' and Invoice_Date>='2019-04-01'
+and company=552
+AND a.SaleOrderType in (
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+order by Invoice_Date
+--)a
+--group by company

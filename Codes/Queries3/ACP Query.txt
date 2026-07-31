@@ -1,0 +1,89 @@
+select *,
+case 
+when PaymentCategory='Early Payment > 30 days' then 1
+when PaymentCategory='Early Payment - 16 to 30 days' then 2
+when PaymentCategory='Early Payment - 8 to 15 days' then 3
+when PaymentCategory='Early Payment - 1 to 7 days' then 4
+when PaymentCategory='No delay' then 5
+when PaymentCategory='Delay Payment - 1 to 7 days' then 6
+when PaymentCategory='Delay Payment - 8 to 15 days'  then 7
+when PaymentCategory='Delay Payment - 16 to 30 days'  then 8
+when PaymentCategory='Delay Payment > 30 days' then 9 end as PaymentCategoryOrdr
+from (
+select *,
+case 
+when paymentdays <-30 and InvBalh between -1 and 1 then 'Early Payment > 30 days'
+when (paymentdays between -30 and -16) and (InvBalh between -1 and 1) then 'Early Payment - 16 to 30 days'
+when (paymentdays between -15 and -8) and (InvBalh between -1 and 1) then 'Early Payment - 8 to 15 days'
+when (paymentdays between -7 and -1) and (InvBalh between -1 and 1) then 'Early Payment - 1 to 7 days'
+when (paymentdays =0) and (InvBalh between -1 and 1) then 'No delay'
+when (paymentdays between 1 and 7) and (InvBalh between -1 and 1) then 'Delay Payment - 1 to 7 days'
+when (paymentdays between 8 and 15) and (InvBalh between -1 and 1) then 'Delay Payment - 8 to 15 days' 
+when (paymentdays between 16 and 30) and (InvBalh between -1 and 1) then 'Delay Payment - 16 to 30 days' 
+when (paymentdays > 30) and (InvBalh between -1 and 1) then 'Delay Payment > 30 days' end as PaymentCategory
+
+from (
+select Company,TranType,InvNo,
+InvDate,DueDate,--PaidDate,EntryDate,
+sum(InvAmth) InvAmth,
+sum(PaidAmth) PaidAmth,
+sum(InvBalh) InvBalh,
+datediff(dd,DueDate,max(PaidDate)) as paymentdays
+from ACP_As_of_Date_Details2
+--where concat(company,TranType,InvNo)='450KR318004380'
+where company like '4%'
+group by Company,TranType,InvNo,InvDate,DueDate--,PaidDate,EntryDate
+--having sum(InvBalh) between-1 and 1
+)a
+)b
+
+
+
+---------------------------------------
+
+Method 2
+
+
+select *,
+case 
+when PaymentCategory='Early Payment > 30 days' then 1
+when PaymentCategory='Early Payment - 16 to 30 days' then 2
+when PaymentCategory='Early Payment - 8 to 15 days' then 3
+when PaymentCategory='Early Payment - 1 to 7 days' then 4
+when PaymentCategory='No delay' then 5
+when PaymentCategory='Delay Payment - 1 to 7 days' then 6
+when PaymentCategory='Delay Payment - 8 to 15 days'  then 7
+when PaymentCategory='Delay Payment - 16 to 30 days'  then 8
+when PaymentCategory='Delay Payment > 30 days' then 9 end as PaymentCategoryOrdr
+from (
+select *,
+case 
+when paymentdays <-30 and InvBalh between -1 and 1 then 'Early Payment > 30 days'
+when (paymentdays between -30 and -16) and (InvBalh between -1 and 1) then 'Early Payment - 16 to 30 days'
+when (paymentdays between -15 and -8) and (InvBalh between -1 and 1) then 'Early Payment - 8 to 15 days'
+when (paymentdays between -7 and -1) and (InvBalh between -1 and 1) then 'Early Payment - 1 to 7 days'
+when (paymentdays =0) and (InvBalh between -1 and 1) then 'No delay'
+when (paymentdays between 1 and 7) and (InvBalh between -1 and 1) then 'Delay Payment - 1 to 7 days'
+when (paymentdays between 8 and 15) and (InvBalh between -1 and 1) then 'Delay Payment - 8 to 15 days' 
+when (paymentdays between 16 and 30) and (InvBalh between -1 and 1) then 'Delay Payment - 16 to 30 days' 
+when (paymentdays > 30) and (InvBalh between -1 and 1) then 'Delay Payment > 30 days' end as PaymentCategory
+
+from (
+select Company,TranType,InvNo,
+InvDate,DueDate,--PaidDate,EntryDate,
+sum(InvAmth) InvAmth,
+sum(PaidAmth) PaidAmth,
+sum(InvBalh) InvBalh,
+datediff(dd,DueDate,max(PaidDate)) as paymentdays
+from ACP_As_of_Date_Details2
+--where concat(company,TranType,InvNo)='450KR318004380'
+where company like '4%'
+group by Company,TranType,InvNo,InvDate,DueDate--,PaidDate,EntryDate
+--having sum(InvBalh) between-1 and 1
+)a
+)b
+
+
+
+
+

@@ -1,0 +1,66 @@
+
+
+update Inven_eval_955_to_LN set comp=000  where comp=000
+update Inven_eval_955_to_LN set comp=400  where comp=100
+update Inven_eval_955_to_LN set comp=490  where comp=102
+update Inven_eval_955_to_LN set comp=470  where comp=103
+update Inven_eval_955_to_LN set comp=465  where comp=107
+update Inven_eval_955_to_LN set comp=450  where comp=108
+update Inven_eval_955_to_LN set comp=411  where comp=110
+update Inven_eval_955_to_LN set comp=415  where comp=120
+update Inven_eval_955_to_LN set comp=440  where comp=140
+update Inven_eval_955_to_LN set comp=401  where comp=150
+update Inven_eval_955_to_LN set comp=401  where comp=170
+update Inven_eval_955_to_LN set comp=401  where comp=180
+update Inven_eval_955_to_LN set comp=412  where comp=210
+update Inven_eval_955_to_LN set comp=416  where comp=220
+update Inven_eval_955_to_LN set comp=417  where comp=230
+update Inven_eval_955_to_LN set comp=418  where comp=240
+update Inven_eval_955_to_LN set comp=413  where comp=310
+update Inven_eval_955_to_LN set comp=423  where comp=320
+update Inven_eval_955_to_LN set comp=424  where comp=340
+update Inven_eval_955_to_LN set comp=414  where comp=410
+update Inven_eval_955_to_LN set comp=419  where comp=420
+update Inven_eval_955_to_LN set comp=420  where comp=430
+update Inven_eval_955_to_LN set comp=421  where comp=520
+update Inven_eval_955_to_LN set comp=422  where comp=540
+update Inven_eval_955_to_LN set comp=500  where comp=712
+update Inven_eval_955_to_LN set comp=551  where comp=725
+update Inven_eval_955_to_LN set comp=552  where comp=727
+update Inven_eval_955_to_LN set comp=581  where comp=722
+update Inven_eval_955_to_LN set comp=600  where comp=101
+update Inven_eval_955_to_LN set comp=611  where comp=111
+update Inven_eval_955_to_LN set comp=615  where comp=121
+update Inven_eval_955_to_LN set comp=640  where comp=141
+update Inven_eval_955_to_LN set comp=612  where comp=211
+update Inven_eval_955_to_LN set comp=616  where comp=221
+update Inven_eval_955_to_LN set comp=617  where comp=231
+update Inven_eval_955_to_LN set comp=618  where comp=241
+update Inven_eval_955_to_LN set comp=613  where comp=311
+update Inven_eval_955_to_LN set comp=614  where comp=411
+update Inven_eval_955_to_LN set comp=619  where comp=421
+update Inven_eval_955_to_LN set comp=620  where comp=431
+update Inven_eval_955_to_LN set comp=621  where comp=521
+update Inven_eval_955_to_LN set comp=622  where comp=541
+update Inven_eval_955_to_LN set comp=901  where comp=981
+update Inven_eval_955_to_LN set comp=902  where comp=982
+update Inven_eval_955_to_LN set comp=903  where comp=983
+update Inven_eval_955_to_LN set comp=904  where comp=984
+update Inven_eval_955_to_LN set comp=905  where comp=985
+update Inven_eval_955_to_LN set comp=906  where comp=986
+--update Inven_eval_955_to_LN set comp=NA  where comp=104
+--update Inven_eval_955_to_LN set comp=NA  where comp=105
+--update Inven_eval_955_to_LN set comp=NA  where comp=106
+--update Inven_eval_955_to_LN set comp=NA  where comp=160
+--update Inven_eval_955_to_LN set comp=NA  where comp=300
+--update Inven_eval_955_to_LN set comp=NA  where comp=321
+--update Inven_eval_955_to_LN set comp=NA  where comp=330
+--update Inven_eval_955_to_LN set comp=NA  where comp=331
+--update Inven_eval_955_to_LN set comp=NA  where comp=440
+--update Inven_eval_955_to_LN set comp=NA  where comp=441
+--update Inven_eval_955_to_LN set comp=NA  where comp=530
+--update Inven_eval_955_to_LN set comp=NA  where comp=531
+
+select * from Inven_eval_955_to_LN
+
+sp_helptext sp_NonMovingInventory

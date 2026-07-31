@@ -1,0 +1,30 @@
+SELECT LEAN_MASTER.ITEM, LEAN_MASTER.SUPP, LEAN_MASTER.SUPP2, LEAN_MASTER.SUPP3, LEAN_MASTER.SUPP4, 
+LEAN_MASTER.SHARE1, LEAN_MASTER.SHARE2, LEAN_MASTER.SHARE3, LEAN_MASTER.SHARE4, LEAN_MASTER.SHARE5, 
+LEAN_MASTER.ORNO1, LEAN_MASTER.ORNO2, LEAN_MASTER.ORNO3, LEAN_MASTER.ORNO4, ComItemData.Description, 
+LEAN_MASTER.BUYR, vw_buyer.empname, LEAN_MASTER.ORNO,LEAN_MASTER.ALT_SUPP,sup_cnt_person,semail,
+alt_supp_email,vw_pbs_ats.price,vw_pbs_ats2.price as price2,vw_pbs_ats3.price as price3,
+case when supp1_active = 1 then 'Yes' when supp1_active = 2 then 'No' else '' end  as supp1_active,
+case when supp2_active = 1 then 'Yes' when supp2_active = 2 then 'No' else '' end  as supp2_active,
+case when supp3_active = 1 then 'Yes' when supp3_active = 2 then 'No' else '' end  as supp3_active
+
+FROM (select * from TZZPUR049ALL where company in (select company from ELGI_Companies_Master where CompanyGroup ='ATS')) as LEAN_MASTER 
+left outer JOIN (select distinct t_item as itemcode,t_dsca as description  from TTCIBD001600 ) ComItemData 
+ON LEAN_MASTER.ITEM = ComItemData.ItemCode 
+Left OUTER JOIN (select emp_code,new_emp_code,emp_name from employee_details) buyer 
+ON buyer.new_emp_code = LEAN_MASTER.BUYR 
+left outer join vw_pbs_ats   
+on LEAN_MASTER.supp = vw_pbs_ats.suno 
+and LEAN_MASTER.item = vw_pbs_ats.item
+left outer join vw_pbs_ats vw_pbs_ats2   
+on LEAN_MASTER.alt_supp = vw_pbs_ats2.suno 
+and LEAN_MASTER.item = vw_pbs_ats2.item
+left outer join vw_pbs_ats vw_pbs_ats3   
+on LEAN_MASTER.supp2 = vw_pbs_ats3.suno 
+and LEAN_MASTER.item = vw_pbs_ats3.item
+
+WHERE     LEAN_MASTER.BUYR in(@buyr)
+ORDER BY LEAN_MASTER.ITEM
+
+
+
+sp_helptext vw_pbs_ats

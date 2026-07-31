@@ -1,0 +1,15 @@
+Select company,trantype,Invoice,Invoice_Date,OrderDate,SaleOrderType,OrderNo,dpst,areacode,areaname,custcode,custname,
+Organ,user_names as Vertical,Sales_amount
+FROM 	
+ELGi_Sales_Details a 
+WHERE	(a.Invoice_Date BETWEEN '04/01/2018' AND GETDATE()) 
+and organ='SAAME'
+AND a.SaleOrderType in (
+select SaleOrderType from SaleType_Master where Sales_Category in (0,2,5,6)
+union all
+select '' as SaleOrderType from SaleType_Master
+)
+and a.sales_category not in (1)
+AND (a.areacode IS NOT NULL) 
+order by Invoice_Date
+--group by dpst,areacode

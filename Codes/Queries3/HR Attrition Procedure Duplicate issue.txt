@@ -1,0 +1,9 @@
+declare @FinYear int=2019
+declare @FinMonthNo int=3
+declare @count3 int=1
+
+select FinYear,FinMonthNo,Function2_ordr,count(distinct Function2) from ELGi_HR_Final_Data 
+--where FinYear=@FinYear
+--and FinMonthNo=@FinMonthNo
+group by FinYear,FinMonthNo,Function2_ordr
+having count(distinct Function2)>1

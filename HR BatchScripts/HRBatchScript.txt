@@ -1,0 +1,9 @@
+
+
+
+copy  \\hcm-prod\intranet_elgi\ELGI_MIS.* G:\LN\Source_FILES\HR
+
+
+echo %date:~4,2%  
+rem it returns monthnum
+echo "%date:~10,4%" rem it returns year

@@ -1,0 +1,158 @@
+--exec sp_ELGi_Sales_Bridge_FTM_combined
+--select * from ELGi_Sales_Bridge_FTM_combined where finmonthnum=2 and FinYear=2016
+--select * from ELGi_Sales_Bridge_FTMActDiff where finmonthnum=2 and FinYear=2016
+
+Alter Proc sp_ELGi_Sales_Bridge_FTM_combined
+as
+begin
+
+Declare @FinYearCnt int
+Declare @FinMonthCnt int
+Declare @Finmonthnum int
+Declare @FinYear int
+Declare @Count1 int
+Declare @Count2 int
+Declare @rownum int
+Declare @rownumCnt int
+declare @newrownum int
+
+set @Count1=1
+set @Count2=1
+set @FinYearCnt=(select count(distinct(FinYear)) from ELGi_Sales_Bridge_FTMBudActDiff)
+set @FinMonthCnt =(select  count(distinct(FinMonthNum)) from ELGi_Sales_Bridge_FTMBudActDiff)
+
+truncate table ELGi_Sales_Bridge_FTM_combined
+
+while (@Count1<=@FinYearCnt)
+begin
+
+
+set @FinYear=(select finyear from (
+select finyear,row_number() over (order by finyear) YearRank from
+(select distinct finyear from ELGi_Sales_Bridge_FTMBudActDiff)a)b
+where YearRank=@Count1)
+
+
+
+set @Count2=1
+while (@Count2<=@FinMonthCnt)
+begin
+
+set @Finmonthnum=(select Finmonthnum from (
+select Finmonthnum,row_number() over (order by Finmonthnum) MonthRank from
+(select distinct Finmonthnum from ELGi_Sales_Bridge_FTMBudActDiff)a)b
+where MonthRank=@Count2)
+
+
+--Part 1:Inserting Current Month Budget and Actuals
+
+insert into ELGi_Sales_Bridge_FTM_combined
+select * from ELGi_Sales_Bridge_FTMBudActDiff where FinMonthNum=@Finmonthnum and FinYear=@FinYear
+
+
+--Part 2:Inserting Previous Month Actuals
+
+set @rownum=(select max(rownum) from ELGi_Sales_Bridge_FTMActDiff where FinMonthNum=@Finmonthnum and FinYear=@FinYear and rownum<>100)
+
+set @newrownum=101
+
+while(@rownum>=0)
+begin
+
+insert into ELGi_Sales_Bridge_FTM_combined
+select @newrownum,organ1,Initial3,Final3,FTMActDiff,FinYear,FinMonthNum
+from ELGi_Sales_Bridge_FTMActDiff where FinMonthNum=@Finmonthnum and FinYear=@FinYear and rownum=@rownum
+
+set @newrownum=@newrownum+1
+set @rownum=@rownum-1
+end
+
+set @Count2=@Count2+1
+end
+
+set @Count1=@Count1+1
+end
+
+
+-------------------------------------------Beginning of Logic 2:--------------------------------------------------
+
+
+
+----declare @rownum int
+--declare @totalcnt int
+--set @rownum=1
+--set @count1 =1
+
+--while (@count1<=5)
+
+--Begin
+
+
+--set @FinYear=(select Year1 from (
+--select Year1,row_number() over(order by Year1) year_rank from
+--(
+--select distinct year(convert(date,date)) Year1 from tmpslsdespdata 
+--where year(convert(date,date))>=(select max(year(convert(date,date)))-4 from tmpslsdespdata )
+--)a)b
+--where year_rank=@count1)
+
+
+--set @FinMonthCnt=(select count(distinct month(convert(date,date))) from  tmpslsdespdata where year(convert(date,date))=@FinYear)
+
+--set @Finmonthnum=1
+
+--while (@Finmonthnum<=@FinMonthCnt)
+
+--begin
+
+--set @totalcnt=(select count(rownum) from ELGi_Sales_Bridge_FTM_combined
+--where finyear=@FinYear and FinMonthnum=@Finmonthnum)
+
+
+----update ELGi_Sales_Bridge_FTMActDiff set final3=0 where rownum=0 and finyear=@year and FinMonthnum=@monthnum
+----update ELGi_Sales_Bridge_FTMActDiff set final3=0 where rownum=100 and finyear=@year and FinMonthnum=@monthnum
+
+--set @rownum=(select max(rownum) from ELGi_Sales_Bridge_FTM_combined 
+--where finyear=@FinYear 
+--and FinMonthnum=@Finmonthnum
+--and rownum<>100)
+
+
+--while (@rownum<@totalcnt)
+
+--begin
+
+--update ELGi_Sales_Bridge_FTMActDiff set 
+--Final3=a.Initial3
+--from ( select initial3 from ELGi_Sales_Bridge_FTMActDiff 
+--where rownum=@rownum-1 and finyear=@FinYear and FinMonthnum=@Finmonthnum)a
+--where rownum=@rownum and finyear=@FinYear and FinMonthnum=@Finmonthnum
+
+
+--update ELGi_Sales_Bridge_FTMActDiff 
+--set final3=prevfinal3-(case when ftmactdiff>0 then ftmactdiff else ftmactdiff*(-1) end)
+--from (
+--select final3 as prevfinal3 from ELGi_Sales_Bridge_FTMActDiff 
+--where rownum=@rownum-1 and finyear=@FinYear and FinMonthnum=@Finmonthnum
+--)a
+--where ftmactdiff<0 and rownum=@rownum and finyear=@FinYear and FinMonthnum=@Finmonthnum
+
+
+--set @rownum=@rownum+1
+--end
+
+
+--set @Finmonthnum=@Finmonthnum+1
+--end
+
+--set @count1=@count1+1
+--end
+
+-----------------------------------------End of Logic 2:----------------------------------------------------------
+
+end
+
+
+
+
+

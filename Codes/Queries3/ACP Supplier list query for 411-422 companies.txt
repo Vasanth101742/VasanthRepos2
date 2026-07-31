@@ -1,0 +1,50 @@
+select company,ifbp as suppcode,b.custname1 as SuppName
+from ttfacp200all a
+left outer join vw_business_partner b
+on ltrim(rtrim(a.ifbp))=ltrim(rtrim(b.custcode))
+where company between 411 and 422
+--and ifbp='SU1A01930'
+group by company,ifbp,b.custname1
+order by company,ifbp,b.custname1
+
+
+select distinct company,ifbp as suppcode,b.custname1 as SuppName from ttfacp200all a
+left outer join vw_business_partner b
+on ltrim(rtrim(a.ifbp))=ltrim(rtrim(b.custcode))
+where ifbp in
+(
+select ifbp
+from ttfacp200all
+where company between 411 and 422
+group by ifbp
+)
+and company not between 411 and 422
+and company like '4%'
+
+
+
+
+------------------------------------------------------------------------------------------------
+
+
+
+select distinct company,suppcode,suppname--,sum(BalanceAmt) 
+from acp_creditors_consolidated
+where company between 411 and 422
+--and suppcode='SU1A01930'
+group by company,suppcode,suppname
+order by company,suppcode,suppname
+--having sum(balanceamt) between -1 and 1
+
+
+
+select distinct company,suppcode, suppname from acp_creditors_consolidated 
+where suppcode in
+(
+select distinct suppcode
+from acp_creditors_consolidated
+where company between 411 and 422
+group by company,suppcode,suppname
+)
+and company not between 411 and 422
+and company like '4%'

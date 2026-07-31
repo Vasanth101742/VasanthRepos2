@@ -1,0 +1,267 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--Alter table Inventory alter column Ageing varchar(50) null
+--exec sp_Inventory
+CREATE proc sp_Inventory as
+
+Begin
+
+
+Truncate table Inventory
+Truncate table Inventory_cons
+
+
+Insert into Inventory (COMPANY,CWAR,ITEM,ItemDescr,TRDT,SEQN,INWP,QSKT,Amnt)
+--select * into Inventory from (
+select a.COMPANY,a.CWAR,a.ITEM,null as ItemDescr,b.T$TRDT,b.T$SEQN,b.T$INWP,b.QSKT,
+(c.Amnt/b.QSTK)*b.QSKT
+--,case when datediff(dd,b.T$TRDT,getdate()-1) <30 then 'LessThan30' 
+--when datediff(dd,b.T$TRDT,getdate()-1) between 30 and 60 then '30-60'
+--when datediff(dd,b.T$TRDT,getdate()-1) between 60 and 90 then '60-90'
+--when datediff(dd,b.T$TRDT,getdate()-1) between 90 and 120 then '90-120'
+--when datediff(dd,b.T$TRDT,getdate()-1) between 120 and 150 then '120-150'
+--when datediff(dd,b.T$TRDT,getdate()-1) between 150 and 180 then '150-180'
+--when datediff(dd,b.T$TRDT,getdate()-1) between 180 and 365 then '180-365'
+--when datediff(dd,b.T$TRDT,getdate()-1) >365 then 'Gr_than_1yr' 
+--when datediff(dd,b.T$TRDT,getdate()-1) >(365*2) then 'Gr_than_2yr' 
+--else 'NA' end as Ageing,
+--null as AgeingOrdr
+
+from 
+(select COMPANY,CWAR,ITEM
+--,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$QSTK) QSTK,sum(T$QSKT) QSKT from TWHINA112ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP
+having sum(T$QSKT)>0)b
+on a.COMPANY=b.COMPANY
+and ltrim(rtrim(a.CWAR))=ltrim(rtrim(b.T$CWAR))
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.T$ITEM))
+
+left  outer join
+
+(select COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP,sum(T$AMNT$1) amnt from TWHINA113ALL
+group by COMPANY,T$CWAR,T$ITEM,T$TRDT,T$SEQN,T$INWP)c
+on b.COMPANY=c.COMPANY
+and b.T$CWAR=c.T$CWAR
+and b.T$ITEM=c.T$ITEM
+and b.T$TRDT=c.T$TRDT
+and b.T$SEQN=c.T$SEQN
+and b.T$INWP=c.T$INWP
+
+--)a
+order by a.COMPANY,a.CWAR,a.ITEM,b.T$TRDT,b.T$SEQN,b.T$INWP
+
+
+
+
+--Item Updations
+
+update Inventory set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,470,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.t_item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.ITEM))
+
+update Inventory set ItemDescr=ltrim(rtrim(a.DSCA))
+from ttcibd001470 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =470)
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.ITEM))
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company in (551) )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where Company in (552) )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.t_item))
+
+
+update Inventory set ItemDescr=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where Inventory.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(Inventory.Item))=ltrim(rtrim(a.item))
+
+
+
+--select * from Inventory where ItemDescr is null
+--where Ageingordr is null
+
+
+delete from Inventory where COMPANY=600 and CWAR in (
+'025','180','183','184','185','186','187','188','189','190','191',   
+'306','648','669','683','699','751','AED','COR','181')
+
+
+-----------------------------------------------------------------------------
+--Part 2 Changes
+
+insert into Inventory_cons (COMPANY,CWAR,ITEM,QSKT)
+select a.COMPANY,a.T$CWAR,a.T$ITEM,a.T$QSKT
+from 
+(select distinct COMPANY,T$CWAR,T$ITEM,sum(T$QSKT) T$QSKT from TWHINA112ALL
+where T$KOOR in (1,2,32,36)
+group by COMPANY,T$CWAR,T$ITEM
+)a
+
+
+
+update Inventory_cons set stock_955=a.STOC
+from 
+(select comp,WAR,ITEM,sum(STOC) STOC from Inven_eval_955_to_LN 
+group by comp,WAR,ITEM
+)a
+where Inventory_cons.COMPANY=a.COMP
+and Inventory_cons.CWAR=a.WAR
+and ltrim(rtrim(Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+
+
+update Inventory_cons set stock_215=a.QHND
+from 
+(select COMPANY,CWAR,ITEM,sum(QHND) QHND 
+from TWHWMD215ALL
+group by COMPANY,CWAR,ITEM
+having sum(QHND)>0
+)a
+where Inventory_cons.COMPANY=a.COMPANY
+and Inventory_cons.CWAR=a.CWAR
+and ltrim(rtrim(Inventory_cons.ITEM))=ltrim(rtrim(a.ITEM))
+
+update Inventory_cons  set Remarks='LN'
+where (qskt >= stock_955 and stock_215 <= stock_955)
+and Remarks is null
+
+update Inventory_cons  set Remarks='LN'
+where qskt >= stock_215
+and Remarks is null
+
+update Inventory_cons  set Remarks='LN'
+where isnull(stock_955,0)=0
+and Remarks is null
+
+update Inventory_cons  set Remarks='BAAN'
+where Remarks is null
+
+
+----------------------------------------------
+
+update Inventory set stock_955=a.stock_955,Cumulative_stk=a.Cum_Stock,Remarks=a.Remarks
+from(
+select a.COMPANY,a.CWAR,a.ITEM,trdt,b.stock_955,b.Remarks,
+sum(a.QSKT) over (partition by a.COMPANY,a.CWAR,a.ITEM  order by TRDT desc
+rows between UNBOUNDED PRECEDING and CURRENT ROW) as Cum_Stock
+from Inventory a
+inner join  (select * from Inventory_cons where remarks ='BAAN') b
+on a.COMPANY=b.Company
+and a.CWAR=b.CWAR
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+)a
+where Inventory.COMPANY=a.Company
+and Inventory.CWAR=a.CWAR
+and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+and Inventory.TRDT=a.TRDT
+
+
+update Inventory set TRDT = a.LRDT
+from(
+select comp,war,item,max(LRDT) LRDT
+--count(distinct LRDT) LRDT 
+from Inven_eval_955_to_LN
+group by  comp,war,item
+having max(LRDT)<>'9999-01-01 00:00:00.000'
+)a
+where Inventory.COMPANY=a.COMP
+and Inventory.CWAR=a.WAR
+and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+and stock_955 > Cumulative_stk
+and Inventory.Remarks='BAAN'
+
+
+update Inventory set Ageing='LessThan30' where datediff(dd,TRDT,getdate()-1) <30
+update Inventory set Ageing='30-60' where datediff(dd,TRDT,getdate()-1) between 30 and 60
+update Inventory set Ageing='61-90' where datediff(dd,TRDT,getdate()-1) between 61 and 90
+update Inventory set Ageing='91-120' where datediff(dd,TRDT,getdate()-1) between 91 and 120
+update Inventory set Ageing='121-150' where datediff(dd,TRDT,getdate()-1) between 121 and 150
+update Inventory set Ageing='151-180' where datediff(dd,TRDT,getdate()-1) between 151 and 180
+update Inventory set Ageing='181-365' where datediff(dd,TRDT,getdate()-1) between 181 and 365
+update Inventory set Ageing='GreaterThan_1Year' where datediff(dd,TRDT,getdate()-1) between 366 and 730
+update Inventory set Ageing='GreaterThan_2Years' where datediff(dd,TRDT,getdate()-1) between 731 and 1095
+update Inventory set Ageing='GreaterThan_3Years' where datediff(dd,TRDT,getdate()-1) between 1096 and 1460
+update Inventory set Ageing='GreaterThan_4Years' where datediff(dd,TRDT,getdate()-1) > 1460
+
+
+
+
+update Inventory set AgeingOrdr=1 where Ageing='LessThan30'
+update Inventory set AgeingOrdr=2 where Ageing='30-60'
+update Inventory set AgeingOrdr=3 where Ageing='61-90'
+update Inventory set AgeingOrdr=4 where Ageing='91-120'
+update Inventory set AgeingOrdr=5 where Ageing='121-150'
+update Inventory set AgeingOrdr=6 where Ageing='151-180'
+update Inventory set AgeingOrdr=7 where Ageing='181-365'
+update Inventory set AgeingOrdr=8 where Ageing='GreaterThan_1Year'
+update Inventory set AgeingOrdr=9 where Ageing='GreaterThan_2Years'
+update Inventory set AgeingOrdr=10 where Ageing='GreaterThan_3Years'
+update Inventory set AgeingOrdr=11 where Ageing='GreaterThan_4Years'
+update Inventory set AgeingOrdr=100 where Ageing ='NA'
+
+
+delete from Inventory where QSKT is null
+
+
+end
+
+--For Analysis
+--select * from Inventory where Cumulative_stk is not null
+----and stock_955 > Cumulative_stk
+----and Inventory.Remarks='BAAN'
+--and TRDT < '2016-04-01'
+--and company like '4%'
+--order by company,CWAR,item,TRDT
+
+
+select * from inventory where company=401	
+--and TRDT < '2016-04-01'
+and stock_955 > Cumulative_stk
+and CWAR='212' and ltrim(rtrim(ITEM))='000441040'
+
+select * from Inven_eval_955_to_LN where COMP=401 and war='212' and ltrim(rtrim(item))='000441040'
+
+
+
+

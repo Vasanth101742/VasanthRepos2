@@ -1,0 +1,102 @@
+
+declare @count1 int =50  ---
+declare @TotalCnt int = (select count(*) from 
+
+(select *,ROW_NUMBER() over (order by COMPANY,CWAR,ITEM) as rnk from Inventory_cons 
+where Remarks is null)a)
+
+--while (@count1<=2)
+--while (@count1<=@TotalCnt)
+--begin
+
+
+
+declare @cmp int
+declare @CWAR varchar(10)
+declare @item varchar(25)
+
+
+select @cmp=COMPANY,@CWAR=cwar,@item=ltrim(rtrim(item)) from 
+(select *,ROW_NUMBER() over (order by COMPANY,CWAR,ITEM) as rnk from Inventory_cons 
+where Remarks is null)a
+where rnk=@count1
+
+
+--select @cmp,@CWAR,@item
+--select * from Inventory where COMPANY=@cmp and CWAR=@CWAR and ltrim(rtrim(ITEM))=@item
+--select * from Inventory where COMPANY=401 and cwar='157'  and ltrim(rtrim(ITEM))='S011777'
+
+declare @Reccount int=(select count(*) from Inventory where COMPANY=@cmp and CWAR=@CWAR and ltrim(rtrim(ITEM))=@item)
+declare @count2 int=1
+
+--while (@count2<=@Reccount)
+--begin
+
+
+--alter table Inventory add Remarks varchar(50) stock_955 float, Cumulative_stk float
+
+update Inventory set stock_955=a.stock_955,Cumulative_stk=a.Cum_Stock,Remarks=a.Remarks
+from(
+select a.COMPANY,a.CWAR,a.ITEM,trdt,b.stock_955,b.Remarks,
+sum(a.QSKT) over (partition by a.COMPANY,a.CWAR,a.ITEM  order by TRDT desc
+rows between UNBOUNDED PRECEDING and CURRENT ROW) as Cum_Stock
+from Inventory a
+inner join  (select * from Inventory_cons where remarks is null) b
+on a.COMPANY=b.Company
+and a.CWAR=b.CWAR
+and ltrim(rtrim(a.ITEM))=ltrim(rtrim(b.ITEM))
+--where a.COMPANY=@cmp and a.CWAR=@CWAR and ltrim(rtrim(a.ITEM))=@item
+)a
+where Inventory.COMPANY=a.Company
+and Inventory.CWAR=a.CWAR
+and ltrim(rtrim(Inventory.ITEM))=ltrim(rtrim(a.ITEM))
+and Inventory.TRDT=a.TRDT
+
+
+select * from Inventory_cons where company=@cmp and cwar=@cwar and ltrim(rtrim(item))=@item
+select * from Inventory where company=@cmp and cwar=@cwar and ltrim(rtrim(item))=@item order by TRDT desc
+
+--sum(Act_Count) over (partition by isnull(p_id,0),segment_id 
+--order by ordering desc  
+--rows between UNBOUNDED PRECEDING and CURRENT ROW)
+
+
+--select * from Inventory_cons where company=600
+--and cwar='649' and ltrim(rtrim(item))='190402750'
+
+--select * from Inventory where company=600
+--and cwar='649' and ltrim(rtrim(item))='190402750' 
+--order by TRDT desc
+
+
+
+
+
+
+--set @count2=@count2 +1
+--end
+
+
+
+
+set @count1=@count1 +1
+
+--end
+
+--select @cmp,@CWAR,@item
+
+
+
+
+--select * from Inventory_cons 
+----where company=@comp and cwar=@war and ltrim(rtrim(item))=@item
+----and Remarks is null
+
+--where Remarks is null
+--order by stock_215 desc
+
+
+
+
+
+

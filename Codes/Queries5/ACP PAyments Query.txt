@@ -1,0 +1,17 @@
+Declare @FromDate date='2018-09-01'
+Declare @ToDate date='2018-12-19'
+select Company,CustCode as SuppCode,CustName as Suppname,
+concat(CPAY,' - ',PPER,' ',PTYP_desc) as BP_Terms,
+TranType,InvNo,InvDate,Currency,CurRate,
+concat(CPAY,' - ',CPAY_desc) ACP_Terms,
+TPAY,SuppInvNo,SupInvDt,RCNO,RCDT,InspDt,
+DueDate,RecvDate,PCOM as PaidCompany,PAYT as PaidDocType,PAYD as PaidDocNo,
+RecvAmth*-1 as PaidAmt
+from ACP_As_of_Date_Details2
+where InvAmti+RecvAmti+InvBali<>0
+and RecvDate is not null
+and EntryDate between @FromDate and @ToDate
+and company in (select company from elgi_companies_master where companygroup='ELGI')
+and company<>500
+--and concat(Company,TranType,InvNo)='490AR218000885'
+order by EntryDate

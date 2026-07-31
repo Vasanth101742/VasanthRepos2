@@ -1,0 +1,32 @@
+select a.COMPANY,a.T$CWAR,a.T$ITEM,b.QHND as Adj_Qty
+--T$TRDT as ReceiptDate 
+from 
+(select distinct COMPANY,T$CWAR,T$ITEM from TWHINA112ALL
+where T$KOOR in (52)
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+) a
+left outer join 
+(select COMPANY,CWAR,ITEM,sum(QHND) QHND from TWHWMD215ALL
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+group by COMPANY,CWAR,ITEM
+) b
+on a.COMPANY=b.COMPANY
+and a.T$CWAR=b.CWAR
+and ltrim(rtrim(a.T$ITEM))=ltrim(rtrim(b.ITEM))
+
+
+select a.COMPANY,a.T$CWAR,a.T$ITEM,b.QHND as Stock_Qty
+--T$TRDT as ReceiptDate 
+from 
+(select distinct COMPANY,T$CWAR,T$ITEM from TWHINA112ALL
+where T$KOOR not in (52)
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+) a
+left outer join 
+(select COMPANY,CWAR,ITEM,sum(QHND) QHND from TWHWMD215ALL
+where company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+group by COMPANY,CWAR,ITEM
+) b
+on a.COMPANY=b.COMPANY
+and a.T$CWAR=b.CWAR
+and ltrim(rtrim(a.T$ITEM))=ltrim(rtrim(b.ITEM))

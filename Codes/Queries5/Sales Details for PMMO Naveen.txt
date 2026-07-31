@@ -1,0 +1,29 @@
+select company,trantype,Invoice,Invoice_Date,dpst,dpstname,areacode,areaname,custcode,custname,Item,Item_desc,
+sum(DeliveryQty) DeliveryQty,sum(Sales_amount) Sales_amount,
+Fin_year,Fin_month,Monthname
+from ELGi_Sales_Details where Fin_year in (2017,2018) and custcode in ('CU1H00001','CU1I00303','CU1A02075','CU1P03007')
+and sales_category not in (1)
+group by company,trantype,Invoice,Invoice_Date,dpst,dpstname,areacode,areaname,custcode,custname,
+Item,Item_desc,Fin_year,Fin_month,Monthname
+order by Invoice_Date
+
+
+select a.Company,a.TranType,a.InvoiceNum,a.Date as Invoice_Date,a.Dpst,c.DpstName,a.Area as areacode,b.AreaName,
+a.CustCode,d.CustName1,a.ItemCode,a.Sales_amount
+from
+(select Company,TranType,InvoiceNum,Date,Dpst,Area,CustCode,ItemCode,sum(DeliveredQty) DeliveredQty,
+sum(AssesValue) as Sales_amount from TmpSlsDespData_baan
+where custcode in ('H00001','I00303','A02075','P03007')
+and date>='2015-04-01'
+and company not like '6%'
+group by Company,TranType,InvoiceNum,Date,Dpst,Area,CustCode,ItemCode)a
+left outer join (select * from [ELGI-DW].dbo.areatmp)b
+on a.Area=b.AreaCode
+left outer join (select * from [ELGI-DW].dbo.Dpst_master_temp)c
+on a.Dpst=c.DpstCode
+left outer join (select distinct CustCode,CustName1 from [ELGI-DW].dbo.tmpcustomer)d
+on a.CustCode=d.CustCode
+order by a.Date
+
+select distinct Item,Description,ROW_NUMBER() over (partition by Item order by description desc) from [ELGI-DW].dbo.TmpItem
+order by Item

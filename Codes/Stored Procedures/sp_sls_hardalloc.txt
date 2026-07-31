@@ -1,0 +1,271 @@
+Text
+
+
+CREATE proc [dbo].[sp_sls_hardalloc] as    
+
+
+
+begin
+
+
+
+truncate table tmp_hardalloc_1     
+
+insert into tmp_hardalloc_1 (    
+indentno,Company,OrderNum,positionnum,OrderDate,OrderValue,CustCode,ItemCode,RefA,RefB,QSTS,Area, LineOfBusiness, Dpst,OrderQty, BackOrdQty,deliveredqty,
+PlanDelDate,currencyrate)    
+
+
+select * from vw_sls_hardalloc    
+
+
+
+
+
+update tmp_hardalloc_1 set qsts = 0 where qsts is null   
+
+update tmp_hardalloc_1 set Pendqty = 0 where Pendqty is null    
+
+update tmp_hardalloc_1 set pkgqty = 0 where pkgqty is null 
+
+
+
+update tmp_hardalloc_1 set pkgqty = pkg.Pkgqty    
+
+from    
+
+(SELECT TmpSlsDelivery.Company, 
+
+	TmpSlsDelivery.OrderNum, 
+
+	TmpSlsDelivery.positionnum,
+
+	TmpSlsDelivery.ProcedureMask, 
+
+	sum(TmpSlsDelivery.DeliveredQty) as Pkgqty    
+
+ FROM	TmpSlsDelivery 
+
+	INNER JOIN	tmp_hardalloc_1 
+
+	ON tmp_hardalloc_1.Company = TmpSlsDelivery.Company 
+
+	AND tmp_hardalloc_1.OrderNum = TmpSlsDelivery.OrderNum 
+
+	AND tmp_hardalloc_1.PositionNum = TmpSlsDelivery.PositionNum    
+
+
+
+ where 	substring(proceduremask,3,1) = 'e' 
+
+	and TmpSlsDelivery.deliveredqty >= 0    
+
+	and substring(proceduremask,15,1) <> 'e'     
+
+	and substring(proceduremask,6,1) <> 'e'      
+
+
+
+ group by	TmpSlsDelivery.Company, TmpSlsDelivery.OrderNum, TmpSlsDelivery.positionnum,TmpSlsDelivery.ProcedureMask
+
+) pkg    
+
+
+
+where 	pkg.Company = tmp_hardalloc_1.Company 
+
+	AND tmp_hardalloc_1.OrderNum = pkg.OrderNum 
+
+	AND tmp_hardalloc_1.PositionNum = pkg.PositionNum    
+
+
+
+
+
+
+
+/*--------added below code to handle packing details --------*/    
+
+
+
+
+
+
+
+update tmp_hardalloc_1 set pkgqty = tmpslsdelivery.deliveredqty   
+
+FROM (	select company,ordernum,positionnum,itemcode,sum(deliveredqty) as deliveredqty ,packnum    
+
+	from tmpslsdelivery    
+
+	where invoicenum = 0 and deliveredqty <> 0 and packnum > 0    
+
+	group by  company,ordernum,positionnum,itemcode,packnum
+
+     )  TmpSlsDelivery     
+
+where 	tmp_hardalloc_1.Company = TmpSlsDelivery.Company  
+
+	AND tmp_hardalloc_1.OrderNum = TmpSlsDelivery.OrderNum 
+
+	AND tmp_hardalloc_1.PositionNum = TmpSlsDelivery.PositionNum    
+
+	AND  ltrim(rtrim(tmp_hardalloc_1.itemcode)) = ltrim(rtrim(TmpSlsDelivery.itemcode))   and  
+
+	--TmpSlsDelivery.invoicenum = 0 and  TmpSlsDelivery.deliveredqty > 0 and packnum > 0   and     
+
+	pkgqty <> tmpslsdelivery.deliveredqty    
+
+	--group by TmpSlsDelivery.Company, TmpSlsDelivery.OrderNum, TmpSlsDelivery.positionnum,TmpSlsDelivery.ProcedureMask    
+
+
+
+
+
+update  tmp_hardalloc_1 set Pendqty = backordqty where backordqty > 0    
+
+
+
+
+
+
+
+update tmp_hardalloc_1 set Pendqty = pnd.Pendqty    
+
+
+
+from (SELECT   TmpSlsDelivery.Company, TmpSlsDelivery.OrderNum, TmpSlsDelivery.positionnum ,TmpSlsDelivery.orderqty as Pendqty    
+
+
+
+FROM         TmpSlsDelivery INNER JOIN    
+
+
+
+             tmp_hardalloc_1 ON tmp_hardalloc_1.Company = TmpSlsDelivery.Company AND tmp_hardalloc_1.OrderNum = TmpSlsDelivery.OrderNum AND     
+
+
+
+             tmp_hardalloc_1.PositionNum = TmpSlsDelivery.PositionNum     
+
+
+
+where  tmp_hardalloc_1.Pendqty <= 0 and  TmpSlsDelivery.orderqty > 0    
+
+
+
+group by    TmpSlsDelivery.Company, TmpSlsDelivery.OrderNum, TmpSlsDelivery.positionnum,TmpSlsDelivery.orderqty    
+
+
+
+having sum(TmpSlsDelivery.deliveredqty + backorderqty) = 0) pnd    
+
+
+
+where  pnd.Company = tmp_hardalloc_1.Company AND tmp_hardalloc_1.OrderNum = pnd.OrderNum AND tmp_hardalloc_1.PositionNum = pnd.PositionNum and
+
+
+
+ tmp_hardalloc_1.Pendqty <= 0    
+
+
+
+
+
+
+
+	delete from tmp_hardalloc_1 where backordqty = 0 and pendqty > 0  and deliveredqty > 0    
+
+
+
+	
+
+
+
+update tmp_hardalloc_1 set area  = tmpcustomer.area    
+
+
+
+
+
+
+
+from tmpcustomer where  tmp_hardalloc_1.custcode = tmpcustomer.custcode    
+
+
+
+and tmp_hardalloc_1.area in (select areacode from areatmp where region = 'India') and orderqty - deliveredqty > 0    
+
+
+
+
+
+
+
+
+
+
+
+update tmp_hardalloc_1 set area = tmpcustomer.area     
+
+
+
+
+
+
+
+from tmpcustomer where tmpcustomer.custcode  = tmp_hardalloc_1.custcode and tmp_hardalloc_1.area = ''    
+
+
+
+
+
+
+
+
+
+
+
+update tmp_hardalloc_1 set tmp_hardalloc_1.packnum=TmpSlsDelivery.packnum  
+
+
+
+FROM  tmp_hardalloc_1,    
+
+
+
+(select company,ordernum,positionnum,itemcode,sum(deliveredqty) as deliveredqty ,packnum    
+
+
+
+from tmpslsdelivery    where invoicenum = 0 and deliveredqty <> 0 and packnum > 0    
+
+
+
+group by  company,ordernum,positionnum,itemcode,packnum)  TmpSlsDelivery     
+
+
+
+where tmp_hardalloc_1.Company = TmpSlsDelivery.Company  AND tmp_hardalloc_1.OrderNum = TmpSlsDelivery.OrderNum AND     
+
+
+
+ tmp_hardalloc_1.PositionNum = TmpSlsDelivery.PositionNum  AND  ltrim(rtrim(tmp_hardalloc_1.itemcode)) = ltrim(rtrim(TmpSlsDelivery.itemcode))    
+
+
+
+	
+
+
+
+
+
+
+
+--delete from tmp_hardalloc_1 where     
+
+--area in (select areacode from areatmp where region = 'India') and orderqty - deliveredqty > 0
+
+
+
+end

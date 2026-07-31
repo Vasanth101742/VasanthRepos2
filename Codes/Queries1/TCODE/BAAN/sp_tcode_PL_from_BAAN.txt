@@ -1,0 +1,608 @@
+--exec sp_tcode_PL_from_BAAN
+Alter proc sp_tcode_PL_from_BAAN
+as
+Begin
+
+
+update tcode_PL_from_BAAN set ddate=(select distinct ddate from Tcodeprocess_from_BAAN)
+
+
+declare @compcount int
+declare @count1 int
+declare @comp int
+
+set @compcount=(select count(distinct comp) from tcode_PL_from_BAAN)
+set @count1=1
+
+
+
+while (@count1<=@compcount)
+
+begin
+
+set @comp=(select comp from(
+select comp,row_number() over(order by comp) comprank from 
+(select distinct comp from tcode_PL_from_BAAN)a)b
+where comprank=@count1)
+
+
+------Revenue Calculation--------------------------
+
+--Revenue from operations
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=21 and subd=1 and ordr=5 
+and comp=@comp
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=1 
+and comp=@comp
+
+
+--Less: Excise duty
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='PL103'
+and comp=@comp
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=2 
+and comp=@comp
+
+--TOTAL
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select 
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr =1
+and comp=@comp)
+-
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr =2
+and comp=@comp)
+as lamt
+
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=3 
+and comp=@comp
+
+
+--Other Income
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=22 and subd=4 and ordr=8
+and comp=@comp
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=4 
+and comp=@comp
+
+
+--Total Revenue
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select sum(lamt) lamt from tcode_PL_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr in (3,4)
+and comp=@comp
+)a
+where fcode=1 and slno=1 and subd=1 and ordr=5 
+and comp=@comp
+
+------------IV. Expenses:-----------------------------------------
+
+--Cost of materials consumed
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=23 and subd=2 and ordr=5
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=2
+and comp=@comp
+
+--Purchases of Traded goods
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=24 and subd=1 and ordr=1
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=3
+and comp=@comp
+
+--Changes in Inventories of finished goods work-in-progress and Traded goods
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=25 and subd=2 and ordr=6
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=4
+and comp=@comp
+
+--Employee benefits Expense
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=26 and subd=1 and ordr=17
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=5
+and comp=@comp
+
+--Selling, administration and others
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=27 and subd=1 and ordr=6
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=6
+and comp=@comp
+
+--Finance Costs
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=28 and subd=1 and ordr=5
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=7
+and comp=@comp
+
+--Depreciation and Amortisation Expense
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='PL222'
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=8
+and comp=@comp
+
+
+--Other Expenses
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=29 and subd=1 and ordr=55
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=9
+and comp=@comp
+
+--Total Expenses
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select sum(lamt) lamt from tcode_PL_from_BAAN where fcode=1 and slno=2 and subd=1 and ordr in (2,3,4,5,6,7,8,9)
+and comp=@comp
+)a
+where fcode=1 and slno=2 and subd=1 and ordr=10
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------------------------
+
+--V. Profit Before Exceptional and Extraordinary items and tax (III-IV)
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr =5
+and comp=@comp)
+-
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=2 and subd=1 and ordr =10
+and comp=@comp)
+as lamt
+
+)a
+where fcode=1 and slno=3 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+--VI.Exceptional Items
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS334'
+and comp=@comp
+)a
+where fcode=1 and slno=4 and subd=1 and ordr=1
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------------------------
+
+--VII. Profit Before Extraordinary items and tax (V-VI)
+
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=3 and subd=1 and ordr =1
+and comp=@comp)
+-
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=4 and subd=1 and ordr =1
+and comp=@comp)
+as lamt
+
+)a
+where fcode=1 and slno=5 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+--VIII. Extraordinary items
+
+
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS335'
+and comp=@comp
+)a
+where fcode=1 and slno=6 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+--IX. Profit before Tax (VII-VIII)
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=5 and subd=1 and ordr =1
+and comp=@comp)
+-
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=6 and subd=1 and ordr =1
+and comp=@comp)
+as lamt
+
+)a
+where fcode=1 and slno=7 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+--X. Tax Expense:
+
+--(1) Current Tax
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='PL185'
+and comp=@comp
+)a
+where fcode=1 and slno=8 and subd=1 and ordr=2
+and comp=@comp
+
+
+
+--(2) Deffered Tax
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='PL186'
+and comp=@comp
+)a
+where fcode=1 and slno=8 and subd=1 and ordr=3
+and comp=@comp
+
+--Total
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select sum(lamt) lamt from tcode_PL_from_BAAN where fcode=1 and slno=8 and subd=1 and ordr in (2,3)
+and comp=@comp
+)a
+where fcode=1 and slno=8 and subd=1 and ordr=4
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------------------------
+
+--XI. Profit/(Loss) for the period from continuing operations (VII-VIII)
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=7 and subd=1 and ordr =1
+and comp=@comp)
+-
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=8 and subd=1 and ordr =4
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=9 and subd=1 and ordr=1
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------------------------
+
+--XII. Profit/(loss) from discontinuing operations
+
+
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS336'
+and comp=@comp
+)a
+where fcode=1 and slno=10 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+
+--XIII. Tax Expense of discontinuing operations
+
+
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from 
+(
+select Amount as lamt
+from Tcode_BalanaceSheet_from_BAAN a
+inner join 
+(
+select Company,CombiCode,TB_date,sum(Amount) as Amount from 
+(
+select OCMP as Company,CODE as CombiCode,
+convert(datetime,convert(varchar,YEAR)+'-'+right('00'+cast(prod as varchar(2)),2)+'-'+convert(varchar,day(EOMONTH(getdate()-1)))) as TB_date,
+CBAL as Amount from ttegld257_TCODE where
+prod =(select max(PROD) from ttegld257_TCODE where YEAR=(select max(YEAR) from ttegld257_TCODE))
+and YEAR=(select max(YEAR) from ttegld257_TCODE)
+)a
+group by Company,CombiCode,TB_date
+)b
+on concat(ltrim(rtrim(a.comp)),ltrim(rtrim(a.code)))=b.CombiCode
+where a.code<>'' 
+and a.code='BS337'
+and comp=@comp
+)a
+where fcode=1 and slno=11 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+--XIV. Profit/(loss) from discontinuing operations (after tax) (XII-XIII)
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=10 and subd=1 and ordr =1
+and comp=@comp)
+-
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=11 and subd=1 and ordr =1
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=12 and subd=1 and ordr=1
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------------------------
+
+--XV. Profit (loss) for the period (XI+XIV)
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=9 and subd=1 and ordr =1
+and comp=@comp)
++
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=12 and subd=1 and ordr =1
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=13 and subd=1 and ordr=1
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+
+--XVI. Earnings per equity share
+
+update tcode_PL_from_BAAN set lamt=1
+where fcode=1 and slno=14 and subd=1 and ordr=1
+and comp=@comp
+
+
+--Nominal value of the shares
+
+--(1) Basic
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=13 and subd=1 and ordr =1
+and comp=@comp)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr =7
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=14 and subd=1 and ordr=3
+and comp=@comp
+
+--(2) Diluted
+
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=13 and subd=1 and ordr =1
+and comp=@comp)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr =7
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=14 and subd=1 and ordr=4
+and comp=@comp
+
+
+-----------------------------------------------------------------------------------------------------
+
+--XVI. Earnings per Equity Share from continuing operations
+
+--Nominal value of the shares
+
+--(1) Basic
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=13 and subd=1 and ordr =1
+and comp=@comp)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr =7
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=15 and subd=1 and ordr=3
+and comp=@comp
+
+--(2) Diluted
+
+update tcode_PL_from_BAAN set lamt=a.lamt
+from (
+select
+(select lamt from tcode_PL_from_BAAN where fcode=1 and slno=13 and subd=1 and ordr =1
+and comp=@comp)
+/
+(select case when lamt=0 then 0.000001 else lamt end as lamt from Tcodeprocess_from_BAAN where fcode=1 and slno=1 and subd=1 and ordr =7
+and comp=@comp)
+as lamt
+)a
+where fcode=1 and slno=15 and subd=1 and ordr=4
+and comp=@comp
+
+-----------------------------------------------------------------------------------------------------
+
+set @count1=@count1+1
+end
+
+
+
+end

@@ -1,0 +1,36 @@
+select getdate() as 'Today'                                                                                                                                                                                                                                           ---- today
+select dateadd(d,-1,getdate()) as 'Yesterday'                                                                                                                                                                                                     ---- Yesterday
+select dateadd(d,1,getdate()) as 'Tomorrow'                                                                                                                                                                                                      ---- Tomorrow   
+--------------------------------------------
+select dateadd(wk,datediff(wk,0,getdate()),0) as 'First day of current week'                                                                                                                       -------- First day of current week
+select dateadd(wk,datediff(wk,0,getdate()),6) as 'Last day of current week'                                                                                                                       -------- Last day of current week
+-----------------------------
+select dateadd(wk,datediff(wk,7,getdate()),0) as 'First day of previous week'                                                                                                                    -------- First day of previous week
+select dateadd(wk,datediff(wk,7,getdate()),6) as 'Last day of previous week'                                                                                                                     -------- Last day of previous week
+----------------------------------------------
+select dateadd(wk,datediff(wk,-7,getdate()),0) as 'First day of Next week'                                                                                                                                          --------- First day of Next week
+select dateadd(wk,datediff(wk,-7,getdate()),6) as 'Last day of Next week'                                                                                                                                           -------- Last day of Next week
+----------------------------------------------------
+select dateadd(MM,datediff(MM,0,getdate()),0) as 'First day of current Month'                                                                                                                               -------- First day of current Month
+select dateadd(MS,-3,dateadd(mm,0,dateadd(mm,datediff(mm,0,getdate())+1,0))) as  'Last day of current Month'                                                        -------- Last day of current Month
+-----------------------------------------------------
+select dateadd(mm,-1,dateadd(mm,datediff(mm,0,getdate()),0)) as  'First day of previous Month'                                                                                         -------- First day of previous Month
+select dateadd(MS,-3,dateadd(mm,0,dateadd(mm,datediff(mm,0,getdate()),0))) as  'Last day of previous Month'                                                          --------- Last day of previous Month
+-----------------------------------------------------------
+select dateadd(mm,1,dateadd(mm,datediff(mm,0,getdate()),0)) as  'First day of Next Month'                                                                                   -------- First day of Next Month
+select dateadd(MS,-3,dateadd(mm,0,dateadd(mm,datediff(mm,0,getdate())+2,0))) as  'Last day of Next Month'                                                             -------- Last day of Next Month
+--------------------------------------------------------
+select dateadd(yy,datediff(yy,0,getdate()),0) as 'First day of current Year'                                                                                                                            -------- First day of current Year
+select dateadd(MS,-3,dateadd(yy,0,dateadd(YY,datediff(YY,0,getdate())+1,0))) as'Last day of current Year'                                                         -------- Last day of current Year
+-------------------------------------------------------
+select dateadd(yy,-1,dateadd(yy,datediff(yy,0,getdate()),0)) as 'First day of Prev Year'                                                                                  -------- First day of Prev Year
+select dateadd(MS,-3,dateadd(yy,0,dateadd(YY,datediff(YY,0,getdate()),0))) as'Last day of Prev Year'                                                                   -------- Last day of Prev Year
+-----------------------------------------------------------
+select dateadd(yy,1,dateadd(yy,datediff(yy,0,getdate()),0)) as 'First day of Next  Year'                                                                                  -------- First day of Next Year
+select dateadd(MS,-3,dateadd(yy,0,dateadd(YY,datediff(YY,0,getdate())+2,0))) as'Last day of Next Year'                                                              -------- Last day of Next Year
+------------------------------------------------------------
+
+Thanks & regards
+Venkat| Systems
+ELGi | Singanallur | P: +91-422-2589181 (Dir)
+

@@ -1,0 +1,282 @@
+select * from tcodeprocess
+select * from tcodemap
+
+select distinct comp from tcodeprocess
+order by comp
+--100000
+--100001
+--100002
+--100003
+--100004
+--100005
+--100006
+--100007
+--100008
+--100009
+--100010
+--100011
+--100012
+--100013
+--100014
+--100015
+--100016
+
+
+select comp,count(tdesc) from tcodeprocess
+group by comp
+
+
+select * from tcodeprocess where comp=100000
+order by fcode,slno,subd,ordr
+
+
+
+SELECT * FROM TCODEPROCESS WHERE TDESC='- Billings in excess of revenues'
+--'- Advances received from customers'
+--'- Unclaimed dividends'
+--'- Forward cover payable, net'
+--'- Superannuation payable'
+--'- Final'
+--'- Interim'
+UPDATE TCODEPROCESS SET tdesc=' - Billings in excess of revenues'
+--' - Advances received from customers'
+--' - Unclaimed dividends'
+--' - Forward cover payable, net'
+--' - Superannuation payable'
+--' - Final'
+--' - Interim'
+WHERE TDESC='- Billings in excess of revenues'
+--'- Advances received from customers'
+--'- Unclaimed dividends'
+--'- Forward cover payable, net'
+--'- Superannuation payable'
+--'- Final'
+--'- Interim'
+
+select * from tcodeprocess 
+where 
+--comp=100000 and 
+fcode=1
+and slno=17
+and subd=2
+and htyp='H'
+and ordr=9
+
+
+
+update tcodeprocess 
+set 
+--code='BS202',
+--tdesc='  (g) Packing materials'
+--htyp='L'
+subd=3,
+ordr=7
+where 
+--comp=100000 and 
+fcode=1
+and slno=17
+and subd=2
+and htyp='H'
+and ordr=9
+
+--insert into tcodeprocess(fcode,slno,subd,htyp,ordr,tdesc,code,comp) values
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100000),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100001),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100002),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100003),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100004),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100005),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100006),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100007),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100008),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100009),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100010),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100011),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100012),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100013),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100014),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100015),
+--(1,17,3,'H',1,'17. Trade Receivables','NOVAL',100016)
+
+--insert into tcodeprocess(fcode,slno,subd,htyp,ordr,tdesc,code,comp) values
+--(1,17,3,'H',2,' Other debts','NOVAL',100000),
+--(1,17,3,'H',2,' Other debts','NOVAL',100001),
+--(1,17,3,'H',2,' Other debts','NOVAL',100002),
+--(1,17,3,'H',2,' Other debts','NOVAL',100003),
+--(1,17,3,'H',2,' Other debts','NOVAL',100004),
+--(1,17,3,'H',2,' Other debts','NOVAL',100005),
+--(1,17,3,'H',2,' Other debts','NOVAL',100006),
+--(1,17,3,'H',2,' Other debts','NOVAL',100007),
+--(1,17,3,'H',2,' Other debts','NOVAL',100008),
+--(1,17,3,'H',2,' Other debts','NOVAL',100009),
+--(1,17,3,'H',2,' Other debts','NOVAL',100010),
+--(1,17,3,'H',2,' Other debts','NOVAL',100011),
+--(1,17,3,'H',2,' Other debts','NOVAL',100012),
+--(1,17,3,'H',2,' Other debts','NOVAL',100013),
+--(1,17,3,'H',2,' Other debts','NOVAL',100014),
+--(1,17,3,'H',2,' Other debts','NOVAL',100015),
+--(1,17,3,'H',2,' Other debts','NOVAL',100016)
+
+--insert into tcodeprocess(fcode,slno,subd,htyp,ordr,tdesc,code,comp) values
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100000),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100001),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100002),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100003),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100004),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100005),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100006),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100007),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100008),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100009),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100010),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100011),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100012),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100013),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100014),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100015),
+--(1,17,3,'L',3,'  Secured, considered good','BS211',100016)
+
+
+--insert into tcodeprocess(fcode,slno,subd,htyp,ordr,tdesc,code,comp) values
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100000),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100001),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100002),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100003),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100004),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100005),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100006),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100007),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100008),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100009),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100010),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100011),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100012),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100013),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100014),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100015),
+--(1,17,3,'L',4,'  Unsecured considered good','BS212',100016)
+
+
+--insert into tcodeprocess(fcode,slno,subd,htyp,ordr,tdesc,code,comp) values
+--(1,17,3,'L',5,'  Doubtful','BS213',100000),
+--(1,17,3,'L',5,'  Doubtful','BS213',100001),
+--(1,17,3,'L',5,'  Doubtful','BS213',100002),
+--(1,17,3,'L',5,'  Doubtful','BS213',100003),
+--(1,17,3,'L',5,'  Doubtful','BS213',100004),
+--(1,17,3,'L',5,'  Doubtful','BS213',100005),
+--(1,17,3,'L',5,'  Doubtful','BS213',100006),
+--(1,17,3,'L',5,'  Doubtful','BS213',100007),
+--(1,17,3,'L',5,'  Doubtful','BS213',100008),
+--(1,17,3,'L',5,'  Doubtful','BS213',100009),
+--(1,17,3,'L',5,'  Doubtful','BS213',100010),
+--(1,17,3,'L',5,'  Doubtful','BS213',100011),
+--(1,17,3,'L',5,'  Doubtful','BS213',100012),
+--(1,17,3,'L',5,'  Doubtful','BS213',100013),
+--(1,17,3,'L',5,'  Doubtful','BS213',100014),
+--(1,17,3,'L',5,'  Doubtful','BS213',100015),
+--(1,17,3,'L',5,'  Doubtful','BS213',100016)
+
+--insert into tcodeprocess(fcode,slno,subd,htyp,ordr,tdesc,code,comp) values
+--(1,17,3,'H',6,'','TOTAL',100000),
+--(1,17,3,'H',6,'','TOTAL',100001),
+--(1,17,3,'H',6,'','TOTAL',100002),
+--(1,17,3,'H',6,'','TOTAL',100003),
+--(1,17,3,'H',6,'','TOTAL',100004),
+--(1,17,3,'H',6,'','TOTAL',100005),
+--(1,17,3,'H',6,'','TOTAL',100006),
+--(1,17,3,'H',6,'','TOTAL',100007),
+--(1,17,3,'H',6,'','TOTAL',100008),
+--(1,17,3,'H',6,'','TOTAL',100009),
+--(1,17,3,'H',6,'','TOTAL',100010),
+--(1,17,3,'H',6,'','TOTAL',100011),
+--(1,17,3,'H',6,'','TOTAL',100012),
+--(1,17,3,'H',6,'','TOTAL',100013),
+--(1,17,3,'H',6,'','TOTAL',100014),
+--(1,17,3,'H',6,'','TOTAL',100015),
+--(1,17,3,'H',6,'','TOTAL',100016)
+
+
+insert into tcodeprocess(fcode,slno,subd,htyp,ordr,tdesc,code,comp) values
+(1,29,1,'H',55,'','TOTAL',100000),
+(1,29,1,'H',55,'','TOTAL',100001),
+(1,29,1,'H',55,'','TOTAL',100002),
+(1,29,1,'H',55,'','TOTAL',100003),
+(1,29,1,'H',55,'','TOTAL',100004),
+(1,29,1,'H',55,'','TOTAL',100005),
+(1,29,1,'H',55,'','TOTAL',100006),
+(1,29,1,'H',55,'','TOTAL',100007),
+(1,29,1,'H',55,'','TOTAL',100008),
+(1,29,1,'H',55,'','TOTAL',100009),
+(1,29,1,'H',55,'','TOTAL',100010),
+(1,29,1,'H',55,'','TOTAL',100011),
+(1,29,1,'H',55,'','TOTAL',100012),
+(1,29,1,'H',55,'','TOTAL',100013),
+(1,29,1,'H',55,'','TOTAL',100014),
+(1,29,1,'H',55,'','TOTAL',100015),
+(1,29,1,'H',55,'','TOTAL',100016)
+
+
+--select * from tcodeprocess where tdesc=
+--' (c) Investments in Associates'
+--' (b) Investments in Equity Instruments'
+--' (a) Investment property'
+--'           - Provision for Sundry creditors and Collection'
+--'           - Provision for expenses'
+--'           - Purchase consideration payable'
+
+--update tcodeprocess set code=
+--'BS163'
+--'BS327'
+--'BS162'
+--'BS161'
+--'BS160'
+--'BS159'
+--'BS158'
+--'BS157'
+--'BS156'
+--'BS155'
+--'BS297'
+--'BS154'
+--'BS329'
+--where tdesc=
+--' (j) Other non current investments'
+--' (i) Investment in other Body corporates'
+--' (h) Investments in Partnership Firms'
+--' (g) Investments in Mutual Funds'
+--' (f) Investments in Debentures or Bonds'
+--' (e) Investments in Government or Trust Securities'
+--' (d) Investments in Preference Shares'
+--' (c) Investments in Associates'
+--' (b) Investments in Equity Instruments'
+--' (a) Investment property'
+--'           - Provision for Sundry creditors and Collection'
+--'           - Provision for expenses'
+--'           - Purchase consideration payable'
+select * from tcodeprocess 
+where 
+--comp=100000 and 
+fcode=1
+and slno=17
+and subd=2
+and htyp='L'
+and ordr=6
+
+
+
+update tcodeprocess 
+set 
+code='BS210'
+--tdesc='  (g) Packing materials'
+--htyp='L'
+--subd=3,
+--ordr=7
+where 
+--comp=100000 and 
+fcode=1
+and slno=17
+and subd=2
+and htyp='L'
+and ordr=7
+
+
+

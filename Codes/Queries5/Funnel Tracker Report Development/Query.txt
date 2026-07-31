@@ -1,0 +1,35 @@
+select status_of_enquiry_visit,count(DATE_OF_ENQUIRY),
+count(case when DATE_OF_ENQUIRY>=dateadd(MM,datediff(MM,0,getdate()-1),0) then 1 else 0 end) as MTD,
+count(case when DATE_OF_ENQUIRY>=convert(varchar,year(getdate()-1))+'-04-01' then 1 else 0 end) as YTD
+from [FunnelTracker_Stage]
+group by status_of_enquiry_visit
+
+
+select datepart(yy,DATE) as CalYear,datepart(mm,DATE) as CalMonth,datepart(wk,DATE) WeekNo,* from companycalendar
+
+select dateadd(wk,datediff(wk,14,getdate()),0) as 'First day of current week'  
+select dateadd(MM,datediff(MM,0,getdate()-1),0) 
+select datepart(wk,dateadd(MM,datediff(MM,0,getdate()-1),0) )
+
+select 
+
+
+select status_of_enquiry_visit from [FunnelTracker_Stage]
+where status_of_enquiry_visit in (
+'0c -Positive conversations, potential demand identified',
+'2 – technicals finalized, quotation sent',
+'3 – negotiation/ finalisation',
+'3a– negotiation/ finalisation(50-80%)',
+'3b– negotiation/ finalisation (>80%)'
+)
+order by srno
+
+select distinct status_of_enquiry_visit from [FunnelTracker_Stage]
+
+
+select * from [FunnelTracker_Stage]
+order by srno
+
+
+
+select * from [dbo].[FUNNELTracker_Data]

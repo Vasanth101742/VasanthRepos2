@@ -1,0 +1,93 @@
+--Pending value validation----------------------------------------------------------------------------------------------------------
+
+select sls.Organ,sls.Dpst,
+isnull(sls.areacode,pend.areacode) areacode,
+isnull(sls.areaname,pend.areaname) areaname,
+isnull(sls.orderdate,pend.OrderDate) OrderDate,
+isnull(sls.company,pend.Company) Company,
+isnull(sls.ordertype,pend.ordertype) ordertype,
+isnull(sls.ordernum,pend.OrderNum) OrderNum,
+isnull(sls.PositionNum,pend.PositionNum) PositionNum,
+sum(sls.orderqty) as sls_orderqty,
+sum(pend.ord_qty) as pend_ord_qty,
+sum(pend.PendQty) as PendQty,
+sum(sls.Sales_USD)/10000 as Sales_USD,
+sum(pend.PendValue_USD)/1000 as PendValue_USD,
+year(isnull(sls.orderdate,pend.OrderDate)) as CalYear,
+month(isnull(sls.orderdate,pend.OrderDate)) as CalMonth
+
+from 
+(select Organ,Dpst,areacode,areaname,orderdate,company,ordertype,ordernum,PositionNum,
+sum(qty) as orderqty,
+sum(Sales_USD) Sales_USD ,
+sum(Foreign_currency_amount) Foreign_currency_amount
+from Sales_Inflow
+where  Organ='COSEA'
+and OrderDate>='2019-04-01'
+--and concat(company,ordertype,ordernum)='490375292018211'
+group by Organ,Dpst,areacode,areaname,orderdate,company,ordertype,ordernum,PositionNum
+)sls
+inner join
+(
+select Dpst,areacode,areaname,OrderDate,company,ordertype,ordernum,PositionNum,
+sum(ord_qty) as ord_qty,
+sum(PendQty) PendQty,sum(ord_qty- Cancel_Qty-delqty) as qty1,
+sum(PendValue_USD) PendValue_USD,
+--SUM(CASE WHEN OrderDate BETWEEN 
+--CONVERT(varchar, datepart(mm, dateadd(dd, - 1, getdate()))) + '/1/' + datename(yy, dateadd(dd, - 1, getdate())) 
+--AND 
+--getdate() 
+--THEN (PendValue_USD) / 1000 ELSE 0 END) AS this_month_PendValue,
+
+--SUM(CASE WHEN OrderDate BETWEEN 
+--'04/01/' + convert(varchar,(case when month(getdate()-1) between 1 and 3 then year(getdate()-1) - 1 else year(getdate()-1) end )) 
+--AND 
+--getdate() 
+--THEN (PendValue_USD) / 1000 ELSE 0 END) AS this_year_PendValue
+
+year(orderdate) as CalYear,
+month(orderdate) as CalMonth
+
+
+from Pending_Orders
+where PendQty<>0
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and OrderDate>='2019-04-01'
+and concat(Dpst,areacode) in (select concat(Dpst,areacode) from SalesMapping_Global where organ='COSEA')
+group by Dpst,areacode,areaname,OrderDate,company,ordertype,ordernum,PositionNum
+)pend
+ON sls.Company=pend.Company
+and sls.ordertype=pend.ordertype
+and sls.OrderNum=pend.OrderNum 
+and sls.PositionNum=pend.PositionNum
+--and sls.Dpst=pend.Dpst
+--and sls.Areacode=Pend.AreaCode
+
+--where pend.PendValue_USD is not null
+
+group by sls.Organ,sls.Dpst,sls.areacode,pend.areacode,
+sls.areaname,pend.areaname,sls.orderdate,pend.OrderDate,
+sls.company,pend.Company,sls.ordertype,pend.ordertype,
+sls.ordernum,pend.OrderNum,sls.PositionNum,pend.PositionNum
+
+
+order by OrderDate
+
+------------------------------------------------------------------------------------------------------------------------------
+
+
+
+select Dpst,areacode,areaname,OrderDate,company,ordertype,ordernum,PositionNum,
+sum(ord_qty) as ord_qty,
+sum(PendQty) PendQty,sum(ord_qty- Cancel_Qty-delqty) as qty1,
+sum(PendValue_USD)/1000 PendValue_USD,
+year(orderdate) as CalYear,
+month(orderdate) as CalMonth
+
+from Pending_Orders
+where PendQty<>0
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and OrderDate>='2019-04-01'
+and concat(Dpst,areacode) in (select concat(Dpst,areacode) from SalesMapping_Global where organ='COSEA')
+group by areacode,areaname,Dpst,OrderDate,company,ordertype,ordernum,PositionNum
+
