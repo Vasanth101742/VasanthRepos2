@@ -1,0 +1,1 @@
+LYSales = CALCULATE(CRM_Sales_review_deck[Sales_M],SAMEPERIODLASTYEAR())

@@ -1,0 +1,9 @@
+<html>
+<body>
+Dear Sir, <br>
+Kindly use the following link to access Inflow_Companywise Report <br>
+<a href="http://bis-apps/slssrv/_layouts/15/ReportServer/RSViewerPage.aspx?rv:RelativeReportUrl=/slssrv/Inflow/Inflow_Companywise.rdl&Source=http%3A%2F%2Fbis%2Dapps%2Fslssrv%2FInflow%2FForms%2FAllItems%2Easpx">Inflow_Companywise</a>
+</body>
+<br>
+
+PS: You should be connected to the ELGI network to access the above link.

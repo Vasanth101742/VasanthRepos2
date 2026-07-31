@@ -1,0 +1,37 @@
+
+--- Working Days Calc
+
+
+declare @fromDate datetime
+declare @daysToAdd int
+
+select @fromDate = '20230211',@DaysToAdd = 4
+
+declare @Saturday int
+select @Saturday = DATEPART(weekday,'20230211')
+
+;with Numbers as (
+    select 0 as n union all select 1 union all select 2 union all select 3 union all select 4
+), Split as (
+    select @DaysToAdd%5 as PartialDays,@DaysToAdd/5 as WeeksToAdd
+), WeekendCheck as (
+    select WeeksToAdd,PartialDays,MAX(CASE WHEN DATEPART(weekday,DATEADD(day,n.n,@fromDate))=@Saturday THEN 1 ELSE 0 END) as HitWeekend
+    from
+    Split t
+        left join
+    Numbers n
+        on
+            t.PartialDays >= n.n
+group by WeeksToAdd,PartialDays
+)
+select DATEADD(day,WeeksToAdd*7+PartialDays+CASE WHEN HitWeekend=1 THEN 2 ELSE 0 END,@fromDate)
+from WeekendCheck
+
+
+----Working Days between two dates
+
+(
+(DATEDIFF(dd, @startdate, @enddate) + 1)
+    -(DATEDIFF(wk, @startdate, @enddate) * 2)
+    -(CASE WHEN DATEPART(dw, @startdate) = 1 THEN 1 ELSE 0 END)
+    -(CASE WHEN DATEPART(dw, @enddate) = 7 THEN 1 ELSE 0 END))-1

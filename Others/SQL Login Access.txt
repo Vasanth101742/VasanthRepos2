@@ -1,0 +1,14 @@
+create login [User3.0] with password='User$123',check_policy=off;
+
+deny view any database to [User3.0]
+
+Alter Authorization on database::[Project3.0] to [User3.0]
+
+Alter role [dbo] drop member Login1
+
+
+drop login Login1
+
+
+Reference: 
+https://dba.stackexchange.com/questions/19456/the-database-principal-owns-a-schema-in-the-database-and-cannot-be-dropped-mess

@@ -1,0 +1,50 @@
+https://elgi-bis.elgi.com/Reports/report/CRM/Existing_ELGi_Customers
+
+
+https://elgi.sharepoint.com/sites/BIS-IT/Shared%20Documents/Forms/AllItems.aspx
+
+
+https://app.powerbi.com/Redirect?action=OpenApp&appId=8e96e7dd-7390-4c16-8f10-26ed6dfa4346&ctid=50f40674-931c-4d09-ae8a-bb8fde36b912
+
+
+https://www.mssqltips.com/sqlservertip/4688/resolving-the-maximum-request-length-exceeded-exception-in-sql-server-reporting-services/
+
+
+https://elgi-my.sharepoint.com/:x:/p/bisadmin/ET0H_xdDYJhKsjsz_yFDfWUBaDTKz_CIcxMmaoNAgXDh5A?e=8GCvju&clickparams=eyJBcHBOYW1lIjoiVGVhbXMtRGVza3RvcCIsIkFwcFZlcnNpb24iOiI0OS8yNDA1MzEwMTQyMSIsIkhhc0ZlZGVyYXRlZFVzZXIiOmZhbHNlfQ%3D%3D
+
+
+------------------------------------------------------------------------
+Power Automate workflow from Ragu
+
+https://wiki.dev.elgi.com/books/extracting-data-from-sql-updating-to-sharepoint/page/power-automate-flow-extracting-data-from-sql-and-updating-sharepoint-lists
+
+
+A Beginners Guide to Azure Blob Storage
+Travis Roberts
+https://www.youtube.com/watch?v=ah1XqItWkuc
+
+Azure Data Factory Inline Datasets. Working with XML, XLSX, Delta Lake and CDM
+Data Factory
+https://www.youtube.com/watch?v=fjNPL_Aqxl0
+
+
+Incremental Refresh in Power BI
+PorcuBI - Valerie Junk
+https://www.youtube.com/watch?v=RLE0WlZPjqQ
+
+
+Configuring Incremental Refresh in Power BI
+BI Gorilla
+https://www.youtube.com/watch?v=Kui_1G6kQIQ
+
+How to Enable Query Folding? Active Native Query!
+HOGOLYTICS
+https://www.youtube.com/watch?v=xEhZuPk1EpA
+
+
+OPTIMISE your Data Loads using Query Folding // Beginners Guide to Power BI in 2021
+Fernan | Power BI
+https://www.youtube.com/watch?v=paMwKZM9egU
+
+Currency Conversion with Historical Dates
+https://www.exchangerates.org.uk/MYR-INR-spot-exchange-rates-history-2025.html

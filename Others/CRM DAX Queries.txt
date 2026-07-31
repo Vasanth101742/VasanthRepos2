@@ -1,0 +1,298 @@
+CYCM_Visits = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[visitid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+
+CYCM_Enq = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[enquiryid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+CYCM_EnqValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryValue]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+
+CYCM_EnqQty = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryQty]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+CYCM_EnqQty_YTD = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryQty]),CRM_Sales_review_deck[cal_Month]<=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2)
+
+
+--Method2
+CYCM_EnqQty = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryQty]),CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2)
+
+CYCM_InfOrders = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[Inflow_Desc]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+
+CYCM_InfQty = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[InflowQty]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+CYCM_InfValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[Inflow_amount]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+
+--------------------------------------------------------------------------------------------------------------------------
+
+PrevMonthVisits = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[visitid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+
+PrevMonthEnq = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[enquiryid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+PrevMonthEnqQty = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryQty]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+PrevMonthEnqValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryValue]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+
+PrevMonthInfOrders = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[Inflow_Desc]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+PrevMonthInfQty = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[InflowQty]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+
+PrevMonthInfValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[Inflow_amount]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+
+
+-------------------------------------------------------------------------------------------------------------------------
+PYCM_Visits = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[visitid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+
+PYCM_Enq = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[enquiryid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+PYCM_EnqQty = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryQty]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+
+PYCM_EnqValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryValue]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+
+
+PYCM_InfOrders = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[Inflow_Desc]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+
+PYCM_InfQty = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[InflowQty]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+
+PYCM_InfValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE(sum(CRM_Sales_review_deck[Inflow_amount]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+
+EnqChange1 = (([CYCM_Enq]-[PYCM_Enq])/[PYCM_Enq])
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------
+
+CYCM_WinValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[Inflow_amount]) + sum(CRM_Sales_review_deck[EnqLostValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+
+CYCM_WinValue2 = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[EnquiryValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+CYCM_WinQty2 = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return  CALCULATE((sum(CRM_Sales_review_deck[InflowQty])/(sum(CRM_Sales_review_deck[EnquiryQty]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+PM_WinValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[Inflow_amount]) + sum(CRM_Sales_review_deck[EnqLostValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+PM_WinValue2 = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[EnquiryValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+PM_WinQty2 = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[cal_year])
+return CALCULATE((sum(CRM_Sales_review_deck[InflowQty])/(sum(CRM_Sales_review_deck[EnquiryQty]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PM && CRM_Sales_review_deck[cal_year]=PM2))
+
+
+
+PYCM_WinValue = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[Inflow_amount]) + sum(CRM_Sales_review_deck[EnqLostValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+PYCM_WinValue2 = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[EnquiryValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+PYCM_WinQty2 = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[cal_year])
+return CALCULATE((sum(CRM_Sales_review_deck[InflowQty])/(sum(CRM_Sales_review_deck[EnquiryQty]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]=PYCM && CRM_Sales_review_deck[cal_year]=PYCM2))
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+YTD
+
+CYCM_Visits_YTD = var current_month= (SELECTEDVALUE(Dates[cal_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[cal_year])
+return CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[visitid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[cal_Month]<=CYCM && CRM_Sales_review_deck[cal_year]=CYCM2))
+
+PrevMonthVisits_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Year])
+return  CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[visitid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=PM && CRM_Sales_review_deck[Fin_Year]=PM2))
+
+
+PYCM_Visits_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[Fin_Month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[Fin_Year])
+return CALCULATE(DISTINCTCOUNTNOBLANK(CRM_Sales_review_deck[visitid]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=PYCM && CRM_Sales_review_deck[Fin_Year]=PYCM2))
+
+
+CYCM_EnqValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[Fin_Month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[Fin_Year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryValue]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=CYCM && CRM_Sales_review_deck[Fin_Year]=CYCM2))
+
+PYCM_EnqValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[Fin_Month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[Fin_Year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryValue]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=PYCM && CRM_Sales_review_deck[Fin_Year]=PYCM2))
+
+PrevMonthEnqValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Year])
+return  CALCULATE(sum(CRM_Sales_review_deck[EnquiryValue]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=PM && CRM_Sales_review_deck[Fin_Year]=PM2))
+
+
+CYCM_InfValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[Fin_Month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[Fin_Year])
+return  CALCULATE(sum(CRM_Sales_review_deck[Inflow_amount]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=CYCM && CRM_Sales_review_deck[Fin_Year]=CYCM2))
+
+
+PYCM_InfValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var PYCM=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[Fin_Month])
+var PYCM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevYrCurrentMonth"),Dates[Fin_Year])
+return  CALCULATE(sum(CRM_Sales_review_deck[Inflow_amount]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=PYCM && CRM_Sales_review_deck[Fin_Year]=PYCM2))
+
+PrevMonthInfValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Year])
+return  CALCULATE(SUM(CRM_Sales_review_deck[Inflow_amount]),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=PM && CRM_Sales_review_deck[Fin_Year]=PM2))
+
+InfOrderValueChange1_YTD = (([CYCM_InfValue_YTD]-[PYCM_InfValue_YTD])/[PYCM_InfValue_YTD])
+InfOrderValueChange2_YTD = (([CYCM_InfValue_YTD]-[PrevMonthInfValue_YTD])/[PrevMonthInfValue_YTD])
+
+
+CYCM_WinValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var CYCM=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[Fin_Month])
+var CYCM2=MAXX(FILTER(Dates,Dates[Remarks]="CurrentYrCurrentMonth"),Dates[Fin_Year])
+return  CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[Inflow_amount]) + sum(CRM_Sales_review_deck[EnqLostValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=CYCM && CRM_Sales_review_deck[Fin_Year]=CYCM2))
+
+
+PM_WinValue_YTD = var current_month= (SELECTEDVALUE(Dates[Fin_Month],month(TODAY()))) 
+var PM=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Month])
+var PM2=MAXX(FILTER(Dates,Dates[Remarks]="PrevMonth"),Dates[Fin_Year])
+return CALCULATE((sum(CRM_Sales_review_deck[Inflow_amount])/(sum(CRM_Sales_review_deck[Inflow_amount]) + sum(CRM_Sales_review_deck[EnqLostValue]))),
+FILTER(CRM_Sales_review_deck,CRM_Sales_review_deck[Fin_Month]<=PM && CRM_Sales_review_deck[Fin_Year]=PM2))

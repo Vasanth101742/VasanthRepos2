@@ -1,0 +1,6 @@
+Type the command in windows powershell
+
+New-SelfSignedCertificate -DnsName "elgi.com" -CertStoreLocation Cert:\currentuser\My
+
+
+Run -->mmc-->File--Add/RemoveSnap in-->Certificates-->All Tasks-->Export

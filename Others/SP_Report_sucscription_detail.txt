@@ -1,0 +1,128 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec [SP_Report_sucscription_detail]
+
+CREATE PROCEDURE [dbo].[SP_Report_sucscription_detail] as    
+
+DECLARE @scopeid AS VARCHAR (200)  
+DECLARE @urlid AS VARCHAR(200)  
+DECLARE @innercount AS int  
+DECLARE @count AS int  
+DECLARE @num as int  
+DECLARE @total as int  
+
+set nocount on  
+
+BEGIN  
+
+----------------------------------------------------------------------------------------------------------------------  
+--Subscription Detail  
+----------------------------------------------------------------------------------------------------------------------  
+
+set @total =(select max(rank) from 
+--subscriptiontable
+vw_subscriptionDetails
+)  
+set @num=1  
+
+truncate table [ELGI-DW].[DBO].[user_subscription_detail]  
+
+while @num <=@total  
+
+begin  
+
+insert into [ELGI-DW].[DBO].[user_subscription_detail]  
+
+select * ,(select reportname from 
+--subscriptiontable  
+vw_subscriptionDetails
+where rank=@num) as reportname,'to' as type from [ELGI-DW].[DBO].[split]((select [to] from 
+--subscriptiontable  
+vw_subscriptionDetails
+where rank=@num),';')  
+
+union all  
+
+select *,(select reportname from 
+--subscriptiontable  
+vw_subscriptionDetails
+where rank=@num) as reportname ,'CC' from [ELGI-DW].[DBO].[split]((select [cc] from 
+--subscriptiontable  
+vw_subscriptionDetails
+where rank=@num),';')  
+
+set @num=@num+1  
+
+end  
+
+-----------------------------------------------------------------------------------------------------------------  
+--Report Access Detail  
+----------------------------------------------------------------------------------------------------------------------  
+
+set  @count = (SELECT  count(*) FROM [WSS_Content].[dbo].[alldocs] 
+WHERE extension='rdl' and   len(DeleteTransactionId)=0)  
+
+set @innercount =1  
+
+truncate table [ELGI-DW].[dbo].[ReportAccess_user_detail]  
+
+WHILE (@innercount <=@count)  
+
+BEGIN  
+
+set @scopeid =(SELECT scopeid FROM(SELECT  row_number() OVER(ORDER BY id) AS ranks,id,scopeid,webid FROM [WSS_Content].[dbo].[alldocs] WHERE extension='rdl' )a WHERE ranks=@innercount)  
+
+set @urlid=(SELECT id FROM(SELECT  row_number() OVER(ORDER BY id) AS ranks,id,scopeid,webid FROM [WSS_Content].[dbo].[alldocs] WHERE extension='rdl' )a WHERE ranks=@innercount)  
+
+;WITH Items AS  
+
+(  
+SELECT ig.parentid AS parentid, ig.id AS Child,0 AS level1,ig.leafname AS leaf,ig.scopeid,ra.scopeid AS permsid,userid,RoleTitle,RoleId,principalid  
+FROM [WSS_Content].[dbo].[alldocs] ig LEFT OUTER JOIN [WSS_Content].[dbo].[perms] ra  
+on ig.scopeid=ra.scopeid   
+INNER JOIN  
+(SELECT [WSS_Content].[dbo].[roles].RoleId, [WSS_Content].[dbo].[roles].Title AS RoleTitle, 
+[WSS_Content].[dbo].[UserInfo].tp_Title AS userid,  
+[WSS_Content].[dbo].[UserInfo].tp_Login,scopeid,principalid  
+FROM(  
+SELECT a.siteid,scopeid,roleid,memberid as principalid   
+FROM 
+(SELECT * FROM [WSS_Content].[dbo].[RoleAssignment] 
+WHERE principalid in (SELECT distinct id FROM [WSS_Content].[dbo].[groups])  
+)a 
+inner join  
+(SELECT * FROM [WSS_Content].[dbo].[groupmembership])b 
+on groupid =principalid  
+
+union all  
+
+SELECT siteid,scopeid,roleid, principalid FROM [WSS_Content].[dbo].[RoleAssignment]   
+WHERE principalid not in (SELECT distinct id FROM [WSS_Content].[dbo].[groups])  
+) AS RoleAssignment   
+
+INNER JOIN  [WSS_Content].[dbo].Roles   
+ON RoleAssignment.SiteId = [WSS_Content].dbo.Roles.SiteId AND RoleAssignment.RoleId = [WSS_Content].dbo.Roles.RoleId  
+INNER JOIN [WSS_Content].[dbo].UserInfo         
+ON RoleAssignment.PrincipalId = UserInfo.tp_ID  
+)USERINFO ON USERINFO.scopeid=ra.scopeid  
+
+WHERE ID =@urlid--'075AB6F5-FAF5-4166-8AF4-FC41007A9857'   
+
+UNION ALL   
+ 
+SELECT ig.parentid , ig.id,level1+1,ig.leafname,ig.scopeid,permsid,userid,RoleTitle,RoleId,principalid             
+FROM Items  
+INNER JOIN [WSS_Content].[dbo].[alldocs] ig  
+ON ltrim(rtrim(ig.id)) = ltrim(rtrim(Items.parentid))  
+WHERE  ltrim(rtrim(items.permsid)) is null --and  metainfoversion=1  
+)  
+insert into  [ELGI-DW].[dbo].[ReportAccess_user_detail]  
+SELECT userid,leaf,roleid,roletitle,principalid FROM items WHERE roleid  !='1073741825'    
+
+
+set @innercount=@innercount+1  
+
+end  
+
+END
+

@@ -1,0 +1,18 @@
+
+
+
+Scrum model
+Agile model
+
+1.Epic --> Eg: Website development
+1.1 Feature --> Eg: Pages required in that web application
+1.1.1 User Story --> Eg: Credential, Single Sign on, Forget password, Keep signed in
+1.1.1.1 Task  --> Creating a Text box, buttons for getting a user name, password
+              --> Project Managers and Developers
+
+
+
+there are Sales orders greater than 2 years which are not yet invoiced.Users has to cancel them in ERP System if it is obsolete.
+
+For the DPSt and Area, if no transactions either Sales Plan, Budget, Order, Invoice is not available for the past 2 years , it will not be shown in the report.
+

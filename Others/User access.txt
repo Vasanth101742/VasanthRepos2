@@ -1,0 +1,79 @@
+--select * from users
+--where sid in (select distinct content from catalog)
+
+--select * from catalog
+--where content in (select sid from users)
+
+select * from [Catalog]
+select * from [CatalogItemExtendedContent]
+select * from [ChunkSegmentMapping]
+select * from [DataSource]
+select * from [ExecutionLogStorage]
+
+
+select * from users where userid='060E52B1-AF58-46B3-BD9E-5D2827A0FE28'
+select * from catalog where itemid='11FCA5BF-6368-41D0-BDBA-0346A3264ED5'
+
+
+---------------------------------------------------------------------------------------------
+
+
+--use reportserver
+--go
+--select * from [ActiveSubscriptions]
+--select * from [AlertSubscribers]
+--select * from [Batch]
+--select * from [CachePolicy]
+select * from [Catalog]
+--select * from [CatalogItemExtendedContent]
+--select * from [ChunkData]
+select * from [ChunkSegmentMapping]
+--select * from [CleanupLock]
+--select * from [CleanupLock]
+--select * from [Comments]
+--select * from [ConfigurationInfo]
+--select * from [DataModelDataSource]
+--select * from [DataModelDataSource]
+--select * from [DataModelRole]
+--select * from [DataSets]
+select * from [DataSource]
+--select * from [DBUpgradeHistory]
+--select * from [Event]
+select * from [ExecutionLogStorage]
+--select * from [Favorites]
+--select * from [History]
+--select * from [Keys]
+--select * from [ModelDrill]
+--select * from [ModelItemPolicy]
+--select * from [ModelPerspective]
+--select * from [Notifications]
+--select * from [Policies]
+--select * from [PolicyUserRole]
+--select * from [ProductInfoHistory]
+select * from [ReportSchedule]
+--select * from [Roles]
+--select * from [RunningJobs]
+select * from [Schedule]
+--select * from [SecData]
+--select * from [Segment]
+--select * from [SegmentedChunk]
+--select * from [ServerParametersInstance]
+select * from [ServerUpgradeHistory]
+--select * from [SnapshotData]
+--select * from [SubscriptionHistory]
+--select * from [SubscriptionResults]
+select * from [Subscriptions]
+--select * from [SubscriptionsBeingDeleted]
+--select * from [UpgradeInfo]
+--select * from [UserContactInfo]
+--select * from [UserDataModelRole]
+select * from [Users]
+
+select * from Catalog
+where content='0x0105000000000005150000008B55574F94709C4B1CEC913D338D0000'
+
+select * from users
+where sid='0x0105000000000005150000008B55574F94709C4B1CEC913D338D0000'
+--where username='ELGI\ponmanis'
+--where userid='2D46F614-22A5-4775-BD38-A1892BB76B94'
+--'A2D69BAF-E09B-4A4D-8193-C8F8B676BFD1'

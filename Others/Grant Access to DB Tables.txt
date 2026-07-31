@@ -1,0 +1,8 @@
+SELECT 'GRANT SELECT ON "' + TABLE_SCHEMA + '"."' + TABLE_NAME + '" TO "DT_User"' FROM information_schema.tables
+where TABLE_NAME in ('elgi_sales_details','sales_inflow')
+
+
+GRANT SELECT ON "dbo"."ELGi_Sales_Details" TO "DT_User"
+GRANT SELECT ON "dbo"."Sales_Inflow" TO "DT_User"
+
+('621','622','623','624','625','637')

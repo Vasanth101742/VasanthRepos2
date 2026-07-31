@@ -1,0 +1,10 @@
+select sysdate, 
+
+case when cast(to_char(sysdate,'mm') as int) < 4 then concat(to_char(cast(to_char(sysdate,'yyyy') as int)-1),'-04-01')
+else concat(to_char(sysdate,'yyyy'),'-04-01') end as FinYearStartDate ,
+
+case when cast(to_char(sysdate,'mm') as int) < 4 then to_char(cast(to_char(sysdate,'yyyy') as int)-1)
+else to_char(sysdate,'yyyy') end as FinYear ,
+
+TO_CHAR(sysdate,'yyyy-mm-dd') as Date1,
+TO_CHAR(sysdate,'yyyy-mm-dd HH24:MI:SS') as Datetime1 from dual
