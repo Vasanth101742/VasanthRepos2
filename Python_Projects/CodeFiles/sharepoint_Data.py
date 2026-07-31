@@ -13,14 +13,14 @@ import pandas as pd
 # Set up the SharePoint details
 tenant_id = "50f40674-931c-4d09-ae8a-bb8fde36b912"
 client_id = "403fbac6-e27b-4fc4-866f-7d8520ba0941"
-client_secret = "2do8Q~i5WJh~rw~dlzSHyJo5~Omq.voSlS0eUc7P"
+client_sec = "2do8Q~i5WJh~rw~dlzSHyJo5~Omq.voSlS0eUc7P"
 site_url = "https://elgi.sharepoint.com/sites/sites/BIS-IT"
 file_url = 'Shared Documents/MasterData/ATS/ATS_Production_Plan_Master.xlsx'  # Replace with the file path on SharePoint
 
 # Authenticate using client credentials (OAuth)
 context_auth = AuthenticationContext(url=site_url)
-#context_auth.acquire_token_for_app(client_id=client_id, client_secret=client_secret, tenant=tenant_id)
-context_auth.acquire_token_for_app(client_id=client_id, client_secret=client_secret)
+#context_auth.acquire_token_for_app(client_id=client_id, client_sec=client_sec, tenant=tenant_id)
+context_auth.acquire_token_for_app(client_id=client_id, client_sec=client_sec)
 context_auth.verify_ssl = True
 # Create a client context
 
@@ -63,7 +63,7 @@ print(df)
 # # Azure App Registration details
 # tenant_id = "50f40674-931c-4d09-ae8a-bb8fde36b912"
 # client_id = "403fbac6-e27b-4fc4-866f-7d8520ba0941"
-# client_secret = "2do8Q~i5WJh~rw~dlzSHyJo5~Omq.voSlS0eUc7P"
+# client_sec = "2do8Q~i5WJh~rw~dlzSHyJo5~Omq.voSlS0eUc7P"
 # site_url = "https://elgi.sharepoint.com/sites/sites/BIS-IT"
 
 # # Authentication URL for Microsoft Identity Platform
@@ -73,7 +73,7 @@ print(df)
 # scopes = ["https://graph.microsoft.com/.default"]
 
 # # Initialize MSAL Confidential Client Application
-# app = msal.ConfidentialClientApplication(client_id, authority=authority, client_credential=client_secret)
+# app = msal.ConfidentialClientApplication(client_id, authority=authority, client_credential=client_sec)
 
 # # Acquire the access token using client credentials
 # token_response = app.acquire_token_for_client(scopes)

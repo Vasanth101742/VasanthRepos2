@@ -6,7 +6,7 @@ import msal
 # Azure AD app registration details
 tenant_id = "50f40674-931c-4d09-ae8a-bb8fde36b912"
 client_id = "403fbac6-e27b-4fc4-866f-7d8520ba0941"
-client_secret = "2do8Q~i5WJh~rw~dlzSHyJo5~Omq.voSlS0eUc7P"
+client_sec = "2do8Q~i5WJh~rw~dlzSHyJo5~Omq.voSlS0eUc7P"
 authority = f"https://login.microsoftonline.com/{tenant_id}"
 
 # Microsoft Graph or SharePoint scopes
@@ -15,7 +15,7 @@ scopes = ["https://graph.microsoft.com/.default"]  # Scope for Microsoft Graph A
 # Initialize MSAL confidential client application
 app = msal.ConfidentialClientApplication(
     client_id,
-    client_credential=client_secret,
+    client_credential=client_sec,
     authority=authority
 )
 
