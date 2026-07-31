@@ -1,0 +1,2 @@
+
+write.table(MyData, file = "MyData.csv",row.names=FALSE, na="",col.names=FALSE, sep=",")

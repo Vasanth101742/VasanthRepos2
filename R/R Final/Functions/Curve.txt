@@ -1,0 +1,56 @@
+curve {graphics} R Documentation 
+
+Draw Function Plots
+
+Description
+
+Draws a curve corresponding to the given function or expression (in x) over the interval [from,to]. 
+
+Usage
+curve(expr, from, to, n = 101, add = FALSE, type = "l",
+      ylab = NULL, log = NULL, xlim = NULL, ...)
+
+## S3 method for class 'function':
+plot(x, from = 0, to = 1, xlim = NULL, ...)
+
+
+Arguments
+
+expr an expression written as a function of x, or alternatively the name of a function which will be plotted. 
+x a ‘vectorizing’ numeric R function. 
+from,to the range over which the function will be plotted. 
+n integer; the number of x values at which to evaluate. 
+add logical; if TRUE add to already existing plot. 
+xlim numeric of length 2; if specified, it serves as default for c(from, to). 
+type plot type: see plot.default. 
+ylab, log, ... labels and graphical parameters can also be specified as arguments. plot.function passes all these to curve. 
+
+Details
+
+The evaluation of expr is at n points equally spaced over the range [from, to], possibly adapted to log scale. 
+The points determined in this way are then joined with straight lines. 
+x(t) or expr (with x inside) must return a numeric of the same length as the argument t or x. 
+If add = TRUE, c(from,to) default to xlim which defaults to the current x-limits. 
+Further, log is taken from the current plot when add is true. 
+This used to be a quick hack which now seems to serve a useful purpose, but can give bad results for functions which are not smooth. 
+For “expensive” expressions, you should use smarter tools. 
+
+
+
+
+Examples
+op <- par(mfrow=c(2,2))
+curve(x^3-3*x, -2, 2)
+curve(x^2-2, add = TRUE, col = "violet")
+
+plot(cos, xlim = c(-pi,3*pi), n = 1001, col = "blue")
+
+chippy <- function(x) sin(cos(x)*exp(-x/2))
+curve(chippy, -8, 7, n=2001)
+curve(chippy, -8, -5)
+
+for(ll in c("","x","y","xy"))
+   curve(log(1+x), 1,100, log=ll, sub=paste("log= '",ll,"'",sep=""))
+par(op)
+
+

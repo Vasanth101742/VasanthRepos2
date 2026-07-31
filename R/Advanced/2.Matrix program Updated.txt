@@ -1,0 +1,49 @@
+a<-matrix(c(1,2,3,4),nrow=2)
+b<-matrix(c(1,2,3,4),ncol=2)
+c<-matrix(c(0:0),nrow=nrow(a),ncol=ncol(b))
+i<-1
+j<-1
+k<-1
+
+p<-1
+q<-1
+
+
+#Row Processing
+
+while(i<=nrow(a)){
+
+
+cat("\n","(p,q)=",p,q,"\n")
+#Initialize each time, as value of j goes greater than the maximum number of columns due to increment operation inside the column wise loop
+j<-1
+
+
+#Column Processing
+while(j<=ncol(a)){
+	
+	cat("(i,j)=",i,j,"\n")
+	cat("(j,k)=",j,k,"\n")
+
+	c[p,q]<-a[i,j]*b[j,k]+c[p,q]
+	j<-j+1
+}
+
+
+#After processing of one column, move the control to the next column
+
+k<-k+1
+q<-q+1
+
+
+#Once processing of one row is successfully completed, initialize the column of matrix to point the 1st column and increment the row
+if(k>ncol(b) | q>ncol(c)) {
+k<-1
+q<-1
+p<-p+1
+i<-i+1
+}
+
+
+}
+print(c)

@@ -1,0 +1,207 @@
+
+
+http://www.sr.bham.ac.uk/~ajrs/R/r-plot_data.html
+
+
+
+Useful plotting functions 
+
+lines, points, abline, curve, text, rug, legend
+segments, arrows, polygon
+locator, identify    # For interacting with plots
+
+
+
+
+Exercise 1: Create some data for plotting: 
+
+x <- 10 + (1:20)/10
+y <- x^2 + rnorm(length(x))     # Add Gaussian random number
+plot(x, y)
+curve(x^2, add=TRUE, lty=2)     # Add dashed line showing y=x^2
+plot(x, y, type="l", col="blue")  # Plot as blue line (try 'type="o"')
+plot(x, y, type="l", log="xy",par(bg="yellow",bty="]"))   # Plot as line with log X & Y axes:
+abline(v=11, lty=3)    # Add vertical dotted line
+text(11.5, 120, "Hello")   # Add annotation
+legend("topleft", inset=0.05, "data", pch=1, col="blue", bty="n")  # Add a legend
+
+Exercise 2: Different point styles: 
+
+plot(x, y, pch=2, col="red")  # Hollow triangles
+plot(1:10, rep(1, 10), pch=LETTERS)  # Can also use any character
+example("pch")  # Show point style examples
+
+
+Exercise 3: Single plot symbol (see "?points" for more) and colour (type "colours()" or "colors()" for the full list of predefined colours): 
+
+plot(x, y, pch=2, col="red")  # Hollow triangles
+plot(x, y, pch=c(3, 20), col=c("red", "blue"))  # Blue dots; red "+" signs
+plot(x, y, pch=1:20)   # Different symbol for each point
+
+
+Create vector of contiguous colours in a “rainbow” palette: 
+
+col <- rainbow(length(x))
+plot(x, y, col=col)
+
+Label axes: 
+plot(x, y, xlab="Some data", ylab="Wibble")
+
+Specify axis limits: 
+
+plot(x, y, xlim=c(11, 12), ylim=c(0, 150))
+
+
+
+
+Exeercise 4: Changing the plot layout
+
+Show simple 2x1 matrix: 
+
+matrix(1:2)
+matrix(1:4)                # 4x1
+matrix(1:4, 2, 2)          # 2x2
+matrix(1:6, 3, 2)          # 3x2 ordered by columns
+matrix(1:6, 3, 2, byrow=TRUE)  # 3x2 ordered by rows
+
+To view the graphical layout, the following will show the borders of the sub-panels and the number identying each one: 
+layout(matrix(1:4, 2, 2))
+layout.show(4)    # Specify layout for 4 panels, for the defined layout
+layout.show(2)    # Try specifying just 2 instead
+
+
+Now fill the layout with 4 plots: 
+x <- 1:10
+plot(x, x)
+plot(x, x^2)
+plot(x, sqrt(x))
+plot(x, log10(x))
+curve(log10, add=TRUE)  # Adds to last panel plotted
+
+Specifying panels of different sizes: 
+layout(matrix(1:4, 2, 2), heights=c(2, 1)); layout.show(4)
+replicate(4, plot(x, x))  # Repeat plot 4 times
+
+
+
+Exercise 5: Plotting a function or equation
+
+Plot some analytic expressions: 
+curve(x^2)
+curve(x^1)      # "curve(x)" fails! (can also use "curve(I(x))")
+curve(x^2+log10(x)-sin(x))    # Can use arithmetic
+curve(dnorm)    # Normal distribution for mean=0, standard deviation=1
+curve(x^3-x+1, from=-10, to=10, lty=2)  # Specify range & use dashed line
+
+Plot a function, with specified arguments: 
+
+curve(dnorm(x, mean=1, sd=2), from=-10, to=10)
+
+
+
+First, define a function for the Planck blackbody law to calculate the radiation intensity as a function of wavelength (lambda, in microns) and temperature (Temp, in Kelvin): 
+
+blackbody <- function(lambda, Temp=1e3) {
+  h <- 6.626068e-34 ; c <- 3e8; kb <- 1.3806503e-23   # constants
+  lambda <- lambda * 1e-6     # Convert from metres to microns
+  ( 2*pi*h*c^2 ) / ( lambda^5*( exp( (h*c)/(lambda*kb*Temp) ) - 1 ) )
+}
+
+
+
+Now plot the curve for the default temperature of 1000K, with some axis labels: 
+
+main <- "Planck blackbody curves"
+xlab <- expression(paste(Wavelength, " (", mu, "m)"))
+ylab <- expression(paste(Intensity, " ", (W/m^3)))
+col <- c("blue", "orange", "red")
+lty <- 1:3
+curve(blackbody(lambda=x), from=1, to=15, main=main, xlab=xlab, ylab=ylab, 
+      col=col[1])
+
+
+
+Finally, add 2 more curves for 900K and 800K: 
+
+curve(blackbody(lambda=x, T=900), add=T, col=col[2], lty=lty[2])
+curve(blackbody(lambda=x, T=800), add=T, col=col[3], lty=lty[3])
+legtext <- paste(c(1000, 900, 800), "K", sep="")
+legend("topright", inset=0.05, legend=legtext, lty=lty, col=col, text.col=col)
+
+
+?Print a copy to a PDF file (the resulting plot can be viewed here): 
+
+dev.copy2pdf(file="blackbody.pdf")  # Also "dev.copy2eps"
+
+
+
+
+Exercise 6: Interacting with the plot
+
+To find out the coordinates at a particular position on a graph, type: locator() then left click with the mouse any number of times within the axes and right click to end; the R prompt will then return and a list will be printed with the X and Y coordinates of the positions clicked. You can retain this information by repeating the above, but with A <- locator() the coordinates will then be stored in “A$x” and “A$y” 
+
+?To identify a particular point in a plot, use "identify", e.g: 
+
+x <- 1:10; y <- x^2
+plot(x, y)
+identify(x, y)
+
+
+Now left click near one or more points and the element number of that point will be printed at the bottom, left, top or right of the point, depending on which side of it you clicked. Right click inside the axes to finish, and the element numbers of the points identified will be printed, as for “locator”
+
+ This is more useful if you have named points, in which case “identify” can print the name instead of the element number, for example: 
+names(x) <- LETTERS[1:length(x)]
+plot(x, y)
+identify(x, y, labels=names(x))  # don't forget right click to finish!
+
+
+
+
+
+
+---------------------------------------------------------------
+parameters
+https://www.rdocumentation.org/packages/graphics/versions/3.4.0/topics/par
+
+graphical Parameters
+http://www.statmethods.net/advgraphs/parameters.html
+
+
+lty  =>  0=blank, 1=solid (default), 2=dashed, 3=dotted, 4=dotdash, 5=longdash, 6=twodash
+
+
+type => 
+p: Points
+l: Lines
+b: Both
+c: The lines part alone of b
+o: Both “overplotted”
+h: Histogram like (or high-density) vertical lines
+n: No plotting
+
+
+
+
+
+Plot function
+https://www.rdocumentation.org/packages/graphics/versions/3.4.0/topics/plot
+
+
+ cex  ("character expansion") controls the size of points.
+ lwd  controls the line width.
+ pch  controls the shape of points - you get 25 symbols to choose from, as well as alphabetic characters.
+ col  controls the color of the points.
+When  pch  is  21:25 , the points also get a background color which is set using  bg .
+
+ lty  controls the line type.  col  and  lwd  work in the same way as with points.
+
+
+plot(cos, -pi,  3*pi)
+
+
+---------------------------------------------------------------------
+Curve function
+https://www.rdocumentation.org/packages/graphics/versions/3.4.0/topics/curve
+
+
+

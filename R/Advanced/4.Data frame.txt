@@ -1,0 +1,260 @@
+https://www.datacamp.com/community/tutorials/15-easy-solutions-data-frame-problems-r#gs.gpoDxmY
+
+
+relating to Data frame
+
+head()
+
+
+
+example 1
+Died.At <- c(22,40,72,41)
+Writer.At <- c(16, 18, 36, 36)
+First.Name <- c("John", "Edgar", "Walt", "Jane")
+Second.Name <- c("Doe", "Poe", "Whitman", "Austen")
+Sex <- c("MALE", "MALE", "MALE", "FEMALE")
+Date.Of.Death <- c("2015-05-10", "1849-10-07", "1892-03-26","1817-07-18")
+
+
+# Make a vector with the help of c()
+writers_df <- c(First.Name, Second.Name, Sex,Writer.At,Died.At, Date.Of.Death)
+
+
+
+# Make a string with the help of str()
+str(writers_df)
+
+
+# Make the dataframe with the help of data.frame()
+
+writers_df <- data.frame(First.Name, Second.Name, Sex,Writer.At,Died.At, Date.Of.Death)
+
+   
+# above code will create a data frame with available column values as FACTORS. hence you can not modify the data other than the ones specified earlier
+
+#writers_df <- data.frame(First.Name, Second.Name, Sex,Writer.At,Died.At, Date.Of.Death,stringsAsFactors = FALSE)
+
+
+
+
+
+#changing Column Names
+names(writers_df) <- c("Name", "Surname","Gender","Age.As.Writer","Age.At.Death","Death")
+colnames(writers_df) <- c("Name", "Surname","Gender","Age.As.Writer","Age.At.Death","Death")
+
+
+#To check how many rows and columns you have in writers_df, you can use the dim() function:
+dim(writers_df)         #returns number of rows and columns
+dim(writers_df)[1]      #returns number of rows
+dim(writers_df)[2]      #returns number of Columns
+
+nrow(writers_df)
+ncol(writers_df)
+length(writers_df) 
+
+
+#Changing the values in the dataframe
+writers_df$Age.As.Writer
+writers_df$Age.As.Writer[2]
+writers_df$Age.As.Writer[3]<-66
+writers_df$Age.As.Writer
+
+Accessing Rows and Columns
+
+writers_df[1:2,3]
+writers_df[2,3]
+writers_df[2,]
+writers_df[,2]
+
+Manipulating column values 
+
+1.Numeric Manipulation
+writers_df$Age.At.Death<-writers_df$Age.At.Death-1
+
+
+2.Character Manipulation 
+
+writers_df[1,1]<-"Priya"
+writers_df[1,3]<-"FEMAL"
+
+class(writers_df$Name)
+print(is.factor(writers_df$Name))
+
+writers_df[1,1]<-"John"
+
+
+
+
+
+#Wrong Method of Assigning Value
+#writers_df[is.na(writers_df[1,1])] <-"Priya"
+
+
+
+#if(is.na(writers_df[1,1]))
+#{
+#print(writers_df[1,1])
+#writers_df <- data.frame(lapply(writers_df, as.character), stringsAsFactors=FALSE)
+#writers_df[1,1]<-"Prem"
+#print(writers_df[1,1])
+#}
+
+
+
+
+Factoring and Defactoring Concept
+
+Factor to Character Conversion
+writers_df <- data.frame(lapply(writers_df, as.character), stringsAsFactors=FALSE)
+class(writers_df$Name)
+
+writers_df[1,1]<-"Priya"
+writers_df[1,3]<-"FEMALE"
+
+
+Dealing with NA value occurance
+
+m <- matrix(sample(c(NA, 1:10), 100, replace = TRUE), 10)
+d <- as.data.frame(m)
+d[is.na(d)] <- 0
+
+
+
+
+
+Create An Empty Data Frame
+ab <- data.frame()
+
+Age <- numeric()
+
+Name <- character()
+
+ID <- integer()
+
+Gender <- factor()
+
+Date <- as.Date(character())
+
+ab <- data.frame(c(Age, Name, ID, Gender, Date))
+
+
+ab
+
+
+Subsetting the Dataframe
+
+writers_df[1:4, 1:2]   #1:4 implies rowlimit and 1:2 implies column limit
+#writers_df[1:4, 2:3]
+#writers_df[1:4, 3:4]
+
+writer_names_df <- writers_df[1:4, 1:2]
+writer_names_df2 <- writers_df[1:4, c("Name", "Surname")]
+
+#be careful when you are subsetting just one column
+# Don't read subset as a vector
+
+writer_names_df <- writers_df[1:4, "Name", drop=FALSE]
+
+
+
+# Subset with ranges of values
+
+young_writers_df <- subset(writers_df, Age.At.Death <= 40 & Age.As.Writer >= 18)
+
+#subset on the name value 'Jane'
+jane_writers_df <- subset(writers_df, Name =="Jane")
+
+# Subset with 'grep()'
+forty_writers_df <- writers_df[grep("4", writers_df$Age.At.Death),]
+
+
+# Subset the male writers 
+
+male_writers_df <- writers_df[Gender =="Male",]
+
+
+
+# Make Strings of `male_writers_df` values
+
+str(male_writers_df)
+
+
+
+# Remove `Gender` factor levels
+
+
+factor("Gender")
+
+
+
+
+
+Adding additional Columns to the Data frame
+
+writers_df$Location <- c("Belgium", "United Kingdom", "United States", "United Kingdom")
+
+Adding additional rows to the Data frame
+new_row <- c("Roberto", "Bolano", "MALE",50, 22, "2003-07-15")
+writers_df <- rbind(writers_df, new_row)
+
+
+
+Removing the Column from the data frame
+writers_df[,6] <- NULL
+
+
+Removing a row from the data frame
+
+rows_to_keep <- c(TRUE, FALSE, TRUE, FALSE)
+limited_writers_df <- writers_df[rows_to_keep,]
+less_writers_df <- writers_df[!rows_to_keep,]
+
+forty_sth_writers <- writers_df[writers_df$Age.At.Death > 40,]
+
+
+
+Reshape An R Data Frame From Wide To Long Format 
+
+# Define rows 
+
+Subject <- c(1,2,1,2,2,1)
+
+Gender <- c("M", "F", "M", "F", "F","M")
+
+Test <- c("Read", "Write", "Write", "Listen", "Read", "Listen")
+
+Result <- c(10, 4, 8, 6, 7, 7)
+
+
+
+observations_long <- data.frame(Subject, Gender, Test, Result)
+
+# Define columns
+Subject <- c(1,2)
+Gender <- c("M", "F")
+Read <- c(10, 7)
+Write <-c(8, 4)
+Listen <- c(7, 6)
+observations_wide <- data.frame(Subject, Gender, Read, Write, Listen)
+observations_wide
+class(observations_wide)
+
+
+
+
+
+
+
+Fetching Data from dataframe based on our Requirements
+
+aq <- transform(airquality, Month = factor(Month, labels = month.abb[5:9]))
+aq <- subset(aq, Month != "Jul")
+table(           aq $Month)
+table(droplevels(aq)$Month)
+
+#i<-sapply(writers_df$Name, is.factor)
+#writers_df$Name[i] <- lapply(writers_df$Name[i], as.character)
+
+
+
+

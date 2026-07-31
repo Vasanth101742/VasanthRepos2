@@ -1,0 +1,72 @@
+Binomial distribution
+
+The binomial distribution is a discrete probability distribution. It describes the outcome of n independent trials in an experiment. 
+Each trial is assumed to have only two outcomes, either success or failure. If the probability of a successful trial is p, 
+then the probability of having x successful outcomes in an experiment of n independent trials is as follows. 
+
+Problem
+
+Suppose there are twelve multiple choice questions in an English class quiz. 
+Each question has five possible answers, and only one of them is correct. 
+Find the probability of having four or less correct answers if a student attempts to answer every question at random. 
+
+ 
+Solution
+
+Since only one out of five possible answers is correct, the probability of answering a question correctly by random is 1/5=0.2. 
+We can find the probability of having exactly 4 correct answers by random attempts as follows. 
+ 
+> dbinom(4, size=12, prob=0.2) 
+[1] 0.1329 
+
+To find the probability of having four or less correct answers by random attempts, we apply the function dbinom with x = 0,…,4. 
+ 
+> dbinom(0, size=12, prob=0.2) + 
++ dbinom(1, size=12, prob=0.2) + 
++ dbinom(2, size=12, prob=0.2) + 
++ dbinom(3, size=12, prob=0.2) + 
++ dbinom(4, size=12, prob=0.2) 
+[1] 0.9274 
+
+
+Alternatively, we can use the cumulative probability function for binomial distribution pbinom. 
+ 
+> pbinom(4, size=12, prob=0.2) 
+[1] 0.92744 
+
+
+-----------------------------------------------------------------------------------------------------------------------------------
+
+
+Poisson Distribution
+
+
+
+The Poisson distribution is the probability distribution of independent event occurrences in an interval. 
+If ? is the mean occurrence per interval, then the probability of having x occurrences within a given interval is: 
+
+
+Problem
+
+If there are twelve cars crossing a bridge per minute on average, find the probability of having seventeen or 
+more cars crossing the bridge in a particular minute. 
+
+ 
+Solution
+
+The probability of having sixteen or less cars crossing the bridge in a particular minute is given by the function ppois. 
+ 
+> ppois(16, lambda=12)   # lower tail 
+[1] 0.89871 
+
+Hence the probability of having seventeen or more cars crossing the bridge in a minute is in the upper tail of the probability density function. 
+ 
+> ppois(16, lambda=12, lower=FALSE)   # upper tail 
+[1] 0.10129 
+
+ 
+
+Answer
+
+If there are twelve cars crossing a bridge per minute on average, the probability of having seventeen or more cars crossing the bridge 
+in a particular minute is 10.1%. 

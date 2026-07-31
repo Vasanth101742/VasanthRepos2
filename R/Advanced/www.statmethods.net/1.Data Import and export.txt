@@ -1,0 +1,166 @@
+Importing Data 
+
+Importing data into R is fairly simple. For Stata and Systat, use the foreign package. For SPSS and SAS I would recommend the Hmisc package for ease and functionality. See the Quick-R section on packages, for information on obtaining and installing the these packages. Example of importing data are provided below. 
+
+
+1.From A Comma Delimited Text File
+
+
+# first row contains variable names, comma is separator 
+ # assign the variable id to row names
+ # note the / instead of \ on mswindows systems 
+
+ mydata <- read.table("c:/mydata.csv", header=TRUE, 
+    sep=",", row.names="id")
+
+
+read.table(
+file, 
+header = FALSE,       						#heading --logical
+sep = "",             						#Field Seperator -- "\n", "\t", "", ","
+quote = "\"'",        						#Quoting Characters used in the input file
+dec = ".", 	      						#character used to represent the decimal notation
+numerals = c("allow.loss", "warn.loss", "no.loss"),    		#decides the status of accuracy level of the numeric data in the input file
+row.names,     							#rowname
+col.names,     							#column name
+as.is = !stringsAsFactors,  					#indicating not to consider the string data as Factors Type
+na.strings = "NA", 
+colClasses = NA, 
+nrows = -1,    							#indicating number of rows to Read from the file.negative values if given ,all rows will be fetched
+skip = 0,      							#indicating no of rows to ingore before start reading the data
+check.names = TRUE,    						#ensure valid variable names in the dataframe variable. i.e no duplicate columns,invalid column format. 
+								#if so, it can be corrected by make.names()
+fill = !blank.lines.skip,					#if rows have unequal length of values,fill the rows with blank column instead of skipping it
+strip.white = FALSE, 						#remove the leading and trailing whitespace in the string data
+blank.lines.skip = TRUE,					#skip the blank row
+comment.char = "#",
+allowEscapes = FALSE, 
+flush = FALSE,
+stringsAsFactors = default.stringsAsFactors(),
+fileEncoding = "", 
+encoding = "unknown", 
+text, 
+skipNul = FALSE                                                #indicates to consider the null values
+)
+
+
+
+If there aren’t any classes that you want to change from their defaults, you can read in the first few rows, 
+determine the classes from that, and then import the rest of the file:
+ 
+
+sampleData <- read.csv("huge-file.csv", header = TRUE, nrows = 5)
+classes <- sapply(sampleData, class)
+largeData <- read.csv("huge-file.csv", header = TRUE, colClasses = classes)
+str(largeData)
+
+
+make.names(names, unique = FALSE, allow_ = TRUE)
+
+Arguments
+
+names --character vector to be coerced to syntactically valid names. This is coerced to character if necessary.
+ 
+unique --logical; if TRUE, the resulting elements are unique. This may be desired for, e.g., column names.
+ 
+allow_ --logical. For compatibility with R prior to 1.9.0.
+ 
+
+# character vector mimicking readLine output, lines 2, 4, and 5 are blank
+lines <- c("aaa", "", "ccc", "", "")
+# [1] "aaa" ""    "ccc" ""    ""
+
+# select lines which are blank
+lines[which(lines=="")]
+# [1] "" "" ""
+
+# conversely, lines which are not
+lines[which(lines!="")]
+# [1] "aaa" "ccc"
+
+
+2.From Excel
+
+
+Reference : http://www.sthda.com/english/wiki/r-xlsx-package-a-quick-start-guide-to-manipulate-excel-files-in-r
+
+
+One of the best ways to read an Excel file is to export it to a comma delimited file and import it using the method above. Alternatively you can use the xlsx package to access Excel files. The first row should contain variable/column names. 
+
+
+# read in the first worksheet from the workbook myexcel.xlsx
+ # first row contains variable names
+ library(xlsx)
+ mydata <- read.xlsx("c:/myexcel.xlsx", 1)
+
+ # read in the worksheet named mysheet
+ mydata <- read.xlsx("c:/myexcel.xlsx", sheetName = "mysheet") 
+
+
+3. From Database
+
+
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------
+
+Keyboard Input 
+
+Usually you will obtain a data frame by importing it from SAS, SPSS, Excel, Stata, a database, or an ASCII file. To create it interactively, you can do something like the following. 
+
+
+# create a data frame from scratch 
+ age <- c(25, 30, 56)
+ gender <- c("male", "female", "male")
+ weight <- c(160, 110, 220) 
+ mydata <- data.frame(age,gender,weight) 
+
+You can also use R's built in spreadsheet to enter the data interactively, as in the following example. 
+
+
+# enter data using editor 
+ mydata <- data.frame(age=numeric(0), gender=character(0), weight=numeric(0))
+ mydata <- edit(mydata)
+ # note that without the assignment in the line above, 
+ # the edits are not saved! 
+
+
+--------------------------------------------------------------------------------------------------------------------
+
+
+Exporting Data 
+
+There are numerous methods for exporting R objects into other formats . For SPSS, SAS and Stata, you will need to load the foreign packages. For Excel, you will need the xlsReadWrite package. 
+
+To A Tab Delimited Text File
+
+
+write.table(mydata, "c:/mydata.txt", sep="\t") 
+
+
+write.table(
+x, 					#Data to be written
+file = "", 				#Output FileName
+append = FALSE, 			#Whether to add with the existing file data or create a new file
+quote = TRUE, 				#Indicates Character type columns will be Quoted
+sep = " ",				#Field Seperator
+eol = "\n", 				#End of Line
+na = "NA", 				#Missing values to be named as NA
+dec = ".", 				#Decimal Representing Character
+row.names = TRUE,
+col.names = TRUE, 
+qmethod = c("escape", "double"),
+fileEncoding = "")
+
+
+
+
+
+To an Excel Spreadsheet 
+
+library(xlsx)
+ write.xlsx(mydata, "c:/mydata.xlsx") 

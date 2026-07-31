@@ -1,0 +1,18 @@
+
+Data Analytics Related
+http://www.mckinsey.com/business-functions/operations/our-insights/how-big-data-can-improve-manufacturing
+
+
+
+Data Analytics
+
+https://www.snia.org/sites/default/education/tutorials/2012/fall/big_data/RobPeglar_Introduction_to_Analytics_Big_Data_Hadoop.pdf
+
+
+
+Data Mining Concepts
+
+http://hanj.cs.illinois.edu/bk1/
+
+BI Concepts
+http://mahedee.net/basic-concepts-of-business-intelligence-bi/

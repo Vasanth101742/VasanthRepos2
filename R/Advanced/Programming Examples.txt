@@ -1,0 +1,56 @@
+Example: Take input from user
+my.name <- readline(prompt="Enter name: ")
+my.age <- readline(prompt="Enter age: ")
+
+# convert character into integer
+my.age <- as.integer(my.age)
+
+print(paste("Hi,", my.name, "next year you will be", my.age+1, "years old."))
+
+
+
+-----------------------------------------------------------------
+
+
+Example: Check Leap Year
+
+# Program to check if
+# the input year is
+# a leap year or not
+
+year = as.integer(readline(prompt="Enter a year: "))
+if((year %% 4) == 0) {
+    if((year %% 100) == 0) {
+        if((year %% 400) == 0) {
+            print(paste(year,"is a leap year"))
+        } else {
+            print(paste(year,"is not a leap year"))
+        }
+    } else {
+        print(paste(year,"is a leap year"))
+    }
+} else {
+    print(paste(year,"is not a leap year"))
+}
+
+
+
+Output 1
+Enter a year: 1900
+[1] "1900 is not a leap year"
+
+
+Output 2
+Enter a year: 2000
+[1] "2000 is a leap year"
+
+
+If a year is divisible by 4, 100 and 400, it's a leap year.
+
+If a year is divisible by 4 and 100 but not divisible by 400, it's not a leap year.
+
+If a year is divisible by 4 but not divisible by 100, it's a leap year.
+
+If a year is not divisible by 1, it's not a leap year.
+
+This logic is implemented in the above program using nested if...else statement.

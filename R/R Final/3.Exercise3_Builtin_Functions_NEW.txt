@@ -1,0 +1,204 @@
+data() 		#List of data sets available in the available packages
+colors()	#List of colors
+
+
+#Getting Information on a Dataset
+
+ls() 			# list objects in the working environment
+names(mydata)		# list the variables in mydata
+str(mydata)		# list the structure of mydata
+class(object)		# class of an object (numeric, matrix, data frame, etc)
+mydata			# print mydata 
+head(mydata, n=10)	# print first 10 rows of mydata
+tail(mydata, n=5) 	# print last 5 rows of mydata
+levels(mydata$v1) 	# list levels of factor v1 in mydata
+dim(object) 		# dimensions of an object
+
+
+#Missing Data
+
+x <- c(1,2,3,NA)
+is.na(x)
+
+x[1]<-NA		#Assigning NA value
+
+
+x <- c(1,2,NA,3)	
+mean(x)			#Data Operations
+mean(x, na.rm=TRUE)
+
+y <- na.omit(x) 	#removing NA values
+
+
+#Dates
+
+mydates <- as.Date(c("2007-06-22", "2004-02-13"))
+days <- mydates[1] - mydates[2]
+print(days)
+
+Sys.Date()		#returns today's date. 
+Date()			#returns the current date and time. 
+
+
+#The following symbols can be used with the format( ) function to print dates. 
+
+# Symbol Meaning                       Example 
+# %d     day as a number (0-31)        01-31 
+# %a     abbreviated weekday 	       Mon
+# %A     unabbreviated weekday         Monday 
+# %m     month (00-12)                 00-12 
+# %b     abbreviated month	       Jan
+# %B     unabbreviated month  	       January 
+# %y     2-digit year  		       07
+# %Y     4-digit year  		       2007 
+
+# print today's date
+print(format(today, format="%B %d %Y"))
+print(format(today, format="%b %d %Y"))
+print(format(today, format="%b %A %d %y"))
+
+
+# convert date info in format 'mm/dd/yyyy'
+strDates <- c("01/05/1965", "08/16/1975")
+dates <- as.Date(strDates, "%m/%d/%Y") 
+print(dates)
+
+str(strDates)
+str(dates)
+
+
+
+mydates2 <- as.Date(c("2007-06-22", "2004-02-13"))
+
+# convert dates to character data
+
+strDates2 <- as.character(dates) 
+
+
+
+
+
+
+#Numeric Functions
+x<-c(3.47489,1.234,-5.241,7.112)
+abs(x) 			#absolute value  
+sqrt(x) 		#square root  
+ceiling(x) 	
+floor(x) 		
+trunc(x) 		
+log(x) 			#natural logarithm 
+log10(x) 		#common logarithm  
+exp(x) 			#e^x 
+
+n<-2
+round(x, digits=n)  	
+signif(x, digits=n)  
+cos(x) 
+sin(x)
+tan(x)  
+
+a<-2
+acos(x)
+cosh(x) 
+acosh(x)
+
+
+
+
+
+#--------------------------------------------------------------------------
+
+#Character Functions
+
+#1.Substring/Replace
+
+
+#substr(x, start=n1, stop=n2)
+
+x <- "abCDEf" 
+x
+y<-substr(x, 2, 4) 
+y
+substr(x, 2, 4) <- "22222"
+print(x)
+
+
+#2. Searching a pattern
+grep("B", c("b","A","c"), ignore.case=FALSE,fixed=FALSE)
+grep("B", c("b","A","c"), ignore.case=TRUE,fixed=FALSE)
+grep("B", c("b","A","c"), ignore.case=TRUE,fixed=TRUE)
+
+grep("User", c("R is USer Friendly","Enter UserName",""), ignore.case=TRUE,fixed=FALSE)
+
+
+#3. Searching a pattern and Replace
+
+#sub(pattern, replacement, x, ignore.case =FALSE, fixed=FALSE)
+sub("\\s",".","Hello There")
+sub("llo"," is ","Hello There")
+
+
+
+#4.splitting the String Data
+#strsplit(x, split) 
+
+strsplit("abc", "")
+strsplit("a_b;c", "_")
+strsplit("a_b;c", ";")
+
+
+
+
+#5.Miscellaneous
+paste("Today is", date())  
+x<-"AbcdEFGHijkl"
+toupper(x) #Uppercase 
+tolower(x) #Lowercase 
+
+
+indices <- seq(1,10,2)
+y <- rep(1:3, 5)
+Z <- stats::rnorm(10)
+
+table(cut(Z, breaks = -6:6))
+table(cut(Z, breaks = -2:2))
+table(cut(Z, breaks = -1:1))
+
+
+
+#6.Statistical Functions
+
+
+x<-c(1,2,3,4,NA,7,NA,8,9,10)
+mean_of_x=mean(x, trim=0, na.rm=FALSE)
+SD_of_x=sd(x)
+
+
+
+
+7.apply function
+
+apply(), which operates on arrays. 
+For simplicity, the tutorial limits itself to 2D arrays, which are also known as matrices.
+
+
+apply(X, MARGIN, FUN, ...)
+
+MARGIN=1, it applies over rows, 
+MARGIN=2, it works over columns. 
+MARGIN=c(1,2), it applies to both rows and columns
+
+
+x=matrix(1:100,10,10)
+apply(x,1,sum)
+apply(x,2,sum)
+
+addtwo<- function(x)
+(
+x<-x+2
+)
+
+apply(x,1,addtwo)
+apply(x,2,addtwo)
+
+

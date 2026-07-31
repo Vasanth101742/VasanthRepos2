@@ -1,0 +1,19 @@
+Useful plotting functions 
+
+lines, points, abline, curve, text, rug, legend,segments, arrows, polygon,locator, identify    # For interacting with plots
+
+
+lty Parameters in curve Function
+0 blank
+1 solid 
+2 dashed 
+3 dotted
+4 dotdash
+5 longdash
+6 twodash
+
+Type Parameters in Plot Function
+"l","b","c","o","s","h","n"
+
+
+curve(expr, from, to, n = 101, add = FALSE, type = "l",ylab = NULL, log = NULL, xlim = NULL, ...)

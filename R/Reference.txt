@@ -1,0 +1,44 @@
+https://cran.r-project.org/doc/contrib/usingR.pdf
+
+https://www.bioconductor.org/help/course-materials/2006/rforbioinformatics/labs/thurs/DBI-howto.pdf
+
+
+Image Processing in R
+https://cran.r-project.org/web/packages/magick/vignettes/intro.html
+
+MS Sql Server Connection using R
+https://statistical-research.com/wp-content/uploads/2012/09/database-connect.pdf
+
+Function Programming in R
+https://campus.datacamp.com/courses/writing-functions-in-r/a-quick-refresher?ex=1
+
+Data Mining Concepts
+https://cs.wmich.edu/~yang/teach/cs595/han/ch01.pdf
+
+
+R Programming Examples
+https://www.programiz.com/r-programming/examples/simple-calculator
+
+List of R Commands
+https://en.wikibooks.org/wiki/Data_Science:_An_Introduction/250_R_Commands
+
+R with SQL Server 
+https://www.red-gate.com/simple-talk/dotnet/software-tools/sql-and-r/
+
+Task Scheduler
+https://cran.r-project.org/web/packages/taskscheduleR/README.html
+
+Data Plotting 
+http://www.cyclismo.org/tutorial/R/intermediatePlotting.html#miscellaneous-options
+
+http://www.statmethods.net/graphs/pie.html
+
+
+Importing data into R
+https://www.datacamp.com/community/tutorials/r-tutorial-read-excel-into-r#gs.3XqKR_Y
+
+searching the data from the data frame
+https://stackoverflow.com/questions/20782218/how-to-find-row-number-of-a-value-in-r-code
+
+
+

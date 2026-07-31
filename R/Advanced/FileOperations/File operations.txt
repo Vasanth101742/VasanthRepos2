@@ -1,0 +1,182 @@
+From A Comma Delimited Text File
+
+
+# first row contains variable names, comma is separator 
+ # assign the variable id to row names
+ # note the / instead of \ on mswindows systems 
+
+ mydata <- read.table("c:/mydata.csv", header=TRUE, 
+    sep=",", row.names="id")
+
+(To practice importing a csv file, try this exercise.)
+
+From Excel
+
+One of the best ways to read an Excel file is to export it to a comma delimited file and import it using the method above. Alternatively you can use the xlsx package to access Excel files. The first row should contain variable/column names. 
+
+
+# read in the first worksheet from the workbook myexcel.xlsx
+ # first row contains variable names
+ library(xlsx)
+ mydata <- read.xlsx("c:/myexcel.xlsx", 1)
+
+ # read in the worksheet named mysheet
+ mydata <- read.xlsx("c:/myexcel.xlsx", sheetName = "mysheet") 
+
+
+(To practice, try this  exercise on importing an Excel worksheet into R.)
+
+From SPSS
+
+
+# save SPSS dataset in trasport format
+ get file='c:\mydata.sav'.
+ export outfile='c:\mydata.por'. 
+
+ # in R 
+ library(Hmisc)
+ mydata <- spss.get("c:/mydata.por", use.value.labels=TRUE)
+ # last option converts value labels to R factors 
+
+(To practice importing SPSS data with the foreign package, try this exercise.)
+
+From SAS
+
+
+# save SAS dataset in trasport format
+ libname out xport 'c:/mydata.xpt';
+ data out.mydata;
+ set sasuser.mydata;
+ run;
+
+ # in R 
+ library(Hmisc)
+ mydata <- sasxport.get("c:/mydata.xpt")
+ # character variables are converted to R factors 
+
+From Stata
+
+
+# input Stata file
+ library(foreign)
+ mydata <- read.dta("c:/mydata.dta") 
+
+(To practice importing Stata data with the foreign package, try this exercise.)
+
+From systat 
+
+
+# input Systat file
+ library(foreign)
+ mydata <- read.systat("c:/mydata.dta") 
+
+
+
+
+----------------------------------------------------------------------------------
+ 
+Exporting Data 
+
+There are numerous methods for exporting R objects into other formats . For SPSS, SAS and Stata, 
+you will need to load the foreign packages. For Excel, you will need the xlsReadWrite package. 
+
+To A Tab Delimited Text File
+
+
+write.table(mydata, "c:/mydata.txt", sep="\t") 
+
+To an Excel Spreadsheet 
+
+
+library(xlsx)
+ write.xlsx(mydata, "c:/mydata.xlsx") 
+
+(To work with R and Excel, try this interactive course on importing data in R.)
+
+To SPSS
+
+
+# write out text datafile and
+ # an SPSS program to read it
+ library(foreign)
+ write.foreign(mydata, "c:/mydata.txt", "c:/mydata.sps",   package="SPSS") 
+
+(Alternatively, to practice importing SPSS data with the foreign package, try this exercise.)
+
+To SAS
+
+
+# write out text datafile and
+ # an SAS program to read it
+ library(foreign)
+ write.foreign(mydata, "c:/mydata.txt", "c:/mydata.sas",   package="SAS") 
+
+To Stata
+
+
+# export data frame to Stata binary format 
+ library(foreign)
+ write.dta(mydata, "c:/mydata.dta") 
+
+----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+
+
+
+
+
+Writing the Binary File
+
+We read the data frame "mtcars" as a csv file and then write it as a binary file to the OS.
+# Read the "mtcars" data frame as a csv file and store only the columns 
+   "cyl", "am" and "gear".
+write.table(mtcars, file = "mtcars.csv",row.names = FALSE, na = "", 
+   col.names = TRUE, sep = ",")
+
+# Store 5 records from the csv file as a new data frame.
+new.mtcars <- read.table("mtcars.csv",sep = ",",header = TRUE,nrows = 5)
+
+# Create a connection object to write the binary file using mode "wb".
+write.filename = file("/web/com/binmtcars.dat", "wb")
+
+# Write the column names of the data frame to the connection object.
+writeBin(colnames(new.mtcars), write.filename)
+
+# Write the records in each of the column to the file.
+writeBin(c(new.mtcars$cyl,new.mtcars$am,new.mtcars$gear), write.filename)
+
+# Close the file for writing so that it can be read by other program.
+close(write.filename)
+
+Reading the Binary File
+
+The binary file created above stores all the data as continuous bytes. So we will read it by choosing appropriate values of column names as well as the column values.
+# Create a connection object to read the file in binary mode using "rb".
+read.filename <- file("/web/com/binmtcars.dat", "rb")
+
+# First read the column names. n = 3 as we have 3 columns.
+column.names <- readBin(read.filename, character(),  n = 3)
+
+# Next read the column values. n = 18 as we have 3 column names and 15 values.
+read.filename <- file("/web/com/binmtcars.dat", "rb")
+bindata <- readBin(read.filename, integer(),  n = 18)
+
+# Print the data.
+print(bindata)
+
+# Read the values from 4th byte to 8th byte which represents "cyl".
+cyldata = bindata[4:8]
+print(cyldata)
+
+# Read the values form 9th byte to 13th byte which represents "am".
+amdata = bindata[9:13]
+print(amdata)
+
+# Read the values form 9th byte to 13th byte which represents "gear".
+geardata = bindata[14:18]
+print(geardata)
+
+# Combine all the read values to a dat frame.
+finaldata = cbind(cyldata, amdata, geardata)
+colnames(finaldata) = column.names
+print(finaldata)

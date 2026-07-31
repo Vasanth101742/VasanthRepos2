@@ -1,0 +1,198 @@
+integrate {stats} R Documentation 
+
+Integration of One-Dimensional Functions
+
+Description
+
+Adaptive quadrature of functions of one variable over a finite or infinite interval. 
+
+Usage
+integrate(f, lower, upper, ..., subdivisions = 100L,
+          rel.tol = .Machine$double.eps^0.25, abs.tol = rel.tol,
+          stop.on.error = TRUE, keep.xy = FALSE, aux = NULL)
+
+
+Arguments
+
+f 
+an R function taking a numeric first argument and returning a numeric vector of the same length. Returning a non-finite element will generate an error.
+ 
+lower, upper 
+the limits of integration. Can be infinite.
+ 
+... 
+additional arguments to be passed to f.
+ 
+subdivisions 
+the maximum number of subintervals.
+ 
+rel.tol 
+relative accuracy requested.
+ 
+abs.tol 
+absolute accuracy requested.
+ 
+stop.on.error 
+logical. If true (the default) an error stops the function. If false some errors will give a result with a warning in the message component.
+ 
+keep.xy 
+unused. For compatibility with S.
+ 
+aux 
+unused. For compatibility with S.
+ 
+
+Details
+
+Note that arguments after ... must be matched exactly. 
+
+If one or both limits are infinite, the infinite range is mapped onto a finite interval. 
+
+For a finite interval, globally adaptive interval subdivision is used in connection with extrapolation by Wynn's Epsilon algorithm, with the basic step being Gauss–Kronrod quadrature. 
+
+rel.tol cannot be less than max(50*.Machine$double.eps, 0.5e-28) if abs.tol <= 0. 
+
+In R versions <= 3.2.x, the first entries of lower and upper were used whereas an error is signalled now if they are not of length one. 
+
+Value
+
+A list of class "integrate" with components 
+
+value 
+the final estimate of the integral.
+ 
+abs.error 
+estimate of the modulus of the absolute error.
+ 
+subdivisions 
+the number of subintervals produced in the subdivision process.
+ 
+message 
+"OK" or a character string giving the error message.
+ 
+call 
+the matched call.
+ 
+
+Note
+
+Like all numerical integration routines, these evaluate the function on a finite set of points. If the function is approximately constant (in particular, zero) over nearly all its range it is possible that the result and error estimate may be seriously wrong. 
+
+When integrating over infinite intervals do so explicitly, rather than just using a large number as the endpoint. This increases the chance of a correct answer – any function whose integral over an infinite interval is finite must be near zero for most of that interval. 
+
+For values at a finite set of points to be a fair reflection of the behaviour of the function elsewhere, the function needs to be well-behaved, for example differentiable except perhaps for a small number of jumps or integrable singularities. 
+
+f must accept a vector of inputs and produce a vector of function evaluations at those points. The Vectorize function may be helpful to convert f to this form. 
+
+Source
+
+Based on QUADPACK routines dqags and dqagi by R. Piessens and E. deDoncker–Kapenga, available from Netlib. 
+
+References
+
+R. Piessens, E. deDoncker–Kapenga, C. Uberhuber, D. Kahaner (1983) Quadpack: a Subroutine Package for Automatic Integration; Springer Verlag. 
+
+Examples
+integrate(dnorm, -1.96, 1.96)
+integrate(dnorm, -Inf, Inf)
+
+## a slowly-convergent integral
+integrand <- function(x) {1/((x+1)*sqrt(x))}
+integrate(integrand, lower = 0, upper = Inf)
+
+## don't do this if you really want the integral from 0 to Inf
+integrate(integrand, lower = 0, upper = 10)
+integrate(integrand, lower = 0, upper = 100000)
+integrate(integrand, lower = 0, upper = 1000000, stop.on.error = FALSE)
+
+## some functions do not handle vector input properly
+f <- function(x) 2.0
+try(integrate(f, 0, 1))
+integrate(Vectorize(f), 0, 1)  ## correct
+integrate(function(x) rep(2.0, length(x)), 0, 1)  ## correct
+
+## integrate can fail if misused
+integrate(dnorm, 0, 2)
+integrate(dnorm, 0, 20)
+integrate(dnorm, 0, 200)
+integrate(dnorm, 0, 2000)
+integrate(dnorm, 0, 20000) ## fails on many systems
+integrate(dnorm, 0, Inf)   ## works
+
+integrate(dnorm, 0:1, 20) #-> error!
+## "silently" gave  integrate(dnorm, 0, 20)  in earlier versions of R
+
+
+------------------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------------------
+
+For 2D, see package 'adapt' on CRAN. e.g.
+
+adapt(2, c(0,0), c(1,1), functn=function(x) sin(prod(x))*exp(x[1]-x[2]))
+
+Package `adapt' will do larger numbers of dimensions, but numerical 
+quadrature is often no more effective than Monte-Carlo methods in more 
+than a few dimensions.  For very smooth functions, quasi-random numbers 
+can help.
+
+A good reference aimed at statisticians is
+
+@Book{Evans.Swartz.00,
+   author =       {Michael Evans and Tim Swartz},
+   title =        {Approximating Integrals via Monte Carlo and
+                   Deterministic Methods},
+   publisher =    {Oxford University Press},
+   year =         2000,
+   address =      {Oxford},
+   ISBN =         "0-19-850278-8",
+}
+
+BTW, we are not good are predicting to 2014, but fairly good at the 
+present.  In this case I could not guess a good search term on
+http://search.r-project.org, but it often gets you there.  It has a 
+`complete' list of packages, as does CRAN, and searching those pages for 
+`integrate' works.
+
+Brian
+
+On Thu, 10 Mar 2005, Nils-at-Duke Lid Hjort wrote:
+
+> I find the one-dimensional "integrate" very helpful,
+> but often enough I stumble into problems that require
+> two (or more)-dimensional integrals. I suppose there
+> are no R functions that can do this for me, "directly"?
+>
+> The ideal thing would be to be able to define say
+> f <- function(x)
+> {
+> x1 <- x[1]
+> x2 <- x[2]
+> sin(x1*x2)*exp(x1-x2)
+> }
+> and then write say
+> integrate(f, xlim=c(0,1), ylim=c(0,1))  .
+>
+> (a) No such thing exists, as of today, right?
+> (b) There *are* general numerical routines "out there"
+> for doing such things, right? (Importance sampling
+> or adaptive important sampling would often do the
+> job, but it would be difficult to find something that
+> "always" works -- at least in higher dimension?
+> Also, iterated one-dimensional integrations could
+> be attempted, but I find that messy, also because
+> things lose the g(many) = many(g) property, and
+> then R refuses to integrate g.)
+> (c) Will a thing like the above exist in R before
+> the Tromsoe Olympics in 2014? For which dimensions? 
+> Nils Lid Hjort
+> [Professor of statistics at Oslo, but currently at Duke]
+
+
+-- 
+Brian D. Ripley,                  ripley at stats.ox.ac.uk
+Professor of Applied Statistics,  http://www.stats.ox.ac.uk/~ripley/
+University of Oxford,             Tel:  +44 1865 272861 (self)
+1 South Parks Road,                     +44 1865 272866 (PA)
+Oxford OX1 3TG, UK                Fax:  +44 1865 272595
+
+

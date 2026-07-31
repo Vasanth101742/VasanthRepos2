@@ -1,0 +1,27 @@
+Ref:
+http://www.r-tutor.com/elementary-statistics/qualitative-data/frequency-distribution-qualitative-data
+
+
+We apply the table function to compute the frequency distribution of the School variable. 
+ 
+library(MASS)                 # load the MASS package 
+school = painters$School      # the painter schools 
+school.freq = table(school)   # apply the table function
+
+Enhanced Solution
+
+We apply the cbind function to print the result in column format. 
+ 
+cbind(school.freq) 
+
+
+Exercise
+
+1.Find the frequency distribution of the composition scores in painters. 
+Composition = painters$Composition      
+Composition.freq = table(Composition)
+Composition.freq
+cbind(Composition.freq) 
+
+2.Find programmatically the school that has the most painters.
+aggdata <-aggregate(painters, by=list(school), na.rm=TRUE)

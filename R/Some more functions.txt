@@ -1,0 +1,11 @@
+Apply Function
+
+https://stat.ethz.ch/R-manual/R-devel/library/base/html/apply.html
+https://www.r-bloggers.com/using-apply-sapply-lapply-in-r/
+
+
+
+Data Mining in R with Examples
+
+http://www.rdatamining.com/examples/exploration
+

@@ -1,0 +1,2 @@
+http://blog.revolutionanalytics.com/2013/10/r-and-signal-processing.html
+http://www.cs.tut.fi/~hehu/R_tutorial_spjc.pdf

@@ -1,0 +1,413 @@
+1.rug() function
+rug(x, 
+ticksize = 0.03, 
+side = 1, 
+lwd = 0.5, 
+col = par("fg"),
+quiet = getOption("warn") < 0, 
+...)
+
+
+
+x 		:A numeric vector
+ticksize	:The length of the ticks making up the ‘rug’. Positive lengths give inwards ticks.
+side 		:On which side of the plot box the rug will be plotted. Normally 
+		 1 (bottom) or 3 (top).
+		 if y vector is considered, then 2 (left) or 4 (right)
+lwd 		:The line width of the ticks. Some devices will round the default width up to 1.
+col 		:The colour the ticks are plotted in.
+quiet 		:logical, indicating if there should be a warning about clipped values.
+... 		further arguments, passed to axis(), such as line or pos for specifying the location of the rug.
+
+----------------------------------------------------- 
+
+2.axis() function
+
+axis(side, 
+at = NULL, 
+labels = TRUE, 
+tick = TRUE, 
+line = NA,
+pos = NA, 
+outer = FALSE, 
+font = NA, 
+lty = "solid",
+lwd = 1, 
+lwd.ticks = lwd, 
+col = NULL, 
+col.ticks = NULL,
+hadj = NA, 
+padj = NA, 
+...)
+
+
+
+side 	:an integer specifying which side of the plot the axis is to be drawn on. The axis is placed as follows: 1=below, 2=left, 3=above and 4=right.
+at 	:the points at which tick-marks are to be drawn. Non-finite (infinite, NaN or NA) values are omitted. 
+	 By default (when NULL) tickmark locations are computed, see ‘Details’ below.
+labels 	:this can either be a logical value specifying whether (numerical) annotations are to be made at the tickmarks, 
+	 or a character 
+	 or expression vector of labels to be placed at the tickpoints. (Other objects are coerced by as.graphicsAnnot.) 
+	 If this is not logical, at should also be supplied and of the same length. 
+	 If labels is of length zero after coercion, it has the same effect as supplying TRUE.
+ 
+tick 	:a logical value specifying whether tickmarks and an axis line should be drawn.
+line 	:the number of lines into the margin at which the axis line will be drawn, if not NA.
+pos 	:the coordinate at which the axis line is to be drawn: if not NA this overrides the value of line.
+outer 	:a logical value indicating whether the axis should be drawn in the outer plot margin, rather than the standard plot margin.
+font 	:font for text. Defaults to par("font").
+lty 	:line type for both the axis line and the tick marks.
+
+lwd, lwd.ticks 
+line widths for the axis line and the tick marks. Zero or negative values will suppress the line or ticks.
+col, col.ticks 
+colors for the axis line and the tick marks respectively. col = NULL means to use par("fg"), possibly specified inline, and col.ticks = NULL means to use whatever color col resolved to.
+ 
+hadj 	:adjustment (see par("adj")) for all labels parallel (‘horizontal’) to the reading direction. 
+	 If this is not a finite value, the default is used (centring for strings parallel to the axis, justification of the end nearest the axis otherwise).
+ 
+padj 	:adjustment for each tick label perpendicular to the reading direction. 
+	 For labels parallel to the axes, padj = 0 means right or top alignment, and padj = 1 means left or bottom alignment. 
+	 This can be a vector given a value for each string, and will be recycled as necessary. 
+	 If padj is not a finite value (the default), the value of par("las") determines the adjustment. 
+	 For strings plotted perpendicular to the axis the default is to centre the string.
+ 
+... 	:other graphical parameters may also be passed as arguments to this function, 
+	particularly, cex.axis, col.axis and font.axis for axis annotation, 
+	mgp and xaxp or yaxp for positioning, 
+	tck or tcl for tick mark length and direction, 
+	las for vertical/horizontal label orientation, 
+	or fg instead of col, and 
+	xpd for clipping. 	
+	Parameters xaxt (sides 1 and 3) and yaxt (sides 2 and 4) control if the axis is plotted at all. 
+
+Note that lab will partial match to argument labels unless the latter is also supplied. (Since the default axes have already been set up by plot.window, lab will not be acted on by axis.)
+ 
+
+
+---------------------------------------------------------------------
+
+text(x, y = NULL, 		
+labels = seq_along(x$x), 
+adj = NULL,
+pos = NULL, 
+offset = 0.5, 
+vfont = NULL,
+cex = 1, 
+col = NULL, 
+font = NULL, 
+...)
+
+
+
+Arguments
+
+x, y 	:numeric vectors of coordinates where the text labels should be written. If the length of x and y differs, the shorter one is recycled.
+ 
+labels 	:a character vector or expression specifying the text to be written. 
+	 An attempt is made to coerce other language objects (names and calls) to expressions, and vectors and 
+	 other classed objects to character vectors by as.character. If labels is longer than x and y, the coordinates are recycled to the length of labels.
+ 
+adj 	:one or two values in [0, 1] which specify the x (and optionally y) adjustment of the labels. On most devices values outside that interval will also work.
+ 
+pos 	:a position specifier for the text. If specified this overrides any adj value given. 
+	 Values of 1, 2, 3 and 4, respectively indicate positions below, to the left of, above and to the right of the specified coordinates.
+ 
+offset 	:when pos is specified, this value gives the offset of the label from the specified coordinate in fractions of a character width.
+ 
+vfont 	:NULL for the current font family, or a character vector of length 2 for Hershey vector fonts. 
+	 The first element of the vector selects a typeface and the second element selects a style. Ignored if labels is an expression.
+ 
+cex 	:numeric character expansion factor; multiplied by par("cex") yields the final character size. NULL and NA are equivalent to 1.0.
+ 
+col, font 
+the color and (if vfont = NULL) font to be used, possibly vectors. These default to the values of the global graphical parameters in par().
+ 
+... 
+further graphical parameters (from par), such as srt, family and xpd.
+ 
+---------------------------------------------------------------------
+points()
+lines()
+legend()
+
+title(
+main = NULL, 
+sub = NULL, 
+xlab = NULL, 
+ylab = NULL,
+line = NA, 
+outer = FALSE, 
+...)
+
+Arguments
+
+main 	:The main title (on top) using font, size (character expansion) and color par(c("font.main", "cex.main", "col.main")).
+sub 	:Sub-title (at bottom) using font, size and color par(c("font.sub", "cex.sub", "col.sub")).
+xlab 	:X axis label using font, size and color par(c("font.lab", "cex.lab", "col.lab")).
+ylab 	:Y axis label, same font attributes as xlab.
+line 	:specifying a value for line overrides the default placement of labels, and places them this many lines outwards from the plot edge.
+outer 	:a logical value. If TRUE, the titles are placed in the outer margins of the plot.
+ 
+... 
+
+----------------------------------------------------------------------
+
+
+plot(x, 
+y = NULL, 
+type = "p",  
+xlim = NULL, 
+ylim = NULL,
+log = "", 
+main = NULL, 
+sub = NULL, 
+xlab = NULL, 
+ylab = NULL,
+ann = par("ann"), 
+axes = TRUE, 
+frame.plot = axes,
+panel.first = NULL, 
+panel.last = NULL, 
+asp = NA, 
+...)
+
+
+Arguments
+
+x, y 	:the x and y arguments provide the x and y coordinates for the plot. 
+	 Any reasonable way of defining the coordinates is acceptable. 
+	 See the function xy.coords for details. If supplied separately, they must be of the same length.
+ 
+type 	:1-character string giving the type of plot desired. 
+	 The following values are possible, for details, see plot: 
+	"p" for points, 
+	"l" for lines, 
+	"b" for both points and lines, 
+	"c" for empty points joined by lines, 
+	"o" for overplotted points and lines, 
+	"s" and "S" for stair steps and 
+	"h" for histogram-like vertical lines. 
+	Finally, "n" does not produce any points or lines.
+ 
+xlim 	:the x limits (x1, x2) of the plot. Note that x1 > x2 is allowed and leads to a ‘reversed axis’. 
+	 The default value, NULL, indicates that the range of the finite values to be plotted should be used.
+ 
+ylim 	:the y limits of the plot.
+ 
+log 	:a character string which contains "x" if the x axis is to be logarithmic, 
+	 "y" if the y axis is to be logarithmic and 
+	 "xy" or "yx" if both axes are to be logarithmic.
+ 
+main 	:a main title for the plot, see also title.
+ 
+sub 	:a sub title for the plot.
+ 
+xlab 	:a label for the x axis, defaults to a description of x.
+ 
+ylab 	:a label for the y axis, defaults to a description of y.
+ 
+ann 	:a logical value indicating whether the default annotation (title and x and y axis labels) should appear on the plot.
+ 
+axes 	:a logical value indicating whether both axes should be drawn on the plot. 
+	 Use graphical parameter "xaxt" or "yaxt" to suppress just one of the axes.
+ 
+
+pch		:The full set of S symbols is available with pch = 0:18
+
+frame.plot :a logical indicating whether a box should be drawn around the plot.
+ 
+panel.first 	:an ‘expression’ to be evaluated after the plot axes are set up but before any plotting takes place. 
+		This can be useful for drawing background grids or scatterplot smooths. 
+		Note that this works by lazy evaluation: passing this argument from other plot methods may well not work since it may be evaluated too early.
+ 
+panel.last 	:an expression to be evaluated after plotting has taken place but before the axes, title and box are added. 
+		 See the comments about panel.first.
+ 
+asp 		:the y/x aspect ratio, see plot.window.
+ 
+
+
+
+----------------------------------------------------------------------------------------
+
+abline(
+a = NULL, 
+b = NULL, 
+h = NULL, 
+v = NULL, 
+reg = NULL,
+coef = NULL, 
+untf = FALSE, 
+...)
+
+
+Arguments
+
+a, b 	:the intercept and slope, single values.
+untf 	:logical asking whether to untransform. See ‘Details’.
+h	:the y-value(s) for horizontal line(s).
+v	:the x-value(s) for vertical line(s).
+coef 	:a vector of length two giving the intercept and slope.
+reg 	:an object with a coef method. See ‘Details’.
+ 
+
+
+-------------------------------------------------------------------------------------
+
+polygon(x, 
+y = NULL, 
+density = NULL, 
+angle = 45,
+border = NULL, 
+col = NA, 
+lty = par("lty"),
+..., 
+fillOddEven = FALSE)
+
+
+Arguments
+
+x, y 	:vectors containing the coordinates of the vertices of the polygon.
+ 
+density :the density of shading lines, in lines per inch. The default value of NULL means that no shading lines are drawn. 
+	 A zero value of density means no shading nor filling whereas negative values and NA suppress shading (and so allow color filling).
+ 
+angle 	:the slope of shading lines, given as an angle in degrees (counter-clockwise).
+ 
+col 	:the color for filling the polygon. The default, NA, is to leave polygons unfilled, unless density is specified. (For back-compatibility, NULL is equivalent to NA.) If density is specified with a positive value this gives the color of the shading lines.
+ 
+border 	:the color to draw the border. The default, NULL, means to use par("fg"). Use border = NA to omit borders. 
+	For compatibility with S, border can also be logical, in which case 
+	FALSE is equivalent to NA (borders omitted) and 
+	TRUE is equivalent to NULL (use the foreground colour), 
+ 
+lty 	:the line type to be used, as in par.
+ 
+... 
+graphical parameters such as xpd, lend, ljoin and lmitre can be given as arguments.
+ 
+fillOddEven :logical controlling the polygon shading mode: see below for details. Default FALSE.
+ 
+
+
+
+
+---------------------------------------------------------
+
+pretty(x, ...)
+
+## Default S3 method:
+pretty(x, n = 5, min.n = n %/% 3,  shrink.sml = 0.75,
+       high.u.bias = 1.5, u5.bias = .5 + 1.5*high.u.bias,
+       eps.correct = 0, ...)
+
+
+Arguments
+
+x :an object coercible to numeric by as.numeric.
+n :integer giving the desired number of intervals. Non-integer values are rounded down.
+min.n :nonnegative integer giving the minimal number of intervals. If min.n == 0, pretty(.) may return a single value.
+shrink.sml :positive numeric by a which a default scale is shrunk in the case when range(x) is very small (usually 0).
+high.u.bias :non-negative numeric, typically > 1. The interval unit is determined as {1,2,5,10} times b, a power of 10. Larger high.u.bias values favor larger units.
+u5.bias :non-negative numeric multiplier favoring factor 5 over 2. Default and ‘optimal’: u5.bias = .5 + 1.5*high.u.bias.
+eps.correct :integer code, one of {0,1,2}. If non-0, an epsilon correction is made at the boundaries such that the result boundaries will be outside range(x); in the small case, the correction is only done if eps.correct >= 2.
+ 
+
+
+
+--------------------------------------------------------
+
+aggregate(x, …)
+
+# S3 method for default
+aggregate(x, …)
+
+# S3 method for data.frame
+aggregate(x, by, FUN, …, simplify = TRUE, drop = TRUE)
+
+# S3 method for formula
+aggregate(formula, data, FUN, …,
+          subset, na.action = na.omit)
+
+# S3 method for ts
+aggregate(x, nfrequency = 1, FUN = sum, ndeltat = 1,
+          ts.eps = getOption("ts.eps"), …)
+
+
+
+
+
+Arguments
+x 	:an R object.
+by 	:a list of grouping elements, each as long as the variables in the data frame x. The elements are coerced to factors before use.
+FUN 	:a function to compute the summary statistics which can be applied to all data subsets.
+simplify :a logical indicating whether results should be simplified to a vector or matrix if possible.
+drop 	:a logical indicating whether to drop unused combinations of grouping values. The non-default case drop=FALSE has been available since R 3.3.0, and may change in some cases where unused combinations are still dropped.
+formula :a formula, such as y ~ x or cbind(y1, y2) ~ x1 + x2, where the y variables are numeric data to be split into groups according to the grouping x variables (usually factors).
+data 	:a data frame (or list) from which the variables in formula should be taken.
+subset 	:an optional vector specifying a subset of observations to be used.
+na.action 	:a function which indicates what should happen when the data contain NA values. The default is to ignore missing values in the given variables.
+nfrequency 	:new number of observations per unit of time; must be a divisor of the frequency of x.
+ndeltat 	:new fraction of the sampling period between successive observations; must be a divisor of the sampling interval of x.
+ts.eps 		:tolerance used to decide if nfrequency is a sub-multiple of the original frequency.
+
+
+
+----------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------
+cast(data, formula = ... ~ variable, fun.aggregate=NULL, ..., margins=FALSE, subset=TRUE, df=FALSE, fill=NA, add.missing=FALSE)
+
+Arguments
+
+data 	:molten data frame, see melt 
+formula :casting formula, see details for specifics 
+fun.aggregate :aggregation function 
+... further arguments are passed to aggregating function 
+margins :vector of variable names (can include "grand_col" and "grand_row") to compute margins for, or TRUE to computer all margins 
+subset logical vector to subset data set with before reshaping 
+df value with which to fill in structural missings 
+fill  
+add.missing 
+
+------------------------------------------------------------------------
+
+separate(data, col, into, sep = "[^[:alnum:]]+", remove = TRUE,
+  convert = FALSE, extra = "warn", fill = "warn", ...)
+
+
+
+Arguments
+data 	:A data frame.
+col 	:Column name or position. This is passed to tidyselect::vars_pull().
+	 This argument is passed by expression and supports quasiquotation (you can unquote column names or column positions).
+into	:Names of new variables to create as character vector.
+sep	:Separator between columns.
+	 If character, is interpreted as a regular expression. 
+	 The default value is a regular expression that matches any sequence of non-alphanumeric values.
+	 If numeric, interpreted as positions to split at. 
+	 Positive values start at 1 at the far-left of the string; 
+	 negative value start at -1 at the far-right of the string. 
+	 The length of sep should be one less than into.
+remove	:If TRUE, remove input column from output data frame.
+convert	:If TRUE, will run type.convert() with as.is = TRUE on new columns. This is useful if the component columns are integer, numeric or logical.
+extra	:If sep is a character vector, this controls what happens when there are too many pieces. There are three valid options:
+
+•"warn"	:(the default): emit a warning and drop extra values.
+•"drop"	:drop any extra values without a warning.
+•"merge":only splits at most length(into) times
+
+fill	:If sep is a character vector, this controls what happens when there are not enough pieces. There are three valid options:
+
+•"warn" (the default): emit a warning and fill from the right
+•"right": fill with missing values on the right
+•"left": fill with missing values on the left
+
+...
+Defunct, will be removed in the next version of the package.
+
+
+

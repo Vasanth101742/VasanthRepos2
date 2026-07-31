@@ -1,0 +1,210 @@
+Standard Deviation:
+a quantity expressing by how much the members of a group differ from the mean value for the group.
+
+
+Standard Deviation vs. Variance
+
+The variance helps determine the data's spread size when compared to the mean value. As the variance gets bigger, more variation in data values occurs, 
+and there may be a larger gap between one data value and another. If the data values are all close together, the variance will be smaller. 
+This is more difficult to grasp than are standard deviations, however, because variances represent a squared result that may not be meaningfully expressed 
+on the same graph as the original data set.
+
+Standard deviations are usually easier to picture and apply. 
+The standard deviation is expressed the same unit of measurement as the data, which isn't necessarily be the case with the variance. 
+Using the standard deviation, statisticians may determine if the data has a normal curve or other mathematical relationship. 
+If the data behaves in a normal curve, then 68% of the data points will fall within one standard deviation of the average, or mean data point.
+Bigger variances cause more data points to fall outside the standard deviation. Smaller variances result in more data that is close to average.
+
+What's Standard Deviance Used For?
+
+Standard deviation is an especially useful tool in investing and trading strategies, 
+as it helps measure market and security volatility – and predict performance trends.
+
+As it relates to investing, for example, an index fund can be expected to have a low standard deviation versus its benchmark index, 
+as the fund's goal is to replicate the index. Aggressive growth funds, on the other hand, can be expected to have a high standard deviation 
+from relative stock indices, as their portfolio managers make aggressive bets in an effort to generate higher-than-average returns.
+
+A lower standard deviation isn't necessarily preferable. It all depends on the sort of investments one is making, 
+and the one's willingness to assume risk. When dealing with the amount of deviation in their portfolios, investors should consider 
+both their personal tolerance for volatility and their overall investment objectives. More aggressive investors may be comfortable with an i
+nvestment strategy that opts for vehicles with higher-than-average volatility, while more conservative investors may not.
+
+
+Read more: Standard Deviation http://www.investopedia.com/terms/s/standarddeviation.asp#ixzz4vdVPXYGE 
+Follow us: Investopedia on Facebook
+
+
+--------------------------------------------------------------------------------------------------------------
+
+Normal Density Function
+
+1. when sd is varied the width of the normal distribution curve will vary which shows how the data points are related.
+2. when mean is varied curve will move right ot left depending on sign of the mean value.
+
+
+
+---------------------------------------------------------------------------------------------------------------
+cumulative distribution function
+
+a function whose value is the probability that a corresponding continuous random variable has a value less than or equal to the argument of the function.
+
+
+Its just a Frequency Distribution represented in a cumulative manner. By Cumulative here, it just means accumulation.
+
+Consider the age group of friends a Facebook user might have
+
+AGE                FREQUENCY(Count)
+Under 18         20
+18-25               60
+25-45               50
+45-60               20
+60 - 75             10
+
+Suppose , you might want to want to know how many friends the user has under the age of 25. Well, 
+its simply the summation of all the friends in the above list below or equal to 25. so, it turns out to be 20 + 60 = 80
+
+Similarly for friends below the age of 60 would be : 20 + 60 + 50 +20 = 150
+Likewise for below 75 would be : 20 +60 + 50+ 20 + 10 = 160
+
+
+------------------------------------------------------------------------------------------------------------------
+Quantile Function
+Applications
+
+Quantile functions are used in both statistical applications and Monte Carlo methods.
+The quantile function is one way of prescribing a probability distribution, and it is an alternative to the probability density function (pdf) 
+or probability mass function, the cumulative distribution function (cdf) and the characteristic function. 
+
+The quantile function, Q, of a probability distribution is the inverse of its cumulative distribution function F. The derivative of the quantile function, 
+namely the quantile density function, is yet another way of prescribing a probability distribution. 
+It is the reciprocal of the pdf composed with the quantile function.
+
+For statistical applications, users need to know key percentage points of a given distribution. 
+For example, they require the median and 25% and 75% quartiles as in the example above or 5%, 95%, 2.5%, 97.5% levels for other applications 
+such as assessing the statistical significance of an observation whose distribution is known; s
+ee the quantile entry. Before the popularization of computers, it was not uncommon for books to have appendices with statistical tables 
+sampling the quantile function.[1] Statistical applications of quantile functions are discussed extensively by Gilchrist.[2]
+Monte-Carlo simulations employ quantile functions to produce non-uniform random or pseudorandom numbers for use in diverse types of simulation calculations. 
+A sample from a given distribution may be obtained in principle by applying its quantile function to a sample from a uniform distribution. 
+The demands, for example, of simulation methods in modern computational finance are focusing increasing attention on methods based on quantile functions, 
+as they work well with multivariate techniques based on either copula or quasi-Monte-Carlo methods[3] and Monte Carlo methods in finance.
+
+---------------------------------------------------------------------------------------------------------------------
+Percentile
+
+http://www.statisticshowto.com/percentiles/
+
+
+---------------------------------------------------------------------------------------------------------------------
+
+Binomial Distribution
+
+The binomial distribution model deals with finding the probability of success of an event which has only 
+two possible outcomes in a series of experiments. For example, tossing of a coin always gives a head or a tail. 
+The probability of finding exactly 3 heads in tossing a coin repeatedly for 10 times is estimated during the binomial distribution.
+
+In a manufacturing context, the number of faulty items in a batch of products might follow a binomial distribution, 
+if the probability of failures is constant. In practice, this probably isn’t true, because of the chance that an equipment failure generates clusters of failures. 
+I vaguely remember doing a project about 45 years ago on failures of welds, where the number of failures in a particular product was in practice very 
+close to the expected binomial distribution, with some thing like n=40 and p=0.01 (roughly 67% 0 fails, 27% 1 fail, 6% more than 1).
+
+In a agriculture field how may seed are germinated and how may not per unit area or bags. 
+In a production company how many defects occurred in many lots....
+are some examples.  
+----------------------------------------------------------------------------------------------------------------------
+Poisson Distribution
+
+
+The real life example is an application of a theoritical result that is
+
+The limiting case of binomial when n is very large and p is small but np is a positive number which is called lambda.
+
+This result application is used to model various real life events by Poisson Distribution.
+
+The classical example of the Poisson distribution is the number of Prussian soldiers accidentally killed by horse-kick, 
+due to being the first example of the Poisson distribution's application to a real-world large data set. Ten army corps were observed over 20 years, 
+for a total of 200 observations, and 122 soldiers were killed by horse-kick over that time period. The question is how many deaths would be expected over a 
+period of a year, which turns out to be excellently modeled by the Poisson distribution.
+
+
+
+The Poisson distribution is also useful in determining the probability that a certain number of events occur over a given time period.
+For example, if an office averages 12 calls per hour, they can calculate that the probability of receiving at least 20 calls in an hour is
+
+which means they can generally feel comfortable keeping only enough staff on hand to handle 20 calls. 
+Of course, the choice of threshold depends on context; an emergency room, for instance, may still wish to have extra staff on hand.
+
+
+-------------------------------------------------------------------------------------------------------------------------
+Data Frame 
+
+Filtering
+Sorting 
+Aggregate Function
+
+https://datascienceplus.com/aggregate-data-frame-r/
+http://www.statmethods.net/management/aggregate.html
+https://www.r-bloggers.com/aggregate-a-powerful-tool-for-data-frame-in-r/
+https://www.r-statistics.com/tag/aggregate/
+
+
+apply functions
+
+https://www.datacamp.com/community/tutorials/r-tutorial-apply-family
+---------------------------------------------------------------
+
+
+apply(), which operates on arrays. 
+For simplicity, the tutorial limits itself to 2D arrays, which are also known as matrices.
+
+
+apply(X, MARGIN, FUN, ...)
+
+MARGIN=1, it applies over rows, 
+MARGIN=2, it works over columns. 
+MARGIN=c(1,2), it applies to both rows and columns
+
+
+x=matrix(1:100,10,10)
+apply(x,1,sum)
+apply(x,2,sum)
+
+addtwo<- function(x)
+(
+x<-x+2
+)
+
+apply(x,1,addtwo)
+apply(x,2,addtwo)
+
+---------------------------------
+lapply()  When you execute?
+You want to apply a given function to every element of a list and obtain a list as result.
+
+
+The difference is that:
+1.It can be used for other objects like dataframes, lists or vectors; and
+2.The output returned is a list (which explains the “l” in the function name), which has the same number of elements as the object passed to it.
+
+x=matrix(1:9,3,3)
+lapply(x,"[",,2)
+
+
+A<-list(1,2,3)
+B<-list(4,5,6)
+C<-list(7,8,9)
+MyList<-list(A,B,C)
+
+
+
+x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
+# compute the list mean for each list element
+lapply(x,mean)
+# median and quartiles for each list element
+lapply(x, quantile, probs = 1:3/4)
+sapply(x, quantile)
+i39 <- sapply(3:9, seq) # list of vectors
+sapply(i39, fivenum)
+
+
+C:/Users/vasanthk/Documents/R/win-library/3.4

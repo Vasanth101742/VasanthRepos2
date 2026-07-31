@@ -1,0 +1,29 @@
+
+Reference:
+
+https://docs.tibco.com/pub/enterprise-runtime-for-R/3.2.0/doc/html/Language_Reference/base/I.html
+
+
+
+Inhibit Interpretation/Conversion of Objects
+Description
+Changes the class of an object by adding the class "AsIs" to the current class. 
+Usage
+I(x)
+Arguments
+x any object.  
+
+Details
+Usually, this function is used in formulas or as an argument to data.frame, with the purpose of suppressing conventional conversion of whatever x evaluates to. For example, a matrix or list that would normally be broken up in to separate variables by data.frame is kept intact if it is supplied as an argument to I. 
+In the function data.frame, if an object is of the class AsIs, it can prohibit converting character vectors to factors and dropping names, and it ensures that matrices are inserted as single columns. 
+In the function formula, AsIs can ensure that the operators such as +, -, * and ^ are not interpretated as formula operators, but as arithmetical operators. 
+Value
+returns a copy of the object x with "AsIs" added as the first class attribute. 
+See Also
+data.frame. 
+Examples
+m <- matrix(1:12,nrow=4,ncol=3)
+# col1 should be the whole matrix m
+d <- data.frame(col1 = I(m), col2 = sin(1:4)*2)
+# Without the AsIs wrapper, the intercept is not calculated. 
+lm(col1 ~ I(col2 - 1), data=d)

@@ -1,0 +1,39 @@
+Getting Information on a Dataset
+
+There are a number of functions for listing the contents of an object or dataset. 
+
+
+# list objects in the working environment
+ ls() 
+
+
+# list the variables in mydata
+ names(mydata)
+
+
+# list the structure of mydata
+ str(mydata) 
+
+
+# list levels of factor v1 in mydata
+ levels(mydata$v1)
+
+
+# dimensions of an object
+ dim(object) 
+
+
+# class of an object (numeric, matrix, data frame, etc)
+ class(object)
+
+
+# print mydata 
+ mydata
+
+
+# print first 10 rows of mydata
+ head(mydata, n=10)
+
+
+# print last 5 rows of mydata
+ tail(mydata, n=5) 

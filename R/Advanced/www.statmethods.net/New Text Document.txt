@@ -1,0 +1,191 @@
+#head(colors(),100)
+#adj =0 to 1
+#pos=c(0,0)
+
+
+x <- 10 + (1:20)/10
+y <- x^2 + rnorm(length(x))     	# Add Gaussian random number
+
+
+#1.plot Function
+
+plot(x, y,
+type="o",				# Try with "l","b","c","o","s","h",   "n"
+pch=2,
+#xlim=c(min(x),max(x))
+#xlim=c(10,11),
+#ylim=c(100,120),
+#log ="y",				# Try with x after commenting xlim and Try with y after commenting ylim 
+
+#main="My First Graph",			#Refer Title Function
+#sub="My sub Title",
+#xlab="Value of X",
+xlab=NA,
+#ylab="Value of Y",
+ylab=NA,
+
+axes=FALSE,   				#Refer Axis Function,
+labels=FALSE,
+
+frame.plot =FALSE,			#Try with TRUE Option
+asp=0.3,
+
+
+
+
+#Graphical parameters
+ask=par(ask=FALSE),			#Try with TRUE Option
+#pos=c(0,0),				#Generates warning
+#ann = par(ann=FALSE)			#Try with FALSE Option
+bg=par(bg="grey"),
+#fg=par(fg="violetred")
+
+#col.axis="red",			#Refer axis function
+
+#col.lab="salmon",			#Refer Title Function
+#col.main="coral",
+#col.sub="gold"
+
+
+
+)
+
+
+#2.axis() function
+
+
+axis(1, 			#Try with 1=bottom, 2=left, 3=top, 4=right for four sides
+at = c(5.0,10.3,10.5,11,11.5),	#points at which tick-marks are to be drawn
+labels = TRUE, 			#if FALSE, no numerical label is specified for this axis
+tick = TRUE, 			#If FALSE no ticks and axis line are drawn
+lty = "solid",			#Line Type
+line = -4,			#Axis line Position in numeric
+lwd = 3, 			#width of the axis line
+pos = NA, 			#Line Position in numeric
+font = 4, 			#label font
+
+col = "blue", 			#Color of the axis line
+col.ticks = "brown",		#color of the Ticks
+col.axis="red",			#color of the label
+hadj = NA, 			#horizontal Adjustment of the label
+padj = NA,			#Perpendicular Adjustment of the label
+outer = FALSE 		
+)
+
+axis(2, 			#Try with 1=bottom, 2=left, 3=top, 4=right for four sides
+at = c(100,112,113,115,130),	#points at which tick-marks are to be drawn
+labels = TRUE, 			#if FALSE, no numerical label is specified for this axis
+tick = TRUE, 			#If FALSE no ticks and axis line are drawn
+lty = "solid",			#Line Type
+line = -4,			#Axis line Position in numeric
+lwd = 3, 			#width of the axis line
+pos = NA, 			#Line Position in numeric
+font = 4, 			#label font
+
+col = "blue", 			#Color of the axis line
+col.ticks = "brown",		#color of the Ticks
+col.axis="red",			#color of the label
+hadj = NA, 			#horizontal Adjustment of the label
+padj = NA,			#Perpendicular Adjustment of the label
+outer = FALSE 		
+)
+
+
+#3.Title Function
+
+title(
+main="My First Graph",
+sub="My sub Title",
+xlab="Value of X",
+ylab="Value of Y",
+line = NA, 
+col.lab="salmon",
+col.main="coral",
+col.sub="gold",
+outer = FALSE
+)
+
+
+#4.Text Function
+#Text function is used only to display the text within the plotting region and not on  assigning to plot parameters
+#such as main,sub,xlab,ylab,etc
+
+
+text(x, y,				#(x,y) coordinates in the graph		
+labels = seq_along(x), 
+adj =0.6,				#distance from the point
+pos = 1, 				#Try with options 1,2,3,4
+offset = 0.9, 				#it will be active only if pos is specified
+cex = 2, 				#character expansion
+col = "red", 				#label color
+
+vfont = NULL,
+font = NULL
+)
+
+text(10.5,120,"text1 at (x=10.5,y=120)",cex=0.8,col="coral",adj=0.1,pos=2)
+text(10.5,110,"text2 at (x=10.5,y=110)",cex=1.2,col="blue",adj=0.5,pos=2)
+
+
+
+
+
+#5.abline Function
+#abline(
+#a = 10.4, 
+#b = NULL, 
+#h = NULL, 
+#v = NULL, 
+#reg = NULL,
+#coef = NULL, 
+#untf = FALSE
+#)
+
+
+abline(h=c(105,112), col=c("blue", "red"), lty=c(1,2), lwd=c(1, 3))
+abline(v=c(10,11), col=c("blue", "red"), lty=c(1,2), lwd=c(1, 3))
+z=x+100
+reg=lm(x~z)
+abline(reg, col="green", lty=2, lwd=3)
+
+#Ref: http://www.sthda.com/english/wiki/abline-r-function-an-easy-way-to-add-straight-lines-to-a-plot-using-r-software
+
+
+
+#6.rug function
+
+rug(x, 
+ticksize = 0.05, 
+side = 1, 
+lwd = 0.5, 
+col="green",
+#col="#ee3124",
+
+
+quiet = getOption("warn") < 0
+)
+
+
+#7.polygon
+
+
+x <- 10 + (1:20)/10
+y <- x^2 + rnorm(length(x))     	# Add Gaussian random number
+
+plot(x,y,type="o")
+p1<-seq(10,11,0.1)
+p2<-seq(110,100,-1)
+
+polygon(c(p1,p1[length(p1)],p1[1]),c(p2,0,0), 
+#density = 200, 
+#angle = 90,
+col = "lightblue", border = "red",
+lty = 1
+#,fillOddEven = FALSE
+)
+
+
+
+
+
+

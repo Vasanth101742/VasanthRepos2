@@ -1,0 +1,9 @@
+apply()
+sapply()
+lapply()
+search()
+attach()
+with()
+
+stack()   #for simple data frames
+reshape() # for complex data frames

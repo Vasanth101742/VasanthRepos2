@@ -1,0 +1,59 @@
+
+Task 1: Reading TXT File data
+
+
+Employee_df<-read.table("Employee.TXT")
+Employee_df<-read.table("Employee.TXT",header=TRUE)
+
+
+#Fetch HeaderNames
+City_df<-read.table("City.TXT",header=TRUE)
+#Error: line 1 did not have 3 elements
+
+
+City_df<-read.table("City.TXT",header=TRUE,sep = "\t")
+#Error: line 5 did not have 2 elements
+
+City_df<-read.table("City.TXT",header=TRUE,sep = "\t",quote = "")
+#Error: line 11 did not have 2 elements
+#Solution:Enter Tab at line 11
+
+
+#Remove Blank Lines
+City_df<-read.table("City.TXT",header=TRUE,sep = "\t",quote = "",blank.lines.skip =TRUE)
+
+#Remove White Spaces
+City_df<-read.table("City.TXT",header=TRUE,sep = "\t",quote = "",blank.lines.skip =TRUE,strip.white=TRUE)
+
+#Fetch only the Specified Rows
+City_df<-read.table("City.TXT",header=TRUE,sep = "\t",quote = "",blank.lines.skip =TRUE,strip.white=TRUE,nrows=5)
+
+
+#Skip the Rows while Fetching
+City_df<-read.table("City.TXT",header=TRUE,sep = "\t",quote = "",blank.lines.skip =TRUE,strip.white=TRUE,skip=3)
+
+
+#------------------------------------------------------------------------------------------------------
+#Task 2: Reading Excel File Data
+
+
+
+
+
+#--------------------------------------------------------------------------------------------------------
+#Task 3:Writing data into TXT File
+
+
+
+
+
+
+#---------------------------------------------------------------------------------------------------------
+#Task 4:Writing data into Excel File
+
+
+
+
+
+
+#---------------------------------------------------------------------------------------------------------
