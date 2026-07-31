@@ -1,0 +1,21 @@
+1. Before Applying ARIMA Model, Time Series Data must be Stationary.  i.e Its Statistical Properties like mean and Variance should remain same across the period.
+2. p,d and q used as parameters in ARIMA take non negative Integer values.
+3. we are able to fit the model to any time series based on this combination of values.
+
+4. AR: The time series is linearly regressed on its own past values
+	p implies the number of past values included in the AR Model
+
+   I : If not stationary, the time series can be differenced to become stationary, i.e compute the differences between consecutive observations
+	d implies the number of times the time series is differenced
+
+   MA: The time series is regressed on the past forecast errors
+	q implies the number of past forecast errors included in the MA Model
+
+5. ACF  : AutoCorrelation Function , which is the correlation of the time series with its lags(i.e past values)
+   PACF : Partial Auto Correlation Function, which is the partial correlation of the time series with its lags, after removing the effects of lower order           lags between them.
+
+6. After analysing the Original and Smoothed Time series data through ACF,PACF and ADF Tests, if pValue <=0.05, it is aasumed to be stationary.
+if not, try with the differencing order =2, but not go beyond that, will be ineffective.
+
+7. If the PACF plot has a significant spike at lag p, but not beyond; the ACF Plot decays more gradually. This may suggest an ARIMA(p,d,0) model
+if the ACF plot has a significant spike at lag q, but not beyond, the PACF Plot decays more gradually. This may suggest an ARIMA(0,d,q) model

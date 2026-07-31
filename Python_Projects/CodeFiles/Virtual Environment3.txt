@@ -1,0 +1,69 @@
+
+python -m venv .venv_vasanth
+
+.venv_vasanth\Scripts\Activate.ps1
+
+deactivate
+
+rd /s /q .venv_vasanth
+
+
+
+
+C:\Users\vasanthk\AppData\Local\Programs\Python\Python39\python.exe -m venv .venv2
+.venv2\Scripts\Activate.ps1
+
+
+
+| Step | Command                                                 | Description                   |
+| ---- | ------------------------------------------------------- | ----------------------------- |
+| 1    | `python --version`                                      | Check Python is installed     |
+| 2    | `python3 -m venv .venv` or `python -m venv .venv`       | Create a virtual environment  |
+| 3    | `source .venv/bin/activate` or `.venv\Scripts\activate` | Activate env                  |
+| 4    | `pip install ...`                                       | Install packages in isolation |
+| 5    | `pip freeze > requirements.txt`                         | Save your dependency list     |
+| 6    | `deactivate`                                            | Exit the environment          |
+| 7    | Delete the `.venv` folder                               | Clean up the environment      |
+
+
+Step-by-Step Installation
+
+1.Open PowerShell as Administrator
+Right-click on the Start menu, select Windows PowerShell (Admin).
+
+
+2.Set Execution Policy
+Run the following command to allow script execution:
+
+	Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+If prompted, type Y to confirm.
+
+3.Download and Run the Installation Script
+Execute the following command to download and install pyenv-win:
+
+	Invoke-WebRequest -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "$HOME\install-pyenv-win.ps1"; &"$HOME\install-pyenv-win.ps1"
+
+
+This script installs pyenv-win to your user profile directory.
+
+4.Set Environment Variables
+After installation, set the necessary environment variables:
+
+	[System.Environment]::SetEnvironmentVariable('PYENV', "$env:USERPROFILE\.pyenv\pyenv-win", 'User')
+[System.Environment]::SetEnvironmentVariable('PYENV_HOME', "$env:USERPROFILE\.pyenv\pyenv-win", 'User')
+[System.Environment]::SetEnvironmentVariable('PYENV_ROOT', "$env:USERPROFILE\.pyenv\pyenv-win", 'User')
+
+
+Then, add pyenv-win to your system PATH:
+
+	[System.Environment]::SetEnvironmentVariable('Path', "$env:USERPROFILE\.pyenv\pyenv-win\bin;$env:USERPROFILE\.pyenv\pyenv-win\shims;" + [System.Environment]::GetEnvironmentVariable('Path', 'User'), 'User')
+
+
+5.Restart PowerShell
+Close and reopen PowerShell to apply the changes.
+
+6.Verify Installation
+Check if pyenv-win is installed correctly:
+
+pyenv --version

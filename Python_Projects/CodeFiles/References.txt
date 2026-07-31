@@ -1,0 +1,25 @@
+
+
+Chat with SQL and Tabular Databases using LLM Agents (DON'T USE RAG!)
+
+https://www.youtube.com/watch?v=ZtltjSjFPDg
+
+
+https://python.langchain.com/docs/tutorials/sql_qa/
+
+Time Series Forecasting With Prophet
+
+https://www.youtube.com/redirect?event=video_description&redir_token=QUFFLUhqa2VHcE5TRnI4VTZRb0ZQNm1TeFJFdDhaQVYzZ3xBQ3Jtc0tsMlZDVlRSQzAtX29ISXVMcllUclNjQW5iNlJIQkg1dDY5QmhycFlJQTlPQmlQNTZRQkR6ZGFHX2dkWHduU1BJYko4dVZFN0R0NUNyWjJPU0IxVVhtVWlpLXFyTVVtNDU3TmtUUmNDRDF3OVZha3BlNA&q=https%3A%2F%2Fwww.kaggle.com%2Frobikscube%2Ftime-series-forecasting-with-prophet-yt&v=j0eioK5edqg
+
+
+https://www.kaggle.com/code/robikscube/time-series-forecasting-with-prophet-yt
+
+---------------------------------------------------------------------------------------------
+
+Time Series Forecasting Using Python
+
+https://www.analyticsvidhya.com/blog/2022/06/time-series-forecasting-using-python/
+
+How to build ARIMA models in Python for time series forecasting
+
+https://www.youtube.com/watch?v=-aCF0_wfVwY

@@ -1,0 +1,12 @@
+1.Forecasting Methods made simple - Trends and Moving Average
+
+	https://www.youtube.com/watch?v=hxmp0oEF9VQ
+
+2.Forecasting: Moving Averages, MAD, MSE, MAPE
+
+	https://www.youtube.com/watch?v=Wo5YWXDRXv8
+
+3. Forecasting Techniques: Trend and Seasonality-Corrected (Winter's Method)
+
+	https://www.youtube.com/watch?v=gYYpS-LafcQ
+

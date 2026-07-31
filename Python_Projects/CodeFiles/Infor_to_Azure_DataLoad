@@ -1,0 +1,10 @@
+import jaydebeapi
+
+# Define connection parameters
+conn = jaydebeapi.connect(
+    "com.infor.idl.jdbc.Driver",  # JDBC driver class
+    "jdbc:infordatalake://ELGI_PRD:.",  # JDBC URL
+    {'user': '', 'pass': ''},  # Credentials (leave blank)
+    "D:/dbt/infor-compass-jdbc-2023.10.jar",  # Path to JDBC driver JAR
+    "D:"  # Path to directory containing the driver
+)
