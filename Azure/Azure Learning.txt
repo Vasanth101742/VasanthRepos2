@@ -1,0 +1,14 @@
+https://azurelib.com/azure-data-factory-tutorial-add-dynamic-content-expression-builder-lesson-6/
+
+https://nishantrana.me/2020/09/11/use-azure-data-factory-v2-to-load-data-into-dynamics-365/
+
+
+ADF Concepts Learning:
+
+https://learn.microsoft.com/en-us/azure/data-factory/data-factory-tutorials
+
+https://learn.microsoft.com/en-us/training/browse/?products=azure-data-factory
+
+
+https://adf.azure.com/en/authoring/templates?factory=%2Fsubscriptions%2Fc43799dd-16d5-4cda-bbe8-40d96687835e%2FresourceGroups%2FELGI-datawh%2Fproviders%2FMicrosoft.DataFactory%2Ffactories%2FELGI-ADF
+
