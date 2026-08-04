@@ -1,0 +1,57 @@
+https://www.youtube.com/watch?v=CtDTJPbXVpQ
+
+
+https://www.youtube.com/watch?v=FXw1gPaa2-M
+
+
+Azure Data Lake Storage Gen 2 Overview
+John Savill's Technical Training
+
+https://www.youtube.com/watch?v=NHn5GAkvlwg
+
+
+What is Azure Data Lake and When to Use It
+CBT Nuggets
+
+https://www.youtube.com/watch?v=ekixdKm0bUw
+
+Why you should look at Azure Synapse Analytics!
+Guy in a Cube
+
+https://www.youtube.com/watch?v=WbDqeNsmoL4
+
+
+https://www.royalcyber.com/blogs/dedicated-sql-pool-vs-serverless-sql/
+
+https://cerebrata.com/blog/comparison-between-azure-storage-v1-vs-v2
+
+
+Learn Live: Migrate SQL workloads to Azure Managed Instances | DIS07
+Microsoft Developer
+
+
+https://www.youtube.com/watch?v=TXiv35okOpE
+
+
+What are the main tools for Azure Synapse and SQL???
+Guy in a Cube
+
+https://www.youtube.com/watch?v=iBwmMklI2Ac
+
+
+Data Factory vs Synapse
+Mike Stephenson
+
+https://www.youtube.com/watch?v=D5vIlnjHAHM
+
+
+Azure Data Factory vs Synapse vs Databricks? When to use what.
+Luke J Byrne
+
+https://www.youtube.com/watch?v=gpz6YTnSSGY
+
+
+
+Azure Data Factory vs. Synapse Analytics: A Technical Deep Dive
+
+https://medium.com/@patriwala/azure-data-factory-vs-synapse-analytics-a-technical-deep-dive-98fdea7f2437
