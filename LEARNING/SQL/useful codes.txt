@@ -1,0 +1,24 @@
+
+declare @expression nvarchar(max)
+set @expression = '2*3*100'
+
+declare @sql nvarchar(max)
+set @sql = 'select @result = ' + @expression
+
+declare @result int
+exec sp_executesql @sql, N'@result int output', @result = @result out
+
+select @result
+
+
+
+
+-----------------------------------------
+
+DECLARE @strInput VARCHAR(255) = ‘Test1,Test2,Test3,Test4,Test5~Test11,Test12,Test13,Test14,Test15~Test21,Test22,Test23,Test24,Test25’
+
+SELECT @strInput [Input],
+REPLACE(REPLACE(@strInput, ‘,’, ‘|’), ‘~’, ‘#’) [SQL 2016 & Before – Output],
+TRANSLATE(@strInput, ‘,~’, ‘|#’) [SQL 2017 Output]
+
+

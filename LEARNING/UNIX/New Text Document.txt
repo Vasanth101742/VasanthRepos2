@@ -1,0 +1,8 @@
+Putty Installation related
+
+http://laptops.eng.uci.edu/instructional-computing/incoming-students/using-linux/how-to-configure-xming-putty
+
+
+Unix Tutorials
+
+http://www.ee.surrey.ac.uk/Teaching/Unix/unix2.html

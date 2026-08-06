@@ -1,0 +1,103 @@
+Truncate table TB_Test
+
+--Alter table TB_Test alter column Calculation varchar(50)
+--Alter table TB_Test add FinalExpression varchar(50)
+--Alter table TB_Test add FinalValue float
+--Alter table TB_Test add DataType varchar(25)
+
+
+Insert into TB_Test
+--select * into TB_Test from (
+select 901 as ID,'Sales' as Descr,20 as val,'=901*(-1)' as Calculation,null as FinalExpression,null as FinalValue,
+'data' as DataType
+union
+select 902 as ID,'MC' as Descr,-5 as val, '=5*901-2*(901)',null,null,'data' union
+select 903 as ID,'TVC' as Descr,200 as val,'=902-901',null,null,'percentage'
+--)a
+
+
+declare @TotalCounts int
+declare @Count1 int
+declare @id varchar(25)
+declare @val float
+
+
+
+set @TotalCounts=(select count(distinct id) from TB_Test where DataType='data')
+set @Count1=1
+set @id=null
+set @val=0
+
+while (@Count1<=@TotalCounts)
+begin
+
+set @id= (select id from(
+select *,ROW_NUMBER() over(order by id) as rownum  from (
+select id,sum(val) val from TB_Test where DataType='data'
+group by id
+)a)b
+where rownum=@Count1
+)
+
+set @val= (select val from(
+select *,ROW_NUMBER() over(order by id) as rownum  from (
+select id,sum(val) val from TB_Test where DataType='data'
+group by id
+)a)b
+where rownum=@Count1
+and id=@id
+)
+
+
+select * from TB_test
+
+select @Count1,@TotalCounts, @id,@val
+if(@Count1=1)
+begin
+update TB_Test set FinalExpression=replace([calculation],@id,@Val)
+end
+update TB_Test set FinalExpression=replace(FinalExpression,@id,@Val)
+
+select * from TB_test
+
+set @Count1=@Count1 + 1
+end
+
+
+-------Expression evaluation
+declare @expression nvarchar(max)
+declare @sql nvarchar(max)
+declare @result float
+
+set @TotalCounts=(select count(distinct id) from TB_Test)
+set @Count1=1
+while (@Count1<=@TotalCounts)
+begin
+
+
+set @id= (select id from(
+select *,ROW_NUMBER() over(order by id) as rownum  from (
+select distinct id from TB_Test)a)b
+where rownum=@Count1
+)
+
+
+
+set @expression = (select finalexpression from(
+select *,ROW_NUMBER() over(order by id) as rownum  from (
+select distinct id,finalexpression from TB_Test)a)b
+where rownum=@Count1
+)
+--select @expression
+set @sql = 'select @result ' + @expression
+
+exec sp_executesql @sql, N'@result float output', @result = @result out
+
+--select @result
+update TB_Test set finalvalue=@result where id=@id
+
+set @Count1=@Count1 +1
+
+end
+
+select * from TB_Test

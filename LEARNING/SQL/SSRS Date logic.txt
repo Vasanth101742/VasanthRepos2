@@ -1,0 +1,5 @@
+=iif(sum(Fields!Sales_amount.Value)=0,"NA",
+iif(Fields!CalYear.Value=year(dateadd("d",-1,today)) and Fields!CalMonth.Value=month(dateadd("d",-1,today)) ,
+(sum(Fields!Amnt4.Value)/sum(Fields!Sales_amount.Value))*day(dateadd("d",-1,today)),
+(sum(Fields!Amnt4.Value)/sum(Fields!Sales_amount.Value))*30)
+)

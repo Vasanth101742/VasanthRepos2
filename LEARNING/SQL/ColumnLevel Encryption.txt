@@ -1,0 +1,143 @@
+--1.Environment set up
+
+--Use master
+--go
+--Drop DATABASE CustomerData;
+
+
+CREATE DATABASE CustomerData;
+Go 
+USE CustomerData;
+GO
+
+	
+
+CREATE TABLE CustomerData.dbo.CustomerInfo
+            (CustID        INT PRIMARY KEY, 
+             CustName     VARCHAR(30) NOT NULL, 
+             BankACCNumber VARCHAR(10) NOT NULL
+            );
+
+Insert into CustomerData.dbo.CustomerInfo (CustID,CustName,BankACCNumber)
+            Select 1,'Rajendra',11111111 UNION ALL
+            Select 2, 'Manoj',22222222 UNION ALL
+            Select 3, 'Shyam',33333333 UNION ALL
+            Select 4,'Akshita',44444444 UNION ALL
+            Select 5, 'Kashish',55555555
+
+
+
+select * from CustomerData.dbo.CustomerInfo
+
+
+--2.Create a database master key for column level SQL Server encryption
+
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = 'SQLShack@1';
+
+SELECT name KeyName, 
+    symmetric_key_id KeyID, 
+    key_length KeyLength, 
+    algorithm_desc KeyAlgorithm
+FROM sys.symmetric_keys;
+
+
+--3.Create a self-signed certificate for Column level SQL Server encryption
+
+CREATE CERTIFICATE Certificate_test WITH SUBJECT = 'Protect my data';
+GO
+
+
+SELECT name CertName, 
+    certificate_id CertID, 
+    pvt_key_encryption_type_desc EncryptType, 
+    issuer_name Issuer
+FROM sys.certificates;
+
+
+--4.Configure a symmetric key for column level SQL Server encryption
+
+CREATE SYMMETRIC KEY SymKey_test WITH ALGORITHM = AES_256 ENCRYPTION BY CERTIFICATE Certificate_test;
+
+SELECT name KeyName, 
+    symmetric_key_id KeyID, 
+    key_length KeyLength, 
+    algorithm_desc KeyAlgorithm
+FROM sys.symmetric_keys;
+
+
+--5.Data encryption
+
+ALTER TABLE CustomerData.dbo.CustomerInfo
+ADD BankACCNumber_encrypt varbinary(MAX)
+
+
+--6.Decrypt column level SQL Server encryption data
+
+OPEN SYMMETRIC KEY SymKey_test
+        DECRYPTION BY CERTIFICATE Certificate_test;
+
+
+
+UPDATE CustomerData.dbo.CustomerInfo
+        SET BankACCNumber_encrypt = EncryptByKey (Key_GUID('SymKey_test'), BankACCNumber)
+        FROM CustomerData.dbo.CustomerInfo;
+        GO
+
+select * from CustomerData.dbo.CustomerInfo
+
+CLOSE SYMMETRIC KEY SymKey_test;
+GO
+
+
+
+--ALTER TABLE CustomerData.dbo.CustomerInfo DROP COLUMN BankACCNumber;
+--GO
+
+
+
+OPEN SYMMETRIC KEY SymKey_test
+DECRYPTION BY CERTIFICATE Certificate_test;
+
+
+
+SELECT CustID, CustName,BankACCNumber,BankACCNumber_encrypt AS 'Encrypted data',
+            CONVERT(varchar, DecryptByKey(BankACCNumber_encrypt)) AS 'Decrypted Bank account number'
+            FROM CustomerData.dbo.CustomerInfo;
+
+
+
+
+
+--7.Permissions required for decrypting data
+
+USE [master]
+GO
+CREATE LOGIN [SQLShack] WITH PASSWORD=N'sqlshack', DEFAULT_DATABASE=[CustomerData], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
+GO
+USE [CustomerData]
+GO
+CREATE USER [SQLShack] FOR LOGIN [SQLShack]
+GO
+USE [CustomerData]
+GO
+ALTER ROLE [db_datareader] ADD MEMBER [SQLShack]
+
+
+
+
+OPEN SYMMETRIC KEY SymKey_test
+DECRYPTION BY CERTIFICATE Certificate_test;
+    
+SELECT CustID, CustName,BankACCNumber_encrypt AS 'Encrypted data',
+CONVERT(varchar, DecryptByKey(BankACCNumber_encrypt)) AS 'Decrypted Bank account number'
+FROM CustomerData.dbo.CustomerInfo;
+
+
+
+
+GRANT VIEW DEFINITION ON SYMMETRIC KEY::SymKey_test TO SQLShack; 
+GO
+GRANT VIEW DEFINITION ON Certificate::[Certificate_test] TO SQLShack;
+GO
+GRANT CONTROL ON Certificate::[Certificate_test] TO SQLShack;
+

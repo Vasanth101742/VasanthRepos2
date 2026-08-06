@@ -1,0 +1,382 @@
+--exec sp_TB_PL_structure
+
+Alter proc sp_TB_PL_structure as
+begin
+
+--Step 1: --Import the latest P & l Structure
+
+--drop table TB_PL_structure
+--create table TB_PL_structure(
+--Entity varchar(50),
+--BSPL varchar(10),
+--MR1 varchar(50),
+--MR1_ID varchar(10),
+--DataType varchar(25),
+--Calculation varchar(50),
+--FTM_Value float,
+--FTM_Value_LYCM float,
+--FTM_Value_INR_BS float,
+--FTM_Value_INR_BS_LYCM float,
+--FTM_Value_INR_BS_PrevRate float,
+--FTM_Value_INR_PL float,
+--FTM_Value_INR_PL_LYCM float,
+--FTM_Value_INR_PL_PrevRate float,
+--FTM_Value_expr varchar(50),
+--FTM_Value_LYCM_expr varchar(50),
+--FTM_Value_INR_BS_expr varchar(50),
+--FTM_Value_INR_BS_LYCM_expr varchar(50),
+--FTM_Value_INR_BS_PrevRate_expr varchar(50),
+--FTM_Value_INR_PL_expr varchar(50),
+--FTM_Value_INR_PL_LYCM_expr varchar(50),
+--FTM_Value_INR_PL_PrevRate_expr varchar(50),
+--FTM_Value_Final float,
+--FTM_Value_LYCM_Final float,
+--FTM_Value_INR_BS_Final float,
+--FTM_Value_INR_BS_LYCM_Final float,
+--FTM_Value_INR_BS_PrevRate_Final float,
+--FTM_Value_INR_PL_Final float,
+--FTM_Value_INR_PL_LYCM_Final float,
+--FinPeriod	varchar(10),
+--FinYear	varchar(4),
+--FinMonth	varchar(2),
+--CalPeriod	varchar(10),
+--CalYear	varchar(4),
+--CalMonth	varchar(2),
+--Month_Name	varchar(25),
+--rownum int
+--)
+
+
+Truncate table TB_PL_structure
+Truncate table TB_PL_structure_Temp
+
+insert into TB_PL_structure(BSPL,MR1,MR1_ID,DataType,Calculation) values
+('PL','Sales','901','Data','=(-1)*901'),
+('PL','Material Cost','902','Data','=902'),
+('PL','Material Cost %','903','In Percentage','=(902*100)/901'),
+('PL','OVC','904','Data','=904'),
+('PL','Total Variable Cost','905','Subtotal','=902+904'),
+('PL','Contribution','906','Subtotal','=901-905'),
+('PL','Contribution %','906','In Percentage','=(906*100)/901'),
+('PL','Employee Cost','907','Data','=907'),
+('PL','Employee Cost (Subsidy)','908','Data','=908'),
+('PL','OFC','909','Data','=909'),
+('PL','Total Fixed Cost','910','Subtotal','=907+908+909'),
+('PL','EBITDA','911','Subtotal','=906-910'),
+('PL','EBITDA %','912','In Percentage','=(911*100)/901'),
+('PL','Donation','913','Data','=913'),
+('PL','Exchange Fluctuation (Realised)','914','Data','=914'),
+('PL','Exchange Fluctuation (UnRealised)','915','Data','=915'),
+('PL','Other Income','916','Data','=916'),
+('PL','Interest Income','917','Data','=917'),
+('PL','Interest Expenses','918','Data','=918'),
+('PL','Extraordinary Expenses','919','Data','=919'),
+('PL','Depreciation','920','Data','=920'),
+('PL','Lesae Accounting Impact','921','Data','=921'),
+('PL','PBT','922','Subtotal','=911-(913+914+915+916+917+918+919+920+921)'),
+('PL','PBT %','923','In Percentage','=(922*100)/901'),
+('PL','Share of Profit of Joint Ventures','924','Data','=924'),
+('PL','Income Tax','925','Data','=925'),
+('PL','PAT','926','Subtotal','=922-924-925'),
+('PL','PBT %','927','In Percentage','=(926*100)/901'),
+('PL','OCI','928','Data','=928'),
+('PL','Total Comprehensive InCome','929','Data','=926-928'),
+('PL','EBITDA w/o Subsidy','930','Data','=906-907-909'),
+('PL','EBITDA For publicaiton','931','Data','=906-910-913-914-915')
+
+
+--select * from TB_PL_structure
+
+--Step 2: Repeat the structure across all the entities and finperiod --till moving the code to LIVE
+declare @FinPeriod varchar(20)
+declare @Entity  varchar(50)
+declare @Count1 int
+declare @Count2 int
+declare @TotalPeriodCounts int
+declare @TotalEntityCounts int
+
+set @TotalPeriodCounts=(select count(distinct finperiod) from TB_details)
+
+set @Count1=1
+while (@Count1<=@TotalPeriodCounts)
+begin
+
+set @FinPeriod= (select FinPeriod from (
+select finperiod,row_number() over (order by finperiod) as rownum from 
+(select distinct finperiod from TB_details)a)b
+where rownum=@Count1)
+
+set @TotalEntityCounts=(select count(distinct Entity) from TB_details where finperiod=@FinPeriod)
+
+set @Count2=1
+while(@Count2<=@TotalEntityCounts)
+begin
+
+
+
+set @Entity= (select Entity from (
+select Entity,row_number() over (order by Entity) as rownum from 
+(select distinct Entity from TB_details)a)b
+where rownum=@Count2)
+
+insert into TB_PL_structure(Entity,BSPL,MR1,MR1_ID,DataType,Calculation,Finperiod)
+select @Entity,BSPL,MR1,MR1_ID,DataType,Calculation,@FinPeriod from TB_PL_structure where finperiod is null
+
+
+--drop table TB_PL_temp
+--create table TB_PL_temp(
+--TotalPeriodCounts int,
+--FinPeriod  varchar(20),
+--Count1 int,
+--TotalEntityCounts int,
+--Entity varchar(25),
+--Count2 int
+--)
+--insert into TB_PL_temp(TotalPeriodCounts,FinPeriod,Count1,TotalEntityCounts,Entity,Count2)
+--select @TotalPeriodCounts,@FinPeriod,@Count1,@TotalEntityCounts,@Entity,@Count2
+
+
+set @Count2=@Count2 + 1
+end
+
+
+set @Count1=@Count1 + 1
+end
+
+
+
+--Step 3: update the consolidated value across the Entities and Finperiod
+
+delete from TB_PL_structure where finperiod is null
+
+update TB_PL_structure set FinYear=a.FinYear,
+FinMonth=a.FinMonth,
+CalPeriod=a.CalPeriod,
+CalYear=a.CalYear,
+CalMonth=a.CalMonth,
+Month_Name=a.Month_Name
+from (select distinct FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name
+from TB_details)a
+where TB_PL_structure.FinPeriod=a.FinPeriod
+
+update TB_PL_structure set FTM_Value=a.FTM_Value,
+FTM_Value_LYCM=a.FTM_Value_LYCM,
+FTM_Value_INR_BS=a.FTM_Value_INR_BS,
+FTM_Value_INR_BS_LYCM=a.FTM_Value_INR_BS_LYCM,
+FTM_Value_INR_BS_PrevRate=a.FTM_Value_INR_BS_PrevRate,
+FTM_Value_INR_PL=a.FTM_Value_INR_PL,
+FTM_Value_INR_PL_LYCM=a.FTM_Value_INR_PL_LYCM,
+FTM_Value_INR_PL_PrevRate=a.FTM_Value_INR_PL_PrevRate
+from
+(select Entity,PRD1,FinPeriod,
+sum(FTM_Value) FTM_Value,sum(FTM_Value_LYCM) FTM_Value_LYCM,
+sum(FTM_Value_INR_BS) FTM_Value_INR_BS,sum(FTM_Value_INR_BS_LYCM) FTM_Value_INR_BS_LYCM,
+sum(FTM_Value_INR_BS_PrevRate) FTM_Value_INR_BS_PrevRate,
+sum(FTM_Value_INR_PL) FTM_Value_INR_PL,sum(FTM_Value_INR_PL_LYCM) FTM_Value_INR_PL_LYCM,
+sum(FTM_Value_INR_PL_PrevRate) FTM_Value_INR_PL_PrevRate
+from TB_details
+--where PRD1='Sales'
+group by Entity,PRD1,FinPeriod)a
+where TB_PL_structure.Entity=a.Entity
+and TB_PL_structure.MR1=a.PRD1
+and TB_PL_structure.FinPeriod=a.FinPeriod
+
+
+update TB_PL_structure set FTM_Value=222
+
+--select * from TB_PL_structure
+
+
+------Step 4: Expression Formation from the General formula
+
+Declare @TotalMR1Counts int
+Declare @MR1_ID varchar(10)
+Declare @Count3 int
+Declare @FTM_Value float
+
+set @TotalPeriodCounts=(select count(distinct finperiod) from TB_PL_structure)
+
+--set @MR1_ID=null
+--set @val=0
+
+set @Count1=1
+while (@Count1<=@TotalPeriodCounts)
+begin
+
+set @FinPeriod= (select FinPeriod from (
+select finperiod,row_number() over (order by finperiod) as rownum from 
+(select distinct finperiod from TB_PL_structure)a)b
+where rownum=@Count1)
+
+set @TotalEntityCounts=(select count(distinct Entity) from TB_PL_structure where finperiod=@FinPeriod)
+
+set @Count2=1
+while(@Count2<=@TotalEntityCounts)
+begin
+
+set @Entity= (select Entity from (
+select Entity,row_number() over (order by Entity) as rownum from 
+(select distinct Entity from TB_PL_structure)a)b
+where rownum=@Count2)
+
+set @TotalMR1Counts=(select count(distinct MR1_ID) from TB_PL_structure where finperiod=@FinPeriod and Entity=@Entity)
+
+set @Count3=1
+while(@Count3<=@TotalMR1Counts)
+begin
+
+set @MR1_ID=(select MR1_ID from (
+select MR1_ID,ROW_NUMBER() over(order by MR1_ID) as rownum from (
+select distinct MR1_ID from TB_PL_structure where finperiod=@FinPeriod and Entity=@Entity)a)b
+where rownum=@Count3)
+
+
+set @FTM_Value=(select FTM_Value from (
+select MR1_ID,FTM_Value from (
+select MR1_ID,sum(FTM_Value) FTM_Value from TB_PL_structure where FinPeriod=@FinPeriod and Entity=@Entity
+group by MR1_ID
+)a)b
+where MR1_ID=@MR1_ID)
+
+
+if(@Count3=1)
+begin
+update TB_PL_structure set FTM_Value_expr=replace([calculation],@MR1_ID,@FTM_Value)
+end
+update TB_PL_structure set FTM_Value_expr=replace(FTM_Value_expr,@MR1_ID,@FTM_Value)
+
+
+
+
+set @Count3=@Count3 + 1
+end
+
+set @Count2=@Count2 + 1
+end
+
+set @Count1=@Count1 + 1
+end
+
+
+--Alter table TB_PL_structure add rownum int
+insert into TB_PL_structure_Temp(Entity,BSPL,MR1,MR1_ID,DataType,Calculation,FTM_Value,FTM_Value_LYCM,FTM_Value_INR_BS,
+FTM_Value_INR_BS_LYCM,FTM_Value_INR_BS_PrevRate,FTM_Value_INR_PL,FTM_Value_INR_PL_LYCM,FTM_Value_INR_PL_PrevRate,FTM_Value_expr,
+FTM_Value_LYCM_expr,FTM_Value_INR_BS_expr,FTM_Value_INR_BS_LYCM_expr,FTM_Value_INR_BS_PrevRate_expr,FTM_Value_INR_PL_expr,
+FTM_Value_INR_PL_LYCM_expr,FTM_Value_INR_PL_PrevRate_expr,FTM_Value_Final,FTM_Value_LYCM_Final,FTM_Value_INR_BS_Final,
+FTM_Value_INR_BS_LYCM_Final,FTM_Value_INR_BS_PrevRate_Final,FTM_Value_INR_PL_Final,FTM_Value_INR_PL_LYCM_Final,
+FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name,rownum)
+select Entity,BSPL,MR1,MR1_ID,DataType,Calculation,FTM_Value,FTM_Value_LYCM,FTM_Value_INR_BS,
+FTM_Value_INR_BS_LYCM,FTM_Value_INR_BS_PrevRate,FTM_Value_INR_PL,FTM_Value_INR_PL_LYCM,FTM_Value_INR_PL_PrevRate,FTM_Value_expr,
+FTM_Value_LYCM_expr,FTM_Value_INR_BS_expr,FTM_Value_INR_BS_LYCM_expr,FTM_Value_INR_BS_PrevRate_expr,FTM_Value_INR_PL_expr,
+FTM_Value_INR_PL_LYCM_expr,FTM_Value_INR_PL_PrevRate_expr,FTM_Value_Final,FTM_Value_LYCM_Final,FTM_Value_INR_BS_Final,
+FTM_Value_INR_BS_LYCM_Final,FTM_Value_INR_BS_PrevRate_Final,FTM_Value_INR_PL_Final,FTM_Value_INR_PL_LYCM_Final,
+FinPeriod,FinYear,FinMonth,CalPeriod,CalYear,CalMonth,Month_Name,
+ROW_NUMBER() over(order by finperiod,entity,MR1_ID,MR1) as rownum from TB_PL_structure
+
+Truncate table TB_PL_structure
+
+insert into TB_PL_structure
+select * from TB_PL_structure_Temp
+
+Truncate table TB_PL_structure_Temp
+
+-------Step 4: Expression Evaluation
+
+declare @expression nvarchar(max)
+declare @sql nvarchar(max)
+declare @result float
+declare @TotalCounts int
+
+set @TotalCounts= (select count(*) from TB_PL_structure)
+
+set @Count1=1
+while (@Count1<=@TotalCounts)
+begin
+
+set @expression = (select FTM_Value_expr from 
+(select FinPeriod,entity,MR1_ID,MR1,FTM_Value_expr,rownum from TB_PL_structure
+where rownum=@Count1
+)a)
+
+--select @expression
+set @sql = 'select @result ' + @expression
+
+exec sp_executesql @sql, N'@result float output', @result = @result out
+
+--select @result
+update TB_PL_structure set FTM_Value_Final=@result where rownum=@Count1
+
+
+set @Count1=@Count1 + 1
+
+end
+
+end
+
+select Entity,MR1_ID,MR1,FTM_Value,Calculation,FTM_Value_expr,rownum,FTM_Value_Final from TB_PL_structure
+order by rownum
+
+-----------Expression evaluation
+----declare @expression nvarchar(max)
+----declare @sql nvarchar(max)
+----declare @result float
+
+----set @TotalIDCounts=(select count(distinct MR1_ID) from TB_PL_structure)
+----set @Count1=1
+----while (@Count1<=@TotalIDCounts)
+----begin
+
+
+----set @id= (select MR1_ID from(
+----select *,ROW_NUMBER() over(order by id) as rownum  from (
+----select distinct MR1_ID from TB_PL_structure)a)b
+----where rownum=@Count1
+----)
+
+
+
+----set @expression = (select FTM_Value_expr from(
+----select *,ROW_NUMBER() over(order by id) as rownum  from (
+----select distinct MR1_ID,FTM_Value_expr from TB_PL_structure)a)b
+----where rownum=@Count1
+----)
+------select @expression
+----set @sql = 'select @result ' + @expression
+
+----exec sp_executesql @sql, N'@result float output', @result = @result out
+
+------select @result
+----update TB_Test set finalvalue=@result where id=@id
+
+----set @Count1=@Count1 +1
+
+----end
+
+------select * from TB_Test
+--------------------------------------
+
+----end
+
+----select * from TB_PL_structure
+
+
+
+--select * from 
+--(select Entity,PRD1,
+--sum(FTM_Value) FTM_Value,sum(FTM_Value_LYCM) FTM_Value_LYCM,
+--sum(FTM_Value_INR_BS) FTM_Value_INR_BS,sum(FTM_Value_INR_BS_LYCM) FTM_Value_INR_BS_LYCM,
+--sum(FTM_Value_INR_BS_PrevRate) FTM_Value_INR_BS_PrevRate,
+--sum(FTM_Value_INR_PL) FTM_Value_INR_PL,sum(FTM_Value_INR_PL_LYCM) FTM_Value_INR_PL_LYCM,
+--sum(FTM_Value_INR_PL_PrevRate) FTM_Value_INR_PL_PrevRate,
+--CalYear,CalMonth
+--from TB_details
+----where PRD1='Sales'
+--group by Entity,PRD1,CalYear,CalMonth
+----order by CalYear,CalMonth
+--)A
+--left outer join TB_PL_structure b
+--on ltrim(rtrim(a.PRD1))=ltrim(rtrim(b.MR1))
+
+
+
+--select distinct PRD1 from TB_details
