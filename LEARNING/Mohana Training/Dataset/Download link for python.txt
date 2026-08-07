@@ -1,0 +1,10 @@
+Download Link for R
+
+https://cran.r-project.org/bin/windows/base/
+https://www.rstudio.com/products/rstudio/download/
+
+Download Link for Python
+
+https://www.python.org/downloads/
+
+https://www.anaconda.com/products/individual

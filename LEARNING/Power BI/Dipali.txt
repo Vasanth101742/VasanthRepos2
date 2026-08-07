@@ -1,0 +1,1 @@
+Global_dim_Code1_Name = CALCULATE(FIRSTNONBLANK('NAV-Dimension Value'[Name],0),FILTER(ALL('NAV-Dimension Value'),And('NAV-Dimension Value'[Co_Code]='NAV-Sales_Order_Header'[Co_Global_Dimension_Code_1], 'NAV-Dimension Value'[Dimension Code]= "DEPARTMENT" )))

@@ -1,0 +1,41 @@
+--Advanced Power BI Concepts
+
+https://databear.com/introduction-to-power-bi-semantic-models/
+
+
+How To Swap REST API Bearer Token in Power Query To Allow Easy Data Refresh in Power BI
+
+https://www.youtube.com/watch?v=adwfBRdrkS8
+
+How to Set Default Slicer selection to Current Year / Month in Power BI
+
+https://www.youtube.com/watch?v=o-gr3XgU1mg
+
+Power BI Interview Question -Default slicer to current year or month -Method 2 (using DAX)
+
+https://www.youtube.com/watch?v=_qzjxC64d9E
+
+
+All Vs AllSelected Vs AllExcept | Power BI Dax Tutorial
+
+https://www.youtube.com/watch?v=aVVua4fG1V0
+
+
+Using Parameters in Power BI
+
+https://www.youtube.com/watch?v=LDWEoWoabAI&t=322s
+
+
+How to Create Calendar Table using DAX in PowerBI | MI Tutorials
+
+https://www.youtube.com/watch?v=OgD0NjKeWDU
+
+
+Show All Months after/before selected Date in PowerBI | MiTutorials
+
+https://www.youtube.com/watch?v=YWfLrezEc84
+
+
+Unlock SQL Power: Understanding ROWS BETWEEN UNBOUNDED PRECEDING and FOLLOWING
+
+https://www.youtube.com/watch?v=R1iZ5WLLl-4

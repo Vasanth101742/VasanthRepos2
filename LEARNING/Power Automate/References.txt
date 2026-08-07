@@ -1,0 +1,14 @@
+1. Step-by-Step Data Migration: Excel to SQL Server with Power Automate Flow
+
+https://www.youtube.com/watch?v=v3H_aYRHz48
+
+2.Power Automate: Add and update data in bulk
+
+
+https://www.youtube.com/watch?v=k3WZ-lRiPIU
+
+
+3. What is Compose action in Microsoft Power Automate?
+Power Tech Speck (Girish Uppal)
+
+https://www.youtube.com/watch?v=MQFruodUv0M

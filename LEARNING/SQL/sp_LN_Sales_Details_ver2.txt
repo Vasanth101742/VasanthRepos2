@@ -1,0 +1,1805 @@
+Text
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--exec sp_LN_Sales_Details_ver2
+CREATE proc [dbo].[sp_LN_Sales_Details_ver2]
+as 
+begin
+
+--Alter table ln_sales_details_ver2 add ItemGroupingSource varchar(50)
+--Alter table ln_sales_details_ver2_Stage1 add ItemGroupingSource varchar(50)
+--Alter table ELGi_Sales_Details add ItemGroupingSource varchar(50)
+--Alter table ATS_Sales_Details add ItemGroupingSource varchar(50)
+--Alter table IAS_Sales_details add ItemGroupingSource varchar(50)
+--Alter table LN_SALES_BDI add ItemGroupingSource varchar(50)
+--Alter table Auction_sales add ItemGroupingSource varchar(50)
+--Alter table FRT_Sales add ItemGroupingSource varchar(50)
+--Alter table Sauer_Sales_Details add ItemGroupingSource varchar(50)
+
+
+
+Truncate table LN_Sales_Details_ver2_log
+Truncate table LN_Sales_Details_ver2_Stage1
+
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Data load from CI Lines',getdate())
+
+
+Declare @InvoiceDate date=(select convert(date,convert(varchar,Datepart(yyyy,(dateadd(yyyy,-1,getdate()-1))))+'-04-01'))
+
+
+insert into LN_Sales_Details_ver2_Stage1
+(company,dpst,trantype,OrderNo,PositionNo,Invoice,custcode,Item,t_rate_1,t_rate_2,ED_AMOUNT,t_amth_1,t_txah_1,
+Foreign_currency_amount,UnitPrice,DeliveryQty,
+Sales_amount,SaleOrderType,indent,t_amti,invoice_date,invoice_date2,currency)
+SELECT b.company,b.t_cofc,b.Trantype,b.OrderNum,b.PositionNum,
+b.invnum,b.CustCode,b.t_item ,b.t_rate_1 ,b.t_rate_2 ,
+sum(b.t_txai) t_txai,sum(isnull(b.t_amth_1,0)),sum(isnull(b.t_txah_1,0)),
+sum(isnull(b.t_amth_1,0)),sum(isnull(b.t_pric,0)),sum(isnull(b.t_dqua,0)),
+sum(isnull(b.t_amth_1,0)),saletype,'',sum(isnull(b.t_amti,0)),
+convert(date,a.t_idat),a.t_idat,a.t_ccur
+FROM (select Company,Trantyp,invnum,t_idat,t_ccur from CI_Header
+where t_idat>=@InvoiceDate
+) a
+left outer join CI_Lines b
+on a.Company=b.Company 
+and ltrim(rtrim(a.Trantyp)) =ltrim(rtrim(b.Trantype ))
+and ltrim(rtrim(a.invnum)) =ltrim(rtrim(b.invnum)) 
+
+group by b.company,b.t_cofc,b.Trantype,b.OrderNum,b.PositionNum,b.invnum,b.CustCode,
+b.t_item ,b.t_rate_1 ,b.t_rate_2,b.saletype,convert(date,a.t_idat),a.t_idat,a.t_ccur
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Data load from CI Lines'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Year&Month Update',getdate())
+
+
+update LN_Sales_Details_ver2_Stage1 set cal_Month= month(Invoice_Date)
+update LN_Sales_Details_ver2_Stage1 set cal_year=year(Invoice_Date)
+update LN_Sales_Details_ver2_Stage1 set Fin_month=case when month(Invoice_Date)<4 then month(Invoice_Date)+9 else month(Invoice_Date)-3 end 
+update LN_Sales_Details_ver2_Stage1 set Fin_year=case when month(Invoice_Date)<4 then year(Invoice_Date)-1 else year(Invoice_Date) end
+update LN_Sales_Details_ver2_Stage1 set Monthname=datename(MM,Invoice_Date)
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Year&Month Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('DPST Update',getdate())
+
+
+--DPST Update 
+
+--DPST Update for Manual Invoice billing
+update LN_Sales_Details_ver2_Stage1 set DPST=b.DPST
+from(select a.SFCP,ITYP,IDOC,line,a.MSID,isnull(b.COFC,a.DIM5) as DPST  from TCISLI225ALL a
+left outer join (select SFCP,MSID,COFC from TCISLI220ALL where cofc not like '%[A-Z]%') b
+on a.SFCP=b.SFCP
+and a.MSID=b.MSID
+)b
+where LN_Sales_Details_ver2_Stage1.company=b.SFCP
+and LN_Sales_Details_ver2_Stage1.trantype=b.ITYP
+and LN_Sales_Details_ver2_Stage1.Invoice=b.IDOC
+and LN_Sales_Details_ver2_Stage1.DPST like '%[A-Z]%'
+
+--Special Case:DPST Update for ATS
+update LN_Sales_Details_ver2_Stage1 set dpst=a.dpst
+from ATS_Service_Revenue_july17YTD a
+where LN_Sales_Details_ver2_Stage1.company=a.[Fin Company]
+and LN_Sales_Details_ver2_Stage1.trantype=a.TTYP
+and LN_Sales_Details_ver2_Stage1.invoice=a.invno
+
+
+--Special Case:DPST Update for Manual Invoice billing for ATS
+
+update LN_Sales_Details_ver2_Stage1 set dpst=b.COFC
+from(select a.SFCP,ITYP,IDOC,line,a.MSID,b.COFC  from TCISLI225ALL a
+left outer join(select SFCP,MSID,COFC from TCISLI220ALL) b
+on a.SFCP=b.SFCP
+and a.MSID=b.MSID
+)b
+where LN_Sales_Details_ver2_Stage1.company=b.SFCP
+and LN_Sales_Details_ver2_Stage1.trantype=b.ITYP
+and LN_Sales_Details_ver2_Stage1.Invoice=b.IDOC
+and LN_Sales_Details_ver2_Stage1.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and LN_Sales_Details_ver2_Stage1.dpst like '%[a-z]%' 
+
+--Special Case: DPST Modification for an Invoice as per the SR: OSPD0119005
+update LN_Sales_Details_ver2_Stage1 set dpst='90110' where concat(company,trantype,Invoice)='40123133000992'
+
+--Special Case: DPST Modification for the Invoices as per the SR: OSL00120504
+update LN_Sales_Details_ver2_Stage1 set dpst='70044'
+where concat(company,trantype,Invoice) in ('40123134000530','40123134000526','40123134000467')
+
+--Special Case: DPST Modification for the Invoices as per the SR: OSL00120504
+update LN_Sales_Details_ver2_Stage1 set dpst='90078' where concat(company,trantype,invoice)='49047835000014'
+
+--Special Case: DPST update for the given Invoice as per the SR: OSL00123521
+update LN_Sales_Details_ver2_Stage1 set dpst=a.dpst
+from vw_Manual_DPST_update_from_Accounts a
+where LN_Sales_Details_ver2_Stage1.trantype=a.trantype
+and LN_Sales_Details_ver2_Stage1.invoice=a.invoice
+
+
+--DPST update for Australia,Indonasia
+
+update LN_Sales_Details_ver2_Stage1  set  dpst  = TTCIBD001551.dpst 
+from 
+(select 551 as company,b.dpst,item from TTCIBD001551 a 
+inner join  producttype_aust_master b on a.CTYP = b.t$ctyp) TTCIBD001551
+where LN_Sales_Details_ver2_Stage1.Company=551
+and LN_Sales_Details_ver2_Stage1.Invoice_Date >='2017-04-01'
+and LN_Sales_Details_ver2_Stage1.company = TTCIBD001551.company
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item)) = ltrim(rtrim(TTCIBD001551.item))
+
+
+update LN_Sales_Details_ver2_Stage1  set  dpst  = TTCIBD001552.dpst from 
+(select 552 as company,b.dpst,item from  TTCIBD001552 a
+inner join  producttype_indo_master b on a.CTYP = b.t$ctyp) TTCIBD001552
+where LN_Sales_Details_ver2_Stage1.Company=552
+and LN_Sales_Details_ver2_Stage1.Invoice_Date >='2017-04-01'
+and LN_Sales_Details_ver2_Stage1.company = TTCIBD001552.company
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item)) = ltrim(rtrim(TTCIBD001552.item))
+
+--New Logic since 25-Nov-2021 against SR : OSL00112512 
+update LN_Sales_Details_ver2_Stage1  set  dpst  = a.dpst 
+from (select Company,OrderType,OrderNum,Dpst from sales_header
+where company=552
+and dpst not like '%[a-z]%'
+) a
+where LN_Sales_Details_ver2_Stage1.Company=552
+and LN_Sales_Details_ver2_Stage1.Invoice_Date >='2017-04-01'
+and LN_Sales_Details_ver2_Stage1.company = a.company
+and LN_Sales_Details_ver2_Stage1.SaleOrderType=a.OrderType
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.OrderNum
+
+
+
+--dpstname update
+
+update LN_Sales_Details_ver2_Stage1 set dpstname=a.DPSTName
+from vw_DPST_MASTER a
+where LN_Sales_Details_ver2_Stage1.dpst=a.dpstcode
+and LN_Sales_Details_ver2_Stage1.company not like '6%'
+
+
+update LN_Sales_Details_ver2_Stage1 set dpstname=a.DPSTName
+from DPST_MASTER_ATS a
+where LN_Sales_Details_ver2_Stage1.dpst=a.dpstcode
+and LN_Sales_Details_ver2_Stage1.company like '6%'
+
+
+update LN_Sales_Details_ver2_Stage1 set dpstname=a.DPSTName
+from DPST_Master_500 a
+where LN_Sales_Details_ver2_Stage1.dpst=a.dpstcode
+and LN_Sales_Details_ver2_Stage1.company =500
+
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'DPST Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Dates update',getdate())
+
+
+--As of 24-Sep-2021
+--Step 3:CNAF Sales Details from Accounts table (Direct Ledger Entries i.e No Manual invoices available for this)
+
+--insert into LN_Sales_Details_ver2(company,trantype,Invoice,Invoice_Date,
+--Currency,t_rate_1,Sales_amount,Foreign_currency_amount,
+--custcode,--custname,
+----FinCustGrp,
+----dpst,--dpstname
+----areacode,areaname,
+----DeliveryQty,
+--Fin_year,Fin_month
+----,cal_year,cal_Month,Monthname
+--)
+--select distinct company,T$OTYP,T$ODOC,
+--T$LEAC,--T$DCDT,T$TEDT,
+--T$DATE as Invoice_Date,
+--T$CCUR,T$RATE$1,
+--T$DBCR, -->1 Debit --2 credit
+--T$DIM5,
+--T$AMTH$1,T$AMNT,
+--T$BPID,--T$DIM5,
+--T$FYER,T$FPRD
+--from TTFGLD106ALL
+--where 
+--T$leac='DA0103029'
+--and T$OTYP in ('JVG','ICR','CDN','ICE','CCJ','ICN','CCR','CCN')
+--and company like '4%'
+--and ltrim(rtrim(T$bpid))  not in 
+--('CU1E00001','CU1E00002','CU1E00003','CU1E00004','CU1E00005','CU1E00006','CU1E00008','CU1E00009','CU1E00010',
+--'CU1E00011','CU1E00012','CU1E00014','CU1E00015','CU1E00026','CU1E00028','CU1E00144','CU1E00203','CU1E00263',
+--'CU1E00371','CU1E00396','CU1E00424','CU1E00477','CU1E00508','CU1E00629','CU1E00676','CU1E00780','CU1E00791',
+--'CU1E00798','CU1E00814','CU1E00885','CU1E00887','CU1E00893','CU1E00914','CU1E00926','CU1E00992','CU1E99998',
+--'CU1E99999','CU1DUMMY1')
+
+----Old Conditions
+----T$leac between 'DA0101001' and 'DA0199999'
+----and T$DATE between '2021-04-01' and '2021-08-31'
+----and len(T$DIM5)>2
+----and T$INTT=2
+--order by T$DATE,COMPANY
+
+
+
+--Lead_Days Update
+
+update LN_Sales_Details_ver2_Stage1 set lead_days=elgi_leadtimeindays from
+(select ltrim(rtrim(elgi_itemcode))elgi_itemcode,max(elgi_leadtimeindays)elgi_leadtimeindays 
+From ELGI_CRM.dbo.Product_CRM
+where (elgi_leadtimeindays is not null and elgi_leadtimeindays>0) group by ltrim(rtrim(elgi_itemcode)))a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.elgi_itemcode))
+and LN_Sales_Details_ver2_Stage1.company between 400 and 599
+
+update LN_Sales_Details_ver2_Stage1 set lead_days=30 where lead_days <1 and Company =490
+update LN_Sales_Details_ver2_Stage1 set lead_days=30 where lead_days is null and Company =490
+
+--estimated_date Update
+
+update LN_Sales_Details_ver2_Stage1 set estimated_date=dbo.UFN_working_wkdays(orderdate,lead_days)
+where LN_Sales_Details_ver2_Stage1.company between 400 and 599
+
+--itemclass Update
+
+update LN_Sales_Details_ver2_Stage1 set itemclass=a.Category from 
+(select distinct ltrim(rtrim(item)) as Item,Category From ITEM_ABC_CLASIFICATION_MASTER)a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item)) =a.Item
+and LN_Sales_Details_ver2_Stage1.company between 400 and 599
+
+--indent update
+
+update LN_Sales_Details_ver2_Stage1 set indent = a.indent
+from(select Company,OrderNum,isnull(t_corn,refa)as indent from Sales_Header)a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.OrderNo =a.ordernum
+
+--OrderDate Update
+
+update LN_Sales_Details_ver2_Stage1 set OrderDate=a.OrderDate--,Del_Address=a.DelAddress
+from (
+select * From (select company,OrderDate,OrderNum,CustCode,t_itad From Sales_Header)a
+--left join (select distinct CADR, concat(BLDG,BLFL,BLUN) as DelAddress  --NAMA,NAMB,NAMC  
+--from ttccom130400 )b
+--on ltrim(rtrim(a.t_itad))=ltrim(rtrim(b.CADR)) 
+)a
+where LN_Sales_Details_ver2_Stage1.company =a.Company 
+and LN_Sales_Details_ver2_Stage1.OrderNo =a.OrderNum 
+and LN_Sales_Details_ver2_Stage1.custcode=a.CustCode
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Dates update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Del_Address update',getdate())
+
+--Del_Address Update
+
+update LN_Sales_Details_ver2_Stage1 set Del_Address=a.DelAddress
+from (
+select * From (select distinct company,OrderNum,CustCode,t_stoa From CI_Lines)a
+left join (select distinct CADR, --concat(BLDG,BLFL,BLUN) as DelAddress  --NAMA,NAMB,NAMC  
+concat(NAMA,' ',NAMB,' ',NAMC  ) as DelAddress  
+from ttccom130ALL where company=400 )b
+on ltrim(rtrim(a.t_stoa))=ltrim(rtrim(b.CADR)) 
+)a
+where LN_Sales_Details_ver2_Stage1.company =a.Company 
+and LN_Sales_Details_ver2_Stage1.OrderNo =a.OrderNum 
+--and LN_Sales_Details_ver2_Stage1.custcode=a.CustCode
+
+update LN_Sales_Details_ver2_Stage1 set Del_Address=concat(Del_Address,' ',a.DelAddress)
+from (
+select * From (select distinct company,OrderNum,CustCode,t_stoa From CI_Lines)a
+left join (select distinct CADR, concat(BLDG,' ',BLFL,' ',BLUN) as DelAddress  --NAMA,NAMB,NAMC  
+from ttccom130all where company=400 )b
+on ltrim(rtrim(a.t_stoa))=ltrim(rtrim(b.CADR)) 
+)a
+where LN_Sales_Details_ver2_Stage1.company =a.Company 
+and LN_Sales_Details_ver2_Stage1.OrderNo =a.OrderNum 
+--and LN_Sales_Details_ver2_Stage1.custcode=a.CustCode
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Del_Address update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('SalesRep Update',getdate())
+
+--SalesRep Update
+
+--SalesRepcode for Special Indents 
+update LN_Sales_Details_ver2_Stage1 set salesrepcode=a.SalesRep
+from
+(select distinct T$ORNO,T$REM2 as SalesRep from tzzsls320600 )a
+where LTRIM(RTRIM(LN_Sales_Details_ver2_Stage1.OrderNo))=LTRIM(RTRIM(a.T$ORNO)) 
+and LN_Sales_Details_ver2_Stage1.company='600'
+
+--SalesRepCode for Other Cases
+update LN_Sales_Details_ver2_Stage1 set salesrepcode=a.SalesRep
+from
+(select distinct Company,OrderNum,t_oref as Segment, LineOfBusiness,SalesRep from sales_header)a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.OrderNum
+and LN_Sales_Details_ver2_Stage1.SalesRepCode is null
+
+update LN_Sales_Details_ver2_Stage1 set salesrepcode=a.CREP
+from (select * from tzzsls885all)a
+where LN_Sales_Details_ver2_Stage1.company=a.COMPANY
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.LORN
+and len(ltrim(rtrim(LN_Sales_Details_ver2_Stage1.SalesRepCode)))<=3
+
+update LN_Sales_Details_ver2_Stage1 set salesrepcode=a.CREP
+from (select * from tzzsls885all)a
+where LN_Sales_Details_ver2_Stage1.company=a.COMPANY
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.LORN
+and LN_Sales_Details_ver2_Stage1.SalesRepCode is null
+
+
+update LN_Sales_Details_ver2_Stage1 set salesRep=a.NAMA
+from TTCCOM001ALL a
+where LN_Sales_Details_ver2_Stage1.salesrepcode=a.EMNO 
+
+
+--Sauer
+--update LN_Sales_Details_ver2 set salesrepcode=a.SalesRep
+--from
+--(select distinct Company,OrderNum,t_oref as Segment, LineOfBusiness,SalesRep from sales_header
+--where company=581)a
+--where LN_Sales_Details_ver2.company=a.Company
+--and LN_Sales_Details_ver2.OrderNo=a.OrderNum
+--and LN_Sales_Details_ver2.SalesRepCode is null
+
+--update LN_Sales_Details_ver2 set salesRep=a.emp_name
+--from (select * from Employee_Details
+--where comp_code=722)a
+--where LN_Sales_Details_ver2.salesrepcode=a.emp_code
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'SalesRep Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('LOB Update',getdate())
+
+--LOB Update
+
+update LN_Sales_Details_ver2_Stage1 set LOBCode=a.LineOfBusiness
+from
+(select distinct Company,OrderNum,t_oref as Segment, LineOfBusiness,SalesRep from sales_header)a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.OrderNum
+
+update LN_Sales_Details_ver2_Stage1 set LineOfBusiness=replace(a.DSCA,'|','')
+from (select * from TTCMCS031ALL where company=400) a 
+where LN_Sales_Details_ver2_Stage1.lobcode=a.CBRN
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'LOB Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Segment Update',getdate())
+
+
+
+--Segment Updation
+--Commented On 29-May-2019
+--update LN_Sales_Details_ver2 set Segment=b.chnl
+--from TZZSLS326ALL b
+--where ltrim(rtrim(LN_Sales_Details_ver2.LOBCode))=ltrim(rtrim(b.cbrn))
+--and LN_Sales_Details_ver2.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+--Segment for Special Indents 
+--Method1:
+update LN_Sales_Details_ver2_Stage1 set Segment=b.T$REM1
+from tzzsls320600 b
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.OrderNo))=ltrim(rtrim(b.T$ORNO))
+and LN_Sales_Details_ver2_Stage1.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+update LN_Sales_Details_ver2_Stage1 set Segment=a.SEGM
+from (select distinct COMPANY,LORN,SEGM from tzzsls885all)a
+where LN_Sales_Details_ver2_Stage1.company=a.COMPANY
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.LORN
+and LN_Sales_Details_ver2_Stage1.Segment is null
+and LN_Sales_Details_ver2_Stage1.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+update LN_Sales_Details_ver2_Stage1 set Segment=a.segment
+from (select distinct cuno,convert(nvarchar,order_number) order_number,tplcode,segment
+from [ELGi_Intranet].dbo.ats_plexecom_customer_units)a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.custcode))=ltrim(rtrim(a.cuno))
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.order_number
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.item))=ltrim(rtrim(a.tplcode))
+and LN_Sales_Details_ver2_Stage1.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+--update LN_Sales_Details_ver2 set Segment=b.T$REM1
+--from (select distinct from tzzsls30) b
+--where ltrim(rtrim(LN_Sales_Details_ver2.OrderNo))=ltrim(rtrim(b.T$ORNO))
+--and LN_Sales_Details_ver2.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+
+--Method2: Commented on 2Apr2024
+--update LN_Sales_Details_ver2 set Segment=b.Segment
+--from ATS_Segment_Master b
+--where ltrim(rtrim(LN_Sales_Details_ver2.dpst))=ltrim(rtrim(b.DPSTcode))
+--and LN_Sales_Details_ver2.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+
+--SubDivision Update
+
+update LN_Sales_Details_ver2_Stage1 set SubDivision=b.T$REM10,BuyBack=b.T$REM11
+from tzzsls320600 b
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.OrderNo))=ltrim(rtrim(b.T$ORNO))
+and LN_Sales_Details_ver2_Stage1.company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+update LN_Sales_Details_ver2_Stage1 set SubDivision=null where ltrim(rtrim(SubDivision))=''
+
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Segment Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('BAAN Data Update',getdate())
+
+-------------------Inserting and Updating China Sales Data from BAAN ----------------------
+--insert into LN_Sales_Details_ver2_Stage1(company,trantype,warehouse,OrderNo,PositionNo,Invoice,Invoice_Date,Taxcode,
+--Currency,Item,Item_desc,custcode,custname,dpst,dpstname,Organ,Vertical1,user_names,Division,productgrp,Region,
+--Zone,areacode,areaname,t_rate_1,t_rate_2,ED_AMOUNT,t_amth_1,t_txah_1,Foreign_currency_amount,
+--UnitPrice,DeliveryQty,
+--cal_Month,cal_year,Fin_month,Fin_year,Monthname,Sales_amount,SaleOrderType,sales_category,FinCustGrp,ShipmentNO,
+--ShipmentLine,ShiptoAddress,SegmentCode,Segment,SalesRepCode,SalesRep,LOBCode,LineOfBusiness,OrderDate,Del_Address)
+
+--select Company,TranType,Warehouse,OrderNum,PositionNum,InvoiceNum,Date,null as taxcode,Currency,ItemCode,
+--null as item_desc,CustCode,null as custname,Dpst,null as dpstname,null as organ,null as vertical,null as user_names,
+--Division,null as productgrp,null as region,
+--null as zone,Area,null as areaname,0 as rate1,0 as rate2,0 as rate3,0 amt1,0 amt2,OAssesValue as Foreign_currency_amount,
+--BasicPrice,DeliveredQty,
+--null as cmonth,null as calyear,null as fmonth,null as fyear,null as monthname,
+--AssesValue as Sales_amount,OrderType, SaleType,FinCustGrp,null as shipmentno,
+--null as shipmentline,null as shipmentaddress,
+--null as SegmentCode,null as Segment,null as SalesRepCode,null as SalesRep,null as LOBCode,null as LineOfBusiness,
+--null as OrderDate, null as Del_Address
+--from Tmpslsdespdata_chn
+
+
+
+----update LN_Sales_Details_ver2 set OrderDate=a.T$odat
+----from (
+----select a.COMP,a.CUNO,a.COTP,a.ORNO,b.T$ORNO,b.T$PONO,b.T$ODAT from [ELGI-DW].dbo.tmpslsheader_chn a
+----left outer join 
+----(select distinct convert(int,company) company,T$CUNO,convert(varchar,T$ORNO) T$ORNO,T$PONO,T$ODAT from [ELGI-DW].dbo.tmpslslines_chn)b
+----on a.COMP=b.company
+----and a.CUNO=b.T$CUNO
+----and a.ORNO=b.T$ORNO
+----)a
+----where LN_Sales_Details_ver2.company=a.comp
+----and LN_Sales_Details_ver2.SaleOrderType=a.COTP
+----and LN_Sales_Details_ver2.orderno=a.T$ORNO
+----and LN_Sales_Details_ver2.PositionNo=a.T$PONO
+
+
+--update LN_Sales_Details_ver2_Stage1 set OrderDate=a.odat
+--from (select COMP,CUNO,COTP,convert(nvarchar,ORNO) ORNO,ODAT from [ELGI-DW].dbo.tmpslsheader_chn) a
+--where LN_Sales_Details_ver2_Stage1.company=a.comp
+--and LN_Sales_Details_ver2_Stage1.SaleOrderType=a.COTP
+--and LN_Sales_Details_ver2_Stage1.orderno=a.ORNO
+
+
+--update LN_Sales_Details_ver2_Stage1 set custname=a.custname
+--from (select distinct CUNO,case when nama like '%[a-z]%' and ltrim(rtrim(namb))='' 
+--then ltrim(rtrim(NAMA)) else ltrim(rtrim(NAMB)) end as custname
+--from [ELGI-DW].dbo.Tmpcustomer_chn) a
+--where LN_Sales_Details_ver2_Stage1.custcode=a.CUNO
+--and LN_Sales_Details_ver2_Stage1.company in (711,712)
+
+--update LN_Sales_Details_ver2_Stage1 set Item_desc=a.DSCA
+--from [ELGI-DW].dbo.comitemdata_chn a
+--where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.ITEM))
+--and LN_Sales_Details_ver2_Stage1.company in (711,712)
+
+
+---------------------End : Inserting and Updating China Sales Data from BAAN ----------------------
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'BAAN Data Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('TaxCode Update',getdate())
+
+
+--TaxCode Update
+
+update LN_Sales_Details_ver2_Stage1 set taxcode=b.t_cvat
+from CI_Lines b
+where LN_Sales_Details_ver2_Stage1.Company=b.Company 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Trantype)) =ltrim(rtrim(b.Trantype ))
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Invoice)) =ltrim(rtrim(b.invnum)) 
+and LN_Sales_Details_ver2_Stage1.OrderNo=b.OrderNum
+and LN_Sales_Details_ver2_Stage1.PositionNo=b.PositionNum
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'TaxCode Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Custname Update',getdate())
+
+--custname Update
+
+update LN_Sales_Details_ver2_Stage1 set custname=a.custname1,FinCustGrp=a.FinCustGrp
+from vw_Business_Partner a
+where LN_Sales_Details_ver2_Stage1.custcode=a.custcode
+and LN_Sales_Details_ver2_Stage1.company in (select  company from ELGI_Companies_Master 
+where Company not in (551,552,951) and CompanyGroup in ('ELGi','ATS'))
+
+update LN_Sales_Details_ver2_Stage1 set custname=a.custname1,FinCustGrp=a.FinCustGrp
+from vw_Business_Partner_IAS a
+where LN_Sales_Details_ver2_Stage1.custcode=a.custcode
+and LN_Sales_Details_ver2_Stage1.company in (select  company from ELGI_Companies_Master 
+where CompanyGroup ='IAS')
+
+update LN_Sales_Details_ver2_Stage1 set custname=a.custname1,FinCustGrp=a.FinCustGrp
+from vw_Business_Partner_551 a
+where LN_Sales_Details_ver2_Stage1.custcode=a.custcode
+and LN_Sales_Details_ver2_Stage1.company in (select  company from ELGI_Companies_Master 
+where CompanyGroup ='ELGi' and company=551)
+
+
+update LN_Sales_Details_ver2_Stage1 set custname=a.custname1,FinCustGrp=a.FinCustGrp
+from vw_Business_Partner_552 a
+where LN_Sales_Details_ver2_Stage1.custcode=a.custcode
+and LN_Sales_Details_ver2_Stage1.company in (select  company from ELGI_Companies_Master 
+where CompanyGroup ='ELGi' and company=552)
+
+update LN_Sales_Details_ver2_Stage1 set custname=a.custname1,FinCustGrp=a.FinCustGrp
+from vw_Business_Partner_553 a
+where LN_Sales_Details_ver2_Stage1.custcode=a.custcode
+and LN_Sales_Details_ver2_Stage1.company in (select  company from ELGI_Companies_Master 
+where CompanyGroup ='ELGi' and company=553)
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Custname Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Payment Terms Update',getdate())
+
+
+--Payment Terms Update
+
+update LN_Sales_Details_ver2_Stage1 set CPAY=a.t_cpay
+from (select distinct concat(company,t_ttyp,t_ninv) as inv,t_cpay from TTFACR200ALL where len(t_cpay)>1) a
+where concat(company,Trantype,Invoice)=a.inv
+
+update LN_Sales_Details_ver2_Stage1 set PayTYP_desc=a.DSCA
+from (select distinct CPAY,DSCA from TTCMCS013ALL) a
+where LN_Sales_Details_ver2_Stage1.CPAY=a.CPAY
+
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Payment Terms Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Currency Rate Update',getdate())
+
+
+--Currency Rate Update for Australia , Indonesia and Gulf
+
+update LN_Sales_Details_ver2_Stage1  set t_rate_1=81.00 where company=500 and currency='USD' and Invoice_Date<='2023-04-01'
+update LN_Sales_Details_ver2_Stage1  set t_rate_1=22.04 where company=500 and currency='DHI' and Invoice_Date<='2023-04-01'
+update LN_Sales_Details_ver2_Stage1  set t_rate_1=87.14 where company=500 and currency='EUR' and Invoice_Date<='2023-04-01'
+
+
+
+--t_rate_1 Update from CurrencyRate Master--------------------------
+
+--Old Method
+--update LN_Sales_Details_ver2  set t_rate_1=a.CurrencyRate
+--from (select * from CurrencyRateMaster a where company=500
+--and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=500 
+--and FromCurrency=a.FromCurrency and ToCurrency=a.ToCurrency) 
+--and ToCurrency='INR' )a
+--where LN_Sales_Details_ver2.company=a.Company
+--and LN_Sales_Details_ver2.Currency=a.FromCurrency
+
+--New Method
+update LN_Sales_Details_ver2_Stage1  set t_rate_1=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=500 and ToCurrency='INR')a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+and LN_Sales_Details_ver2_Stage1.Invoice_Date between a.validFromDate and a.ValidToDate
+
+update LN_Sales_Details_ver2_Stage1 set Sales_amount=t_amti*t_rate_1 where company=500
+
+
+update LN_Sales_Details_ver2_Stage1  set t_rate_1=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=552 and ToCurrency='INR')a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+and LN_Sales_Details_ver2_Stage1.Invoice_Date between a.validFromDate and a.ValidToDate
+
+update LN_Sales_Details_ver2_Stage1 set Sales_amount=t_amti*t_rate_1 where company=552
+
+
+update LN_Sales_Details_ver2_Stage1  set t_rate_1=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=553 and ToCurrency='INR')a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+and LN_Sales_Details_ver2_Stage1.Invoice_Date between a.validFromDate and a.ValidToDate
+
+update LN_Sales_Details_ver2_Stage1 set Sales_amount=t_amti*t_rate_1 where company=553
+
+--Above Logic to be implemented below for 551 as well in future.
+
+update LN_Sales_Details_ver2_Stage1  set Sales_amount=t_amti*a.CurrencyRate,
+t_rate_1=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=551
+and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=551 and FromCurrency=a.FromCurrency) 
+and ToCurrency='INR' )a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Currency Rate Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Area Update',getdate())
+
+--Area Update
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.Area  
+from Sales_Header a
+where LN_Sales_Details_ver2_Stage1.company =a.Company 
+and LN_Sales_Details_ver2_Stage1.OrderNo =a.OrderNum 
+
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.areacode))=''
+and LN_Sales_Details_ver2_Stage1.company not in (551,552,553,951)
+
+
+--Area Updation from IndentNo --This logic only for orders flowing through Dealer Portal
+
+update LN_Sales_Details_ver2_Stage1 set areacode =b.IndentArea
+from (select distinct concat('0',substring(ltrim(rtrim(RefA)),2,2)) IndentArea,* From Sales_Header 
+where len(ltrim(rtrim(RefA)))=9 and RefA is not null
+--and concat('0',substring(RefA,2,2)) like '%[0-9]%'
+and substring(Area,1,1)='0'
+and concat('0',substring(ltrim(rtrim(RefA)),2,2)) in (select Areacode from vw_AREA_MASTER where areacode not in ('006'))
+and LEN(CDF_MSID)<2  --Logic Added on 09-12-2020
+--and company=401 and OrderNum='501000850'  --DP Order
+--and company=490 and OrderNum='252002407' --CRM order
+)b
+where LN_Sales_Details_ver2_Stage1.company =b.Company 
+and LN_Sales_Details_ver2_Stage1.OrderNo =b.OrderNum
+and LN_Sales_Details_ver2_Stage1.areacode like '0%' 
+AND LN_Sales_Details_ver2_Stage1.company not in (551,552,553,951)
+
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner  a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and LN_Sales_Details_ver2_Stage1.areacode is null
+and LN_Sales_Details_ver2_Stage1.company not in (551,552,553,951)
+
+--update LN_Sales_Details_ver2 set areacode=a.CustAreaCode 
+--from vw_Business_Partner  a
+--where ltrim(rtrim(LN_Sales_Details_ver2.CustCode))=ltrim(rtrim(a.custcode)) 
+--and ltrim(rtrim(LN_Sales_Details_ver2.areacode))=''
+--and LN_Sales_Details_ver2.company not in (551,552,951)
+
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_IAS a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.areacode))=''
+and LN_Sales_Details_ver2_Stage1.company in (951)
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_IAS  a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and LN_Sales_Details_ver2_Stage1.areacode is null
+and LN_Sales_Details_ver2_Stage1.company in (951)
+
+
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_551 a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.areacode))=''
+and LN_Sales_Details_ver2_Stage1.company in (551)
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_551  a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and LN_Sales_Details_ver2_Stage1.areacode is null
+and LN_Sales_Details_ver2_Stage1.company in (551)
+
+
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_552 a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.areacode))=''
+and LN_Sales_Details_ver2_Stage1.company in (552)
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_552  a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and LN_Sales_Details_ver2_Stage1.areacode is null
+and LN_Sales_Details_ver2_Stage1.company in (552)
+
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_553 a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.areacode))=''
+and LN_Sales_Details_ver2_Stage1.company in (553)
+
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CustAreaCode 
+from vw_Business_Partner_553  a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.CustCode))=ltrim(rtrim(a.custcode)) 
+and LN_Sales_Details_ver2_Stage1.areacode is null
+and LN_Sales_Details_ver2_Stage1.company in (553)
+
+--Overwrite the Areacode for Areas updated from Customer Master due to unavailability of Indent Area
+update LN_Sales_Details_ver2_Stage1 set areacode=a.CREG 
+from (
+select a.Company,OrderNum,b.CREG from 
+(select distinct Company,OrderNum,refa,
+concat('0',substring(ltrim(rtrim(RefA)),2,2)) IndentArea From Sales_Header 
+where len(ltrim(rtrim(RefA)))<>9)a
+inner join
+(select distinct NCMP,LORN,CREG From tzzsls885all where CREG<>'')b
+on a.Company=b.NCMP
+and a.OrderNum=b.LORN
+)a
+where LN_Sales_Details_ver2_Stage1.company =a.Company 
+and LN_Sales_Details_ver2_Stage1.OrderNo =a.OrderNum 
+
+
+--Special Case: Updating Areacode for Australia ,Indonesia and Malaysian companies (551,552,553)
+update LN_Sales_Details_ver2_Stage1 set areacode='631' where company=551 and Invoice_Date>='2017-04-01' --and ltrim(rtrim(areacode))=''
+update LN_Sales_Details_ver2_Stage1 set areacode='624' where company=552 and Invoice_Date>='2017-04-01' and ltrim(rtrim(areacode))=''
+update LN_Sales_Details_ver2_Stage1 set areacode='622' where company=553 and Invoice_Date>='2017-04-01' and ltrim(rtrim(areacode))=''
+
+update LN_Sales_Details_ver2_Stage1 set areacode='631' where company=551 and Invoice_Date>='2017-04-01' --and areacode is null
+update LN_Sales_Details_ver2_Stage1 set areacode='624' where company=552 and Invoice_Date>='2017-04-01' and areacode is null
+update LN_Sales_Details_ver2_Stage1 set areacode='622' where company=553 and Invoice_Date>='2017-04-01' and areacode is null
+
+
+--Special Case: Area Modification for an Invoice as per the SR: 16CER119761
+update LN_Sales_Details_ver2_Stage1 set Areacode='672' where areacode='072' and company=500
+
+update LN_Sales_Details_ver2_Stage1 set areacode='612' where areacode='603' and invoice_date>='2017-04-01'
+
+--Special Case: Area Modification for an Invoice as per the SR: 2SINC121550
+update LN_Sales_Details_ver2_Stage1 set areacode='011' 
+where areacode='042' and company=401 and trantype='211' and invoice='34012277'
+
+--Special Case: Area Modification for an Invoice as per the SR: 23124
+update LN_Sales_Details_ver2_Stage1 set areacode='625' 
+where concat(company,trantype,invoice) in ('40123135000223','49043235000209')
+
+--Special Case: Area Modification for the below Invoices as per the SR: 2SRSC123440
+update LN_Sales_Details_ver2_Stage1 set areacode='021'
+where concat(company,trantype,Invoice) in 
+('40121135004341','40121135003093','40121135002373','40121135004224','40121135002396','40121135004226',
+'40121135002505','40121135003826','40121135004215','40121135004214','40121135001904','40121135000251',
+'40121135000253','40121135003092','40121135003552','40121135003440','40121135002468','40121135003832',
+'40121135001566','40121135000052','40121135004225','40121135000250','40121135000051','40121135003531',
+'40121135002462','40121135003530','40121135003441','40121135004304','40121135001405','40121135003504',
+'40121135001415','40121135001903','40121135001567','40121135004305','40121135005215','40121135003612',
+'40121135002825','40121135005889','40121135001745','40121135002714','40121135001189','40121135000152',
+'40121135004479','40121135005876','40121135006118','40121135006119','40121135004284')
+
+update LN_Sales_Details_ver2_Stage1 set AreaCode='021'
+where custcode in ('CU1C00008','CUSC00028','CU1C01462','CUSN00045')
+and Dpst in ('90091')
+
+--Special Case: Area Modification for the below Invoices as per the SR: 1IM1S123997
+update LN_Sales_Details_ver2_Stage1 set AreaCode='740'
+where concat(company,trantype,invoice) in ('40123135000672','49043235000571')
+
+--Special Case: Area Modification for the below Invoices as per the SR: 1IM1A124072
+update LN_Sales_Details_ver2_Stage1 set AreaCode='714'
+where concat(company,trantype,invoice) in ('49043235000658')
+
+--Special Case: Area Modification for the below Invoices as per the SR: 2PPSA123847
+update LN_Sales_Details_ver2_Stage1 set AreaCode='034'
+where concat(company,trantype,invoice) in ('49041235009870')
+
+--Special Case: Area Modification for the below Invoices as per the SR: 1IM1A124444
+update LN_Sales_Details_ver2_Stage1 set AreaCode='661'
+where concat(company,trantype,invoice) in ('40121135013247')
+
+--Special Case: Area Modification for the below Invoices as per the SR: 2SINR024500
+update LN_Sales_Details_ver2_Stage1 set AreaCode='013'
+where concat(company,trantype,invoice) in ('40121135013274','40121135013273',
+'40121135013594','40121135013595','40121135013869','40121135014341',
+'40121135015799','40121135016421','40121135016035','40121135016656')
+
+
+update LN_Sales_Details_ver2_Stage1 set areaname=a.AreaName
+from vw_AREA_MASTER  a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Areacode)) =ltrim(rtrim(a.Areacode ))
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Area Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Item Desc Update',getdate())
+
+--item_desc Update
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001400 a
+where LN_Sales_Details_ver2_Stage1.company in 
+(select  company from ELGI_Companies_Master where Company not in (465,490,551,552) and CompanyGroup ='ELGi')
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.t_item))
+
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.DSCA))
+from TTCIBD001465 a
+where LN_Sales_Details_ver2_Stage1.company in 
+(select  company from ELGI_Companies_Master where Company =465)
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.ITEM))
+
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001490 a
+where LN_Sales_Details_ver2_Stage1.company in 
+(select  company from ELGI_Companies_Master where Company =490 )
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.item))
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001500 a
+where LN_Sales_Details_ver2_Stage1.company =500
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.item))
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001551 a
+where LN_Sales_Details_ver2_Stage1.company =551
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.item))
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001552 a
+where LN_Sales_Details_ver2_Stage1.company =552
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.item))
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.dsca))
+from ttcibd001581 a
+where LN_Sales_Details_ver2_Stage1.company =581
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.item))
+
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.t_dsca))
+from TTCIBD001600 a
+where LN_Sales_Details_ver2_Stage1.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='ATS'  )
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.t_item))
+
+
+update LN_Sales_Details_ver2_Stage1 set item_desc=ltrim(rtrim(a.dsca))
+from TTCIBD001951 a
+where LN_Sales_Details_ver2_Stage1.company in 
+(select  company from ELGI_Companies_Master where CompanyGroup ='IAS')
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Item))=ltrim(rtrim(a.item))
+
+
+--warehouse Update
+
+update LN_Sales_Details_ver2_Stage1 set warehouse=a.WareHouse
+from (select distinct Company,OrderNum,PositionNum,WareHouse from Sales_Lines) a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.OrderNum
+and LN_Sales_Details_ver2_Stage1.PositionNo=a.PositionNum
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Item Desc Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Shipment Update',getdate())
+
+
+--Shipment Update
+
+update LN_Sales_Details_ver2_Stage1 set ShipmentNO=a.shpm,
+ShipmentLine=a.SHLN,
+ShiptoAddress=a.STAD 
+from TTDSLS406ALL a
+where ltrim(rtrim(LN_Sales_Details_ver2_Stage1.company)) =ltrim(rtrim(a.COMPANY ))
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.OrderNo)) =ltrim(rtrim(a.ORNO)) 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.PositionNo))=ltrim(rtrim(a.PONO)) 
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.trantype)) =ltrim(rtrim(a.TTYP ))
+and ltrim(rtrim(LN_Sales_Details_ver2_Stage1.Invoice))=ltrim(rtrim(a.INVN  ))
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Shipment Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Verticals Update',getdate())
+
+--Verticals Updations
+
+update LN_Sales_Details_ver2_Stage1 
+set Organ=a.Organ,
+Vertical1=a.Vertical1,
+--user_names=a.User_names,
+Division=a.Division,
+productgrp=a.ProductGrp,
+Region=a.Region,
+Zone=a.Zone
+from (select * from vw_salesmapping_master where organ in ('India','Subsidiary'--,'VACUUM'
+)) a
+where LN_Sales_Details_ver2_Stage1.dpst=a.DPSTCode
+
+--To address the issue of missing DPST based on Itemgroup from LN Item Master
+update LN_Sales_Details_ver2_Stage1 set Organ='COSEA' where company in ('551','552','553') 
+
+--New Exception : Since Sales transactions classifications are based on DPST and Area, 
+--Sales Billing directly from 500 Company are mapped to ID or other Organs based on the Salesmapping_global Master data
+--Hence Without affecting the Existing Data Structure, new record is inserted in SalesMapping_Global with Suffix G(i.e Gulf) added to DPST 
+--and same modification is done in Sales Table.-->NOTE: This is a Temporary FIX
+
+--select distinct dpst from LN_Sales_Details_ver2 where concat(company,trantype,Invoice)='50073132000249'
+
+--update LN_Sales_Details_ver2 set dpst=dpst+'G' where concat(company,trantype,Invoice)='50073132000249'
+
+
+update LN_Sales_Details_ver2_Stage1 
+set Organ=a.Organ,
+Vertical1=a.Vertical1,
+user_names=a.User_names,
+Division=a.Division,
+productgrp=a.ProductGrp,
+Region=a.Region,
+Zone=a.Zone
+from (select * from vw_salesmapping_master where organ not in ('India','Subsidiary')) a
+where LN_Sales_Details_ver2_Stage1.dpst=a.DPSTCode
+and LN_Sales_Details_ver2_Stage1.areacode=a.Areacode
+
+--Special Case against SR : OSL00112512 (sales made from 551 company to be considered under ID)
+update LN_Sales_Details_ver2_Stage1 set Organ='ID',
+Vertical1=null,
+user_names='Nitin Sharma',
+Division='ROCD',
+productgrp='EPSAC',
+Region='SOUTH EAST ASIA',
+Zone=null
+where concat(company,trantype,invoice) in 
+('5522U121000038','5522U121000039','5522U121000040','5522U121000041','5522S121000508')
+
+
+--Special Case against SR : 2SFS0118762 (sales made to 672-UAE to be Considered for 612-Bangladesh)
+update LN_Sales_Details_ver2_Stage1 set Organ='SAAME',
+Vertical1='ROCD - SPARES - INTERNATIONAL',
+user_names='SA-Spares',
+Division='ROCD',
+productgrp='PARTS',
+Region='NEIGHBOURING',
+Zone='S. ASIA',
+areacode='612',
+areaname='BANGLADESH'
+where concat(company,trantype,invoice) in ('49043233001027','49043233001028')
+
+
+--Special Case against SR : 1IM1S122342 ID SRN Invoices Verticals Update
+update LN_Sales_Details_ver2_Stage1 set Organ='ID',
+Vertical1='AFRICA',
+user_names='Dolly Paul',
+Division='ROCD',
+productgrp='SEPSAC',
+Region='AFRICA',
+Zone='SouthAfrica',
+areacode='704',
+areaname='CONGO'
+where concat(company,trantype,invoice) in ('40147134000001','49047234000144')
+
+
+--Special Case against SR : 16FA0124449 Organ and Vertical mapping from Finance Team
+
+update LN_Sales_Details_ver2_Stage1 set Organ='India',
+Vertical1='Channel'
+--user_names='',
+--Division='',
+--productgrp='',
+--Region='',
+--Zone='',
+--areacode='',
+--areaname=''
+where concat(company,trantype,invoice) in ('40011235000227','40011235000219',
+'40011235000221','40011235000230','40011235000224','40011235000235','40011235000236',
+'40011235000229','40011235000232','40011235000231','40011235000220','40011235000226',
+'40011235000222','40011235000223','40011235000225','40011235000233','40011235000234')
+
+--On Prakash Mail with Subject :LN Configuration for MGES – New Sales Office, Warehouse, and Order Setup
+--90032 DPST is left unused after FY 2021 which is mapped to new sales vertical :MGES on 14-01-2026.
+--Hence Manually mapping the Previous Transactions related to 90032 under Previously maintained Business vertical
+
+update LN_Sales_Details_ver2_Stage1 set Organ='India',Vertical1='DIRECT',
+dpstname='OFSAC - SPARES                               '
+where dpst='90032'
+and fin_year<'2025'
+
+
+--productgrp Update
+
+update LN_Sales_Details_ver2_Stage1 set productgrp=B.ProductGroups
+FROM (select distinct ProductGroups,Item,DPST  from ATS_Prd_Master_New)b  
+WHERE LTRIM(RTRIM(LN_Sales_Details_ver2_Stage1.Item )) = LTRIM(RTRIM(b.Item)) 
+and LN_Sales_Details_ver2_Stage1.dpst=b.DPST
+AND LN_Sales_Details_ver2_Stage1.company IN (SELECT COMPANY FROM ELGI_Companies_Master WHERE CompanyGroup='ats')
+
+--zone Update
+
+update LN_Sales_Details_ver2_Stage1 set zone=b.zone
+from vw_AREA_MASTER b
+where LN_Sales_Details_ver2_Stage1.areacode =b.Areacode 
+and LN_Sales_Details_ver2_Stage1.Invoice_Date >='2017-04-01'
+
+update LN_Sales_Details_ver2_Stage1 set zone=b.ATS_Zone
+from vw_AREA_MASTER b
+where LN_Sales_Details_ver2_Stage1.areacode =b.Areacode 
+and LN_Sales_Details_ver2_Stage1.Invoice_Date >='2017-04-01'
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Verticals Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Delivery Terms Update',getdate())
+
+
+--Delivery Terms, payment Terms,Carrir Updation
+
+update LN_Sales_Details_ver2_Stage1 set DeliveryTerms=a.DeliveryTerms,
+DelvDesc=a.DelvDesc,
+CarrierCode=a.CarrierCode,
+CarrierDesc=a.CarrierDesc,
+PaymentTerms=a.PaymentTerms,
+PaymentDesc=a.PaymentDesc
+from (select distinct company,ordertype,OrderNum,DeliveryTerms,DelvDesc,
+CarrierCode,CarrierDesc,PaymentTerms,PaymentDesc
+from sales_inflow) a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+and LN_Sales_Details_ver2_Stage1.SaleOrderType=a.ordertype
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.OrderNum
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Delivery Terms Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('History Sales Insert',getdate())
+
+
+----------------------------History sales data load-------------------------------------------
+
+
+----select * into sales_2016_2017 from sales_2016_2017_bckup_as_on_May22_2017
+
+--insert into LN_Sales_Details_ver2_Stage1(company,trantype,warehouse,OrderNo,PositionNo,Invoice,Invoice_Date,Taxcode,
+--Currency,Item,Item_desc,custcode,custname,dpst,dpstname,Organ,Vertical1,user_names,Division,productgrp,Region,
+--Zone,areacode,areaname,t_rate_1,t_rate_2,ED_AMOUNT,t_amth_1,t_txah_1,Foreign_currency_amount,UnitPrice,DeliveryQty,
+--cal_Month,cal_year,Fin_month,Fin_year,Monthname,Sales_amount,SaleOrderType,sales_category,FinCustGrp,ShipmentNO,
+--ShipmentLine,ShiptoAddress,SegmentCode,Segment,SalesRepCode,SalesRep,LOBCode,LineOfBusiness,OrderDate,Del_Address)
+--select *,
+--null as SegmentCode,null as Segment,null as SalesRepCode,null as SalesRep,null as LOBCode,null as LineOfBusiness,
+--null as OrderDate, null as Del_Address
+--From sales_2016_2017 where company not in (711,712)
+
+
+
+---------------------------END OF HISTORY DATA LOAD--------------------------------------------------
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'History Sales Insert'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('USD Rate Calculation',getdate())
+
+
+----USD Rate Caculation------------------------------------------------------------------------
+
+
+Truncate table LN_Sales_USD_Conversion_ver2
+
+insert into LN_Sales_USD_Conversion_ver2(Invoice_Date,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk)
+select Invoice_Date,Currency,BCUR,CCUR,STDT,RATE,DaysDiff,Rnk from (
+select *,datediff(dd,STDT,Invoice_Date) as DaysDiff,
+row_number() over (partition by invoice_date,currency order by datediff(dd,STDT,Invoice_Date)) as Rnk 
+from (select distinct Invoice_Date,Currency from LN_Sales_Details_ver2_Stage1
+--where currency='MYR'
+)a
+left outer join 
+(select BCUR,CCUR,convert(date,STDT) STDT,max(RATE) RATE from TTCMCS008ALL 
+where RTYP='SLS' 
+--and bcur in ('IND')
+and ccur='USD'
+and RATE<>1
+--and convert(date,stdt)='2024-01-08'
+group by BCUR,CCUR,convert(date,STDT))b
+on a.currency=b.bcur
+and a.invoice_date>=b.STDT
+)a
+where Rnk=1
+
+
+delete from  LN_Sales_USD_Conversion_ver2
+where Currency='INR' and BCUR is null
+
+Insert into LN_Sales_USD_Conversion_ver2
+Select Invoice_Date,'INR' as Currency,'INR' as BCUR,CCUR,STDT,RATE,DaysDiff,Rnk 
+from LN_Sales_USD_Conversion_ver2
+where Currency='IND' 
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'USD Rate Calculation'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('USD Rate Calculation2',getdate())
+
+
+--Method1 : Rate_USD from LN Currency Rate Master Table 
+
+update LN_Sales_Details_ver2_Stage1 set Rate_USD=a.RATE
+from LN_Sales_USD_Conversion_ver2 a
+where LN_Sales_Details_ver2_Stage1.Invoice_date=a.Invoice_date
+and LN_Sales_Details_ver2_Stage1.Currency=a.Currency
+and LN_Sales_Details_ver2_Stage1.company not in (500,551,552,553)
+
+
+----Updating USD Rate for all the Sales Transactions whose currency not in ('IND','INR')
+update LN_Sales_Details_ver2_Stage1 set Rate_USD=a.RATE
+from (select * from LN_Sales_USD_Conversion_ver2 where currency in ('IND','INR')) a
+where LN_Sales_Details_ver2_Stage1.Invoice_date=a.Invoice_date
+and LN_Sales_Details_ver2_Stage1.currency not in ('IND','INR')
+and LN_Sales_Details_ver2_Stage1.company in (551,552,553)
+--and LN_Sales_Details_ver2.company not in (500,551,552,553)
+
+--Method1:
+update LN_Sales_Details_ver2_Stage1 set Sales_USD=Sales_amount/Rate_USD where currency in ('IND','INR')
+
+--Method2: Added on 22-12-2025
+update LN_Sales_Details_ver2_Stage1 set Sales_USD=t_amti*Rate_USD where currency not in ('IND','INR')
+
+--update LN_Sales_Details_ver2 set Sales_USD=Foreign_currency_amount*Rate_USD 
+--where company like '4%' and currency not in ('IND','INR','USD')
+--and currency<>''
+
+
+--update LN_Sales_Details_ver2 set Sales_USD=t_amti where Currency='USD'
+
+
+--End: Method1 : Rate_USD from LN Currency Rate Master Table 
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'USD Rate Calculation2'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('USD Rate Calculation3',getdate())
+
+
+--Method2 : Rate_USD from Subsidiary Users Provided Data through mail
+
+
+----Old Method
+----update LN_Sales_Details_ver2  set Rate_USD=a.CurrencyRate
+----from (select * from CurrencyRateMaster a where company=500
+----and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster b where company=500
+----and FromCurrency=a.FromCurrency)
+----and FromCurrency='USD' and ToCurrency='INR'
+----)a
+----where LN_Sales_Details_ver2.company=a.Company
+------and LN_Sales_Details_ver2.Currency=a.FromCurrency --Irrespective of billing currency , it needs to be converted to USD Amnt
+
+
+----AUD to USD conversion to be considered in the below update Query --Yet to Complete
+--update LN_Sales_Details_ver2  set Sales_USD=sales_amount/a.CurrencyRate,
+--Rate_USD=a.CurrencyRate
+--from (select * from CurrencyRateMaster a where company=551
+--and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=551)
+--and FromCurrency='USD' and ToCurrency='INR'
+--)a
+--where LN_Sales_Details_ver2.company=a.Company
+----and LN_Sales_Details_ver2.Currency=a.Currency
+--and LN_Sales_Details_ver2.company=551
+
+
+--update LN_Sales_Details_ver2  set Sales_USD=Foreign_currency_amount*a.CurrencyRate,
+--Rate_USD=a.CurrencyRate
+--from (select * from CurrencyRateMaster a where company=552
+--and UpdatedDate=(select max(UpdatedDate) from CurrencyRateMaster where company=552)
+--and FromCurrency='IDR' and ToCurrency='USD'
+--)a
+--where LN_Sales_Details_ver2.company=a.Company
+--and LN_Sales_Details_ver2.Currency=a.FromCurrency
+--and LN_Sales_Details_ver2.company=552
+
+
+
+--New Method
+update LN_Sales_Details_ver2_Stage1  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=500 and FromCurrency='USD' and ToCurrency='INR')a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+--and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+and LN_Sales_Details_ver2_Stage1.Invoice_Date between a.validFromDate and a.ValidToDate
+
+update LN_Sales_Details_ver2_Stage1  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=551 and FromCurrency='USD' and ToCurrency='INR')a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+--and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+and LN_Sales_Details_ver2_Stage1.Invoice_Date between a.validFromDate and a.ValidToDate
+
+update LN_Sales_Details_ver2_Stage1  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=552 and FromCurrency='USD' and ToCurrency='INR')a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+--and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+and LN_Sales_Details_ver2_Stage1.Invoice_Date between a.validFromDate and a.ValidToDate
+
+update LN_Sales_Details_ver2_Stage1  set Rate_USD=a.CurrencyRate
+from (select * from CurrencyRateMaster a where company=553 and FromCurrency='USD' and ToCurrency='INR')a
+where LN_Sales_Details_ver2_Stage1.company=a.Company
+--and LN_Sales_Details_ver2_Stage1.Currency=a.FromCurrency
+and LN_Sales_Details_ver2_Stage1.Invoice_Date between a.validFromDate and a.ValidToDate
+
+update LN_Sales_Details_ver2_Stage1  set Sales_USD=sales_amount/Rate_USD where company in (500,551,552,553)
+
+update LN_Sales_Details_ver2_Stage1 set Sales_USD=t_amti where Currency='USD'
+
+
+--End: Method2 : Rate_USD from Subsidiary Users Provided Data through mail
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'USD Rate Calculation3'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('USD Rate Calculation4',getdate())
+
+
+
+----Updating the Home Currency Amt of Foreign Companies like 551,552,etc in our 
+----LN_Sales_Details_ver2.Foreign_currency_amount column.
+----This amt will be in AUD,IDR,DHI with respect to those company's billing.
+
+update LN_Sales_Details_ver2_Stage1 set Foreign_currency_amount= a.t_amth_1
+from (SELECT company,Trantype,invnum,OrderNum,PositionNum,
+sum(isnull(t_amth_1,0)) t_amth_1
+FROM CI_Lines 
+where company not like '4%'
+group by company,Trantype,invnum,OrderNum,PositionNum
+)a
+where LN_Sales_Details_ver2_Stage1.company=a.company
+and LN_Sales_Details_ver2_Stage1.Trantype=a.Trantype
+and LN_Sales_Details_ver2_Stage1.invoice=a.invnum
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.OrderNum
+and LN_Sales_Details_ver2_Stage1.PositionNo=a.PositionNum
+and LN_Sales_Details_ver2_Stage1.company not like '4%'
+--and LN_Sales_Details_ver2.Currency='USD'
+--and concat(LN_Sales_Details_ver2.company,LN_Sales_Details_ver2.Trantype,LN_Sales_Details_ver2.invoice)='50071233000008'
+
+
+update LN_Sales_Details_ver2_Stage1 set Foreign_currency_amount= a.Foreign_Currency_Amount
+from (
+select a.company,b.Trantype,b.invnum,b.OrderNum,b.PositionNum,
+a.t_ccur as currency,a.t_idat,c.CurrencyRate,
+sum(isnull(b.t_amti,0)) * isnull(CurrencyRate,1) as Foreign_Currency_Amount
+from (select * from CI_Header where t_idat>=@InvoiceDate)a
+left outer join CI_Lines b
+on a.Company=b.Company 
+and ltrim(rtrim(a.Trantyp)) =ltrim(rtrim(b.Trantype ))
+and ltrim(rtrim(a.invnum)) =ltrim(rtrim(b.invnum)) 
+left outer join (select * from CurrencyRateMaster a where company=500 and ToCurrency='DHI')c
+on a.company=c.Company
+and a.t_ccur=c.FromCurrency
+and convert(date,a.t_idat)between c.validFromDate and c.ValidToDate
+where a.company=500
+--and concat(a.company,b.Trantype,b.invnum)='50071234000116'
+group by a.company,b.Trantype,b.invnum,b.OrderNum,b.PositionNum,a.t_ccur,a.t_idat,CurrencyRate
+)a
+where LN_Sales_Details_ver2_Stage1.company=a.company
+and LN_Sales_Details_ver2_Stage1.Trantype=a.Trantype
+and LN_Sales_Details_ver2_Stage1.invoice=a.invnum
+and LN_Sales_Details_ver2_Stage1.OrderNo=a.OrderNum
+and LN_Sales_Details_ver2_Stage1.PositionNo=a.PositionNum
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'USD Rate Calculation4'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('USD Rate Calculation5',getdate())
+
+
+--Method3: Rate_USD column update based on Foreign Currency to USD Currency Rate (Note: Rate_USD implies the INR to USD Conversion Rate)
+
+
+update LN_Sales_Details_ver2_Stage1 set Rate_USD=a.Rate
+from(select * from LN_Sales_USD_Conversion_ver2)a
+where LN_Sales_Details_ver2_Stage1.currency=a.bcur
+and LN_Sales_Details_ver2_Stage1.Invoice_date=a.Invoice_date
+--and ln_sales_details_ver2.company=553
+and LN_Sales_Details_ver2_Stage1.currency in ('MYR')
+
+update LN_Sales_Details_ver2_Stage1 set sales_USD=t_amti*Rate_USD where 
+--company=553
+currency='MYR'
+
+
+update LN_Sales_Details_ver2_Stage1 set Sales_USD=t_amti*Rate_USD 
+where company like '4%' and currency not in ('IND','INR','USD')
+and ltrim(rtrim(currency))<>''
+
+--End: Method3 : Rate_USD column update based on Foreign Currency to USD Currency Rate (Note: Rate_USD implies the INR to USD Conversion Rate)
+----End of Step 32: USD Rate Caculation--------------------------------------------------------------------
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'USD Rate Calculation5'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('FOC Update',getdate())
+
+
+--FOC Type Update------------------------------------------------------------------------------------------
+
+
+--From CRM
+Update LN_Sales_Details_ver2_Stage1 set FOC_Type=a.elgi_foctypename
+from (
+select distinct a.elgi_aonumber,b.elgi_focnumber,b.elgi_foctypename from
+(select distinct elgi_aonumber,elgi_foc,elgi_focname--,* 
+from [elgi_crm].dbo.salesorder_crm
+where elgi_foc is not null
+--and elgi_aonumber like '%236063888%'
+--and elgi_foc='E43E6BE7-6367-EF11-A670-0022486E315F'
+)a
+left outer join (select distinct elgi_focid,elgi_focnumber,
+elgi_foctypename,elgi_foccategoryname--,* 
+from [elgi_crm].dbo.elgi_foc_crm
+--where elgi_focid='E43E6BE7-6367-EF11-A670-0022486E315F'
+)b
+on a.elgi_foc=b.elgi_focid
+)a
+where concat(LN_Sales_Details_ver2_Stage1.OrderNo,'-',LN_Sales_Details_ver2_Stage1.company)=a.elgi_aonumber
+
+
+--From CCS
+Update LN_Sales_Details_ver2_Stage1 set FOC_Type=a.foc_type_desc
+from (select distinct company,saleordertype,orderno,focno,foc_type_desc
+from [elgi_Intranet].dbo.warranty_tracker_complete
+where orderno is not null)a
+where LN_Sales_Details_ver2_Stage1.company=a.company
+and LN_Sales_Details_ver2_Stage1.saleordertype=a.saleordertype
+and LN_Sales_Details_ver2_Stage1.orderno=a.orderno
+
+Update LN_Sales_Details_ver2_Stage1 set FOC_Type=a.foc_type_desc
+from (select distinct company,saleordertype,orderno,focno,foc_type_desc
+from [elgi_Intranet].dbo.warranty_tracker_complete
+)a
+where LN_Sales_Details_ver2_Stage1.indent=a.focno
+and LN_Sales_Details_ver2_Stage1.FOC_Type is null
+
+
+--End: FOC Type Update-------------------------------------------------------------------------------------
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'FOC Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Fact Table Update',getdate())
+
+
+delete from LN_Sales_Details_ver2 where invoice_date>=@InvoiceDate
+insert into LN_Sales_Details_ver2
+(company,trantype,warehouse,OrderNo,PositionNo,Invoice,Invoice_Date,Taxcode,Currency,Item,
+Item_desc,custcode,custname,dpst,dpstname,Organ,Vertical1,user_names,Division,productgrp,Region,
+Zone,areacode,areaname,t_rate_1,t_rate_2,ED_AMOUNT,t_amth_1,t_txah_1,Foreign_currency_amount,UnitPrice,
+DeliveryQty,cal_Month,cal_year,Fin_month,Fin_year,Monthname,Sales_amount,SaleOrderType,sales_category,
+FinCustGrp,ShipmentNO,ShipmentLine,ShiptoAddress,SegmentCode,Segment,SalesRepCode,SalesRep,LOBCode,
+LineOfBusiness,OrderDate,Del_Address,Sales_USD,Rate_USD,SubDivision,BuyBack,DeliveryTerms,DelvDesc,
+CarrierCode,CarrierDesc,PaymentTerms,PaymentDesc,lead_days,itemclass,estimated_date,indent,CRM_AssemblyLine,
+CRM_Unit_Acc,CRM_Productgroup,CRM_Division,t_amti,FOC_Type,invoice_date2,CPAY,PayTYP_desc,S_and_OP_Region,Cust_Req_Date)
+select company,trantype,warehouse,OrderNo,PositionNo,Invoice,Invoice_Date,Taxcode,Currency,Item,
+Item_desc,custcode,custname,dpst,dpstname,Organ,Vertical1,user_names,Division,productgrp,Region,
+Zone,areacode,areaname,t_rate_1,t_rate_2,ED_AMOUNT,t_amth_1,t_txah_1,Foreign_currency_amount,UnitPrice,
+DeliveryQty,cal_Month,cal_year,Fin_month,Fin_year,Monthname,Sales_amount,SaleOrderType,sales_category,
+FinCustGrp,ShipmentNO,ShipmentLine,ShiptoAddress,SegmentCode,Segment,SalesRepCode,SalesRep,LOBCode,
+LineOfBusiness,OrderDate,Del_Address,Sales_USD,Rate_USD,SubDivision,BuyBack,DeliveryTerms,DelvDesc,
+CarrierCode,CarrierDesc,PaymentTerms,PaymentDesc,lead_days,itemclass,estimated_date,indent,CRM_AssemblyLine,
+CRM_Unit_Acc,CRM_Productgroup,CRM_Division,t_amti,FOC_Type,invoice_date2,CPAY,PayTYP_desc,S_and_OP_Region,Cust_Req_Date 
+from LN_Sales_Details_ver2_Stage1
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Fact Table Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('LN_SALES_BDI',getdate())
+--Step 33: LN_SALES_BDI Table Insert
+
+--Removing FinCustGrp =004
+Truncate table LN_SALES_BDI
+INSERT INTO LN_SALES_BDI
+SELECT * FROM LN_Sales_Details_ver2 where FinCustGrp='004' AND Invoice_Date >='2017-04-01' 
+
+--delete from LN_Sales_Details_ver2 where FinCustGrp='004'
+--and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'LN_SALES_BDI'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Sauer_Sales_Details',getdate())
+
+
+--Step 34: Sauer_Sales_Details Table Insert
+Truncate table Sauer_Sales_Details
+insert into Sauer_Sales_Details 
+select * from LN_Sales_Details_ver2 where company=581
+
+update Sauer_Sales_Details set SalesRepCode='300053',SalesRep='JEBARAJ R' where SalesRepCode in ('14224','16400','110')
+
+--delete from LN_Sales_Details_ver2 where company=581
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Sauer_Sales_Details'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('FRT_Sales',getdate())
+
+
+--Step 36: FRT_Sales Table Insert
+Truncate table FRT_Sales
+insert into FRT_Sales 
+select * from LN_Sales_Details_ver2 where ltrim(rtrim(Item)) like '%FRT%'
+
+insert into FRT_Sales 
+select * From LN_Sales_Details_ver2 where ltrim(rtrim(Item)) in('EXPORT-FREIGHT',
+'M000037703','LABOUR')
+
+
+--delete from LN_Sales_Details_ver2 where  ltrim(rtrim(Item)) like '%FRT%'
+--and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+--delete from LN_Sales_Details_ver2 where ltrim(rtrim(Item)) in ('EXPORT-FREIGHT',
+--'M000037703','LABOUR')
+
+--delete from LN_Sales_Details_ver2 where ltrim(rtrim(Item)) in ('ACCGST0004','ACCGST0005')
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'FRT_Sales'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('auction_sales',getdate())
+
+--Step 39: auction_sales Table Insert
+Truncate table auction_sales
+insert into auction_sales
+select * from LN_Sales_Details_ver2 
+where  trantype in (select * from vw_TrialSales_Trantype)
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+insert into auction_sales
+select * from LN_Sales_Details_ver2 
+where company=440 and invoice='19000002' and trantype='371' and orderno='200007779' and positionno=10 -- due to wrong entry Velraj send mail to this as on Dec302019
+
+--- due to sales credit note Jan 21 2021 velraj requested 
+insert into auction_sales
+select * From LN_Sales_Details_ver2 where invoice='30000065' and trantype='271'
+and convert(date,invoice_date)='2021-01-20'
+
+--delete from LN_Sales_Details_ver2
+--where  trantype in (select * from vw_TrialSales_Trantype)
+--and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'auction_sales'
+
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('Data Removal',getdate())
+
+--Step 40: Data Removal
+
+delete from LN_Sales_Details_ver2 where company=440 
+and invoice='19000002' and trantype='371' 
+and orderno='200007779' and positionno=10 -- due to wrong entry Velraj send mail to this as on Dec302019
+
+delete From LN_Sales_Details_ver2 where invoice='30000065' and trantype='271'
+and convert(date,invoice_date)='2021-01-20'
+
+--Eliminating  and updating the wrong invoice entries made by COSEA Team, upon request.
+delete from LN_Sales_Details_ver2 where concat(company,trantype,invoice) in 
+('5522SR20000008','5522SR20000009','5522S120000190','5522S120000189')
+
+--Step 35: Removing the below itemcodes based on SR:16FA0116219
+delete from LN_Sales_Details_ver2 where ltrim(rtrim(item)) in ('CCVPEC0035','HR01000322')
+
+--Based on the SR :IF000115914 from Indonesia Sales Team on 14-Mar-2023
+delete from ln_sales_details_ver2 where concat(company,saleordertype,OrderNo) in 
+('552221200004322','552SRN300000134')
+
+--Based on the SR: 1IM1S119019 , Removing below the ID SRN Invoice
+delete from ln_sales_details_ver2 where concat(company,trantype,Invoice)='40127133000101'
+delete from ln_sales_details_ver2 where concat(company,trantype,invoice)='40127134000052'
+
+--Based on the SR: 16CEE121829 , Removing below the SRN Invoice
+delete from ln_sales_details_ver2 where concat(company,trantype,invoice)='45087234000281'
+
+--Based on the SR: 1IM1A122309 , Removing below the ID SRN Invoices
+delete from ln_sales_details_ver2
+where concat(company,trantype,Invoice) in ('49047234000145','40127134000159')--,'49047234000144'--,'40147134000001'
+
+
+--Data Reconciliation :
+
+update ln_sales_details_ver2 set Invoice_Date='2020-08-31 00:00:00.000'
+where concat(company,trantype,invoice) in 
+('5522S120000189','5522U120000023','5522U120000024')
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'Data Removal'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('S&OP Update',getdate())
+
+--Step 41: CRM Data update---------------------------------------------------------------------
+
+
+update ln_sales_details_ver2 set CRM_AssemblyLine=a.AssemblyLine,
+--CRM_Unit_Acc=a.Unit_Acc,
+--CRM_Productgroup=a.Productgroup,
+CRM_Division=a.Division
+from (select * from [MSCRM].dbo.crm_tpl_master) a
+where ln_sales_details_ver2.dpst=a.dpst
+and ltrim(Rtrim(ln_sales_details_ver2.Item))=ltrim(rtrim(a.ItemCode))
+and company like '4%'
+
+
+--Item Category and Productgroup Update from S and OP Master
+
+update ln_sales_details_ver2 set S_and_OP_Region='India'
+where company like '4%' and organ not in ('Subsidiary') 
+and isnull(user_names,'') not in ('SA-Units', 'SA-Spares')
+
+
+update ln_sales_details_ver2 set S_and_OP_Region='SA'
+where company like '4%' and organ not in ('Subsidiary') and isnull(user_names,'') in ('SA-Units', 'SA-Spares')
+
+
+update ln_sales_details_ver2 set S_and_OP_Region='India' where company like '4%' and organ in ('Subsidiary') 
+
+update ln_sales_details_ver2 set S_and_OP_Region='Africa'
+where company=500 and organ not in ('Subsidiary') 
+and areacode in ('679','690','691','692','693','694','698')
+
+update ln_sales_details_ver2 set S_and_OP_Region='ME'
+where company=500 and organ not in ('Subsidiary') 
+and areacode in ('671','672','674','675','676','677','683','684')
+
+update ln_sales_details_ver2 set S_and_OP_Region='ID' where Organ='ID'
+
+update ln_sales_details_ver2 set S_and_OP_Region='Australia' where  Company=551 or areaname='AUSTRALIA'
+update ln_sales_details_ver2 set S_and_OP_Region='Indonesia' where  Company=552 or areaname='INDONESIA'
+update ln_sales_details_ver2 set S_and_OP_Region='Malaysia' where  Company=553 or areaname='MALAYSIA'
+
+update ln_sales_details_ver2 set S_and_OP_Region='Australia' where organ not in ('Subsidiary') and areaname='AUSTRALIA'
+update ln_sales_details_ver2 set S_and_OP_Region='Indonesia' where organ not in ('Subsidiary') and areaname='INDONESIA'
+update ln_sales_details_ver2 set S_and_OP_Region='Malaysia' where organ not in ('Subsidiary') and areaname='MALAYSIA'
+
+
+update ln_sales_details_ver2 set CRM_Unit_Acc=a.Item_Category,
+CRM_Productgroup=a.Product_group,ItemGroupingSource='S&OP'
+from (select * from [ELGi_SOP].dbo.TPL_MASTER_REF)a
+where ltrim(rtrim(ln_sales_details_ver2.S_and_op_Region))=ltrim(rtrim(a.Region))
+and ltrim(rtrim(ln_sales_details_ver2.Item))=ltrim(rtrim(a.Item))
+
+
+update ln_sales_details_ver2 set CRM_Unit_Acc=a.Item_Category,
+CRM_Productgroup=a.Product_group,ItemGroupingSource='S&OP'
+from (select * from [ELGi_SOP].dbo.TPL_MASTER_REF)a
+where ltrim(rtrim(ln_sales_details_ver2.Organ))='Subsidiary'
+and ltrim(rtrim(ln_sales_details_ver2.Item))=ltrim(rtrim(a.Item))
+
+
+update ln_sales_details_ver2 set CRM_Productgroup=a.CDOC_Productgroup,
+ItemGroupingSource='CDOC'
+from (
+select distinct tpl as CDOC_tpl,tpl_desc as CDOC_tpl_desc,prod_group as CDOC_Productgroup 
+from [ELGi_CDOC].dbo.crd_attribs
+union
+select distinct tpl,tpl_desc,prod_group from [ELGi_CDOC].dbo.dpsac1
+)a
+where ltrim(rtrim(ln_sales_details_ver2.Item))=ltrim(rtrim(a.CDOC_tpl))
+and ln_sales_details_ver2.CRM_Productgroup is null
+
+update ln_sales_details_ver2 set CRM_Unit_Acc=a.Grp2,
+CRM_Productgroup=a.Grp1,ItemGroupingSource='Australia Master File'
+from (select * from SalesCategorizationMaster_Australia)a
+where ltrim(rtrim(ln_sales_details_ver2.company))=551
+and ltrim(rtrim(ln_sales_details_ver2.Item))=ltrim(rtrim(a.Item))
+and ln_sales_details_ver2.CRM_Unit_Acc is null --Added on 07-07-2026
+
+update ln_sales_details_ver2 set CRM_Unit_Acc ='Accessories',ItemGroupingSource='BI Logic'
+where dpstname like '%Spares%'
+and ln_sales_details_ver2.CRM_Unit_Acc is null --Added on 07-07-2026
+
+update ln_sales_details_ver2 set CRM_Unit_Acc ='Accessories',ItemGroupingSource='BI Logic'
+where dpstname like '%Accessories%'
+and ln_sales_details_ver2.CRM_Unit_Acc is null --Added on 07-07-2026
+
+update ln_sales_details_ver2 set CRM_Unit_Acc='Service charge',
+CRM_Productgroup ='Service Charges / Contracts',ItemGroupingSource='BI Logic'
+where dpstname like '%Service%'
+and ln_sales_details_ver2.CRM_Unit_Acc is null --Added on 07-07-2026
+
+update ln_sales_details_ver2 set CRM_Unit_Acc='Service charge',
+CRM_Productgroup ='Service Charges / Contracts',ItemGroupingSource='BI Logic'
+where item_desc like '%Service%'
+and ln_sales_details_ver2.CRM_Unit_Acc is null --Added on 07-07-2026
+
+update ln_sales_details_ver2 set CRM_Unit_Acc='ATS',CRM_Productgroup =productgrp
+,ItemGroupingSource='BI Logic'
+where company like '6%'
+and ln_sales_details_ver2.CRM_Unit_Acc is null --Added on 07-07-2026
+
+update ln_sales_details_ver2 set CRM_Productgroup='' where CRM_Productgroup is null
+
+
+update ln_sales_details_ver2 set Cust_Req_Date=a.elgi_requesteddispatchdatebycustomer
+from (select distinct substring(elgi_aonumber,11,3) as Company,--elgi_aonumber,
+substring(elgi_aonumber,1,9) as elgi_aonumber ,elgi_requesteddispatchdatebycustomer 
+from [ELGI_CRM].dbo.Salesorder_CRM
+where elgi_requesteddispatchdatebycustomer is not null and elgi_aonumber is not null)a
+where ln_sales_details_ver2.OrderNo=a.elgi_aonumber
+and ln_sales_details_ver2.Company=a.Company
+
+
+--End of Step 41: CRM Data update----------------------------------------------------------------
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'S&OP Update'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('ELGi_Sales_Details',getdate())
+
+
+--Step 42: ELGi_Sales_Details Table Insert 
+
+--Inserting ELGi Sales data from BAAN
+Truncate table ELGi_Sales_Details
+
+Insert into ELGi_Sales_Details 
+select * from LN_Sales_Details_ver2 a
+--WHERE company <>101
+WHERE company IN (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and Invoice_Date<'2017-04-01'
+
+--Direct Sales  made from Supplier end to Customer end without invoicing due to urgent Requirement
+Insert into ELGi_Sales_Details values
+('490',null,null,null,null,null,'2018-06-05',null,null,'B005100950236','EM160KW(SF1.15)/132KW(SF1.2),3','CU1P02910','PSI VIETNAM INDUSTRY JOINT STCOK',
+'90231','ROCD - SPARES - INTERNATIONAL','COSEA','OSEA AS','Sridhar(101365)','ROCD','PARTS','SOUTH EAST ASIA',null,'625','VIETNAM',
+65.0,9.9999999747524,0,360360,0,0,360360,1,6,2018,3,2018,'June',360360,'',0,'003',null,null,null,null,null,null,null,
+null,null,null,null,null,null,null,null,null,null,
+null,null,null,null,null,null,null,null,null,null,
+null,null,null,null,null,null,null,null,null,null)
+
+
+--Inserting ELGi Sales data from LN
+Insert into ELGi_Sales_Details 
+select * from LN_Sales_Details_ver2 a
+WHERE company IN (select company from ELGI_Companies_Master where CompanyGroup='ELGI')
+and Invoice_Date>='2017-04-01'
+
+
+
+delete from ELGi_Sales_Details where  ltrim(rtrim(Item)) like '%FRT%'
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+delete from ELGi_Sales_Details where ltrim(rtrim(Item)) in ('EXPORT-FREIGHT',
+'M000037703','LABOUR')
+
+delete from ELGi_Sales_Details where ltrim(rtrim(Item)) in ('ACCGST0004','ACCGST0005')
+
+delete from ELGi_Sales_Details
+where  trantype in (select * from vw_TrialSales_Trantype)
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+
+--Removing BIMPEX Transactions
+delete from ELGi_Sales_Details where company=490 and trantype='276' and custcode in('CU1B00002','CU1B01496') and Sales_amount<0
+
+--Removing ELGi Sauer DPST: 90004 Transactions
+delete from ELGi_Sales_Details where dpst='90004' --and areacode='051'
+
+-- invoice is raised only for tax difference
+delete from ELGi_Sales_Details  where company ='401' and trantype ='211' and  Invoice ='290003662'
+delete From ELGi_Sales_Details where ltrim(rtrim(Item))='ACCGST0002'
+delete From ELGi_Sales_Details where ltrim(rtrim(Item))='ACCGST0003'
+
+--invoice is raised for damage & Short supply debit note
+delete From ELGi_Sales_Details where ltrim(rtrim(Item))='ACCGST0009'
+
+--- due to karun kanann req elgi customers need to remove
+delete   From ELGi_Sales_Details where 
+ltrim(rtrim(custcode)) in 
+('CU1E00001','CU1E00002','CU1E00003','CU1E00004','CU1E00005','CU1E00006','CU1E00007','CU1E00008','CU1E00009','CU1E00010','CU1E00011',
+'CU1E00012','CU1E00013','CU1E00014','CU1E00015','CU1E00026','CU1E00028','CU1E00144','CU1E00203','CU1E00263','CU1E00331','CU1E00371',
+'CU1E00396','CU1E00424','CU1E00477','CU1E00508','CU1E00578','CU1E00580','CU1E00629','CU1E00675','CU1E00676','CU1E00728','CU1E00780',
+'CU1E00791','CU1E00798','CU1E00814','CU1E00885','CU1E00887','CU1E00893','CU1E00914','CU1E00926','CU1E00961','CU1E00992',
+'CU1E01015','CU1E01061','CU1E99998','CU1E99999','CU1ELGI-P','CU1ELGS99','CUSE00023','INT000006','SU1E00451') 
+and company <500
+
+-- As Kishore Request on Feb 27 2019 
+delete From ELGi_Sales_Details where trantype ='2E1' and Invoice in ('18000039','18000040','18000041')
+and convert(date,Invoice_Date)='2019-02-22' 
+
+delete from ELGi_Sales_Details where day(invoice_date)=1 and convert(Date,Invoice_Date)=convert(date,getdate()) and datepart(HOUR ,getdate())<17
+
+--- due to sales credit note Jan 21 2021 velraj requested 
+delete From ELGi_Sales_Details where invoice='30000065' and trantype='271'
+and convert(date,invoice_date)='2021-01-20'
+
+--Based on SR: 2PPEA126273 dated on 11-06-2026, The areacode and Zone mapping is changed , since there is mismatch in Areacode mapping in  LN.
+update ELGi_Sales_Details set  areacode='021', AreaName='CALCUTTA', Zone='East'  where concat(company,invoice)='49036000070' and Item like '%SCIN0005%'
+
+--Data Reconciliation 
+update ELGi_Sales_Details set dpst='70026' where company=401 and SaleOrderType='217' and OrderNo=290001079 and dpst='70226'
+update ELGi_Sales_Details set dpst='70028' where company=490 and SaleOrderType='219' and OrderNo=292003196 and dpst='70228'
+
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('FOC Ordertypes',getdate())
+
+exec sp_SaleType_Master
+
+--Step 37: Updating Salesordertypes Not to be Considered as they are FOCs
+
+update ELGi_Sales_Details set Sales_Category =a.Sales_Category
+from(select * from saletype_master)a
+where ELGi_Sales_Details.company=a.company
+and ELGi_Sales_Details.SaleOrderType=a.saleordertype
+
+--Step 38: Updating Invoice Trantypes Not to be Considered as they are FOCs
+update ELGi_Sales_Details set Sales_Category =1 where company =500 and trantype in ('7A1','751')
+and Invoice_Date>='2017-04-01'
+update ELGi_Sales_Details set Sales_Category =1 where company like '4%' and trantype in ('22A','32A')
+and Invoice_Date>='2017-04-01'
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'FOC Ordertypes'
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'ELGi_Sales_Details'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('ATS_Sales_Details',getdate())
+
+--Step 43: ATS_Sales_Details Table Insert 
+
+Truncate table ATS_Sales_Details
+
+
+--Inserting ATS Sales data from BAAN
+Insert into ATS_Sales_Details 
+select * from LN_Sales_Details_ver2
+--WHERE company =101
+WHERE company IN (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and Invoice_Date<'2017-04-01'
+
+--Inserting ATS Sales data from LN
+Insert into ATS_Sales_Details 
+select * from LN_Sales_Details_ver2
+WHERE company IN     (select company from ELGI_Companies_Master where CompanyGroup='ATS')
+and Invoice_Date>='2017-04-01'
+
+
+update ATS_Sales_Details set Sales_Category =a.Sales_Category
+from(select * from saletype_master_ATS)a
+where ATS_Sales_Details.company=a.company
+and ATS_Sales_Details.SaleOrderType=a.saleordertype
+
+
+delete from ATS_Sales_Details where dpst='90110'
+
+delete from ATS_Sales_Details where  ltrim(rtrim(Item)) like '%FRT%'
+and company in (select company from ELGI_Companies_Master where CompanyGroup='ELGi')
+
+delete from ATS_Sales_Details where ltrim(rtrim(Item)) in ('EXPORT-FREIGHT',
+'M000037703','LABOUR')
+
+delete from ATS_Sales_Details where ltrim(rtrim(Item)) in ('ACCGST0004','ACCGST0005')
+
+
+--As requested by ATS Santhosh
+delete From ATS_Sales_Details where trantype ='6T6'
+
+delete from ATS_Sales_Details where concat(company,trantype,Invoice) in
+('6006F131000016','6006F131000015','6006F131000014','600PCU31000004','600PCU31000003','600PCU31000002','600PCU31000001')
+
+
+--Based on : SR-1501527 dated on 19-06-2026
+delete from ATS_Sales_Details where concat(company,trantype,invoice)= '60061336004026'
+delete from ATS_Sales_Details where invoice_date>='2026-04-01' and trantype in ('623','624','625')
+delete from ATS_Sales_Details where invoice_date>='2026-04-01' and dpst='90080'
+
+
+delete from ATS_Sales_Details where day(invoice_date)=1 and convert(Date,Invoice_Date)=convert(date,getdate()) and datepart(HOUR ,getdate())<17
+
+update ATS_Sales_Details set Vertical1=null
+update ATS_Sales_Details set Vertical1=SalesType
+from(select distinct SalesType,DPSTCode from ats_sales_performance
+where SalesType is not null
+and DPSTCode is not null)a
+where ATS_Sales_Details.DPST=a.DPSTCode
+
+
+--Following company details are not fetched for our Analysis
+--select distinct company,dpst,dpstname from LN_Sales_Details_ver2
+--where company not in 
+--(select distinct company from ELGi_Sales_Details 
+--union
+--select distinct company from ATS_Sales_Details)
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'ATS_Sales_Details'
+Insert into LN_Sales_Details_ver2_log(Remarks,StartTime) values('IAS_Sales_details',getdate())
+
+
+--Step 43: IAS_Sales_Details Table Insert 
+Truncate table IAS_Sales_details
+Insert into IAS_Sales_details
+select *  from ln_sales_details_ver2 where company=951
+
+
+
+update LN_Sales_Details_ver2_log set EndTime=getdate() where Remarks= 'IAS_Sales_details'
+
+
+delete from Procedure_RunStatus where StoredProcedure='sp_LN_Sales_Details_ver2'
+
+Insert into Procedure_RunStatus(StoredProcedure,Remarks,StartTime,EndTime,Seconds,Duration)
+--select * into Procedure_RunStatus from(
+select 'sp_LN_Sales_Details_ver2' as StoredProcedure,Remarks,
+StartTime,EndTime,Seconds,
+case when Minutes1='0' then concat(Seconds1,' ',Desc2)
+else concat(Minutes1,' ',Desc1,' ',Seconds1,' ',Desc2)
+end as Duration
+from 
+(select *,
+case when Minutes1 =1 then 'Min' else 'Mins' end as Desc1,
+case when Seconds1%60 =1 then 'sec' else 'secs' end as Desc2
+from (select * ,convert(varchar,datediff(SECOND,StartTime,EndTime)/60) Minutes1,
+convert(varchar,datediff(SECOND,StartTime,EndTime)%60) Seconds1,
+datediff(SECOND,StartTime,EndTime) as Seconds
+from LN_Sales_Details_ver2_log)a
+)b
+--)c
+
+
+--select sum(Seconds)/60 from Procedure_RunStatus
+
+end 
+
+
+select * from Procedure_RunStatus

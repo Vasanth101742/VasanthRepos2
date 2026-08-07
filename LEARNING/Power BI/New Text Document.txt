@@ -1,0 +1,11 @@
+Requirement gathering from user
+ssis jobs process
+
+sharepoint experience
+
+Dax Queries
+Role based access, how?
+how to daily refresh the data
+bookmarks for dynamic behaviour of the graph
+
+Measures , Parameters in Power BI 
