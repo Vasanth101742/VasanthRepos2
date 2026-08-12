@@ -1,0 +1,97 @@
+
+
+Know Your Risks in Margin Trading
+
+
+Margin Trading - A Temptation to Leverage on Trading Limits 
+
+Normally to buy shares, you need to have sufficient limit to provide for 100% of the order value, 
+while to sell shares, you need to have shares in your demat account. 
+However, in margin trading, funds are blocked only to the extent of applicable margin % of the order value allowing you to leverage on your trading limits. 
+Investors generally use margin to increase their purchasing power so that they can own more stock without fully paying for it. 
+But margin exposes you to the potential for higher losses. Here's what you need to know about margin. 
+
+How Does Leveraging Works 
+
+Let's say you buy a stock for Rs. 60 and the price of the stock rises to Rs. 75. 
+If you bought the stock in 'Cash" Segment and paid for it in full, you'll earn a 25 percent return on your investment. 
+But if you bought the stock on margin (say 33.33%) paying only Rs. 20 in cash - you'll earn a 75 percent return on the money you invested. 
+
+The downside of using margin is that if the stock price moves unfavorably, losses can mount quickly. 
+For example, let's say the stock you bought for Rs. 60 falls to Rs. 35. If you fully paid for the stock, you'll lose 41.7% percent of your money. 
+
+But if you bought on margin, you'll lose more than 100 percent. 
+
+i.e Amount spent by you in Margin : 20
+
+    Initial Market Price          : 60
+    After some time, Market Price : 35
+    Loss                          : 25
+
+Now you bought at 20 Rs and made a loss of 25 Rs.
+
+
+
+Beware of Additional Margin requirements - You Can Lose Your Money Fast 
+
+Your margin positions are continuously monitored and once the mark-to-market (MTM) loss exceeds a certain threshold MTM loss percentage, 
+if the effective margin available is less than the margin required to maintain the position, a call for additional margin is made for the difference. 
+
+If the limit is not sufficient to meet the call for additional margins, the broker may close out your position. 
+
+Always remember that the broker may not be required to make a margin call or otherwise tell you that your margin has fallen below the required level. 
+The broker has the legitimate right to close out the open margin position at any time (without consulting you) 
+in case you do not satisfy the additional margin requirements. 
+Therefore, once you buy/sell stock on margin, do not exhaust your trading limit in full. 
+Maintain sufficient free limit to provide for additional margin as and when required. 
+
+
+Effect of Price bands 
+
+In case of margin scrips which have a daily price band of (+ or -)20%, under broker square off mode, 
+all the open buy positions will be squared off in case the last traded price crosses on the Exchange  minus(-) 16% with respect to its 
+previous trading day’s closing price 
+and all the open sell positions will be squared off in case the last traded price crosses on the Exchange  plus(+) 16% with respect to its 
+previous trading day’s closing price. 
+
+Similarly, under the client square off mode as well, the open positions may be squared-off at certain percentage 
+(at the discretion of I-Sec and the percentage may vary from stock to stock) of downwards price movement from the previous trading day’s closing price of the stock. 
+
+However, in case of margin scrips which do not have a price band (e.g. derivative scrips), 
+if the mark to market loss on the open margin position exceeds 16% then 
+an automated call will be made to recover the entire loss from the available trading limits of the customer. 
+In case the entire amount is recovered then the position will not be squared off. 
+In case the entire amount is not recoverable then the open positions 
+will be squared off irrespective of the stock’s % fall/gain with respect to its previous trading day’s closing price. 
+
+
+Limited period to Close out Leveraged Positions 
+
+All margin positions have to be closed out before the end of the settlement. 
+In respect of heavily leveraged positions (where you do not have adequate funds/securities to take/give deliveries,) 
+you shall have to square off your positions even if that entails a substantial loss. 
+You may lose the chance to recoup your losses if the market bounces back in subsequent settlements. 
+
+If any margin positions are left open beyond the stipulated time on the last day of settlement, 
+the broker can compulsorily close out the positions. No guarantees of closing out 
+
+There is no guarantee that your open positions will be closed out automatically. 
+If for some reason, the positions still remain open at the end of settlement, 
+the onus is on you to arrange funds/securities for the settlement of the position. 
+If you fail to do so, you shall be fully liable for the consequences (auction/penalty/interest) of the same. 
+
+
+Recognize the Risks Beforehand 
+
+Margin trading carries risk and therefore may not suit every investor. Before trading on margin, you should ensure that:
+
+•You have understood the trading and settlement mechanism of the exchange and your compulsion to follow the margin trading rules 
+•You can lose more money than you have invested 
+•You have to keep sufficient trading limits as cushion to fund additional margin as and when called for. 
+•You have to square off of your margin position in time 
+•You would not be tempted to over leverage your positions.
+
+Last but not the least 
+
+You can protect yourself by knowing how margin trading works. 
+Judge for yourself whether it is prudent for you to trade on margin in light of your financial resources, investment objectives, and tolerance for risk.  

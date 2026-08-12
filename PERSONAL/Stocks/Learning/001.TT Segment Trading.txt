@@ -1,0 +1,147 @@
+
+Solution 1:
+
+Trade to trade is exact what name suggests meaning every trade needs to be matched with delivery if you sell and you are required to pay funds if you buy. 
+Suppose you bought 1000 shares of xyz co at 100 rs and during the day you price shot up to 105 so you booked the profit and sold but here is the catch. 
+You can not sell as you need to bring 100 k for your buying and need to deliver 1000 shares but if you do not had previous delivery your purchase of today 
+would not of of any help and your sale would go to square off. Exchange would square off your sale and would debit you the charges.
+
+--------------------------------------
+Solution 2:
+
+Trade-to-trade (T2T) or T segment is the segment in which no intra-day trading is allowed for shares falling in that segment, as each trade results in delivery.
+.. If you buy shares, you must pay the money and take delivery
+
+Trade to Trade settlement is a segment where shares can be traded only for compulsory delivery basis. 
+It means Trade to Trade shares cannot be traded on intraday. Each share purchased/sold which are parts of this segment need to be taken delivery by paying full amount. The settlement of scrips available in this segment is done on a trade for trade basis and no netting off is allowed for the day.
+
+For example:- In Normal rolling settlement, one can trade stocks intraday (One can buy and sell a security on the same day).
+Suppose you buy 1,000 shares of SUZLON at Rs.25 per share and sold these 1,000 shares for Rs.30 per on the same day (before the close of trading). 
+You have gained Rs.5 per share (less brokerage/Other Expenses). This is the amount you will receive from your broker in the normal rolling settlement system.
+
+But, if the same stock is under trade-for-trade segment, you will have to pay Rs.25,000 to take delivery of the shares you bought. 
+Similarly, the quantity you have sold will have to be presented for delivery in Demat A/C. 
+The Trade-for-Trade segment considers each transaction individually. Failure to follow the procedure will attract heavy fine.
+
+
+
+---------------------------------------
+Solution 3:
+
+Trade-to-Trade 
+
+As a part of Surveillance measure the Exchange transfers various Securities for settlement on a Trade-to-Trade basis. 
+The said action is reviewed on Monthly basis based on market capitalization, price earnings ratio, price variation vis-à-vis 
+the market movement, 
+volatility, 
+volume variation, 
+client concentration and 
+number of non promoter shareholders etc. 
+
+The criteria for shifting Securities to/fro for settlement on T2T basis are decided jointly by the stock exchanges in consultation with SEBI and reviewed periodically. 
+Securities on which derivatives products are available are not considered for transfer to Trade for Trade segment. 
+
+If a Security is shifted for settlement on Trade-to-Trade basis, selling/ buying of shares in that Security results into giving/ taking delivery of shares 
+at the gross level and no intra day netting off/ square off facility is permitted. The Securities which form part of the 'Z group' are compulsorily 
+settled on a trade-to-trade basis. 
+
+In order to bring greater transparency and to eliminate various allegations about manner of shifting of Securities to/from the T2T segment criteria 
+for shifting Securities to/fro Trade for Trade segment is given below : 
+
+The process of identifying the Securities for moving to Trade to Trade will be done on a monthly basis along with the price band review process 
+based on the following criteria ; 
+
+Securities satisfying the following criteria on the date of review shall be moved to trade to trade. 
+
+As on review date, the security should be in 5% price band for atleast 22 trading days* 
+
+AND 
+
+The securities satisfying any of the following criteria A, B, C or D shall be transferred to Trade for Trade segment. 
+
+Category A: 
+
+PE Criteria
+
+If S& P BSE SENSEX PE Multiple on the relevant date is in the range of 15-20 then Securities having PE greater than 30 will be considered.
+If S & P BSE SENSEX PE Multiple on the relevant date is greater than 20 or less than 15 than difference will be rounded off to nearest number and same will be added / subtracted from 30. However, minimum base of PE Multiple shall be 25. Accordingly Securities having PE greater than this bench mark will be considered.
+
+Methodology of Calculation of Securities PE 
+For the purpose of calculation of PE, summation of quarterly profit figures of latest four trailing quarters available with the Exchange out of last five financial quarters will be considered. If less than four trailing quarterly results are available then the profits shall be annualized for PE calculation.
+All Securities having negative PE shall be considered.
+
+
+AND 
+
+Volatility 
+Volatility greater than three times S& P BSE SENSEX volatility over a period of three months.
+
+
+AND 
+
+Price Variation Criteria
+All Securities where the price variation is in positive direction as below will be considered:
+20% plus S& P BSE 500 / Sectoral Index variation subject to a minimum of 10%.
+
+
+Category B:
+
+PE Criteria
+
+If S&P BSE SENSEX PE on the relevant date is in the range of 15-20 then Securities having PE multiple greater than 0 but less than 30 will be considered.
+If S& P BSE SENSEX PE Multiple on the relevant date is greater than 20 or less than 15 than difference will be rounded off to nearest number 
+and same will be added / subtracted from 30. However, minimum base of PE Multiple shall be 25. 
+Accordingly Securities having PE greater 0 but less than this bench mark will be considered.
+
+Methodology of Calculation of Securities PE
+
+For the purpose of calculation of PE, summation of quarterly profit figures of latest four trailing quarters available with the Exchange out of last five financial quarters will be considered. If less than four trailing quarterly results are available then the profits shall be annualized for PE calculation.
+
+
+AND
+Volatility
+
+Volatility greater than three times S& P BSE SENSEX volatility over a period of three months.
+
+AND 
+Price Variation Criteria
+
+All Securities where the price variation is in positive direction as below will be considered:
+
+40% +/- S& P BSE 500 / Sectoral Index.
+
+
+OR 
+
+Category C:
+Market Capitalization
+
+Criteria C shall be applicable to Securities having market capitalization less than 2 times of the market capitalization arrived at for the review.
+
+Market capitalization threshold shall be linked to the S&P BSE SENSEX movement between December 1, 2003 (taking base as Rs. 200 Cr on Dec 01, 2003) 
+and present quarterly relevant date, after rounding off to the nearest Rs. 50 Cr of higher of S&P BSE SENSEX movement.
+
+Volume Variation 
+
+Average daily volume variation month over a previous month greater than 200% + Average volume variation of S & P BSE 500 constituents. (Computed as average of average volume variation across the constituents as on relevant date, rounded off to the nearest 5%), subject to minimum of 200%. (Average daily volume in the recent month being more than 1000 shares).
+
+AND 
+Concentration (Gross Purchase plus Gross Sales) of top 10 Clients on the basis of PAN Number during the month greater than 25%.
+
+AND 
+Price Variation Criteria
+
+20% plus S & P BSE 500 / Sectoral Index variation subject to a minimum of 10%.
+
+
+OR 
+
+Category D: 
+
+Number of non promoter shareholders less than 500 as per the latest shareholding pattern available with the Exchange. 
+
+Exemptions:-
+
+Newly listed Securities (IPO) and the securities which are made available for trading in Trade for Trade segment for the first 10 trading days 
+with applicable price band, while keeping the price band open on the first day of trading as per 
+SEBI circular bearing no SEBI/Cir/ISD/1/2010 dated September 2, 2010 shall be dropped till the time they declare their first Quarterly results.

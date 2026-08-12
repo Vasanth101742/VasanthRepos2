@@ -1,0 +1,128 @@
+EPS
+
+Earning per share (EPS), also called net income per share, is a market prospect ratio 
+that measures the amount of net income earned per share of stock outstanding. 
+In other words, this is the amount of money each share of stock would receive 
+if all of the profits were distributed to the outstanding shares at the end of the year.
+
+Earnings per share is also a calculation that shows how profitable a company is on a shareholder basis. 
+So a larger company’s profits per share can be compared to smaller company’s profits per share. 
+Obviously, this calculation is heavily influenced on how many shares are outstanding. 
+Thus, a larger company will have to split its earning amongst many more shares of stock compared to a smaller company.
+
+Formula
+
+Earnings per share or basic earnings per share is calculated by subtracting preferred dividends from net income and 
+dividing by the weighted average common shares outstanding. The earnings per share formula looks like this.
+
+
+EPS  = 	    Net Income - Preferred Dividends
+       ------------------------------------------
+	Weighted avg of common shares outstanding
+
+
+Earnings Per Share
+
+You’ll notice that the preferred dividends are removed from net income in the earnings per share calculation. 
+This is because EPS only measures the income available to common stockholders. 
+Preferred dividends are set-aside for the preferred shareholders and can’t belong to the common shareholders.
+
+
+Most of the time earning per share is calculated for year-end financial statements. 
+Since companies often issue new stock and buy back treasury stock throughout the year, 
+the weighted average common shares are used in the calculation. 
+The weighted average common shares outstanding is can be simplified by adding the beginning and ending outstanding shares and dividing by two.
+
+
+
+Analysis
+
+Earning per share is the same as any profitability or market prospect ratio. 
+Higher earnings per share is always better than a lower ratio because this means the company is more profitable 
+and the company has more profits to distribute to its shareholders.
+
+Although many investors don’t pay much attention to the EPS, a higher earnings per share ratio often makes the stock price of a company rise. 
+Since so many things can manipulate this ratio, investors tend to look at it but don’t let it influence their decisions drastically.
+
+
+Example
+
+Quality Co. has net income during the year of $50,000. 
+Since it is a small company, there are no preferred shares outstanding. 
+Quality Co. had 5,000 weighted average shares outstanding during the year. Quality’s EPS is calculated like this.
+
+Earnings Per Share Formula
+
+EPS =	$50,000 -0
+	----------
+	 $5000
+
+EPS =   10
+As you can see, Quality’s EPS for the year is $10. 
+This means that if Quality distributed every dollar of income to its shareholders, each share would receive 10 dollars.
+
+
+---------------------------------------------------------------------------------
+
+Price Earnings P/E Ratio
+
+The price earnings ratio, often called the P/E ratio or price to earnings ratio, is a market prospect ratio that calculates 
+the market value of a stock relative to its earnings by comparing the market price per share by the earnings per share. 
+In other words, the price earnings ratio shows what the market is willing to pay for a stock based on its current earnings.
+
+Investors often use this ratio to evaluate what a stock’s fair market value should be by predicting future earnings per share. 
+Companies with higher future earnings are usually expected to issue higher dividends or have appreciating stock in the future.
+
+Obviously, fair market value of a stock is based on more than just predicted future earnings. 
+Investor speculation and demand also help increase a share’s price over time.
+
+The PE ratio helps investors analyze how much they should pay for a stock based on its current earnings. 
+This is why the price to earnings ratio is often called a price multiple or earnings multiple. 
+
+Investors use this ratio to decide what multiple of earnings a share is worth. 
+In other words, how many times earnings they are willing to pay.
+
+The price earnings ratio formula is calculated by dividing the market value price per share by the earnings per share.
+
+Price Earnings Ratio
+
+=      Share Price
+   -------------------
+    Earnings Per Share
+
+
+This ratio can be calculated at the end of each quarter when quarterly financial statements are issued. 
+It is most often calculated at the end of each year with the annual financial statements. 
+In either case, the fair market value equals the trading value of the stock at the end of the current period.
+
+
+The earnings per share ratio is also calculated at the end of the period for each share outstanding. 
+A trailing PE ratio occurs when the earnings per share is based on previous period. 
+A leading PE ratios occurs when the EPS calculation is based on future predicted numbers. 
+A justified PE ratio is calculated by using the dividend discount analysis.
+
+
+
+Analysis
+
+The price to earnings ratio indicates the expected price of a share based on its earnings. As a company’s earnings per share being to rise, so does their market value per share. A company with a high P/E ratio usually indicated positive future performance and investors are willing to pay more for this company’s shares.
+
+A company with a lower ratio, on the other hand, is usually an indication of poor current and future performance. This could prove to be a poor investment.
+
+In general a higher ratio means that investors anticipate higher performance and growth in the future. It also means that companies with losses have poor PE ratios.
+
+An important thing to remember is that this ratio is only useful in comparing like companies in the same industry. Since this ratio is based on the earnings per share calculation, management can easily manipulate it with specific accounting techniques.
+
+
+Example
+
+The Island Corporation stock is currently trading at $50 a share and its earnings per share for the year is 5 dollars. Island’s P/E ratio would be calculated like this:
+
+Price Earnings Ratio Formula
+
+As you can see, the Island’s ratio is 10 times. This means that investors are willing to pay 10 dollars for every dollar of earnings. In other words, this stock is trading at a multiple of ten.
+
+Since the current EPS was used in this calculation, this ratio would be considered a trailing price earnings ratio. If a future predicted EPS was used, it would be considered a leading price to earnings ratio.
+
+
+

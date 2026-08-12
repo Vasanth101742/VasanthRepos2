@@ -1,0 +1,4 @@
+Bond Yield curve inversion means the cost of borrowing long term falls below that of borrowing short term, 
+which is opposite of what it should be. 
+It reflects investors’ collective negative outlook on the economy. 
+However, for yield curve inversion to be a reliable signal of recession, it has to persist for at least a few weeks. This has yet to happen.

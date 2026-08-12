@@ -1,0 +1,18 @@
+Source: 
+https://www.paulasset.com/articles/book-closure-and-ex-dividend-date/
+
+
+Ex Dividend Date:
+The date on or after which if you buy the shares with the aim of getting dividend, you will not get it.(due to T+2 delivery cycle)
+
+so you have to buy the Shares before the Ex Dividend Date for getting Dividend.
+
+
+Book Closure Date / Record Date :
+The date on which Shares should be available in your demat account in order to receive the dividend.
+even on the next day if you sell the shares, absolutely no problem, as your shares are already accounted for Dividend.
+
+Generally, Investors will sell the shares after the record date as they knew their shares are already accounted. 
+hence share price will decrease on the date immediately after the Record Date for sure.
+
+ 

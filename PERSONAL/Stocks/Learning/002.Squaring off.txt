@@ -1,0 +1,14 @@
+Definition: 
+
+Squaring off is a trading style used by investors/traders mostly in day trading, 
+in which a trader buys or sells a particular quantity of an asset (mostly stocks) and later in the day reverses the transaction, 
+in the hope of earning a profit (price difference net of broker charges and tax).
+
+Description: 
+
+For example: Person A buys 100 shares of Reliance from the BSE Sensex through a broker for a price or Rs 10 per share. 
+Later in the day, Person A sells all the shares for Rs 12 per share and by paying broker charges of Rs 10. 
+
+The net profit A earns is Rs (200-10)=Rs 190.
+
+Therefore, the trader has basically squared off his position.

@@ -1,0 +1,16 @@
+https://www.creatifwerks.com/book-value-vs-stock-market-share-value-calculator/
+
+
+Face value is the original value of the stock which is shown in the share certificate at the beginning 
+when the company gets listed in the stock market.Face value of a share does not change and stays constant.
+For example, the face value of shares of Infosys is INR 5.
+
+Market value is the total value of the company.Market value is calculated by multiplying the total number 
+of shares outstanding with the current market price of a share.
+For example, the total number of shares outstanding for ABC company is 50,000 shares and the current market 
+price is INR 200.Thus, the total market value of the company is INR 10000000.
+
+Book value of stock is the value of the company based on the total amount the company owes to its shareholders. 
+It is calculated by dividing the total amount the company owes to the shareholders by the total number of shares.
+The total amount the company owes to the shareholder is called Sareholders Equity.
+Thus, if the Shareholders equity is INR 100 crores and the number of shares outstanding is 5 crores, the book value of shares is INR 20 per share.

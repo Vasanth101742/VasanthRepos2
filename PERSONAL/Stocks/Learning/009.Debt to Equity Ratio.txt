@@ -1,0 +1,17 @@
+Definition: The debt-equity ratio is a measure of the relative contribution of the creditors and shareholders or 
+owners in the capital employed in business. Simply stated, ratio of the total long term debt 
+and equity capital in the business is called the debt-equity ratio.
+
+It can be calculated using a simple formula:
+
+Debt Equity Ratio = Total Liabilities / Shareholders's Equity
+
+Description: This financial tool gives an idea of how much borrowed capital (debt) 
+can be fulfilled in the event of liquidation using shareholder contributions. 
+
+It is used for the assessment of financial leverage and soundness of a firm 
+and is typically calculated using previous fiscal year's data.
+
+A low debt-equity ratio is favorable from investment viewpoint as 
+it is less risky in times of increasing interest rates. 
+It therefore attracts additional capital for further investment and expansion of the business.

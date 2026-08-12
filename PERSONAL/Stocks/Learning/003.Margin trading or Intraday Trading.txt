@@ -1,0 +1,133 @@
+
+ 
+  
+Intraday Trading (Margin Product), is for those customers who want to gain from the expected upward or downward movement in price of a stock 
+during the day but have limited money. Margin product is the appropriate solution for such customers which gives leverage upto 5 times the allocated trading amount.
+   
+ 
+Eg: If you want to Buy 50 shares of XYZ company with CMP of Rs. 200. 
+The total trade value of this transaction will be (50*200) = Rs. 10,000. 
+But if you are buying with an intraday perspective then you can buy the same under our Margin Product.
+  
+Under our Margin Product, you would be required to pay only the Margin% required for the transaction. 
+Now lets say the margin required is 20%; 
+then the amount required for the transaction would be 20%( Margin%) of Rs. 10,000 (trade value) i.e. Rs. 2,000. 
+So, you can leverage more out of the amount you have.
+   
+
+When you make an investment under the cash segment you expect the price of a stock to increase over a period of time and 
+thereby make profits from selling at a higher rate. The below graph shows the movement of IDFC from December 2009 to June 2010.
+   
+  
+However in stock markets the price of a stock moves during the day also as shown below. 
+Margin trading helps you profit from intraday movements in the stock markets if the price moves in your favour.
+   
+
+Lets see this graph to understand how it works. 
+Say, if you would have taken a buy position at 9:15 a.m. at Rs. 69.85 and exited at Rs. 70.60 at 11:00 a.m., 
+you would have earned a return of 1% on total trade value and 
+effective return would have been about 5% of your total capital used for trade. 
+
+For e.g. you have Rs. 5,000 in your account and got exposure of Rs. 25,000. 
+Since there is a return of 1% i.e Rs. 250 on total trade value. However your investment was only Rs. 5,000 
+and you got a return of Rs. 250 which is 5% of your investment in one day only.
+   
+ 
+Apart from exposure, the second core benefit of Margin trading is the early breakeven which gives you more opportunity to earn profit. 
+e.g if you take buy position in any stock at Rs.100 and stocks move even 14 paisa above from your buy position, your cost would be recovered. 
+The 14 paisa mentioned is the average charges levied on your buy and sell transaction which includes brokerage and statutory charges. 
+Suppose you have taken buy position in 2000 shares at Rs.100 and sq off position at only Rs. 100.50. 
+In this transaction, you are making 36 paise per stock and total profit would be Rs.720. 
+So, the movement of even 50 paise in your favorable directions gives you an opportunity to earn good profit. 
+If you do even 3 transactions in a day, you would earn about Rs.2160.
+   
+ 
+However, in case the price movement is not in your favour, you will incur a loss.   
+ 
+Now, lets learn how to place an order in Margin.   
+ 
+ 
+Logging on to your ICICIdirect.com account is the first thing to start up with where you would land up in 'Equity' trading page. 
+Here, you can choose Buy/Sell based on your need. 
+Suppose, you want to take buy position. To do  so, click on 'Buy' and the screen shown below will appear. 
+Now follow the following steps to place the order.
+   
+ 
+Product : Select the product as 'Margin' from the product drop down.   
+Square off Mode : By selecting the client mode you allow your buy position to remain open for T+2 days. 
+Client mode only facilitates the Buy position. 
+If you select broker you are required to square off the position before the settlement cycle start 
+else the  position will be squared off  by ICICIdirect.com at the end of the day.
+   
+Exchange : Choose NSE as exchange. However in current case NSE is a default.   
+ 
+Stock : Enter the stock code of the stock you  thought of buying or selling. 
+In case you do not know the stock code, type first 3 alphabet of the company in stock field and click on 'find stock'.
+   
+ 
+Quantity : Enter the quantity which you want to buy or sell.   
+ 
+  
+Order validity : DAY or IOC, if you select DAY, your orders will be open through out the day, 
+however, if you select IOC, your orders if not executed immediately will get cancelled.
+ 
+
+ 
+Order Type : Here you can choose from Market or Limit, Market order executes at the prevailing market price 
+where as Limit order executes at the “Limit price” defined in the limit field. 
+
+e.g if you want to buy IDFC at Rs. 190 which you have mentioned in the limit value and current market price of stocks are 191. 
+Your order would not get executed till the price of stocks comes down to 190. 
+As the stock price comes down to 190 your order will get executed. 
+Hence 'limit' provides you convenience to buy the stocks at your desired price.
+   
+ 
+Similarly, if you want to sell IDFC at Rs. 194 and current market price is Rs. 191, you need to put the value as Rs. 194 in 'Limit'. 
+As the price of IDFC reaches to Rs. 194, your sell order would get executed automatically.
+  
+ 
+Disclosed quantity : Cannot be greater than or equal to quantity you want to buy/sell. 
+This is the quantity which you would like to disclose while placing the order.
+   
+ 
+
+Stop Loss Trigger Price (SLTP) :  SLTP is the price where you want to initiate your order whether it is buy or sell. 
+
+e.g the current stock price of IDFC is Rs. 191 and you think that stock would reach to Rs. 194 once it breaks the resistance of Rs. 191.50. 
+In this case we can put our buy order by placing Rs. 191.50 in SLTP. 
+As the stock reaches Rs. 191.50 your order would get executed. 
+
+Similarly you can define the SLTP for sell order when you think that stock would go down if it breaks it support level.
+   
+ 
+  
+Limit in this case defines the value where you want to stop your 'Buy' or 'Sell' order. 
+e.g you want to buy IDFC only in the price range of Rs. 191.50 to Rs. 192.00. 
+As the price moves beyond the Rs. 192, your unexecuted trade would become passive for price above Rs. 192.
+   
+ 
+Now you have to click on 'Buy Now', post this you will find 'Order Confirmation' page where you can verify the order whether it is as per your requirement or not. 
+Once you will confirm,  your order would be sent to exchange.
+   
+  
+So, you have learned, how to place order in Margin. To know what to buy or sell to earn profit we have following research product for intraday trading.
+   
+  
+Daily Calls : This is the pre-Market recommendations on stock and nifty. You can take 'Buy' or 'Sell' position as per recommendation in the mentioned stocks.
+  
+  
+iClick-2-Gain : Intraday research recommendation during the market hour.  Click here to check our research performance.
+   
+  
+We also provide companies information (ICICIdirect.com - Research - Research centre), Charts, News and Support & Resistance of the stocks which helps investors and traders to do his own research and take investment and trading decision.
+  
+  
+To discover more about Margin or iCLICK-2GAIN, please walk in to your nearest ICICIdirect store for a personalised demo. 
+   
+ 
+  
+ You can refer our detailed FAQs for better understanding of the product or reach at our Customer Care numbers.
+   
+     
+      
+ 
