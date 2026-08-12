@@ -1,0 +1,16 @@
+Qualification   : Any Graduate 
+Experience      : 4 to 7 Years 
+Job Description :  
+Strong knowledge of indexes, index management, integrity checks, configuration, patching.
+Knowledge of SQL Server tools (Profiler, DTA, SSMS, SAC, SSCM, PerfMon, DMVs, system stored procedures)
+
+SQL Development – ability to write and 
+troubleshoot SQL Code and design (stored procedures, functions, tables, views, triggers, indexes, constraints)
+ 
+Technical Skills Knowledge working on the below software: SSMS, SQL Server 2005, 2008,2012, Replication Concepts, Data Normalization, Data Modelling. 
+
+Tools used SQL Management Studio, Profiler, other DBA related tools. (Related certification preferred) 
+Other Traits Excellent Communication
+Ability to work on time under pressure
+Good Managerial Skill
+ 

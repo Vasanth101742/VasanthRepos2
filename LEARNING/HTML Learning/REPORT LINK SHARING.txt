@@ -1,0 +1,9 @@
+<html>
+<body>
+Dear Sir, <br>
+Kindly use the following link to access Elgi Inventory Report <br>
+<a href="http://bis-apps/purs/_layouts/15/ReportServer/RSViewerPage.aspx?rv:RelativeReportUrl=/purs/Inventory/ELGi_Inventory.rdl&Source=http%3A%2F%2Fbis%2Dapps%2Fpurs%2FInventory%2FForms%2FAllItems%2Easpx">Click Here to view the ELGi Inventory Report</a>
+</body>
+<br>
+
+PS: You should be connected to the ELGI network to access the above link.
