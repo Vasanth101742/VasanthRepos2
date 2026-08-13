@@ -1,0 +1,18 @@
+RecvAmt = DIVIDE(SUM('ACRFact'[RecvAmth])*(-1), 10000)-mod(DIVIDE(SUM('ACRFact'[RecvAmth])*(-1), 10000),10)
+
+
+var1 = 
+VAR user =  USERPRINCIPALNAME() --USERNAME()
+VAR display =CONCATENATE("Hi ", LOOKUPVALUE('UserName'[UserName],'UserName'[email],user))
+return display
+
+
+var2 = VAR hour = HOUR(NOW())
+VAR minute = MINUTE(NOW())
+VAR prefix = SWITCH(
+                    TRUE(),
+                    hour<12," Good morning ",
+                    hour>=12 && hour<17," Good afternoon ",
+                    " Good evening "
+             )
+RETURN prefix

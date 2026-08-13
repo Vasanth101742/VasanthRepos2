@@ -1,0 +1,20 @@
+let
+    Source = Sql.Database("bis-db", "Elgi_ln"),
+    dbo_TB_PL_structure = Source{[Schema="dbo",Item="TB_PL_structure"]}[Data]
+in
+    dbo_TB_PL_structure
+
+----------------------------------------
+let
+    Source = Sql.Database([Server="bis-db"],[Database="Elgi_ln"],[Schema="dbo"],[Query="select * from tb_pl_structure where finyear="&p_FinYear])
+    
+in
+    Source
+----------------------------------------
+
+let
+    Source = Sql.Database("bis-db", "Elgi_ln"),
+    dbo_TB_PL_structure = Source{[Schema="dbo",Item="TB_PL_structure"]}[Data],
+    #"Filtered Rows" = Table.SelectRows(dbo_TB_PL_structure, each [FinYear] = p_FinYear)
+in
+    #"Filtered Rows"
