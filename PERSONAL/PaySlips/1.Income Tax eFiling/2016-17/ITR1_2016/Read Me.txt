@@ -1,0 +1,13 @@
+Please enable macros to use the excel utility
+
+--------------------------------------------------------------------------
+
+To enable Excel Macros , please follow the below steps 
+
+File -> Options -> Trust Centre -> Trust Center Settings -> Macro Settings -> Select the radio button 'Enable all macros' -> Click on'OK'.
+Restart Excel.
+
+--------------------------------------------------------------------------
+
+If prompted to enable macros, select 'Yes' and then open the utility.
+--------------------------------------------------------------------------
