@@ -1,0 +1,7 @@
+1.Go to Start > Run , type “regedit” and press enter to open the registry editor
+2.Navigate to the following key
+
+
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\USBSTOR
+
+In the right pane, select Start and change the value to 3. (The value 4 will disable USB Storage). Click OK. This will re-enable USB Ports and allow you to use USB or Pen drives.
