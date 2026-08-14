@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Project Compass — S&OP Demand Planning Workspace (Prototype)</title>
+<style>
+  :root{
+    --cherry:#990011; --cherry-dark:#7a000d; --cherry-tint:#FBEAEC;
+    --navy:#2F3C7E; --navy-tint:#EBEDF6;
+    --ink:#20232B; --muted:#6B6B6B; --faint:#9A9591;
+    --bg:#F6F5F4; --card:#FFFFFF; --border:#E5E0DF;
+    --green:#1E7B4D; --green-bg:#E9F5EE;
+    --amber:#B4720A; --amber-bg:#FBF1DF;
+    --red:#B33A3A; --red-bg:#FBEAEA;
+    --gray:#6B6B6B; --gray-bg:#EAEAE9;
+    --font-display:"Cambria","Georgia",serif;
+    --font-body:"Calibri","Segoe UI",Arial,sans-serif;
+    --font-mono:"Consolas","SFMono-Regular",Menlo,monospace;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    font-family:var(--font-body);
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{display:flex; min-height:100vh;}
+
+  /* ---------------- SIDEBAR ---------------- */
+  .sidebar{
+    width:268px; flex:0 0 268px;
+    background:linear-gradient(180deg,#0A0A0A 0%, #171717 100%);
+    color:#fff; display:flex; flex-direction:column;
+    padding:22px 16px;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:4px 8px 22px 8px; border-bottom:1px solid rgba(255,255,255,.14); margin-bottom:14px;}
+  .brand-mark{
+    width:34px; height:34px; border-radius:8px; background:#fff; color:var(--cherry);
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:16px;
+  }
+  .brand-text .t1{font-size:10.5px; letter-spacing:1.5px; color:#8A8A8A; font-weight:600;}
+  .brand-text .t2{font-size:14.5px; font-weight:700; font-family:var(--font-display);}
+
+  .nav-label{font-size:10px; letter-spacing:1.5px; color:#7A7A7A; text-transform:uppercase; margin:14px 10px 8px;}
+  .nav-item{
+    display:flex; align-items:center; gap:11px; padding:10px 10px; border-radius:8px; cursor:pointer;
+    color:#CFCFCF; font-size:13.5px; margin-bottom:2px; transition:background .15s ease;
+    position:relative;
+  }
+  .nav-item:hover{background:rgba(255,255,255,.08);}
+  .nav-item.active{background:rgba(255,255,255,.16); color:#fff; font-weight:600;}
+  .nav-dot{width:8px; height:8px; border-radius:50%; flex:0 0 8px;}
+  .dot-auto{background:#4FD48A;}
+  .dot-semi{background:#F0B84B;}
+  .dot-manual{background:#F0837F;}
+  .dot-discuss{background:#C9AFEA;}
+  .dot-complete{background:#4FD48A;}
+  .dot-progress{background:#F0B84B;}
+  .dot-pending{background:#8A8A8A;}
+  .nav-step-no{
+    font-family:var(--font-mono); font-size:10px; color:#6B6B6B; width:16px; text-align:right; flex:0 0 16px;
+  }
+  .nav-item.active .nav-step-no{color:#fff;}
+  .sidebar-footer{margin-top:auto; padding:12px 10px 0; border-top:1px solid rgba(255,255,255,.14); font-size:10.5px; color:#6B6B6B;}
+
+  /* ---------------- MAIN ---------------- */
+  main{flex:1; display:flex; flex-direction:column; min-width:0;}
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 28px; background:var(--card); border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:5;
+  }
+  .topbar-left h1{font-family:var(--font-display); font-size:20px; margin:0 0 2px; font-weight:700;}
+  .topbar-left p{margin:0; font-size:12px; color:var(--muted);}
+  .topbar-controls{display:flex; gap:10px; align-items:center;}
+  select, .btn, input.text-input{
+    font-family:var(--font-body); font-size:12.5px; border-radius:7px; border:1px solid var(--border);
+    padding:8px 12px; background:#fff; color:var(--ink);
+  }
+  select{cursor:pointer;}
+  .btn{cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+  .btn-primary{background:var(--cherry); border-color:var(--cherry); color:#fff;}
+  .btn-primary:hover{background:var(--cherry-dark);}
+  .btn-outline{background:#fff; border-color:var(--border); color:var(--ink);}
+  .btn-outline:hover{border-color:var(--cherry); color:var(--cherry);}
+  .btn-sm{padding:5px 10px; font-size:11.5px; border-radius:6px;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+
+  .content{padding:24px 28px 60px; overflow-y:auto;}
+  .screen{display:none;}
+  .screen.active{display:block; animation:fadeIn .18s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+
+  .eyebrow{font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--cherry); font-weight:700; margin:0 0 4px;}
+  .h2{font-family:var(--font-display); font-size:22px; font-weight:700; margin:0 0 6px;}
+  .subcopy{color:var(--muted); font-size:12.5px; margin:0 0 20px; max-width:820px;}
+
+  .badge{display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px;}
+  .badge-auto{background:var(--green-bg); color:var(--green);}
+  .badge-semi{background:var(--amber-bg); color:var(--amber);}
+  .badge-manual{background:var(--red-bg); color:var(--red);}
+  .badge-discuss{background:#F1E9FA; color:#6B3FA0;}
+  .badge-oos{background:var(--gray-bg); color:var(--gray);}
+  .badge-complete{background:var(--green-bg); color:var(--green);}
+  .badge-progress{background:var(--amber-bg); color:var(--amber);}
+  .badge-pending{background:#ECECEC; color:#7A7A7A;}
+
+  /* Cards / grid */
+  .grid{display:grid; gap:16px;}
+  .grid-4{grid-template-columns:repeat(4,1fr);}
+  .grid-3{grid-template-columns:repeat(3,1fr);}
+  .grid-2{grid-template-columns:2fr 1fr;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:18px 20px;
+  }
+  .card h3{margin:0 0 4px; font-size:13.5px; font-weight:700;}
+  .card .kpi{font-family:var(--font-display); font-size:30px; font-weight:700; margin:4px 0 2px;}
+  .card .kpi-sub{font-size:11px; color:var(--muted);}
+  .kpi-trend{font-size:11px; font-weight:700;}
+  .trend-up{color:var(--green);}
+  .trend-down{color:var(--red);}
+
+  /* Process tracker (home) */
+  .tracker{display:flex; align-items:flex-start; overflow-x:auto; padding:6px 2px 14px;}
+  .tstep{flex:1 1 0; min-width:96px; text-align:center; position:relative; padding:0 4px;}
+  .tstep .tline{position:absolute; top:15px; left:-50%; width:100%; height:2px; background:var(--border); z-index:0;}
+  .tstep:first-child .tline{display:none;}
+  .tdot{width:30px; height:30px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center;
+        font-size:12px; font-weight:700; color:#fff; position:relative; z-index:1; border:3px solid var(--bg);}
+  .tlabel{font-size:9.8px; color:var(--ink); font-weight:600; line-height:1.25;}
+  .towner{font-size:9.5px; color:var(--muted); margin-top:2px;}
+
+  /* Tables */
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  thead th{
+    text-align:left; font-size:10.5px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted);
+    padding:9px 12px; border-bottom:1px solid var(--border); background:#FBFAFA; font-weight:700;
+  }
+  tbody td{padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  tbody tr:hover{background:#FCFAF9;}
+  .num{font-family:var(--font-mono); text-align:right;}
+  .cell-input{
+    width:84px; font-family:var(--font-mono); font-size:12px; padding:5px 7px; border-radius:5px;
+    border:1px solid var(--border); text-align:right;
+  }
+  .cell-input:focus{outline:none; border-color:var(--cherry);}
+  .row-fade{animation:rowFade .5s ease;}
+  @keyframes rowFade{from{background:#FCEFD4;} to{background:transparent;}}
+  .strike{text-decoration:line-through; color:var(--faint);}
+
+  .toolbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
+  .toolbar-filters{display:flex; gap:8px; flex-wrap:wrap;}
+
+  .dropzone{
+    border:1.5px dashed var(--border); border-radius:var(--radius); padding:22px; text-align:center;
+    color:var(--muted); font-size:12.5px; background:#FCFBFB; margin-bottom:18px; transition:border-color .15s;
+  }
+  .dropzone.drag{border-color:var(--cherry); color:var(--cherry); background:var(--cherry-tint);}
+  .dropzone b{color:var(--ink); font-weight:700;}
+
+  .panel-note{
+    border-radius:var(--radius); padding:14px 16px; font-size:12px; line-height:1.5; border:1px solid;
+    margin-bottom:16px;
+  }
+  .panel-note.discuss{background:#F6F1FB; border-color:#D7C4EC; color:#5A3A82;}
+  .panel-note.oos{background:var(--gray-bg); border-color:#D6D3D1; color:#4E4C4A;}
+  .panel-note.warn{background:var(--amber-bg); border-color:#EAD3A0; color:#7A5205;}
+
+  .status-pill{font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:20px; display:inline-block;}
+  .status-draft{background:#EFEFEF; color:#666;}
+  .status-submitted{background:var(--navy-tint); color:var(--navy);}
+  .status-approved{background:var(--green-bg); color:var(--green);}
+  .status-frozen{background:#E7F2FB; color:#1D6FA5;}
+
+  .actions{display:flex; gap:6px;}
+
+  /* Simple bar chart */
+  .barchart{display:flex; align-items:flex-end; gap:10px; height:150px; padding-top:10px;}
+  .bar-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;}
+  .bar{width:60%; border-radius:4px 4px 0 0; background:var(--navy); position:relative;}
+  .bar.two{background:var(--cherry);}
+  .bar-label{font-size:9.5px; color:var(--muted); margin-top:6px;}
+  .bar-value{font-size:9.5px; font-family:var(--font-mono); color:var(--ink); margin-bottom:3px;}
+
+  .legend-row{display:flex; gap:16px; font-size:11px; color:var(--muted); margin-top:8px;}
+  .legend-dot{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; vertical-align:middle;}
+
+  .waterfall{display:flex; align-items:flex-end; gap:4px; height:170px; padding:10px 0;}
+  .wf-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;}
+  .wf-bar{width:70%; border-radius:3px 3px 0 0;}
+  .wf-label{font-size:9px; color:var(--muted); margin-top:6px; text-align:center;}
+
+  .footer-note{font-size:10.5px; color:var(--faint); margin-top:8px; font-style:italic;}
+
+  ::-webkit-scrollbar{height:8px; width:8px;}
+  ::-webkit-scrollbar-thumb{background:#D8D3D1; border-radius:4px;}
+
+  /* ---------------- Exec Summary (Monthly Pack) ---------------- */
+  .subtabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:0;}
+  .subtab{
+    font-size:12px; font-weight:600; color:var(--muted); padding:8px 14px; cursor:pointer;
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .subtab:hover{color:var(--ink);}
+  .subtab.active{color:var(--cherry); border-bottom-color:var(--cherry);}
+  .subview{display:none;}
+  .subview.active{display:block; animation:fadeIn .18s ease;}
+
+  .cell-red{background:var(--red); color:#fff; font-family:var(--font-mono); text-align:right; font-weight:700;}
+  .cell-green{background:var(--green); color:#fff; font-family:var(--font-mono); text-align:right; font-weight:700;}
+  .cell-gray-total{background:#DADADA; font-family:var(--font-mono); text-align:right; font-weight:700;}
+  table.pack-table{font-size:11.5px;}
+  table.pack-table thead th{background:var(--ink); color:#fff; font-size:9.5px;}
+  table.pack-table td.rowhead{background:#F1F0EF; font-weight:700; font-family:var(--font-body); text-align:left;}
+  table.pack-table td.subhead{font-family:var(--font-body); text-align:left;}
+  table.pack-table tr.total-row td{background:#EDEDED; font-weight:700;}
+  table.pack-table tr.total-row td.cell-red{background:var(--red); color:#fff;}
+  table.pack-table tr.total-row td.cell-green{background:var(--green); color:#fff;}
+
+  .bridge{display:flex; align-items:flex-end; gap:10px; height:230px; padding:26px 0 10px;}
+  .bridge-col{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:60px;}
+  .bridge-bar{width:66%; border-radius:3px 3px 0 0; background:var(--cherry);}
+  .bridge-value{font-size:11px; font-family:var(--font-mono); margin-bottom:4px; font-weight:700;}
+  .bridge-label{font-size:9.5px; color:var(--muted); margin-top:6px; text-align:center; line-height:1.25;}
+
+  .reason-box{
+    border-left:3px solid var(--cherry); background:var(--cherry-tint); padding:12px 16px; border-radius:6px;
+    font-size:12px; line-height:1.7; margin-top:16px;
+  }
+  .reason-box b{color:var(--cherry-dark);}
+
+  .constraint-cell{font-size:11px; color:var(--ink); line-height:1.5;}
+  .constraint-cell b{font-weight:700;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand" style="flex-direction:column; align-items:flex-start; gap:10px;">
+      <img src="data:image/png;base64,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" alt="ELGi — Always Better" style="width:150px; height:auto; display:block;" />
+      <div class="brand-text">
+        <div class="t1">PROJECT COMPASS</div>
+        <div class="t2">S&OP Workspace</div>
+      </div>
+    </div>
+
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" data-screen="home">
+      <span class="nav-step-no">•</span><span class="nav-dot dot-complete"></span> Pilot Overview
+    </div>
+
+    <div class="nav-label">Process Steps</div>
+    <div class="nav-item" data-screen="master">
+      <span class="nav-step-no">1</span><span class="nav-dot dot-complete"></span> DFU / TPL Master
+    </div>
+    <div class="nav-item" data-screen="forecast">
+      <span class="nav-step-no">2</span><span class="nav-dot dot-progress"></span> Stat Forecast, File Prep &amp; Net Demand
+    </div>
+    <div class="nav-item" data-screen="workspace">
+      <span class="nav-step-no">3</span><span class="nav-dot dot-progress"></span> Demand Planning Workspace
+    </div>
+
+    <div class="nav-label">Analytics</div>
+    <div class="nav-item" data-screen="dashboard">
+      <span class="nav-step-no">•</span><span class="nav-dot" style="background:#8B8FBF;"></span> Exec Dashboard
+    </div>
+    <div class="nav-item" data-screen="rrs">
+      <span class="nav-step-no">•</span><span class="nav-dot" style="background:#8B8FBF;"></span> RRS Classification
+    </div>
+
+    <div class="sidebar-footer">
+      Prototype build — for stakeholder walkthrough only.<br/>Not connected to live data.
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1 id="topbar-title">Pilot Overview</h1>
+        <p id="topbar-sub">July 2026 pilot &nbsp;·&nbsp; All Regions</p>
+      </div>
+      <div class="topbar-controls">
+        <select id="pilotMonth">
+          <option>July 2026 Pilot</option>
+          <option>June 2026 Pilot</option>
+          <option>May 2026 Pilot</option>
+        </select>
+        <select id="regionFilter">
+          <option>All Regions</option>
+          <option>USA</option>
+          <option>Europe</option>
+          <option>India</option>
+        </select>
+        <button class="btn btn-outline">Export</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ================= HOME ================= -->
+      <section class="screen active" id="screen-home">
+        <div class="eyebrow">Overview</div>
+        <div class="h2">Pilot Health at a Glance</div>
+        <p class="subcopy">A single view of where this month's pilot stands across the process. Click any step below or in the left rail to open it.</p>
+
+        <div class="grid grid-3" style="margin-bottom:22px;">
+          <div class="card">
+            <h3>Open Items</h3>
+            <div class="kpi">8</div>
+            <div class="kpi-sub">Awaiting stakeholder decision</div>
+          </div>
+          <div class="card">
+            <h3>Pilot Progress</h3>
+            <div class="kpi">4 / 9</div>
+            <div class="kpi-sub">Steps completed this month</div>
+          </div>
+          <div class="card">
+            <h3>Forecast Accuracy</h3>
+            <div class="kpi">88.4%</div>
+            <div class="kpi-sub trend-up">▲ 2.1 pts vs. last pilot</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:22px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <h3 style="margin-bottom:2px;">Process Flow Status</h3>
+            <span class="footer-note" style="margin:0; font-style:normal;">As of <b style="color:var(--ink);">July 2, 2026 · 09:00 IST</b></span>
+          </div>
+          <p class="footer-note" style="margin-top:0; margin-bottom:6px;">Shows how far this month's pilot has progressed through each stage of the process.</p>
+          <div class="tracker" id="tracker"></div>
+          <div class="legend-row">
+            <span><span class="legend-dot" style="background:#1E7B4D"></span>Complete</span>
+            <span><span class="legend-dot" style="background:#B4720A"></span>In Progress</span>
+            <span><span class="legend-dot" style="background:#8A8A8A"></span>Yet to Start</span>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>This Month's Watch-outs</h3>
+            <table>
+              <tbody>
+                <tr><td>3 TPLs missing from master (auto-detected)</td><td><span class="badge badge-auto">Auto-flagged</span></td></tr>
+                <tr><td>OTIF data validation in progress</td><td><span class="badge badge-progress">In progress</span></td></tr>
+                <tr><td>Europe &amp; USA DFU data completeness below 70%</td><td><span class="badge badge-progress">Watch</span></td></tr>
+                <tr><td>UCD upload complete for all regions</td><td><span class="badge badge-complete">Done</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <h3>New / Upcoming Release Notes</h3>
+            <p style="font-size:12px; color:var(--muted); line-height:1.6;">
+              <b style="color:var(--green);">✓ Added:</b> Single consolidated Exec Dashboard, including Waterfall &amp; Inventory automation.<br/><br/>
+              <b style="color:var(--green);">✓ Added:</b> Net Demand &amp; Constraints merged into Stat Forecast &amp; File Prep for one continuous workflow.<br/><br/>
+              <b style="color:var(--amber);">🔜 Coming next:</b> ASN integration from the Supply Portal — pending a scoping workshop with S&amp;OP.<br/><br/>
+              <b style="color:var(--gray);">⛔ Not planned:</b> Automated Production + Supplier constraint allocation logic (confirmed out of scope).
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= MASTER ================= -->
+      <section class="screen" id="screen-master">
+        <div class="eyebrow">Step 1 · Automated</div>
+        <div class="h2">DFU / TPL Master Updation</div>
+        <p class="subcopy">TPLs missing from the master are detected automatically against the exception report (Regional Item Master, SO, PO, order inflow) and can be appended in one action.</p>
+
+        <div class="grid grid-3" style="margin-bottom:18px;">
+          <div class="card">
+            <h3>Total DFUs</h3>
+            <div class="kpi">76,645</div>
+            <div class="kpi-sub">Across 11 regions in the master</div>
+          </div>
+          <div class="card">
+            <h3>New Added Today</h3>
+            <div class="kpi">14</div>
+            <div class="kpi-sub trend-up">▲ via automated exception detection</div>
+          </div>
+          <div class="card">
+            <h3>Data Quality</h3>
+            <div class="kpi">59.9%</div>
+            <div class="kpi-sub">Complete on Product Group &amp; Model fields</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3 style="margin-bottom:2px;">Data Completeness by Region</h3>
+          <p class="footer-note" style="margin-top:0; margin-bottom:10px;">Share of DFUs with Product Group and Model populated — from the current DFU Master file.</p>
+          <table>
+            <thead><tr><th>Region</th><th class="num">Total DFUs</th><th class="num">Complete %</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Indonesia</td><td class="num">1,458</td><td class="num">4.3%</td><td><span class="badge badge-manual">Critical</span></td></tr>
+              <tr><td>Malaysia</td><td class="num">589</td><td class="num">9.7%</td><td><span class="badge badge-manual">Critical</span></td></tr>
+              <tr><td>Europe</td><td class="num">18,540</td><td class="num">13.0%</td><td><span class="badge badge-manual">Critical</span></td></tr>
+              <tr><td>ID</td><td class="num">948</td><td class="num">27.5%</td><td><span class="badge badge-manual">Critical</span></td></tr>
+              <tr><td>South Africa</td><td class="num">849</td><td class="num">37.2%</td><td><span class="badge badge-semi">Watch</span></td></tr>
+              <tr><td>USA</td><td class="num">33,664</td><td class="num">67.0%</td><td><span class="badge badge-semi">Watch</span></td></tr>
+              <tr><td>Middle East (New)</td><td class="num">2,189</td><td class="num">94.7%</td><td><span class="badge badge-auto">Good</span></td></tr>
+              <tr><td>Australia</td><td class="num">2,763</td><td class="num">95.3%</td><td><span class="badge badge-auto">Good</span></td></tr>
+              <tr><td>Brazil</td><td class="num">2,542</td><td class="num">97.4%</td><td><span class="badge badge-auto">Good</span></td></tr>
+              <tr><td>India</td><td class="num">12,015</td><td class="num">99.4%</td><td><span class="badge badge-auto">Good</span></td></tr>
+              <tr><td>Africa (New)</td><td class="num">1,088</td><td class="num">99.9%</td><td><span class="badge badge-auto">Good</span></td></tr>
+            </tbody>
+          </table>
+          <p class="footer-note" style="margin-top:10px;">Source: DFU_Master_for_Forecasting_Process.xlsx. Completeness measured on Product Group and Model fields; GSC Class and RRS Classification are populated in a downstream step, not this master.</p>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-filters">
+            <span class="badge badge-auto">Automated</span>
+            <span style="font-size:12px; color:var(--muted);">Last run: today, 06:00 · Source: BIS IT SharePoint Master</span>
+          </div>
+          <button class="btn btn-primary btn-sm" id="addAllBtn">Add All to Master</button>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table>
+            <thead>
+              <tr><th>TPL Code</th><th>Region</th><th>DFU</th><th>Detected Via</th><th>Item Classification</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="masterTableBody"></tbody>
+          </table>
+        </div>
+        <p class="footer-note">Classification logic cross-references C-DOC; works reliably for Units today — Parts/Accessories classification is still being validated (per Solution Design Category 1).</p>
+      </section>
+
+      <!-- ================= FORECAST ================= -->
+      <section class="screen" id="screen-forecast">
+        <div class="eyebrow">Step 2 · Automated</div>
+        <div class="h2">Statistical Forecast, File Preparation &amp; Net Demand</div>
+        <p class="subcopy">The consolidated forecast file is built automatically from Power BI as a pre-filled template. Net demand then converts automatically to part-level constrained demand on the same page — no manual download/reformat/upload cycle in between.</p>
+
+        <div class="grid grid-3" style="margin-bottom:18px;">
+          <div class="card">
+            <h3>Pipeline Status</h3>
+            <div class="kpi" style="font-size:22px;">Complete</div>
+            <div class="kpi-sub">ML pipeline run finished 04:12 today</div>
+          </div>
+          <div class="card">
+            <h3>Unit Price Source</h3>
+            <div class="kpi" style="font-size:22px;">LN Feed</div>
+            <div class="kpi-sub">Fallback: Sales ÷ Qty (last period)</div>
+          </div>
+          <div class="card">
+            <h3>ABP Sync</h3>
+            <div class="kpi" style="font-size:22px;">Synced</div>
+            <div class="kpi-sub">From SharePoint, region split applied</div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden; margin-bottom:22px;">
+          <table>
+            <thead>
+              <tr><th>DFU</th><th>TPL Desc.</th><th>Region</th><th class="num">Stat. Demand</th><th class="num">ABP Qty</th><th class="num">Unit Price</th><th class="num">Prod Order Qty</th><th class="num">Stock</th><th class="num">In-Transit</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>DFU-10231</td><td>Screw Compressor 22kW (LN)</td><td>India</td><td class="num">142</td><td class="num">160</td><td class="num">₹41,200</td><td class="num">30</td><td class="num">85</td><td class="num">12</td></tr>
+              <tr><td>DFU-10874</td><td>Oil-Free Rotary 37kW</td><td>Europe</td><td class="num">76</td><td class="num">80</td><td class="num">€6,150</td><td class="num">18</td><td class="num">40</td><td class="num">4</td></tr>
+              <tr><td>DFU-11290</td><td>Portable Compressor Aftermarket</td><td>USA</td><td class="num">211</td><td class="num">205</td><td class="num">$1,980</td><td class="num">55</td><td class="num">130</td><td class="num">20</td></tr>
+              <tr><td>DFU-11530</td><td>Air Dryer Accessory Kit</td><td>India</td><td class="num">0</td><td class="num">15</td><td class="num" title="No prior sale — region to confirm">— <span class="badge badge-semi" style="padding:1px 6px;">Confirm</span></td><td class="num">5</td><td class="num">22</td><td class="num">0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="footer-note" style="margin-top:-12px; margin-bottom:22px;">Includes explicit fields called out for traceability: TPL Description (India, from LN latest effective date), Open Regional Sales Order logic, Prod Order Qty / Stock / In-Transit — see Solution Design Category 3.</p>
+
+        <div class="h2" style="font-size:19px; margin-top:6px;">Net Demand &amp; Supply Constraints</div>
+        <p class="subcopy">Net demand converts automatically to part-level constrained demand. Constraint allocation and ASN visibility remain discussion points — shown below as they currently stand.</p>
+
+        <div class="grid grid-2" style="margin-bottom:18px;">
+          <div class="card">
+            <h3>Net Demand Sync Status</h3>
+            <div class="kpi" style="font-size:22px; color:var(--green);">Up to date</div>
+            <div class="kpi-sub">Last synced 2 hours ago from Demand Planning Workspace</div>
+          </div>
+          <div class="card">
+            <h3>Constrained Data Sync Status</h3>
+            <div class="kpi" style="font-size:22px; color:var(--amber);">Pending Input</div>
+            <div class="kpi-sub">Awaiting manual Final Constrained Qty entries from S&amp;OP</div>
+          </div>
+        </div>
+
+        <div class="panel-note oos">
+          <b>Out of scope (confirmed):</b> Automated Production + Supplier constraint allocation logic will not be built. The "Final Constrained Qty" column below stays a manual S&OP entry.
+        </div>
+        <div class="panel-note discuss">
+          <b>Needs discussion:</b> ASN integration from the Supply Portal. Requirement and process placement are unclear — this panel is a placeholder pending a scoping workshop with S&OP.
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden; margin-bottom:18px;">
+          <table>
+            <thead>
+              <tr><th>Part No.</th><th>DFU</th><th class="num">Net Demand</th><th class="num">Production Constraint</th><th class="num">Supplier Constraint</th><th class="num">Final Constrained Qty</th><th>Source</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>P-88213</td><td>DFU-10231</td><td class="num">142</td><td class="num">130</td><td class="num">120</td><td class="num"><input class="cell-input" value="120" /></td><td><span class="badge badge-manual">Manual</span></td></tr>
+              <tr><td>P-88547</td><td>DFU-10874</td><td class="num">76</td><td class="num">76</td><td class="num">60</td><td class="num"><input class="cell-input" value="60" /></td><td><span class="badge badge-manual">Manual</span></td></tr>
+              <tr><td>P-89012</td><td>DFU-11290</td><td class="num">211</td><td class="num">200</td><td class="num">211</td><td class="num"><input class="cell-input" value="200" /></td><td><span class="badge badge-manual">Manual</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card" style="border-style:dashed; opacity:.85;">
+          <h3 style="display:flex; align-items:center; gap:8px;">ASN from Supply Portal <span class="badge badge-discuss">Needs Discussion</span></h3>
+          <p style="font-size:12px; color:var(--muted); margin:6px 0 0;">Placeholder only. Open questions to resolve with S&OP before this panel is built: which ASN fields buyers need, whether it applies to all domestic parts or a subset, and whether it should surface here or inside the buyer's own PowerApp view.</p>
+        </div>
+      </section>
+
+      <!-- ================= WORKSPACE ================= -->
+      <section class="screen" id="screen-workspace">
+        <div class="eyebrow">Step 3 · Semi-Automated</div>
+        <div class="h2">Demand Planning Workspace</div>
+        <p class="subcopy">Regions upload Unconstrained Demand once for the full horizon, then edit, approve, or freeze rows directly — no email requests to IT.</p>
+
+        <div class="card" style="margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin-bottom:2px;">Download Pilot Data</h3>
+            <p class="footer-note" style="margin:0;">Pre-filled template with Statistical Demand, ABP, Unit Price, Prod Order Qty, Stock &amp; In-Transit already populated from Step 2.</p>
+          </div>
+          <button class="btn btn-primary btn-sm" id="downloadPilotBtn">Download Pilot Data</button>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <div><b>Drag &amp; drop</b> your UCD file here, or <b style="color:var(--cherry); cursor:pointer;" id="browseLink">browse</b> to upload</div>
+          <div style="margin-top:4px; font-size:11px;">USA &amp; Europe: 9 months in one sheet · India: 6 months in one sheet</div>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-filters">
+            <select><option>All Statuses</option><option>Draft</option><option>Submitted</option><option>Approved</option><option>Frozen</option></select>
+            <select><option>All Regions</option><option>USA</option><option>Europe</option><option>India</option></select>
+          </div>
+          <div style="font-size:12px; color:var(--muted);">6 rows · edits saved automatically</div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table>
+            <thead>
+              <tr><th>DFU</th><th>Region</th><th class="num">Stat. Demand</th><th class="num">UCD (editable)</th><th class="num">MUD</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="workspaceTableBody"></tbody>
+          </table>
+        </div>
+        <p class="footer-note">MUD = Moderate Unconstrained Demand, calculated after S&OP moderation of the region's UCD submission.</p>
+      </section>
+
+      <!-- ================= NET DEMAND ================= -->
+      <!-- Net Demand & Constraints merged into Stat Forecast & File Prep (screen-forecast) above -->
+
+
+      <!-- ================= DASHBOARD ================= -->
+      <section class="screen" id="screen-dashboard">
+        <div class="eyebrow">Analytics · Automated</div>
+        <div class="h2">Exec Dashboard — Single Consolidated View</div>
+        <p class="subcopy">One playbook for Pre-S&OP and Exec S&OP, refreshed monthly. Includes Waterfall &amp; Inventory automation, confirmed in scope here rather than as a separate workstream, plus the underlying Power BI source reports below.</p>
+
+        <div class="grid grid-4" style="margin-bottom:18px;">
+          <div class="card"><h3>OTIF</h3><div class="kpi">92.1%</div><div class="kpi-sub trend-up">▲ 1.4 pts MoM</div></div>
+          <div class="card"><h3>Forecast Accuracy</h3><div class="kpi">88.4%</div><div class="kpi-sub trend-up">▲ 2.1 pts MoM</div></div>
+          <div class="card"><h3>Inventory Days</h3><div class="kpi">46</div><div class="kpi-sub trend-down">▼ 3 days MoM</div></div>
+          <div class="card"><h3>Automation Coverage</h3><div class="kpi">67%</div><div class="kpi-sub">6 of 9 steps</div></div>
+        </div>
+
+        <div class="grid grid-2" style="align-items:start; margin-bottom:18px;">
+          <div class="card">
+            <h3>Inventory Waterfall (Illustrative)</h3>
+            <div class="waterfall" id="waterfallChart"></div>
+            <p class="footer-note">Automated monthly from the data pipeline — replaces the manual SharePoint calculation.</p>
+          </div>
+          <div class="card">
+            <h3>OTIF &amp; Forecast Accuracy Trend (Illustrative)</h3>
+            <div class="barchart" id="trendChart"></div>
+            <div class="legend-row">
+              <span><span class="legend-dot" style="background:var(--navy)"></span>OTIF %</span>
+              <span><span class="legend-dot" style="background:var(--cherry)"></span>Forecast Accuracy %</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:22px;">
+          <h3 style="margin-bottom:10px;">Steerco-style Metrics Log</h3>
+          <table>
+            <thead><tr><th>Pilot Month</th><th class="num">OTIF %</th><th class="num">Forecast Accuracy %</th><th class="num">Inventory Days</th></tr></thead>
+            <tbody>
+              <tr><td>May 2026</td><td class="num">89.0</td><td class="num">84.9</td><td class="num">52</td></tr>
+              <tr><td>June 2026</td><td class="num">90.7</td><td class="num">86.3</td><td class="num">49</td></tr>
+              <tr><td>July 2026</td><td class="num">92.1</td><td class="num">88.4</td><td class="num">46</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="h2" style="font-size:19px; margin-top:6px;">Underlying Source Reports (Monthly Pack)</div>
+        <p class="subcopy">These are the underlying reports that feed the single consolidated Exec Dashboard above. Shown here as-is from the current Power BI packs so stakeholders can see exactly what gets folded into one playbook.</p>
+
+        <div class="subtabs" id="packTabs">
+          <div class="subtab active" data-tab="bridge">Demand Bridge (India)</div>
+          <div class="subtab" data-tab="gap">Plan vs Actual — Gap (India)</div>
+          <div class="subtab" data-tab="sales">Plan vs Actual — Sales (India)</div>
+          <div class="subtab" data-tab="cover">Inventory Days of Cover (USA)</div>
+          <div class="subtab" data-tab="wfinv">Inventory Waterfall (USA)</div>
+          <div class="subtab" data-tab="shortfall">Shortfall Reasons (USA)</div>
+        </div>
+
+        <!-- Demand Bridge -->
+        <div class="subview active" id="pack-bridge">
+          <div class="card">
+            <h3 style="font-size:16px; margin-bottom:2px;">India | July '26 Moderate Unconstrained Demand of ₹1,839 Mn</h3>
+            <p class="footer-note" style="margin:0 0 4px;">Value in INR Mn</p>
+            <div class="bridge" id="bridgeChart"></div>
+          </div>
+          <div class="reason-box">
+            <b>Reasons for increase of ₹496 Mn (Stat Forecast → Unconstrained Demand):</b><br/>
+            • Portables (₹165 Mn) — Unconstrained demand reflecting high based on Order book.<br/>
+            • DIRECT (₹124 Mn) — Unconstrained demand reflecting the order book (LEPSAC, AB &amp; OFSAC) — predominantly strangers.<br/>
+            • Railways (₹86 Mn) &amp; Channel (₹60 Mn) — Unconstrained demand reflecting the increased estimate based on customer requirement for railways (Oil free) &amp; channel reflecting increased estimate based on expected order book.
+          </div>
+        </div>
+
+        <!-- Plan vs Actual Gap -->
+        <div class="subview" id="pack-gap">
+          <div class="card" style="padding:0; overflow:hidden;">
+            <h3 style="padding:16px 16px 0; font-size:16px;">India | Jul-2026 Supply Gap of Qty 196 and Value of ~₹172 Mn</h3>
+            <div style="overflow-x:auto;">
+              <table class="pack-table" id="gapTable"></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Plan vs Actual Sales -->
+        <div class="subview" id="pack-sales">
+          <div class="card" style="padding:0; overflow:hidden;">
+            <h3 style="padding:16px 16px 0; font-size:16px;">India | June '26 Sales Value at 75% of the MUD</h3>
+            <div style="overflow-x:auto;">
+              <table class="pack-table" id="salesTable"></table>
+            </div>
+            <p class="footer-note" style="padding:0 16px 14px;">Actual sales considered till 29th June '26. MUD = Moderate Unconstrained Demand.</p>
+          </div>
+        </div>
+
+        <!-- Inventory Days of Cover -->
+        <div class="subview" id="pack-cover">
+          <div class="card" style="padding:0; overflow:hidden;">
+            <h3 style="padding:16px 16px 0; font-size:16px;">USA | Oct '26 Units Estimated Closing Inventory to be at 172 Days of Cover</h3>
+            <div style="overflow-x:auto;">
+              <table class="pack-table" id="coverTable"></table>
+            </div>
+            <p class="footer-note" style="padding:0 16px 14px;">The number of days of coverage for the October '26 closing inventory is estimated at 162 days, excluding OFSAC and AB.</p>
+          </div>
+        </div>
+
+        <!-- Inventory Waterfall -->
+        <div class="subview" id="pack-wfinv">
+          <div class="card">
+            <h3 style="font-size:16px; margin-bottom:2px;">USA | Oct '26 Estimated Closing Inventory of 649 Units</h3>
+            <p class="footer-note" style="margin:0 0 4px;">Qty</p>
+            <div class="waterfall" id="wfInvChart" style="height:220px;"></div>
+            <p class="footer-note" style="margin-top:10px;"><b>22 May '26 Total of 895 Units</b> (On hand: 543 Regular, 31 Consignment, 317 In transit)</p>
+          </div>
+        </div>
+
+        <!-- Shortfall Reasons -->
+        <div class="subview" id="pack-shortfall">
+          <div class="card" style="padding:0; overflow:hidden;">
+            <h3 style="padding:16px 16px 0; font-size:16px;">USA | Shortfall Reasons</h3>
+            <table class="pack-table" id="shortfallTable"></table>
+          </div>
+        </div>
+
+        <p class="footer-note" style="margin-top:18px;">Source: current Power BI monthly packs (Demand Bridge, Plan vs Actual, Inventory Waterfall, Shortfall Reasons). Reproduced here to show what this consolidated dashboard brings into one place.</p>
+      </section>
+
+      <!-- ================= RRS CLASSIFICATION (ANALYTICS) ================= -->
+      <section class="screen" id="screen-rrs">
+        <div class="eyebrow">Analytics · Illustrative</div>
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+          <div>
+            <div class="h2">RRS Classification — Runner / Repeater / Stranger Mix</div>
+            <p class="subcopy">Volume contribution by RRS class, by region, and how the mix has shifted since the previous pilot. RRS classification is maintained in the Statistical Forecast step, not the DFU Master.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="downloadRrsBtn" style="flex:0 0 auto;">⬇ Download RRS</button>
+        </div>
+
+        <div class="grid grid-2" style="margin-bottom:18px;">
+          <div class="card">
+            <h3>ADI (Average Demand Interval)</h3>
+            <div class="kpi" style="font-size:22px;">Frequency Test</div>
+            <div class="kpi-sub">ADI ≤ 1.32 → regular demand (Runner/Repeater); ADI &gt; 1.32 → intermittent (Stranger)</div>
+          </div>
+          <div class="card">
+            <h3>CV² (Squared Coefficient of Variation)</h3>
+            <div class="kpi" style="font-size:22px;">Variability Test</div>
+            <div class="kpi-sub">CV² ≤ 0.49 → stable/smooth demand (Runner); CV² &gt; 0.49 → erratic demand (Repeater/Stranger)</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px;">
+          <h3 style="margin-bottom:10px;">Volume Contribution by Region</h3>
+          <div id="rrsStackChart"></div>
+          <div class="legend-row" style="margin-top:12px;">
+            <span><span class="legend-dot" style="background:#1E7B4D"></span>Runner</span>
+            <span><span class="legend-dot" style="background:#2F3C7E"></span>Repeater</span>
+            <span><span class="legend-dot" style="background:#B4720A"></span>Stranger</span>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table class="pack-table">
+            <thead>
+              <tr><th>Region</th><th>RRS Class</th><th style="text-align:right;">Volume Contribution</th><th style="text-align:right;">Shift vs. Previous Pilot</th></tr>
+            </thead>
+            <tbody id="rrsTableBody"></tbody>
+          </table>
+        </div>
+        <p class="footer-note">Illustrative data for prototype purposes — actual RRS mix to be pulled from the Statistical Forecast Process (Category 2) once available for all regions. Classification is based on ADI and CV² thresholds (Syntetos-Boylan method).</p>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  // ---------- Navigation ----------
+  const navItems = document.querySelectorAll('.nav-item');
+  const screens = document.querySelectorAll('.screen');
+  const titles = {
+    home: ['Pilot Overview', 'July 2026 pilot · All Regions'],
+    master: ['DFU / TPL Master', 'Step 1 of the pilot process'],
+    forecast: ['Stat Forecast, File Prep & Net Demand', 'Step 2 of the pilot process'],
+    workspace: ['Demand Planning Workspace', 'Step 3 of the pilot process'],
+    dashboard: ['Exec Dashboard', 'Analytics · Consolidated view & source reports'],
+    rrs: ['RRS Classification', 'Analytics · Runner / Repeater / Stranger mix'],
+  };
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      navItems.forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      const target = item.getAttribute('data-screen');
+      screens.forEach(s => s.classList.remove('active'));
+      document.getElementById('screen-' + target).classList.add('active');
+      document.getElementById('topbar-title').textContent = titles[target][0];
+      document.getElementById('topbar-sub').textContent = titles[target][1];
+    });
+  });
+
+  // ---------- Home process tracker ----------
+  const trackerSteps = [
+    { label: 'DFU Master Updation', owner: 'IT - Data', status: 'complete' },
+    { label: 'Stat Forecast Gen', owner: 'IT - Data', status: 'complete' },
+    { label: 'Forecast File Distribution', owner: 'IT - Data', status: 'complete' },
+    { label: 'UCD Upload by Region', owner: 'Region', status: 'complete' },
+    { label: 'PowerBI Demand Review', owner: 'IT - Data', status: 'progress' },
+    { label: 'S&OP Review & Approve', owner: 'S&OP Team', status: 'pending' },
+    { label: 'Net Demand & Constraint Calc', owner: 'S&OP', status: 'pending' },
+    { label: 'Net Demand Upload', owner: 'IT - Data', status: 'pending' },
+    { label: 'Exec Dashboard', owner: 'IT - Data', status: 'pending' },
+  ];
+  const statusColor = { complete: '#1E7B4D', progress: '#B4720A', pending: '#C7C5C3' };
+  const tracker = document.getElementById('tracker');
+  trackerSteps.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'tstep';
+    const dotContent = s.status === 'complete' ? '✓' : (i + 1);
+    const textColor = s.status === 'pending' ? 'color:#B0ADAB;' : '';
+    div.innerHTML = `<div class="tline"></div><div class="tdot" style="background:${statusColor[s.status]};">${dotContent}</div>
+      <div class="tlabel" style="${textColor}">${s.label}</div><div class="towner" style="${textColor}">${s.owner}</div>`;
+    tracker.appendChild(div);
+  });
+
+  // ---------- Master table ----------
+  const masterData = [
+    { tpl: 'TPL-30217', region: 'India', dfu: 'DFU-10231', via: 'SO Exception', cls: 'Unit', status: 'pending' },
+    { tpl: 'TPL-30288', region: 'USA', dfu: 'DFU-11290', via: 'Order Inflow', cls: 'Unit', status: 'pending' },
+    { tpl: 'TPL-30355', region: 'Europe', dfu: 'DFU-10874', via: 'PO Exception', cls: 'Accessory', status: 'pending', needsCheck: true },
+  ];
+  function renderMasterTable(){
+    const body = document.getElementById('masterTableBody');
+    body.innerHTML = '';
+    masterData.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      tr.id = 'mrow-' + idx;
+      const statusHtml = row.status === 'added'
+        ? '<span class="badge badge-auto">Added ✓</span>'
+        : '<span class="badge badge-semi">Pending</span>';
+      const clsHtml = row.needsCheck ? row.cls + ' <span class="badge badge-semi" style="padding:1px 6px;">Verify</span>' : row.cls;
+      tr.innerHTML = `<td>${row.tpl}</td><td>${row.region}</td><td>${row.dfu}</td><td>${row.via}</td><td>${clsHtml}</td>
+        <td>${statusHtml}</td>
+        <td><button class="btn btn-outline btn-sm add-btn" data-idx="${idx}" ${row.status==='added'?'disabled':''}>${row.status==='added'?'Added':'Add to Master'}</button></td>`;
+      body.appendChild(tr);
+    });
+    document.querySelectorAll('.add-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = btn.getAttribute('data-idx');
+        masterData[idx].status = 'added';
+        renderMasterTable();
+        document.getElementById('mrow-' + idx).classList.add('row-fade');
+      });
+    });
+  }
+  renderMasterTable();
+  document.getElementById('addAllBtn').addEventListener('click', () => {
+    masterData.forEach(r => r.status = 'added');
+    renderMasterTable();
+  });
+
+  // ---------- Workspace table ----------
+  const workspaceData = [
+    { dfu: 'DFU-10231', region: 'India', stat: 142, ucd: 150, mud: 146, status: 'submitted' },
+    { dfu: 'DFU-10874', region: 'Europe', stat: 76, ucd: 76, mud: 76, status: 'approved' },
+    { dfu: 'DFU-11290', region: 'USA', stat: 211, ucd: 220, mud: 214, status: 'draft' },
+    { dfu: 'DFU-11530', region: 'India', stat: 0, ucd: 15, mud: 15, status: 'draft' },
+    { dfu: 'DFU-12044', region: 'USA', stat: 98, ucd: 98, mud: 98, status: 'frozen' },
+    { dfu: 'DFU-12310', region: 'Europe', stat: 54, ucd: 60, mud: 58, status: 'submitted' },
+  ];
+  const statusMeta = {
+    draft: ['status-draft', 'Draft'],
+    submitted: ['status-submitted', 'Submitted'],
+    approved: ['status-approved', 'Approved'],
+    frozen: ['status-frozen', 'Frozen'],
+  };
+  function renderWorkspaceTable(){
+    const body = document.getElementById('workspaceTableBody');
+    body.innerHTML = '';
+    workspaceData.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      const [cls, label] = statusMeta[row.status];
+      const frozen = row.status === 'frozen';
+      tr.innerHTML = `<td>${row.dfu}</td><td>${row.region}</td><td class="num">${row.stat}</td>
+        <td class="num"><input class="cell-input" value="${row.ucd}" data-idx="${idx}" ${frozen?'disabled':''} /></td>
+        <td class="num">${row.mud}</td>
+        <td><span class="status-pill ${cls}">${label}</span></td>
+        <td class="actions">
+          <button class="btn btn-outline btn-sm approve-btn" data-idx="${idx}" ${frozen?'disabled':''}>Approve</button>
+          <button class="btn btn-outline btn-sm freeze-btn" data-idx="${idx}" ${frozen?'disabled':''}>Freeze</button>
+        </td>`;
+      body.appendChild(tr);
+    });
+    document.querySelectorAll('.approve-btn').forEach(btn => btn.addEventListener('click', () => {
+      workspaceData[btn.getAttribute('data-idx')].status = 'approved'; renderWorkspaceTable();
+    }));
+    document.querySelectorAll('.freeze-btn').forEach(btn => btn.addEventListener('click', () => {
+      workspaceData[btn.getAttribute('data-idx')].status = 'frozen'; renderWorkspaceTable();
+    }));
+    document.querySelectorAll('#workspaceTableBody .cell-input').forEach(inp => inp.addEventListener('change', (e) => {
+      workspaceData[e.target.getAttribute('data-idx')].ucd = e.target.value;
+    }));
+  }
+  renderWorkspaceTable();
+
+  // ---------- Download Pilot Data demo ----------
+  document.getElementById('downloadPilotBtn').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    const original = btn.textContent;
+    btn.textContent = 'Preparing file...';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.textContent = 'Downloaded: Pilot_July2026_AllRegions.xlsx';
+      setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2200);
+    }, 700);
+  });
+
+  // ---------- Dropzone demo ----------
+  const dropzone = document.getElementById('dropzone');
+  ['dragenter','dragover'].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('drag'); }));
+  dropzone.addEventListener('drop', () => { dropzone.querySelector('div').innerHTML = '<b>File received</b> — UCD_July2026_AllRegions.xlsx'; });
+  document.getElementById('browseLink').addEventListener('click', () => {
+    dropzone.querySelector('div').innerHTML = '<b>File received</b> — UCD_July2026_AllRegions.xlsx';
+  });
+
+  // ---------- Waterfall chart ----------
+  const wfData = [
+    { label: 'Opening Stock', value: 420, color: '#2F3C7E' },
+    { label: 'Production', value: 180, color: '#1E7B4D' },
+    { label: 'In-Transit', value: 60, color: '#1E7B4D' },
+    { label: 'Sales/Consumption', value: -260, color: '#990011' },
+    { label: 'Closing Stock', value: 400, color: '#2F3C7E' },
+  ];
+  (function renderWaterfall(){
+    const container = document.getElementById('waterfallChart');
+    const maxVal = 500;
+    wfData.forEach(d => {
+      const col = document.createElement('div');
+      col.className = 'wf-col';
+      const h = Math.max(8, Math.round((Math.abs(d.value) / maxVal) * 140));
+      col.innerHTML = `<div style="font-size:9.5px; font-family:var(--font-mono); margin-bottom:4px;">${d.value > 0 ? '+' : ''}${d.value}</div>
+        <div class="wf-bar" style="height:${h}px; background:${d.color};"></div>
+        <div class="wf-label">${d.label}</div>`;
+      container.appendChild(col);
+    });
+  })();
+
+  // ---------- Trend chart ----------
+  const trendData = [
+    { label: 'May', otif: 89.0, fa: 84.9 },
+    { label: 'Jun', otif: 90.7, fa: 86.3 },
+    { label: 'Jul', otif: 92.1, fa: 88.4 },
+  ];
+  (function renderTrend(){
+    const container = document.getElementById('trendChart');
+    trendData.forEach(d => {
+      const col = document.createElement('div');
+      col.className = 'bar-col';
+      col.style.flexDirection = 'row';
+      col.style.alignItems = 'flex-end';
+      col.style.gap = '4px';
+      const h1 = Math.round((d.otif / 100) * 120);
+      const h2 = Math.round((d.fa / 100) * 120);
+      col.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="bar-value">${d.otif}</div>
+          <div class="bar" style="height:${h1}px; width:16px;"></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="bar-value">${d.fa}</div>
+          <div class="bar two" style="height:${h2}px; width:16px;"></div>
+        </div>`;
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.flexDirection = 'column';
+      wrap.style.alignItems = 'center';
+      wrap.style.flex = '1';
+      wrap.appendChild(col);
+      const lbl = document.createElement('div');
+      lbl.className = 'bar-label';
+      lbl.textContent = d.label;
+      wrap.appendChild(lbl);
+      container.appendChild(wrap);
+    });
+  })();
+
+  // ---------- Exec Summary (Monthly Pack) ----------
+  document.querySelectorAll('#packTabs .subtab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#packTabs .subtab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.subview').forEach(v => v.classList.remove('active'));
+      document.getElementById('pack-' + tab.getAttribute('data-tab')).classList.add('active');
+    });
+  });
+
+  // Demand bridge chart (India, July '26, INR Mn)
+  const bridgeData = [
+    { label: 'LYSM', value: 1399.6 },
+    { label: 'L12M', value: 3111.7 },
+    { label: 'L6M', value: 2577.2 },
+    { label: 'L3M', value: 2161.1 },
+    { label: 'ABP', value: 1562.9 },
+    { label: 'Stat Forecast', value: 1342.9 },
+    { label: 'Moderate Unconstrained Demand', value: 1839.1 },
+    { label: 'Net Demand', value: 1830.9 },
+    { label: 'Supply Feasible Plan', value: 1659.2 },
+  ];
+  (function renderBridge(){
+    const container = document.getElementById('bridgeChart');
+    const maxVal = 3200;
+    bridgeData.forEach(d => {
+      const col = document.createElement('div');
+      col.className = 'bridge-col';
+      const h = Math.max(6, Math.round((d.value / maxVal) * 190));
+      col.innerHTML = `<div class="bridge-value">${d.value.toLocaleString(undefined,{minimumFractionDigits:1,maximumFractionDigits:1})}</div>
+        <div class="bridge-bar" style="height:${h}px;"></div>
+        <div class="bridge-label">${d.label}</div>`;
+      container.appendChild(col);
+    });
+  })();
+
+  // Plan vs Actual — Gap table (India, Jul-2026)
+  const gapRows = [
+    { grp: 'INDIA-CHANNEL', items: [
+      ['Channel-RCD', 1460, 1623, 1623, 1623, 0],
+      ['Channel-SEPAC', 469, 548, 548, 548, 0],
+    ], total: [1929, 2171, 2171, 2171, 0] },
+    { grp: 'INDIA-DIRECT', items: [
+      ['Direct-Lube', 36, 108, 108, 73, -35],
+      ['Direct-OF', 2, 21, 21, 17, -4],
+    ], total: [38, 129, 129, 90, -39] },
+    { grp: 'INDIA-PORTABLE', items: [
+      ['ACP-AFM-Portables', 0, 0, 0, 0, 0],
+      ['AFM-Portables', 0, 0, 0, 0, 0],
+      ['C&M', 82, 106, 106, 85, -21],
+      ['GSC-AFM-Industrial', 0, 0, 0, 0, 0],
+      ['WW', 22, 46, 46, 33, -13],
+    ], total: [104, 152, 152, 118, -34] },
+    { grp: 'INDIA-RAILWAYS', items: [
+      ['AFM-Railways', 0, 0, 0, 0, 0],
+      ['Railway Units', 664, 885, 885, 767, -118],
+      ['Railway Wiper', 224, 110, 110, 110, -5],
+    ], total: [888, 995, 995, 877, -123] },
+    { grp: 'INDIA-AFTERMARKET', items: [
+      ['AFM-Industrials', 0, 0, 0, 0, 0],
+    ], total: [0, 0, 0, 0, 0] },
+  ];
+  const gapGrandTotal = [2959, 3447, 3447, 3256, -196];
+  (function renderGapTable(){
+    const t = document.getElementById('gapTable');
+    let html = `<thead><tr><th>Region</th><th>Vertical</th><th style="text-align:right;">Stat Demand</th><th style="text-align:right;">Mod. Unconstrained Demand</th><th style="text-align:right;">Net Demand</th><th style="text-align:right;">Supply Feasible Plan</th><th style="text-align:right;">Qty Gap</th></tr></thead><tbody>`;
+    gapRows.forEach(group => {
+      group.items.forEach((row, i) => {
+        html += `<tr>${i===0 ? `<td class="rowhead" rowspan="${group.items.length+1}">${group.grp}</td>` : ''}<td class="subhead">${row[0]}</td>`;
+        for (let c = 1; c <= 4; c++) html += `<td class="num">${row[c].toLocaleString()}</td>`;
+        html += row[5] < 0 ? `<td class="cell-red">${row[5]}</td>` : `<td class="num">${row[5]}</td>`;
+        html += `</tr>`;
+      });
+      html += `<tr class="total-row"><td class="subhead">Total</td>`;
+      for (let c = 0; c <= 2; c++) html += `<td class="num">${group.total[c].toLocaleString()}</td>`;
+      html += group.total[3] < 3256 ? `<td class="num">${group.total[3].toLocaleString()}</td>` : `<td class="num">${group.total[3].toLocaleString()}</td>`;
+      html += group.total[4] < 0 ? `<td class="cell-red">${group.total[4]}</td>` : `<td class="num">${group.total[4]}</td>`;
+      html += `</tr>`;
+    });
+    html += `<tr class="total-row"><td colspan="2">Total</td>`;
+    for (let c = 0; c <= 3; c++) html += `<td class="num">${gapGrandTotal[c].toLocaleString()}</td>`;
+    html += `<td class="cell-red">${gapGrandTotal[4]}</td></tr>`;
+    html += `</tbody>`;
+    t.innerHTML = html;
+  })();
+
+  // Plan vs Actual — Sales table (India, June '26)
+  const salesRows = [
+    { grp: 'INDIA-CHANNEL', items: [
+      ['Channel-RCD', 1481, 1581, 1315, 90.54, 92.37, 77.11, true],
+      ['Channel-SEPAC', 462, 530, 474, 279.18, 324.01, 285.86, true],
+    ], total: [1943, 2111, 1789, 369.72, 416.38, 362.97, true] },
+    { grp: 'INDIA-DIRECT', items: [
+      ['Direct-Lube', 26, 83, 39, 36.79, 105.23, 66.69, true],
+      ['Direct-OF', 3, 21, 5, 8.07, 64.32, 17.52, true],
+    ], total: [29, 104, 44, 44.87, 169.55, 84.21, true] },
+    { grp: 'INDIA-PORTABLE', items: [
+      ['AFM-Portables', 0, 0, 0, 38.58, 38.58, 46.57, false],
+      ['C&M', 87, 138, 75, 152.86, 247.86, 156.82, true],
+      ['WW', 23, 27, 14, 84.31, 101.90, 54.48, true],
+    ], total: [110, 165, 89, 275.75, 388.34, 257.87, true] },
+    { grp: 'INDIA-RAILWAYS', items: [
+      ['AFM-Railways', 0, 0, 0, 65.18, 102.40, 91.74, true],
+      ['Railway Units', 768, 936, 697, 249.09, 297.61, 245.60, true],
+      ['Railway Wiper', 115, 115, 8, 0.00, 0.00, 5.37, false],
+    ], total: [883, 1051, 705, 314.27, 400.01, 342.71, true] },
+    { grp: 'INDIA-AFTERMARKET', items: [
+      ['AFM-Industrials', 0, 0, 0, 289.98, 290.79, 328.87, false],
+    ], total: [0, 0, 0, 289.98, 290.79, 328.87, false] },
+  ];
+  const salesGrandTotal = [2965, 3431, 2627, 1294.58, 1665.06, 1376.62];
+  function fmt(n){ return n.toLocaleString(undefined,{minimumFractionDigits: Number.isInteger(n)?0:2, maximumFractionDigits:2}); }
+  (function renderSalesTable(){
+    const t = document.getElementById('salesTable');
+    let html = `<thead><tr><th>Region</th><th>Vertical</th><th style="text-align:right;">Stat Demand Qty</th><th style="text-align:right;">MUD Qty</th><th style="text-align:right;">Act. Sales Qty</th><th style="text-align:right;">Stat Demand Value</th><th style="text-align:right;">MUD Value</th><th style="text-align:right;">Act Sales Value</th></tr></thead><tbody>`;
+    salesRows.forEach(group => {
+      group.items.forEach((row, i) => {
+        // row = [name, statQty, mudQty, actQty, statVal, mudVal, actVal, shortfallFlag]
+        const [name, statQty, mudQty, actQty, statVal, mudVal, actVal, isShortfall] = row;
+        const cellClass = isShortfall ? 'cell-red' : 'cell-green';
+        html += `<tr>${i===0 ? `<td class="rowhead" rowspan="${group.items.length+1}">${group.grp}</td>` : ''}<td class="subhead">${name}</td>`;
+        html += `<td class="num">${fmt(statQty)}</td><td class="num">${fmt(mudQty)}</td><td class="${cellClass}">${fmt(actQty)}</td>`;
+        html += `<td class="num">${fmt(statVal)}</td><td class="num">${fmt(mudVal)}</td><td class="${cellClass}">${fmt(actVal)}</td>`;
+        html += `</tr>`;
+      });
+      const [tStatQty, tMudQty, tActQty, tStatVal, tMudVal, tActVal, tShortfall] = group.total;
+      const tClass = tShortfall ? 'cell-red' : 'cell-green';
+      html += `<tr class="total-row"><td class="subhead">Total</td><td class="num">${fmt(tStatQty)}</td><td class="num">${fmt(tMudQty)}</td><td class="${tClass}">${fmt(tActQty)}</td><td class="num">${fmt(tStatVal)}</td><td class="num">${fmt(tMudVal)}</td><td class="${tClass}">${fmt(tActVal)}</td></tr>`;
+    });
+    html += `<tr class="total-row"><td colspan="2">Total</td>`;
+    salesGrandTotal.forEach((v) => { html += `<td class="num">${fmt(v)}</td>`; });
+    html += `</tr></tbody>`;
+    t.innerHTML = html;
+  })();
+
+  // Inventory Days of Cover table (USA, Oct '26)
+  const coverRows = [
+    ['Units','ENCAP',450,1.57,201,306,1.06,136,284,0.99,127],
+    ['Units','SEPSAC',339,3.06,175,298,2.84,162,279,2.59,148],
+    ['Units','LEPSAC',81,2.79,297,58,2.03,216,57,2.03,216],
+    ['Units','OFSAC',10,0.25,463,10,0.25,463,10,0.25,463],
+    ['Units','AB',11,0.22,267,12,0.25,302,15,0.33,397],
+    ['Units','RCD',4,0.01,0,4,0.01,0,4,0.01,0],
+  ];
+  const coverUnitsTotal = [895,7.90,219,688,6.44,179,649,6.20,172];
+  const coverAccRows = [['Accessories','Accessories',0,1.32,418,0,1.39,441,0,1.38,436]];
+  const coverAccTotal = [0,1.32,418,0,1.39,441,0,1.38,436];
+  const coverAftRows = [
+    ['Aftermarket','Accessories',0,0.00,0,0,0.00,0,0,0.00,0],
+    ['Aftermarket','Warranty',0,1.29,669,0,1.33,685,0,1.33,690],
+    ['Aftermarket','Others',0,2.81,292,0,2.68,278,0,2.63,273],
+  ];
+  const coverAftTotal = [0,4.10,355,0,4.00,346,0,3.96,343];
+  const coverGrand = [895,13.33,263,688,11.84,233,649,11.54,227];
+  (function renderCoverTable(){
+    const t = document.getElementById('coverTable');
+    let html = `<thead><tr><th>Item Category</th><th>Product Group</th>
+      <th style="text-align:right;">19th Jun'26 Closing Qty</th><th style="text-align:right;">19th Jun'26 Closing Value</th><th style="text-align:right;">Jun'26 Days Cover</th>
+      <th style="text-align:right;">Oct'26 Opening Qty</th><th style="text-align:right;">Oct'26 Opening Value</th><th style="text-align:right;">Oct'26 Opening Days</th>
+      <th style="text-align:right;">Oct'26 Closing Qty</th><th style="text-align:right;">Oct'26 Closing Value</th><th style="text-align:right;">Oct'26 Closing Days</th></tr></thead><tbody>`;
+    function rowsBlock(rows, totalRow, groupLabel){
+      rows.forEach((row, i) => {
+        html += `<tr>${i===0 ? `<td class="rowhead" rowspan="${rows.length+1}">${groupLabel}</td>` : ''}<td class="subhead">${row[1]}</td>`;
+        for (let c = 2; c <= 10; c++) html += `<td class="num">${fmt(row[c])}</td>`;
+        html += `</tr>`;
+      });
+      html += `<tr class="total-row"><td class="subhead">Total</td>`;
+      totalRow.forEach(v => html += `<td class="num">${fmt(v)}</td>`);
+      html += `</tr>`;
+    }
+    rowsBlock(coverRows, coverUnitsTotal, 'Units');
+    rowsBlock(coverAccRows, coverAccTotal, 'Accessories');
+    rowsBlock(coverAftRows, coverAftTotal, 'Aftermarket');
+    html += `<tr class="total-row"><td colspan="2">Grand Total</td>`;
+    coverGrand.forEach(v => html += `<td class="num">${fmt(v)}</td>`);
+    html += `</tr></tbody>`;
+    t.innerHTML = html;
+  })();
+
+  // Inventory Waterfall (USA, Oct '26)
+  const wfInvData = [
+    { label: "19th Jun'26 Closing Inv Qty", value: 895, type: 'total' },
+    { label: 'Open POs at HO', value: 73, type: 'pos' },
+    { label: "20-30 Jun'26 sales", value: -32, type: 'neg' },
+    { label: "Jul'26 Unconstrained Demand", value: -167, type: 'neg' },
+    { label: "Aug'26 Unconstrained Demand", value: -168, type: 'neg' },
+    { label: "Sept'26 Unconstrained Demand", value: -164, type: 'neg' },
+    { label: "July'26 Dispatch", value: 60, type: 'pos' },
+    { label: "Aug'26 Dispatch", value: 69, type: 'pos' },
+    { label: "Sept'26 Dispatch", value: 118, type: 'pos' },
+    { label: "Oct'26 Opening Inv Qty", value: 688, type: 'total' },
+    { label: "Oct'26 Sales", value: -170, type: 'neg' },
+    { label: "Oct'26 Dispatch", value: 127, type: 'pos' },
+    { label: "Oct'26 Closing Inv Qty", value: 649, type: 'total' },
+  ];
+  (function renderWfInv(){
+    const container = document.getElementById('wfInvChart');
+    const maxVal = 900;
+    const colorMap = { total: '#8B8B8B', pos: '#1E7B4D', neg: '#B33A3A' };
+    wfInvData.forEach(d => {
+      const col = document.createElement('div');
+      col.className = 'wf-col';
+      const h = Math.max(8, Math.round((Math.abs(d.value) / maxVal) * 170));
+      col.innerHTML = `<div style="font-size:9.5px; font-family:var(--font-mono); margin-bottom:4px;">${d.value > 0 && d.type!=='total' ? '+' : ''}${d.value}</div>
+        <div class="wf-bar" style="height:${h}px; background:${colorMap[d.type]};"></div>
+        <div class="wf-label">${d.label}</div>`;
+      container.appendChild(col);
+    });
+  })();
+
+  // Shortfall Reasons (USA)
+  const shortfallRows = [
+    ['USA','ENCAP',3,'<b>575 V:</b> 3 orders not available for ENCAP-EN53-4-C-125-3Ph'],
+    ['USA','SEPSAC',23,'<b>575 V:</b> No orders available: EG-75-C-125-S, EG-55-C-125, EG-37-CV-125, EG-22-CV-125, EG-18-CV-125, EG-18-C-125 · 5 orders not available for EG-37-C-125'],
+    ['USA','LEPSAC',12,'<b>460 V:</b> No orders available: EG-90-CV-150-S-Air Cooled, EG-250-C-125-S-Air Cooled, EG-200-C-125-S-Air Cooled, EG-160-CV-150-S-Air Cooled, EG-110-CV-150-S-Air Cooled, EG-110-C-125-S-Air Cooled · 2 orders not available for EG-160-C-125-S-Air Cooled'],
+  ];
+  (function renderShortfall(){
+    const t = document.getElementById('shortfallTable');
+    let html = `<thead><tr><th>Region</th><th>Product Group</th><th style="text-align:right;">Shortfall Qty</th><th>Constraint</th></tr></thead><tbody>`;
+    shortfallRows.forEach(row => {
+      html += `<tr><td>${row[0]}</td><td>${row[1]}</td><td class="num">${row[2]}</td><td class="constraint-cell">${row[3]}</td></tr>`;
+    });
+    html += `<tr class="total-row"><td colspan="2">Total</td><td class="num">38</td><td></td></tr>`;
+    html += `</tbody>`;
+    t.innerHTML = html;
+  })();
+
+  // ---------- RRS Classification (Analytics) ----------
+  const rrsData = [
+    { region: 'India', runner: 42, repeater: 35, stranger: 23, shift: { runner: 3, repeater: -1, stranger: -2 } },
+    { region: 'USA', runner: 38, repeater: 40, stranger: 22, shift: { runner: -2, repeater: 1, stranger: 1 } },
+    { region: 'Europe', runner: 45, repeater: 33, stranger: 22, shift: { runner: 4, repeater: -2, stranger: -2 } },
+  ];
+  const rrsColors = { runner: '#1E7B4D', repeater: '#2F3C7E', stranger: '#B4720A' };
+  (function renderRrsStack(){
+    const container = document.getElementById('rrsStackChart');
+    rrsData.forEach(d => {
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.gap = '12px';
+      row.style.marginBottom = '14px';
+      const label = document.createElement('div');
+      label.style.width = '70px';
+      label.style.fontSize = '12px';
+      label.style.fontWeight = '700';
+      label.textContent = d.region;
+      const barWrap = document.createElement('div');
+      barWrap.style.flex = '1';
+      barWrap.style.display = 'flex';
+      barWrap.style.height = '30px';
+      barWrap.style.borderRadius = '6px';
+      barWrap.style.overflow = 'hidden';
+      ['runner','repeater','stranger'].forEach(k => {
+        const seg = document.createElement('div');
+        seg.style.width = d[k] + '%';
+        seg.style.background = rrsColors[k];
+        seg.style.display = 'flex';
+        seg.style.alignItems = 'center';
+        seg.style.justifyContent = 'center';
+        seg.style.color = '#fff';
+        seg.style.fontSize = '11px';
+        seg.style.fontFamily = 'var(--font-mono)';
+        seg.textContent = d[k] + '%';
+        barWrap.appendChild(seg);
+      });
+      row.appendChild(label);
+      row.appendChild(barWrap);
+      container.appendChild(row);
+    });
+  })();
+  (function renderRrsTable(){
+    const body = document.getElementById('rrsTableBody');
+    let html = '';
+    const classLabels = { runner: 'Runner', repeater: 'Repeater', stranger: 'Stranger' };
+    rrsData.forEach(d => {
+      ['runner','repeater','stranger'].forEach((k, i) => {
+        const shiftVal = d.shift[k];
+        const arrow = shiftVal > 0 ? '▲' : (shiftVal < 0 ? '▼' : '—');
+        const shiftClass = shiftVal > 0 ? 'trend-up' : (shiftVal < 0 ? 'trend-down' : '');
+        html += `<tr>${i===0 ? `<td class="rowhead" rowspan="3">${d.region}</td>` : ''}<td class="subhead">${classLabels[k]}</td>
+          <td class="num">${d[k]}%</td><td class="num ${shiftClass}">${arrow} ${Math.abs(shiftVal)} pts</td></tr>`;
+      });
+    });
+    body.innerHTML = html;
+  })();
+
+  // ---------- Download RRS (CSV export) ----------
+  (function wireRrsDownload(){
+    const btn = document.getElementById('downloadRrsBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      const classLabels = { runner: 'Runner', repeater: 'Repeater', stranger: 'Stranger' };
+      let csv = 'Region,RRS Class,Volume Contribution (%),Shift vs Previous Pilot (pts)\n';
+      rrsData.forEach(d => {
+        ['runner','repeater','stranger'].forEach(k => {
+          csv += `${d.region},${classLabels[k]},${d[k]},${d.shift[k]}\n`;
+        });
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'RRS_Classification.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  })();
+</script>
+</body>
+</html>
