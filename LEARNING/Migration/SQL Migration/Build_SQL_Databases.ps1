@@ -22,7 +22,7 @@ Write-Host ""
 
 $Projects = Get-ChildItem `
     -Path $RootFolder `
-    -Filter "*.sqlproj" `
+    -Filter "ELGi_US.sqlproj" `
     -Recurse
 
 

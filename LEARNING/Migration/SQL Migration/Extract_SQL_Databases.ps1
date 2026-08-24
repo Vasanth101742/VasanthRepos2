@@ -61,12 +61,12 @@ Write-Host ""
 # Credential
 # ------------------------------------------------------------
 
-$Credential = Get-Credential
+#$Credential = Get-Credential
 
-$SqlUser = $Credential.UserName
+$SqlUser = "sa" #$Credential.UserName
 
-$SqlPassword =
-    $Credential.GetNetworkCredential().Password
+$SqlPassword = "ElgiP0w3r@20#23"
+    #$Credential.GetNetworkCredential().Password
 
 
 # ------------------------------------------------------------
@@ -109,6 +109,9 @@ foreach ($Database in $Databases) {
         $DatabaseFolder `
         "$Database.dacpac"
 
+    $ProjectFile = Join-Path `
+        $DatabaseFolder `
+        "$Database.sqlproj"
 
     $StartTime = Get-Date
 
@@ -195,6 +198,42 @@ foreach ($Database in $Databases) {
 
         }
     }
+
+    # ----------------------------------------------------
+    # STEP 2 - Create SQL Database Project
+    # ----------------------------------------------------
+
+        Write-Host ""
+        Write-Host "Step 2: Creating SQL Database Project..." `
+            -ForegroundColor Cyan
+
+
+        if (-not (Test-Path $ProjectFile)) {
+
+            dotnet new sqlproj `
+                -n $Database `
+                -o $DatabaseFolder
+
+
+            if ($LASTEXITCODE -ne 0) {
+
+                throw `
+                    "SQL project creation failed. Exit code: $LASTEXITCODE"
+            }
+
+            Write-Host ""
+            Write-Host "SQL project created successfully." `
+                -ForegroundColor Green
+        }
+        else {
+
+            Write-Host ""
+            Write-Host "SQL project already exists. Skipping creation." `
+                -ForegroundColor Yellow
+        }
+
+
+
 }
 
 
