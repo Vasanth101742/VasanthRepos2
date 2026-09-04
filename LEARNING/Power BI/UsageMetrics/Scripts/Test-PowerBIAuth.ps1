@@ -1,4 +1,4 @@
-$configFile = "C:\Users\vasanthk\OneDrive - ELGi Equipments Ltd\Desktop\Desktop Files\Vasanth_GitDesktop\Flatris-LAB\Flatris-LAB\VasanthRepos2\LEARNING\Migration\UsageMetrics\config.ps1"
+$configFile = "C:\Users\vasanthk\OneDrive - ELGi Equipments Ltd\Desktop\Desktop Files\Vasanth_GitDesktop\Flatris-LAB\Flatris-LAB\VasanthRepos2\LEARNING\Migration\UsageMetrics\Scripts\config.ps1"
 
 if (-not (Test-Path $configFile)) {
     throw "Configuration file not found: $configFile"
