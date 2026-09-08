@@ -25,7 +25,7 @@
 
 #Method 2: Use a configuration file (config.ps1) with the following content:
 
-$configFile = "C:\Users\vasanthk\OneDrive - ELGi Equipments Ltd\Desktop\Desktop Files\Vasanth_GitDesktop\Flatris-LAB\Flatris-LAB\VasanthRepos2\LEARNING\Migration\UsageMetrics\Scripts\config.ps1"
+$configFile = "C:\Users\vasanthk\OneDrive - ELGi Equipments Ltd\Desktop\Desktop Files\Vasanth_GitDesktop\Flatris-LAB\Flatris-LAB\VasanthRepos2\LEARNING\Power BI\UsageMetrics\Scripts\config.ps1"
 
 if (-not (Test-Path $configFile)) {
     throw "Configuration file not found: $configFile"
@@ -203,11 +203,16 @@ while ($currentDate -le $lastDate) {
 
     # Activity Events must be queried one UTC day at a time.
     $dayStart = $currentDate.ToUniversalTime()
-
     $dayEnd = $currentDate.AddDays(1).AddMilliseconds(-1).ToUniversalTime()
+
+
 
     $startString = $dayStart.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
     $endString   = $dayEnd.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+
+    
+    # $startString = "2026-09-08T00:00:00.000Z"
+    # $endString   = "2026-09-08T23:59:59.999Z"
 
     $ActivityUrl =
         "https://api.powerbi.com/v1.0/myorg/admin/activityevents" +
@@ -228,6 +233,7 @@ while ($currentDate -le $lastDate) {
                 foreach ($Event in $ActivityResponse.activityEventEntities) {
 
                     if ($Event.Activity -eq "ViewReport") {
+
 
                         $UsageEvents += $Event
                     }

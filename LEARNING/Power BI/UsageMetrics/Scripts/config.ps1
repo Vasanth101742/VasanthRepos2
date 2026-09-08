@@ -4,7 +4,7 @@ $Config = @{
     ClientSecret = "FLR8Q~8F083PJK.0BBFijWgOcyk88QjBzoArhc8u"
 
     StartDate    = "2026-09-01"
-    EndDate      = "2026-09-01"
+    EndDate      = "2026-09-08"
 
     OutputFolder = "C:\PowerBI\Usage"
 }
