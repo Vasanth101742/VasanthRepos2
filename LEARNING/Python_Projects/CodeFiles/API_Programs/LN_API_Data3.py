@@ -26,26 +26,17 @@ BODY = """<?xml version="1.0" encoding="UTF-8"?>
     xmlns:reg="http://www.infor.com/businessinterface/RegionWiseDFU">
 
     <soapenv:Body>
-
         <reg:Create>
-
             <CreateRequest>
-
                 <DataArea>
-
                     <RegionWiseDFU>
                         <RequestType>GET</RequestType>
                         <Company>400</Company>
                     </RegionWiseDFU>
-
                 </DataArea>
-
             </CreateRequest>
-
         </reg:Create>
-
     </soapenv:Body>
-
 </soapenv:Envelope>
 """.strip()
 
