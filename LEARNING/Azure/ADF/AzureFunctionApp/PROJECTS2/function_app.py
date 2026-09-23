@@ -64,11 +64,11 @@
 #     try:
 #         body = req.get_json()
 
-#         xml_content = body.get("xml")
+#         LN_API_content = body.get("xml")
 #         file_name = body.get("fileName", "RegionWiseDFU.xml")
 #         container_name = body.get("container", "xml")
 
-#         if not xml_content:
+#         if not LN_API_content:
 #             return func.HttpResponse(
 #                 json.dumps({
 #                     "status": "error",
@@ -102,7 +102,7 @@
 #         blob_client = container_client.get_blob_client(file_name)
 
 #         blob_client.upload_blob(
-#             xml_content,
+#             LN_API_content,
 #             overwrite=True
 #         )
 
@@ -171,11 +171,19 @@
 #Method 3 : Using XML Body
 #*************************************************************
 
+import html
+from http.client import responses
+from unittest import result
+import urllib
 import azure.functions as func
 from azure.storage.blob import BlobServiceClient
 import logging
 import os
 import json
+import pyodbc
+import xml.etree.ElementTree as ET
+import pandas as pd
+
 # import requests
 
 # response = requests.get(
@@ -203,21 +211,25 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
     """
 
     try:
+
+        #Step 1: Read LN API content from the request body************************
+
         # Method 1: Read json body
         # payload = req.get_json()
-        # xml_content = payload.get("xml")
+        # LN_API_content = payload.get("xml")
         
         # Method 2: Read raw request body
-        xml_content = req.get_body()
+        LN_API_content = req.get_body().decode('utf-8')
 
-        if not xml_content:
+        if not LN_API_content:
             return func.HttpResponse(
                 json.dumps({
                     "status": "error",
                     "message": "XML content is required in the request body."
                 }),
                 status_code=400,
-                mimetype="application/json"
+                #mimetype="application/json" #Commented
+                mimetype="application/xml"
             )
 
         # Optional: validate that the request contains XML
@@ -231,13 +243,16 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
         # Get optional values from query parameters
         file_name = req.params.get(
             "fileName",
-            "RegionWiseDFU.json"
+            "RegionWiseDFU.xml"
         )
 
         container_name = req.params.get(
             "container",
             "xml"
         )
+
+
+        #Step 2: Azure BLOB Storage Configuration************************
 
         connection_string = os.getenv("AzureWebJobsStorage")
 
@@ -268,43 +283,212 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
             file_name
         )
 
+
+        #Step 3: upload data into Azure BLOB Storage************************
         # Upload raw XML bytes
         blob_client.upload_blob(
-            xml_content,
+            LN_API_content,
             overwrite=True
         )
 
-        xml_text = xml_content.decode("utf-8")
-        json_data = json.loads(xml_text)
-        logging.info(
-            f"Parsed JSON data: {json_data}"
-        )
-        # Optionally, you can perform further processing with the parsed JSON data here.
-        # Example: log the keys of the parsed JSON data
-        logging.info(
-            f"JSON keys: {list(json_data.keys())}"
-        )
-        # Example: log the values of the parsed JSON data
-        logging.info(
-            f"JSON values: {list(json_data.values())}"
-        )
-        # Example: log the number of keys in the parsed JSON data
-        logging.info(
-            f"Number of JSON keys: {len(json_data.keys())}"
-        )
-        # Example: log the number of values in the parsed JSON data
-        logging.info(
-            f"Number of JSON values: {len(json_data.values())}"
-        )
-        # Example: log the entire parsed JSON data
-        logging.info(
-            f"Full JSON data: {json_data}"
-        )
-        # Example: log whether the parsed JSON data is empty
-        logging.info(
-            f"Is JSON data empty: {not bool(json_data)}"
-        )
+
+
+        #Step 4: Parse XML and extract GetDFUResponse************************
+
+        # Decode HTML entities
+        xml_string = html.unescape(LN_API_content)
+        root = ET.fromstring(xml_string)
+
+        # Find GetDFUResponse ignoring namespaces
+        for elem in root.iter():
+            if elem.tag.endswith("GetDFUResponse"):
+                get_dfu = elem
+                break
+
+        result = {
+        child.tag.split("}")[-1]: child.text.strip() if child.text else ""
+        for child in get_dfu
+        }
+
+        print(result)
+
+
+
+
+        # Extract data
+        # Find GetDFUResponse
+        responses = root.findall(".//GetDFUResponse")
+
+        print("Number of GetDFUResponse records:", len(responses))
+
+
+        for record in responses:
+
+            print("\n========== RECORD ==========")
+
+            region = record.findtext("Region", default="").strip()
+            item = record.findtext("Item", default="").strip()
+            verticals = record.findtext("Verticals", default="").strip()
+            dfu = record.findtext("DFU", default="").strip()
+            item_catg = record.findtext("ItemCatg", default="").strip()
+            rrs_classification = record.findtext(
+                "RRSClassification",
+                default=""
+            ).strip()
+
+            classification = record.findtext(
+                "Classification",
+                default=""
+            ).strip()
+
+            revenue = record.findtext(
+                "Revenue",
+                default=""
+            ).strip()
+
+            priority = record.findtext(
+                "Priority",
+                default=""
+            ).strip()
+
+            updated_date = record.findtext(
+                "Updateddate",
+                default=""
+            ).strip()
+
+
+            print("Region:", region)
+            print("Item:", item)
+            print("Verticals:", verticals)
+            print("DFU:", dfu)
+            print("ItemCatg:", item_catg)
+            print("RRSClassification:", rrs_classification)
+            print("Classification:", classification)
+            print("Revenue:", revenue)
+            print("Priority:", priority)
+            print("Updateddate:", updated_date)
+
+
+
+
+        # #------------------------------------------------------------
         
+
+        # rows = []
+
+        # for record in responses:
+
+        #     row = {}
+
+        #     for child in record:
+
+        #         row[child.tag] = (
+        #             child.text.strip()
+        #             if child.text
+        #             else ""
+        #         )
+
+        #     rows.append(row)
+
+
+        # df = pd.DataFrame(rows)
+
+        # print(df)
+
+
+
+
+        # # write the Output to SQL Server---------------------------------------------
+
+        # # conn_str = (
+        # #     'DRIVER={ODBC Driver 17 for SQL Server};'
+        # #     f'SERVER={os.environ["server"]};'
+        # #     f'DATABASE={os.environ["database"]};'
+        # #     # For Windows integrated auth:
+        # #     #'Trusted_Connection=yes;'
+        # #     # Or for SQL Server auth, comment above line and uncomment these:
+        # #      f'UID={os.environ["username"]};'
+        # #      f'PWD={os.environ["password"]};'
+        # # )
+
+
+        # conn_str = (
+        #     "DRIVER={ODBC Driver 17 for SQL Server};"
+        #     f"SERVER={os.getenv('server')};"
+        #     f"DATABASE={os.getenv('database')};"
+        #     f"UID={os.getenv('username')};"
+        #     f"PWD={os.getenv('password')};"
+        # )
+
+
+
+
+
+        # #conn_str =SourceData.conn_str
+        # quoted = urllib.parse.quote_plus(conn_str)
+
+        # insert_sql = "INSERT INTO dbo.Regionwise_DFU_Master_from_LNAPI(Region,Item,Verticals,DFU,ItemCatg, \
+        #             RRSClassification,Classification,Revenue,Priority,Updateddate)VALUES \
+        #             (?,?,?,?,?,?,?,?,?,?)"
+
+        # dest_conn=pyodbc.connect(conn_str)
+        # cursor = dest_conn.cursor()
+        # #cursor.fast_executemany = True
+        # #cursor.execute("Truncate Table SalesQtyForecast ")
+        # #dest_conn.commit()
+
+        # df2=df[["Region","Item","Verticals","DFU","ItemCatg", \
+        #             "RRSClassification","Classification","Revenue","Priority","Updateddate"]]
+        # #print(df_final2['Qty'])
+        # #print("df_final2.dtypes : \n",df_final2.dtypes)
+
+        # data = [tuple(x) for x in df2.to_numpy()]
+        # #print(data)
+        # cursor.executemany(insert_sql, data)
+        # dest_conn.commit()
+        # cursor.close()
+        # dest_conn.close()
+
+
+        # # End: write the Output to SQL Server----------------------------------------
+        
+
+
+
+
+        #xml_text = LN_API_content.decode("utf-8")                      
+        # xml_text = LN_API_content
+        # json_data = json.loads(xml_text)
+        # logging.info(
+        #     f"Parsed JSON data: {json_data}"
+        # )
+
+        # # Optionally, you can perform further processing with the parsed JSON data here.
+        # # Example: log the keys of the parsed JSON data
+        # logging.info(
+        #     f"JSON keys: {list(json_data.keys())}"
+        # )
+        # # Example: log the values of the parsed JSON data
+        # logging.info(
+        #     f"JSON values: {list(json_data.values())}"
+        # )
+        # # Example: log the number of keys in the parsed JSON data
+        # logging.info(
+        #     f"Number of JSON keys: {len(json_data.keys())}"
+        # )
+        # # Example: log the number of values in the parsed JSON data
+        # logging.info(
+        #     f"Number of JSON values: {len(json_data.values())}"
+        # )
+        # # Example: log the entire parsed JSON data
+        # logging.info(
+        #     f"Full JSON data: {json_data}"
+        # )
+        # # Example: log whether the parsed JSON data is empty
+        # logging.info(
+        #     f"Is JSON data empty: {not bool(json_data)}"
+        # )
+
 
         logging.info(
             f"Successfully uploaded file '{file_name}' "
@@ -340,37 +524,37 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
         # connection_string = "<storage_connection_string>"
         # container_name = "xml"
         # blob_name = "RegionWiseDFU_20260918_084853.json"
-        blob_name = file_name
+        # blob_name = file_name
 
-        # Local folder
-        local_folder = r"C:\JsonFiles"
+        # # Local folder
+        # local_folder = r"C:\JsonFiles"
 
-        # Create local folder if it doesn't exist
-        os.makedirs(local_folder, exist_ok=True)
+        # # Create local folder if it doesn't exist
+        # os.makedirs(local_folder, exist_ok=True)
 
-        # Local file path
-        local_file_path = os.path.join(
-            local_folder,
-            blob_name
-        )
+        # # Local file path
+        # local_file_path = os.path.join(
+        #     local_folder,
+        #     blob_name
+        # )
 
-        # Create Blob Service Client
-        blob_service_client = BlobServiceClient.from_connection_string(
-            connection_string
-        )
+        # # Create Blob Service Client
+        # blob_service_client = BlobServiceClient.from_connection_string(
+        #     connection_string
+        # )
 
-        # Get Blob Client
-        blob_client = blob_service_client.get_blob_client(
-            container=container_name,
-            blob=blob_name
-        )
+        # # Get Blob Client
+        # blob_client = blob_service_client.get_blob_client(
+        #     container=container_name,
+        #     blob=blob_name
+        # )
 
-        # Download and save locally
-        with open(local_file_path, "wb") as file:
-            download_stream = blob_client.download_blob()
-            file.write(download_stream.readall())
+        # # Download and save locally
+        # with open(local_file_path, "wb") as file:
+        #     download_stream = blob_client.download_blob()
+        #     file.write(download_stream.readall())
 
-        print(f"JSON file saved to: {local_file_path}")
+        # print(f"JSON file saved to: {local_file_path}")
 
 
 
@@ -489,7 +673,7 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #             ""
 #         ).lower()
 
-#         xml_content = None
+#         LN_API_content = None
 #         json_content = None
 
 #         # -------------------------------------------------
@@ -510,7 +694,7 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #                 )
 
 #             # Decode HTML encoded XML
-#             xml_content = html.unescape(
+#             LN_API_content = html.unescape(
 #                 json_content["xml"]
 #             )
 
@@ -519,11 +703,11 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #         # -------------------------------------------------
 #         else:
 
-#             xml_content = req.get_body().decode(
+#             LN_API_content = req.get_body().decode(
 #                 "utf-8"
 #             )
 
-#             if not xml_content:
+#             if not LN_API_content:
 #                 return func.HttpResponse(
 #                     json.dumps({
 #                         "status": "error",
@@ -537,7 +721,7 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #         # Validate XML
 #         # -------------------------------------------------
 #         try:
-#             ET.fromstring(xml_content)
+#             ET.fromstring(LN_API_content)
 #         except ET.ParseError as ex:
 #             return func.HttpResponse(
 #                 json.dumps({
@@ -603,7 +787,7 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #         )
 
 #         xml_blob.upload_blob(
-#             xml_content.encode("utf-8"),
+#             LN_API_content.encode("utf-8"),
 #             overwrite=True
 #         )
 
@@ -710,9 +894,9 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #             )
 
 #         # Extract XML payload
-#         xml_content = payload.get("xml")
+#         LN_API_content = payload.get("xml")
 
-#         if not xml_content:
+#         if not LN_API_content:
 #             return func.HttpResponse(
 #                 json.dumps({
 #                     "status": "error",
@@ -723,20 +907,20 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #             )
 
 #         # Decode escaped XML characters
-#         xml_content = html.unescape(xml_content)
+#         LN_API_content = html.unescape(LN_API_content)
 
 #         # Remove BOM if present
-#         xml_content = xml_content.lstrip("\ufeff").strip()
+#         LN_API_content = LN_API_content.lstrip("\ufeff").strip()
 
 #         # Validate XML
 #         try:
-#             ET.fromstring(xml_content)
+#             ET.fromstring(LN_API_content)
 #         except ET.ParseError as ex:
 #             return func.HttpResponse(
 #                 json.dumps({
 #                     "status": "error",
 #                     "message": f"Invalid XML: {str(ex)}",
-#                     "sample": xml_content[:200]
+#                     "sample": LN_API_content[:200]
 #                 }),
 #                 status_code=400,
 #                 mimetype="application/json"
@@ -794,7 +978,7 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 #         )
 
 #         blob_client.upload_blob(
-#             xml_content.encode("utf-8"),
+#             LN_API_content.encode("utf-8"),
 #             overwrite=True
 #         )
 

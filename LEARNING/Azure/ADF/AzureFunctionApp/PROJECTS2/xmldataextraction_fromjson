@@ -1,0 +1,273 @@
+# import json
+
+# file_path = r"C:\jsonFiles\RegionWiseDFU.json"
+
+# with open(file_path, "r", encoding="utf-8") as file:
+#     data = json.load(file)
+#     json.dump(file, indent=4)
+
+# xml_content = data["xml"]
+
+# print(xml_content)
+
+
+#-----------------------------------------------------------------------------------
+# # Escaped XML content
+# import json
+
+# xml_content = '''<?xml version="1.0" ?>
+# <S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+#     <S:Body>
+#         <CreateResponse>
+#             <Region>India</Region>
+#             <Item>X100179</Item>
+#         </CreateResponse>
+#     </S:Body>
+# </S:Envelope>'''
+
+# data = {
+#     "fileName": "RegionWiseDFU_20260921_045726.json",
+#     "xml": xml_content
+# }
+
+# with open(
+#     r"C:\JsonFiles\RegionWiseDFU_20260921_045726.json",
+#     "w",
+#     encoding="utf-8"
+# ) as file:
+#     json.dump(data, file, indent=4)
+
+# print("JSON created successfully")
+
+
+
+#------------------------------------------------------------------------
+
+import html
+import xml.etree.ElementTree as ET
+import pandas as pd
+import urllib
+import pyodbc
+import os
+
+
+#response = data["Response"]  # your response field
+
+# response ={
+# 	"Response": "<?xml version=\"1.0\" ?><S:Envelope xmlns:S=\"http://schemas.xmlsoap.org/soap/envelope/\"><S:Body><CreateResponse xmlns=\"http://www.infor.com/businessinterface/RegionWiseDFU\"><CreateRequest xmlns=\"\"><DataArea><GetDFUResponse><Region>India</Region><Item>         X100179                               </Item><Verticals>ACP-AFM-Industrial</Verticals><DFU>                                                                                                    </DFU><ItemCatg>Units</ItemCatg><RRSClassification>Runner</RRSClassification><Classification>  </Classification><Revenue>0</Revenue><Priority>0</Priority><Updateddate>09-01-1970</Updateddate></GetDFUResponse></DataArea></CreateRequest></CreateResponse></S:Body></S:Envelope>",
+# 	"ADFHttpStatusCodeInResponse": "200",
+# 	"ADFWebActivityResponseHeaders": {
+# 		"Transfer-Encoding": "chunked",
+# 		"Keep-Alive": "timeout=60",
+# 		"Connection": "keep-alive",
+# 		"Date": "Mon, 21 Sep 2026 05:20:16 GMT",
+# 		"Set-Cookie": "JSESSIONID=CA912A1694DC7F21187E0F73B5FA1411; Path=/c4ws; Secure; HttpOnly",
+# 		"Content-Type": "text/xml; charset=utf-8"
+# 	},
+# 	"effectiveIntegrationRuntime": "AutoResolveIntegrationRuntime (Central India)",
+# 	"executionDuration": 1,
+# 	"durationInQueue": {
+# 		"integrationRuntimeQueue": 8
+# 	},
+# 	"billingReference": {
+# 		"activityType": "ExternalActivity",
+# 		"billableDuration": [
+# 			{
+# 				"meterType": "AzureIR",
+# 				"duration": 0.016666666666666666,
+# 				"unit": "Hours"
+# 			}
+# 		]
+# 	}
+# } 
+
+
+response = "<?xml version=\"1.0\" ?><S:Envelope xmlns:S=\"http://schemas.xmlsoap.org/soap/envelope/\"><S:Body><CreateResponse xmlns=\"http://www.infor.com/businessinterface/RegionWiseDFU\"><CreateRequest xmlns=\"\"><DataArea><GetDFUResponse><Region>India</Region><Item>         X100179                               </Item><Verticals>ACP-AFM-Industrial</Verticals><DFU>                                                                                                    </DFU><ItemCatg>Units</ItemCatg><RRSClassification>Runner</RRSClassification><Classification>  </Classification><Revenue>0</Revenue><Priority>0</Priority><Updateddate>09-01-1970</Updateddate></GetDFUResponse></DataArea></CreateRequest></CreateResponse></S:Body></S:Envelope>"
+
+
+# # Decode HTML entities
+# xml_string = html.unescape(response)
+
+# root = ET.fromstring(xml_string)
+
+# # Find GetDFUResponse ignoring namespaces
+# for elem in root.iter():
+#     if elem.tag.endswith("GetDFUResponse"):
+#         get_dfu = elem
+#         break
+
+# result = {
+#     child.tag.split("}")[-1]: child.text.strip() if child.text else ""
+#     for child in get_dfu
+# }
+
+# print(result)
+
+
+
+#------------------------------------------------------
+
+
+
+# Decode HTML entities
+xml_string = html.unescape(response)
+root = ET.fromstring(xml_string)
+
+# Find GetDFUResponse ignoring namespaces
+for elem in root.iter():
+    if elem.tag.endswith("GetDFUResponse"):
+        get_dfu = elem
+        break
+
+result = {
+child.tag.split("}")[-1]: child.text.strip() if child.text else ""
+for child in get_dfu
+}
+
+print(result)
+
+
+
+
+# Extract data
+# Find GetDFUResponse
+responses = root.findall(".//GetDFUResponse")
+
+print("Number of GetDFUResponse records:", len(responses))
+
+
+for record in responses:
+
+    print("\n========== RECORD ==========")
+
+    region = record.findtext("Region", default="").strip()
+    item = record.findtext("Item", default="").strip()
+    verticals = record.findtext("Verticals", default="").strip()
+    dfu = record.findtext("DFU", default="").strip()
+    item_catg = record.findtext("ItemCatg", default="").strip()
+    rrs_classification = record.findtext(
+        "RRSClassification",
+        default=""
+    ).strip()
+
+    classification = record.findtext(
+        "Classification",
+        default=""
+    ).strip()
+
+    revenue = record.findtext(
+        "Revenue",
+        default=""
+    ).strip()
+
+    priority = record.findtext(
+        "Priority",
+        default=""
+    ).strip()
+
+    updated_date = record.findtext(
+        "Updateddate",
+        default=""
+    ).strip()
+
+
+    print("Region:", region)
+    print("Item:", item)
+    print("Verticals:", verticals)
+    print("DFU:", dfu)
+    print("ItemCatg:", item_catg)
+    print("RRSClassification:", rrs_classification)
+    print("Classification:", classification)
+    print("Revenue:", revenue)
+    print("Priority:", priority)
+    print("Updateddate:", updated_date)
+
+
+
+
+    #------------------------------------------------------------
+        
+
+rows = []
+
+for record in responses:
+
+    row = {}
+
+    for child in record:
+
+        row[child.tag] = (
+            child.text.strip()
+            if child.text
+            else ""
+        )
+
+    rows.append(row)
+
+
+df = pd.DataFrame(rows)
+print(df)
+
+
+
+# write the Output to SQL Server---------------------------------------------
+
+# conn_str = (
+#     'DRIVER={ODBC Driver 17 for SQL Server};'
+#     f'SERVER={os.environ["server"]};'
+#     f'DATABASE={os.environ["database"]};'
+#     # For Windows integrated auth:
+#     #'Trusted_Connection=yes;'
+#     # Or for SQL Server auth, comment above line and uncomment these:
+#      f'UID={os.environ["username"]};'
+#      f'PWD={os.environ["password"]};'
+# )
+
+
+conn_str = (
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    f"SERVER={os.getenv('server')};"
+    f"DATABASE={os.getenv('database')};"
+    f"UID={os.getenv('username')};"
+    f"PWD={os.getenv('password')};"
+)
+
+
+# conn_str = (
+#     "DRIVER={ODBC Driver 17 for SQL Server};"
+#     f"SERVER=10.50.0.4;"
+#     f"DATABASE=ELGI_SOP;"
+#     f"UID=sa;"
+#     f"PWD=ElgiP0w3r@20#23;"
+# )
+
+
+
+#conn_str =SourceData.conn_str
+quoted = urllib.parse.quote_plus(conn_str)
+
+insert_sql = "INSERT INTO dbo.Regionwise_DFU_Master_from_LNAPI(Region,Item,Verticals,DFU,ItemCatg, \
+              RRSClassification,Classification,Revenue,Priority,Updateddate)VALUES \
+              (?,?,?,?,?,?,?,?,?,?)"
+
+dest_conn=pyodbc.connect(conn_str)
+cursor = dest_conn.cursor()
+#cursor.fast_executemany = True
+#cursor.execute("Truncate Table SalesQtyForecast ")
+#dest_conn.commit()
+
+df2=df[["Region","Item","Verticals","DFU","ItemCatg", \
+              "RRSClassification","Classification","Revenue","Priority","Updateddate"]]
+#print(df_final2['Qty'])
+#print("df_final2.dtypes : \n",df_final2.dtypes)
+
+data = [tuple(x) for x in df2.to_numpy()]
+#print(data)
+cursor.executemany(insert_sql, data)
+dest_conn.commit()
+cursor.close()
+dest_conn.close()
+
+
+# End: write the Output to SQL Server----------------------------------------
+ 

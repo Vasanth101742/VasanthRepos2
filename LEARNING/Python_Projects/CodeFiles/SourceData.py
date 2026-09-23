@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 # Step 2: Define your connection details
 server   = '10.50.0.4'    # e.g. 'localhost\\SQLEXPRESS' or 'db.company.com'
-database = 'ELGI_LN'
+database = 'ELGI_SOP'
 username = 'sa'       # omit if using Windows Authentication
 password = 'ElgiP0w3r@20#23'       # omit if using Windows Authentication
 
