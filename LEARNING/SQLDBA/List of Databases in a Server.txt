@@ -1,0 +1,12 @@
+SELECT
+    DB_NAME(mf.database_id) AS database_name,
+    mf.type_desc AS file_type,
+    mf.name AS logical_file_name,
+    mf.physical_name,
+    --CAST(mf.size * 8.0 / 1024 AS DECIMAL(18,2)) AS size_mb,
+    CAST(mf.size * 8.0 / 1024 / 1024 AS DECIMAL(18,2)) AS size_gb
+FROM sys.master_files mf
+ORDER BY
+--database_name,
+--mf.type_desc;
+size_gb desc

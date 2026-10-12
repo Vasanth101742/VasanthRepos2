@@ -117,7 +117,7 @@ GROUP BY t_item,t_bqty,t_btyp,t_nbin,t_rplt,t_supp,t_Refcntd,t_Refcntu,t_stoc,t_
 Pivot unpivot option in SQL
 ---------------------------
 
-
+--Old Method:
 select ASSEMBLY,PLINE,METRIC,MONTH,YEAR,FDATE,TDATE,
 case 
 when column_name1='india_target' or column_name2='india_cl' then 'India and India Like'
@@ -139,6 +139,49 @@ CLimits for column_name2 in (india_cl,subs_cl,overall_cl)
 ) as K1
 
 order by fdate ,tdate,metric,assembly
+
+
+
+--New Method:
+
+SELECT distinct
+Region,BusinessVertical,DPST,L1,L2,L3,
+ItemCategory,ProductGroup,ItemCode,ItemDescription,Currency,
+FxRate,FY,FinMonth,BudQty,BudValue_HC
+from(
+SELECT distinct
+Region,BusinessVertical,DPST,L1,L2,L3,
+ItemCategory,ProductGroup,ItemCode,ItemDescription,Currency,
+FxRate,FY,--TotalABPQty,TotalABPValue,
+AprQty,MayQty,JunQty,JulQty,AugQty,SepQty,OctQty,NovQty,DecQty,JanQty,FebQty,MarQty,
+AprValue,MayValue,JuneValue,JulValue,AugValue,SeptValue,
+OctValue,NovValue,DecValue,JanValue,FebValue,MarValue,
+m.FinMonth,
+m.BudQty,
+m.BudValue_HC
+FROM SOP_ABP_Master_Stage1 t
+CROSS APPLY
+(
+    VALUES
+		(1, t.AprQty,t.AprValue),
+		(2, t.MayQty,t.MayValue),
+		(3, t.JunQty,t.JuneValue),
+		(4, t.JulQty,t.JulValue),
+		(5, t.AugQty,t.AugValue),
+		(6, t.SepQty,t.SeptValue),
+		(7, t.OctQty,t.OctValue),
+		(8, t.NovQty,t.NovValue),
+		(9, t.DecQty,t.DecValue),
+		(10, t.JanQty,t.JanValue),
+		(11, t.FebQty,t.FebValue),
+		(12, t.MarQty,t.MarValue)
+) m(FinMonth, BudQty, BudValue_HC)
+)a
+--where Region='India' 
+--and L2='Encap'
+--and Itemcode= 'S013393'
+--and FinMonth=6
+
 
 
 
