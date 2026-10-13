@@ -12,7 +12,7 @@ from itertools import combinations
 # CONFIGURATION
 # ============================================================
 
-RDL_FOLDER = r"C:\Paginated Reports Dump as on 24-Aug-2026"
+RDL_FOLDER = r"C:\PBIRS-RDL-Export2"
 OUTPUT_CSV = os.path.join(
     RDL_FOLDER,
     "rdl_report_similarity_corrected_all_pairs.csv"
