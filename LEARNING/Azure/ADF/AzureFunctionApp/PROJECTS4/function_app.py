@@ -228,16 +228,16 @@ def UploadXmlToBlob(req: func.HttpRequest) -> func.HttpResponse:
 
         # # write the Output to SQL Server---------------------------------------------
 
-        # # conn_str = (
-        # #     'DRIVER={ODBC Driver 17 for SQL Server};'
-        # #     f'SERVER={os.environ["server"]};'
-        # #     f'DATABASE={os.environ["database"]};'
-        # #     # For Windows integrated auth:
-        # #     #'Trusted_Connection=yes;'
-        # #     # Or for SQL Server auth, comment above line and uncomment these:
-        # #      f'UID={os.environ["username"]};'
-        # #      f'PWD={os.environ["password"]};'
-        # # )
+        # conn_str = (
+        #     'DRIVER={ODBC Driver 17 for SQL Server};'
+        #     f'SERVER={os.environ["server"]};'
+        #     f'DATABASE={os.environ["database"]};'
+        #     # For Windows integrated auth:
+        #     #'Trusted_Connection=yes;'
+        #     # Or for SQL Server auth, comment above line and uncomment these:
+        #      f'UID={os.environ["username"]};'
+        #      f'PWD={os.environ["password"]};'
+        # )
 
 
         # conn_str = (
