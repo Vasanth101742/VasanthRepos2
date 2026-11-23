@@ -288,3 +288,26 @@ mock-up -- மாதிரிப்படிவம்
 hypercare -- ஒரு சேவை தொடங்கப்பட்ட பிறகு வாடிக்கையாளர்களுக்கு வழங்கப்படும் உயர்ந்த ஆதரவின் காலம்
 throttling -- திணறல்
 substantial -- கணிசமான
+
+
+
+yelling --உரக்கக் கத்துதல்
+plaintiff -- வாதி  ; முறையீட்டாளர் 
+defendant -- பிரதிவாதி
+
+taunt -- கிண்டல்
+Nepotism -- உறவினர்களுக்குத் தனிச்சலுகை
+confronted -- எதிர்கொண்டார்
+
+medieval mindset -- பிற்போக்குத்தனமான மனநிலை
+medieval obscurantism -- பிற்போக்குத்தனமான மூடநம்பிக்கை
+humiliation -- அவமானம் 
+tirades -- angry, abusive speeches
+allegedly claimed -- இருப்பதாக குற்றச்சாட்டு
+frequently inundated with the complaints -- நிரம்பி வழிந்த
+
+A note written by Winston at the time read: “I watched them helpless, as they were publicly humiliated, 
+indeed tormented, for extended periods of time, by this lunatic Jensen Huang! It pained me physically, intellectually and emotionally to be in the room.”
+
+tormented -- வேதனைப்பட்டார்
+
