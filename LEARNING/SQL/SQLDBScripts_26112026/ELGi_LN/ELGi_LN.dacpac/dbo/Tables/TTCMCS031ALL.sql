@@ -1,0 +1,11 @@
+CREATE TABLE [dbo].[TTCMCS031ALL] (
+    [COMPANY] FLOAT (53)    NULL,
+    [CBRN]    NVARCHAR (6)  NULL,
+    [DSCA]    NVARCHAR (30) NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

@@ -1,0 +1,18 @@
+CREATE TABLE [dbo].[TTSBSC110ALL] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [CLST]    NVARCHAR (9)     NULL,
+    [CLCL]    DECIMAL (38, 18) NULL,
+    [ITEM]    NVARCHAR (47)    NULL,
+    [SERN]    NVARCHAR (30)    NULL,
+    [NITM]    DECIMAL (38, 18) NULL,
+    [STAT]    DECIMAL (38, 18) NULL,
+    [STTM]    DATETIME2 (7)    NULL,
+    [PLTM]    DATETIME2 (7)    NULL,
+    [CLOT]    NVARCHAR (20)    NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL
+);
+
+
+GO
+

@@ -1,0 +1,7 @@
+CREATE TABLE [dbo].[GL_LINK] (
+    [T$LINK] NVARCHAR (44) NULL
+);
+
+
+GO
+

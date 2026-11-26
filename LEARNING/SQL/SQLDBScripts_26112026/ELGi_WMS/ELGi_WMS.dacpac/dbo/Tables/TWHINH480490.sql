@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[TWHINH480490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [OORG]    DECIMAL (38, 18) NULL,
+    [ORNO]    NVARCHAR (9)     NULL,
+    [PONO]    DECIMAL (38, 18) NULL,
+    [SEQN]    DECIMAL (38, 18) NULL,
+    [BOML]    DECIMAL (38, 18) NULL,
+    [LOAD]    NVARCHAR (9)     NULL,
+    [SHPM]    NVARCHAR (9)     NULL,
+    [OSET]    DECIMAL (38, 18) NULL,
+    [MSLD]    NVARCHAR (9)     NULL,
+    [ISPR]    NVARCHAR (3)     NULL,
+    [SHLS]    DECIMAL (38, 18) NULL,
+    [PLAN]    NVARCHAR (9)     NULL,
+    [CARP]    NVARCHAR (3)     NULL,
+    [CARD]    NVARCHAR (3)     NULL,
+    [QPLI]    DECIMAL (38, 18) NULL,
+    [QIPI]    DECIMAL (38, 18) NULL,
+    [QACI]    DECIMAL (38, 18) NULL,
+    [QDLV]    DECIMAL (38, 18) NULL,
+    [CUNI]    NVARCHAR (3)     NULL,
+    [LDDT]    DATETIME2 (7)    NULL,
+    [ULDT]    DATETIME2 (7)    NULL,
+    [CWAR]    NVARCHAR (6)     NULL,
+    [STLO]    NVARCHAR (10)    NULL,
+    [CRBY]    DECIMAL (38, 18) NULL,
+    [PLST]    DECIMAL (38, 18) NULL,
+    [FMLP]    DECIMAL (38, 18) NULL,
+    [REAS]    NVARCHAR (6)     NULL,
+    [REFE]    NVARCHAR (30)    NULL,
+    [GRWT]    DECIMAL (38, 18) NULL,
+    [WGUN]    NVARCHAR (3)     NULL,
+    [LLSQ]    DECIMAL (38, 18) NULL,
+    [CPRO]    NVARCHAR (30)    NULL,
+    [TRNR]    NVARCHAR (30)    NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL
+);
+
+
+GO
+

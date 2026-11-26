@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[TZZCMS701ALL] (
+    [COMPANY] INT              NULL,
+    [AREA]    NVARCHAR (3)     NULL,
+    [DSCA]    NVARCHAR (30)    NULL,
+    [BPID]    NVARCHAR (9)     NULL,
+    [NAMA]    NVARCHAR (35)    NULL,
+    [DIVN]    DECIMAL (38, 18) NULL,
+    [DIDS]    NVARCHAR (30)    NULL,
+    [NCMP]    INT              NULL,
+    [ORNO]    NVARCHAR (9)     NULL,
+    [TRAN]    NVARCHAR (3)     NULL,
+    [IDOC]    NVARCHAR (25)    NULL,
+    [IDAT]    DATETIME2 (7)    NULL,
+    [IAMT]    DECIMAL (38, 18) NULL,
+    [COFC]    NVARCHAR (6)     NULL,
+    [OFBP]    NVARCHAR (9)     NULL,
+    [BPNA]    NVARCHAR (35)    NULL,
+    [ITEM]    NVARCHAR (47)    NULL,
+    [ITMD]    NVARCHAR (30)    NULL,
+    [DQUA]    DECIMAL (38, 18) NULL,
+    [BAMT]    DECIMAL (38, 18) NULL,
+    [CAMT]    DECIMAL (38, 18) NULL,
+    [PERC]    DECIMAL (38, 18) NULL,
+    [TDSA]    DECIMAL (38, 18) NULL,
+    [TDSP]    DECIMAL (38, 18) NULL,
+    [CCUR]    NVARCHAR (3)     NULL,
+    [TYPE]    DECIMAL (38, 18) NULL,
+    [TRDT]    DATETIME2 (7)    NULL,
+    [TRTM]    DECIMAL (38, 18) NULL,
+    [TUID]    NVARCHAR (16)    NULL,
+    [COMP]    DECIMAL (38, 18) NULL,
+    [TTYP]    NVARCHAR (3)     NULL,
+    [DOCN]    DECIMAL (38, 18) NULL,
+    [FLAG]    DECIMAL (38, 18) NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL,
+    [LINE]    DECIMAL (38, 18) NULL
+);
+
+
+GO
+

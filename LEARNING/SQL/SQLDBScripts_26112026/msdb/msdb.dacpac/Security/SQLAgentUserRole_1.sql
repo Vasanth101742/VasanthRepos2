@@ -1,0 +1,6 @@
+CREATE SCHEMA [SQLAgentUserRole]
+    AUTHORIZATION [SQLAgentUserRole];
+
+
+GO
+

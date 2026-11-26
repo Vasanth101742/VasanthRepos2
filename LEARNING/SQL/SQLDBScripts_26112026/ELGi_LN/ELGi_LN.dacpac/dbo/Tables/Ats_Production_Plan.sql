@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[Ats_Production_Plan] (
+    [pgdesc]       NVARCHAR (255) NULL,
+    [tplcode]      NVARCHAR (255) NULL,
+    [1]            INT            NULL,
+    [2]            INT            NULL,
+    [3]            INT            NULL,
+    [4]            INT            NULL,
+    [5]            INT            NULL,
+    [6]            INT            NULL,
+    [7]            INT            NULL,
+    [8]            INT            NULL,
+    [9]            INT            NULL,
+    [10]           INT            NULL,
+    [11]           INT            NULL,
+    [12]           INT            NULL,
+    [13]           INT            NULL,
+    [14]           INT            NULL,
+    [15]           INT            NULL,
+    [16]           INT            NULL,
+    [17]           INT            NULL,
+    [18]           INT            NULL,
+    [19]           INT            NULL,
+    [20]           INT            NULL,
+    [21]           INT            NULL,
+    [22]           INT            NULL,
+    [23]           INT            NULL,
+    [24]           INT            NULL,
+    [25]           INT            NULL,
+    [26]           INT            NULL,
+    [27]           INT            NULL,
+    [28]           INT            NULL,
+    [29]           INT            NULL,
+    [30]           INT            NULL,
+    [31]           INT            NULL,
+    [Dates]        VARCHAR (255)  NULL,
+    [Monthly_plan] INT            NULL,
+    [Target]       INT            NULL
+);
+
+
+GO
+

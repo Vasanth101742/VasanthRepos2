@@ -1,0 +1,41 @@
+CREATE TABLE [dbo].[Inflow_billing] (
+    [Organ]             VARCHAR (50)  NULL,
+    [Vertical1]         VARCHAR (100) NULL,
+    [dpst]              VARCHAR (20)  NULL,
+    [DpstName]          VARCHAR (50)  NULL,
+    [AreaCode]          VARCHAR (20)  NULL,
+    [AreaName]          VARCHAR (50)  NULL,
+    [CalYear]           INT           NULL,
+    [CalMonth]          INT           NULL,
+    [Wk_Month]          INT           NULL,
+    [InflowOrders]      INT           NULL,
+    [OrderQty]          FLOAT (53)    NULL,
+    [Inflow]            FLOAT (53)    NULL,
+    [FinYear]           INT           NULL,
+    [FinMonth]          INT           NULL,
+    [FinPeriod]         VARCHAR (10)  NULL,
+    [PrevInflow]        FLOAT (53)    NULL,
+    [PrevinflowOrders]  FLOAT (53)    NULL,
+    [PrevOrderQty]      FLOAT (53)    NULL,
+    [Rnk]               INT           NULL,
+    [DeliveryQty]       FLOAT (53)    NULL,
+    [Sales]             FLOAT (53)    NULL,
+    [PrevDeliveryQty]   FLOAT (53)    NULL,
+    [PrevSales]         FLOAT (53)    NULL,
+    [SalesOrders]       FLOAT (53)    NULL,
+    [PrevSalesOrders]   FLOAT (53)    NULL,
+    [PendOrders]        FLOAT (53)    NULL,
+    [PendQty]           FLOAT (53)    NULL,
+    [PendValue_USD]     FLOAT (53)    NULL,
+    [PrevPendOrders]    FLOAT (53)    NULL,
+    [PrevPendQty]       FLOAT (53)    NULL,
+    [PrevPendValue_USD] FLOAT (53)    NULL,
+    [OpeningOrders]     INT           NULL,
+    [ClosingOrders]     INT           NULL,
+    [OpeningValue]      FLOAT (53)    NULL,
+    [ClosingValue]      FLOAT (53)    NULL
+);
+
+
+GO
+

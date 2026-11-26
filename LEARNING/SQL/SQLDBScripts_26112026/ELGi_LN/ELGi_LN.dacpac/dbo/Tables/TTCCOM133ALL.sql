@@ -1,0 +1,19 @@
+CREATE TABLE [dbo].[TTCCOM133ALL] (
+    [COMPANY] FLOAT (53)   NULL,
+    [BPID]    NVARCHAR (9) NULL,
+    [CADR]    NVARCHAR (9) NULL,
+    [AMSK$1]  FLOAT (53)   NULL,
+    [AMSK$2]  FLOAT (53)   NULL,
+    [AMSK$3]  FLOAT (53)   NULL,
+    [AMSK$4]  FLOAT (53)   NULL,
+    [AMSK$5]  FLOAT (53)   NULL,
+    [AMSK$6]  FLOAT (53)   NULL,
+    [AMSK$7]  FLOAT (53)   NULL,
+    [AMSK$8]  FLOAT (53)   NULL,
+    [REFCNTD] FLOAT (53)   NULL,
+    [REFCNTU] FLOAT (53)   NULL
+);
+
+
+GO
+

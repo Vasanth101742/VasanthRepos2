@@ -1,0 +1,39 @@
+CREATE TABLE [dbo].[ccs_autorca_details] (
+    [trackno]       NVARCHAR (10)   NULL,
+    [warranty_type] NVARCHAR (4)    NULL,
+    [fabno]         NVARCHAR (15)   NULL,
+    [usr_id]        NVARCHAR (20)   NULL,
+    [entry_date]    DATETIME2 (0)   NULL,
+    [ipaddr]        NVARCHAR (20)   NULL,
+    [pgcode]        NVARCHAR (2)    NULL,
+    [subsyscode]    NVARCHAR (2)    NULL,
+    [part_code]     NVARCHAR (3)    NULL,
+    [complain]      NVARCHAR (3)    NULL,
+    [fmcode]        NVARCHAR (3)    NULL,
+    [nccode]        DECIMAL (38)    NULL,
+    [rca_code]      NVARCHAR (10)   NULL,
+    [revno]         NVARCHAR (2)    NULL,
+    [remarks]       NVARCHAR (1000) NULL,
+    [dom_int]       NVARCHAR (1)    NULL,
+    [mis]           SMALLINT        NULL,
+    [build_year]    NVARCHAR (1)    NULL,
+    [build_month]   NVARCHAR (1)    NULL,
+    [miscat]        NVARCHAR (1)    NULL,
+    [ryg]           NVARCHAR (3)    NULL,
+    [imp_date]      DATETIME2 (0)   NULL,
+    [part_req]      NVARCHAR (1)    NULL,
+    [build_date]    DATETIME2 (0)   NULL,
+    [acttype]       NVARCHAR (1)    NULL,
+    [status]        NVARCHAR (1)    NULL,
+    [crdremarks]    NVARCHAR (500)  NULL,
+    [session]       NVARCHAR (32)   NULL,
+    [status_date]   DATETIME2 (0)   NULL,
+    [coordinator]   NVARCHAR (20)   NULL,
+    [bin_time]      TIME (0)        NULL,
+    [rcabin]        NVARCHAR (1)    NULL,
+    [uptime]        NVARCHAR (1)    NULL
+);
+
+
+GO
+

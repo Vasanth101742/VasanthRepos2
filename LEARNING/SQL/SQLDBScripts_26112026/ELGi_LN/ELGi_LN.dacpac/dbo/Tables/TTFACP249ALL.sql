@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[TTFACP249ALL] (
+    [T$REFCNTD] NVARCHAR (38)  NULL,
+    [T$REFCNTU] NVARCHAR (38)  NULL,
+    [COMPANY]   NVARCHAR (38)  NULL,
+    [T$SHPM]    NVARCHAR (60)  NULL,
+    [T$OTYP]    NVARCHAR (38)  NULL,
+    [T$ORNO]    NVARCHAR (18)  NULL,
+    [T$PONO]    NVARCHAR (38)  NULL,
+    [T$SQNB]    NVARCHAR (38)  NULL,
+    [T$LOCO]    NVARCHAR (38)  NULL,
+    [T$RCNO]    NVARCHAR (18)  NULL,
+    [T$RSEQ]    NVARCHAR (38)  NULL,
+    [T$BONM]    NVARCHAR (34)  NULL,
+    [T$BOID]    NVARCHAR (22)  NULL,
+    [T$BORF]    NVARCHAR (140) NULL,
+    [T$RGUI]    NVARCHAR (44)  NULL,
+    [T$FCPO]    NVARCHAR (38)  NULL,
+    [T$OTBP]    NVARCHAR (18)  NULL,
+    [T$QUAN]    NVARCHAR (38)  NULL,
+    [T$TRQN]    NVARCHAR (38)  NULL,
+    [T$TOMA]    NVARCHAR (38)  NULL,
+    [T$SFBL]    NVARCHAR (38)  NULL,
+    [T$SDAT]    DATETIME       NULL,
+    [T$SBDT]    NVARCHAR (38)  NULL,
+    [T$CSEQ]    NVARCHAR (38)  NULL,
+    [T$CISQ]    NVARCHAR (38)  NULL,
+    [T$ITYP]    NVARCHAR (38)  NULL,
+    [T$INST]    NVARCHAR (38)  NULL,
+    [T$CDAT]    DATETIME       NULL,
+    [T$UPRO]    NVARCHAR (38)  NULL,
+    [T$UPRP]    NVARCHAR (38)  NULL,
+    [T$CUPS]    NVARCHAR (6)   NULL,
+    [T$GAMT]    NVARCHAR (38)  NULL,
+    [T$DAMT]    NVARCHAR (38)  NULL,
+    [T$ICOD]    DATETIME       NULL,
+    [T$PCOD]    NVARCHAR (12)  NULL,
+    [T$SBMT]    NVARCHAR (6)   NULL
+);
+
+
+GO
+

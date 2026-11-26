@@ -1,0 +1,13 @@
+create proc [dbo].[sp_subsidiaries]
+as
+begin
+
+
+select t$cuno,ltrim(rtrim(t$item))Item,t$qiv1,t$sord,t$spos,count(*) as nooftrigger,
+sum(case when T$STAT=1 then 1 else 0 end) as noofsalesorder_processed
+ From tzzsls220401490 group by t$cuno,ltrim(rtrim(t$item)),t$qiv1,t$sord,t$spos
+
+	end
+
+GO
+

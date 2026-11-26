@@ -1,0 +1,14 @@
+CREATE TABLE [dbo].[isaame_sales_plan_copy] (
+    [Vertical]  NVARCHAR (255) NULL,
+    [Cal_Year]  FLOAT (53)     NULL,
+    [Cal_Month] FLOAT (53)     NULL,
+    [Fin_Year]  FLOAT (53)     NULL,
+    [Fin_Month] FLOAT (53)     NULL,
+    [plan]      FLOAT (53)     NULL,
+    [Vertical1] VARCHAR (50)   NULL,
+    [Organ]     VARCHAR (20)   NULL
+);
+
+
+GO
+

@@ -1,0 +1,19 @@
+CREATE TABLE [dbo].[TTSSOC851ALL] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [ORNO]    NVARCHAR (9)     NULL,
+    [VSLN]    DECIMAL (38, 18) NULL,
+    [HTIM]    DATETIME2 (7)    NULL,
+    [EMNO]    NVARCHAR (9)     NULL,
+    [LCAD]    NVARCHAR (9)     NULL,
+    [ASTM]    DATETIME2 (7)    NULL,
+    [AFTM]    DATETIME2 (7)    NULL,
+    [FILE]    NVARCHAR (256)   NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL,
+    [UUID]    VARBINARY (22)   NULL,
+    [BLOB]    NVARCHAR (4000)  NULL
+);
+
+
+GO
+

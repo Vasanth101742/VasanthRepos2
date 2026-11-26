@@ -1,0 +1,41 @@
+CREATE TABLE [dbo].[tzzinv609all] (
+    [Company] INT            NOT NULL,
+    [YEAR]    NVARCHAR (8)   NULL,
+    [MITM]    NVARCHAR (94)  NULL,
+    [SITM]    NVARCHAR (94)  NULL,
+    [SEQN]    NVARCHAR (38)  NULL,
+    [INDT]    DATETIME       NULL,
+    [EXDT]    DATETIME       NULL,
+    [LENG]    NVARCHAR (38)  NULL,
+    [WIDT]    NVARCHAR (38)  NULL,
+    [NOUN]    NVARCHAR (38)  NULL,
+    [QANA]    FLOAT (53)     NULL,
+    [OPNO]    NVARCHAR (38)  NULL,
+    [LEDM]    NVARCHAR (38)  NULL,
+    [REVI]    NVARCHAR (12)  NULL,
+    [KITM]    NVARCHAR (38)  NULL,
+    [PRIC]    FLOAT (53)     NULL,
+    [OTHP]    NVARCHAR (38)  NULL,
+    [SUPP]    NVARCHAR (18)  NULL,
+    [STAT]    NVARCHAR (38)  NULL,
+    [UPDT]    DATETIME       NULL,
+    [REFCNTD] NVARCHAR (38)  NULL,
+    [REFCNTU] NVARCHAR (38)  NULL,
+    [RMK1]    NVARCHAR (255) NULL,
+    [RMK2]    NVARCHAR (255) NULL,
+    [SOFC]    NVARCHAR (12)  NULL,
+    [BVAL]    NVARCHAR (38)  NULL,
+    [CCUR]    NVARCHAR (6)   NULL,
+    [IMPO]    NVARCHAR (38)  NULL,
+    [LOGN]    NVARCHAR (32)  NULL,
+    [Q1PR]    FLOAT (53)     NULL,
+    [Q2PR]    FLOAT (53)     NULL,
+    [Q3PR]    FLOAT (53)     NULL,
+    [Q4PR]    FLOAT (53)     NULL,
+    [RATE]    NVARCHAR (38)  NULL,
+    [RMK3]    NVARCHAR (255) NULL
+);
+
+
+GO
+

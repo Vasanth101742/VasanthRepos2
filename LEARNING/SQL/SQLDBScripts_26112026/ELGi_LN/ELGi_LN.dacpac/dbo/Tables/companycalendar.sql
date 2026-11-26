@@ -1,0 +1,24 @@
+CREATE TABLE [dbo].[companycalendar] (
+    [CCAL]    NVARCHAR (18) NULL,
+    [RACT]    NVARCHAR (12) NULL,
+    [DATE]    DATETIME      NULL,
+    [SERN]    NVARCHAR (38) NULL,
+    [STTM]    NVARCHAR (38) NULL,
+    [ENTM]    NVARCHAR (38) NULL,
+    [TITP]    NVARCHAR (12) NULL,
+    [CAPP]    NVARCHAR (38) NULL,
+    [OVYN]    NVARCHAR (38) NULL,
+    [DFCA]    NVARCHAR (38) NULL,
+    [PCAL]    NVARCHAR (18) NULL,
+    [PCODE]   NVARCHAR (38) NULL,
+    [RECU]    NVARCHAR (12) NULL,
+    [AVLB]    NVARCHAR (38) NULL,
+    [EFAC]    NVARCHAR (38) NULL,
+    [DESC]    NVARCHAR (60) NULL,
+    [REFCNTD] NVARCHAR (38) NULL,
+    [REFCNTU] NVARCHAR (38) NULL
+);
+
+
+GO
+

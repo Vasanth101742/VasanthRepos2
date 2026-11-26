@@ -1,0 +1,41 @@
+CREATE TABLE [dbo].[b] (
+    [Company]        INT             NOT NULL,
+    [TranType]       VARCHAR (3)     NULL,
+    [Warehouse]      VARCHAR (3)     NULL,
+    [OrderNum]       VARCHAR (50)    NULL,
+    [PositionNum]    INT             NOT NULL,
+    [InvoiceNum]     INT             NULL,
+    [date]           VARCHAR (50)    NULL,
+    [itemcode]       VARCHAR (16)    NOT NULL,
+    [CustCode]       VARCHAR (6)     NULL,
+    [Custname]       VARCHAR (35)    NOT NULL,
+    [Dpst]           INT             NULL,
+    [Dpstname]       CHAR (45)       NOT NULL,
+    [organ]          VARCHAR (50)    NOT NULL,
+    [vertical1]      VARCHAR (100)   NOT NULL,
+    [user_names]     VARCHAR (250)   NOT NULL,
+    [division]       VARCHAR (50)    NOT NULL,
+    [productgrp]     VARCHAR (50)    NOT NULL,
+    [region]         VARCHAR (150)   NOT NULL,
+    [Zone]           CHAR (30)       NULL,
+    [area]           VARCHAR (3)     NULL,
+    [areaname]       VARCHAR (30)    NULL,
+    [BasicPrice]     NUMERIC (16, 4) NULL,
+    [DeliveredQty]   NUMERIC (16, 2) NULL,
+    [cal_month]      INT             NULL,
+    [cal_year]       INT             NULL,
+    [Fin_month]      INT             NULL,
+    [Fin_year]       INT             NULL,
+    [Monthname]      NVARCHAR (30)   NULL,
+    [AssesValue]     NUMERIC (16, 4) NULL,
+    [OAssesValue]    NUMERIC (16, 4) NULL,
+    [sales_category] INT             NULL,
+    [FinCustGrp]     VARCHAR (3)     NULL,
+    [ShipmentNO]     INT             NULL,
+    [ShipmentLine]   INT             NULL,
+    [ShiptoAddress]  INT             NULL
+);
+
+
+GO
+

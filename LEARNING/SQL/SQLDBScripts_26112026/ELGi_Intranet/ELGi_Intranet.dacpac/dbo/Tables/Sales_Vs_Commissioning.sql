@@ -1,0 +1,41 @@
+CREATE TABLE [dbo].[Sales_Vs_Commissioning] (
+    [Tpl]              NVARCHAR (60)   NULL,
+    [tpl_desc]         NVARCHAR (60)   NULL,
+    [Fabno]            NVARCHAR (50)   NULL,
+    [desp_dt]          DATETIME        NULL,
+    [SaleYear]         INT             NULL,
+    [SaleMonth]        NVARCHAR (3)    NULL,
+    [comm_date]        DATETIME        NULL,
+    [CommYear]         INT             NULL,
+    [Country]          NVARCHAR (30)   NULL,
+    [EndCustomerName]  NVARCHAR (100)  NULL,
+    [distributor_Name] NVARCHAR (MAX)  NULL,
+    [distributor_city] NVARCHAR (MAX)  NULL,
+    [AE_item]          NVARCHAR (94)   NULL,
+    [AE_DESC]          NVARCHAR (60)   NULL,
+    [parent]           VARCHAR (100)   NULL,
+    [child]            VARCHAR (100)   NULL,
+    [item_desc]        VARCHAR (1000)  NULL,
+    [List_Output]      NVARCHAR (MAX)  NULL,
+    [ae_item_new]      NVARCHAR (MAX)  NULL,
+    [AE_DESC_new]      NVARCHAR (1000) NULL,
+    [cu_code]          NVARCHAR (25)   NULL,
+    [Region]           VARCHAR (50)    NULL,
+    [ar_code]          NVARCHAR (5)    NULL,
+    [UnitStatus]       VARCHAR (50)    NULL,
+    [CommStatus]       VARCHAR (50)    NULL,
+    [prod_segment]     NVARCHAR (50)   NULL,
+    [ent_code]         VARCHAR (50)    NULL,
+    [ProductCategory]  VARCHAR (50)    NULL,
+    [UnitStatusOrdr]   INT             NULL,
+    [Comm_Count]       FLOAT (53)      NULL,
+    [not_Comm_Count]   FLOAT (53)      NULL,
+    [Comm_Count_TOTAL] FLOAT (53)      NULL,
+    [Company]          INT             NULL,
+    [CustomerName]     NVARCHAR (70)   NULL,
+    [CommStatusOrdr]   INT             NULL
+);
+
+
+GO
+

@@ -1,0 +1,24 @@
+CREATE TABLE [dbo].[TWHINA117ALL] (
+    [COMPANY] NVARCHAR (38) NULL,
+    [CWAR]    NVARCHAR (12) NULL,
+    [ITEM]    NVARCHAR (94) NULL,
+    [TRDT]    DATETIME      NULL,
+    [SEQN]    NVARCHAR (38) NULL,
+    [CPCP]    NVARCHAR (16) NULL,
+    [HOUR]    NVARCHAR (38) NULL,
+    [AMNT$1]  FLOAT (53)    NULL,
+    [AMNT$2]  FLOAT (53)    NULL,
+    [AMNT$3]  FLOAT (53)    NULL,
+    [OAMT$1]  FLOAT (53)    NULL,
+    [OAMT$2]  FLOAT (53)    NULL,
+    [OAMT$3]  FLOAT (53)    NULL,
+    [NAMT$1]  FLOAT (53)    NULL,
+    [NAMT$2]  FLOAT (53)    NULL,
+    [NAMT$3]  FLOAT (53)    NULL,
+    [REFCNTD] NVARCHAR (38) NULL,
+    [REFCNTU] NVARCHAR (38) NULL
+);
+
+
+GO
+

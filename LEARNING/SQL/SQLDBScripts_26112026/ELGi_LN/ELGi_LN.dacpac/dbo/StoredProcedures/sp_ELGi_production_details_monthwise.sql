@@ -1,0 +1,19 @@
+Create procedure sp_ELGi_production_details_monthwise
+
+As
+
+Begin
+
+Truncate table ELGi_production_details_monthwise
+
+Insert into ELGi_production_details_monthwise 
+
+Select * from [ELGi_production_details]
+Where Format(date1,'MMM-yyyy') = Format(Getdate(),'MMM-yyyy') and Description IN ('Sepsac','Lepsac','OFSAC','Dpsac','Dryers','Vacuum',
+'Railways','Motor Division','PVD')
+Order BY date1
+
+End
+
+GO
+

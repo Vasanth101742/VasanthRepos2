@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[InventoryDetails_ATS_History] (
+    [INVType]          VARCHAR (50)  NULL,
+    [Vertical]         VARCHAR (50)  NULL,
+    [COMPANY]          NVARCHAR (38) NULL,
+    [CWAR]             NVARCHAR (12) NULL,
+    [ITEM]             NVARCHAR (94) NULL,
+    [ItemDescr]        VARCHAR (100) NULL,
+    [QSKT]             FLOAT (53)    NULL,
+    [Amnt4]            FLOAT (53)    NULL,
+    [Rnk1]             BIGINT        NULL,
+    [CalYear]          INT           NULL,
+    [CalMonth]         INT           NULL,
+    [FinYear]          INT           NULL,
+    [FinMonth]         INT           NULL,
+    [Month_Name]       NVARCHAR (30) NULL,
+    [Sales_Amount]     FLOAT (53)    NULL,
+    [ProductGroup]     VARCHAR (50)  NULL,
+    [UnitPrice]        FLOAT (53)    NULL,
+    [InvTypeOrdr]      INT           NULL,
+    [VerticalOrdr]     INT           NULL,
+    [ProductGroupOrdr] INT           NULL,
+    [CITM]             VARCHAR (50)  NULL,
+    [CDSCA]            VARCHAR (50)  NULL,
+    [ORDT]             DATETIME      NULL,
+    [PDNO]             VARCHAR (25)  NULL,
+    [PONO]             VARCHAR (25)  NULL,
+    [QRDR]             FLOAT (53)    NULL,
+    [WQTY]             FLOAT (53)    NULL,
+    [WAMT]             FLOAT (53)    NULL,
+    [UPDT]             DATETIME      NULL,
+    [MultiplyFactor]   FLOAT (53)    NULL,
+    [Ageing]           VARCHAR (50)  NULL,
+    [AgeingOrdr]       INT           NULL,
+    [TRDT]             DATE          NULL,
+    [ItemCategory_SOP] VARCHAR (50)  NULL,
+    [Productgroup_SOP] VARCHAR (50)  NULL,
+    [RRS]              VARCHAR (50)  NULL
+);
+
+
+GO
+

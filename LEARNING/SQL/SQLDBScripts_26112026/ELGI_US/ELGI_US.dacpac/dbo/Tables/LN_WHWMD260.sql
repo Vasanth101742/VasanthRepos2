@@ -1,0 +1,70 @@
+CREATE TABLE [dbo].[LN_WHWMD260] (
+    [compnr]          BIGINT        NULL,
+    [cwar]            NVARCHAR (6)  NULL,
+    [cprj]            NVARCHAR (9)  NULL,
+    [item]            NVARCHAR (47) NULL,
+    [effn]            BIGINT        NULL,
+    [cspa]            NVARCHAR (16) NULL,
+    [cact]            NVARCHAR (16) NULL,
+    [cstl]            NVARCHAR (4)  NULL,
+    [ccco]            NVARCHAR (8)  NULL,
+    [qhnd]            FLOAT (53)    NULL,
+    [qchd]            FLOAT (53)    NULL,
+    [qnhd]            FLOAT (53)    NULL,
+    [qprb]            FLOAT (53)    NULL,
+    [qppl]            FLOAT (53)    NULL,
+    [qblk]            FLOAT (53)    NULL,
+    [qbpl]            FLOAT (53)    NULL,
+    [qnbl]            FLOAT (53)    NULL,
+    [qnbp]            FLOAT (53)    NULL,
+    [qord]            FLOAT (53)    NULL,
+    [qoor]            FLOAT (53)    NULL,
+    [qcor]            FLOAT (53)    NULL,
+    [qnor]            FLOAT (53)    NULL,
+    [qint]            FLOAT (53)    NULL,
+    [qcit]            FLOAT (53)    NULL,
+    [qnit]            FLOAT (53)    NULL,
+    [qall]            FLOAT (53)    NULL,
+    [qlal]            FLOAT (53)    NULL,
+    [qoal]            FLOAT (53)    NULL,
+    [qcal]            FLOAT (53)    NULL,
+    [qnal]            FLOAT (53)    NULL,
+    [qexc]            FLOAT (53)    NULL,
+    [qeor]            FLOAT (53)    NULL,
+    [qaex]            FLOAT (53)    NULL,
+    [qatt]            FLOAT (53)    NULL,
+    [qtor]            FLOAT (53)    NULL,
+    [qtal]            FLOAT (53)    NULL,
+    [qbor]            FLOAT (53)    NULL,
+    [qloa]            FLOAT (53)    NULL,
+    [qgai]            FLOAT (53)    NULL,
+    [qlos]            FLOAT (53)    NULL,
+    [qhrj]            FLOAT (53)    NULL,
+    [qcrj]            FLOAT (53)    NULL,
+    [qnrj]            FLOAT (53)    NULL,
+    [gldt]            NVARCHAR (40) NULL,
+    [ltdt]            NVARCHAR (40) NULL,
+    [ecdt]            NVARCHAR (40) NULL,
+    [eodt]            NVARCHAR (40) NULL,
+    [spcn]            NVARCHAR (22) NULL,
+    [cwar_ref_compnr] BIGINT        NULL,
+    [cprj_ref_compnr] BIGINT        NULL,
+    [item_ref_compnr] BIGINT        NULL,
+    [effn_ref_compnr] BIGINT        NULL,
+    [ccco_ref_compnr] BIGINT        NULL,
+    [deleted]         NCHAR (1)     NULL,
+    [username]        NVARCHAR (8)  NULL,
+    [timestamp]       DATETIME      NULL,
+    [sequencenumber]  BIGINT        NULL,
+    [dlDocumentDate]  NVARCHAR (40) NULL
+);
+
+
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [idx_LN_WHWMD260_lookup]
+    ON [dbo].[LN_WHWMD260]([compnr] ASC, [cwar] ASC, [cprj] ASC, [item] ASC, [effn] ASC, [cspa] ASC, [cact] ASC, [cstl] ASC, [ccco] ASC);
+
+
+GO
+

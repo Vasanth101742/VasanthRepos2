@@ -1,0 +1,43 @@
+CREATE TABLE [dbo].[dms_approvals_details] (
+    [sno]                       INT             NULL,
+    [defect_id]                 NVARCHAR (20)   NULL,
+    [verify1]                   NVARCHAR (1000) NULL,
+    [verify2]                   NVARCHAR (1000) NULL,
+    [verify3]                   NVARCHAR (1000) NULL,
+    [verify4]                   NVARCHAR (1000) NULL,
+    [verify5]                   NVARCHAR (1000) NULL,
+    [remarks]                   NVARCHAR (1000) NULL,
+    [created_at]                DATETIME2 (0)   NULL,
+    [created_by]                INT             NULL,
+    [status]                    INT             NULL,
+    [attach1]                   NVARCHAR (200)  NULL,
+    [attach2]                   NVARCHAR (200)  NULL,
+    [attach3]                   NVARCHAR (200)  NULL,
+    [verify6]                   NVARCHAR (1000) NULL,
+    [remarks_fmea]              NVARCHAR (1000) NULL,
+    [yesno_fmea]                NVARCHAR (5)    NULL,
+    [remarks_cp]                NVARCHAR (1000) NULL,
+    [yesno_cp]                  NVARCHAR (5)    NULL,
+    [remarks_checksheet]        NVARCHAR (1000) NULL,
+    [yesno_checksheet]          NVARCHAR (5)    NULL,
+    [remarks_drawing]           NVARCHAR (1000) NULL,
+    [yesno_drawing]             NVARCHAR (5)    NULL,
+    [remarks_insp]              NVARCHAR (1000) NULL,
+    [yesno_sop]                 NVARCHAR (5)    NULL,
+    [remarks_sop]               NVARCHAR (1000) NULL,
+    [yesno_insp]                NVARCHAR (5)    NULL,
+    [remarks_eco]               NVARCHAR (1000) NULL,
+    [yesno_eco]                 NVARCHAR (5)    NULL,
+    [yesno_design]              NVARCHAR (5)    NULL,
+    [remarks_design]            NVARCHAR (1000) NULL,
+    [effect_date]               DATETIME2 (0)   NULL,
+    [effect_date_comments]      NVARCHAR (MAX)  NULL,
+    [effect_date_closed_date]   DATETIME2 (0)   NULL,
+    [effect_date_status]        NVARCHAR (2)    NULL,
+    [old_effect_date]           NVARCHAR (50)   NULL,
+    [effect_date_open_comments] NVARCHAR (MAX)  NULL
+);
+
+
+GO
+

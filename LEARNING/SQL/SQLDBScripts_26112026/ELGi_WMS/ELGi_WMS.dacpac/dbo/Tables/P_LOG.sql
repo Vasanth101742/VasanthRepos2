@@ -1,0 +1,38 @@
+CREATE TABLE [dbo].[P_LOG] (
+    [ID_BATCH]         INT            NULL,
+    [CHANNEL_ID]       NVARCHAR (255) NULL,
+    [TRANSNAME]        NVARCHAR (255) NULL,
+    [STATUS]           NVARCHAR (15)  NULL,
+    [LINES_READ]       BIGINT         NULL,
+    [LINES_WRITTEN]    BIGINT         NULL,
+    [LINES_UPDATED]    BIGINT         NULL,
+    [LINES_INPUT]      BIGINT         NULL,
+    [LINES_OUTPUT]     BIGINT         NULL,
+    [LINES_REJECTED]   BIGINT         NULL,
+    [ERRORS]           BIGINT         NULL,
+    [STARTDATE]        DATETIME       NULL,
+    [ENDDATE]          DATETIME       NULL,
+    [LOGDATE]          DATETIME       NULL,
+    [DEPDATE]          DATETIME       NULL,
+    [REPLAYDATE]       DATETIME       NULL,
+    [LOG_FIELD]        NVARCHAR (MAX) NULL,
+    [EXECUTING_SERVER] NVARCHAR (255) NULL,
+    [EXECUTING_USER]   NVARCHAR (255) NULL,
+    [CLIENT]           NVARCHAR (255) NULL
+);
+
+
+GO
+
+CREATE NONCLUSTERED INDEX [IDX_P_LOG_2]
+    ON [dbo].[P_LOG]([ERRORS] ASC, [STATUS] ASC, [TRANSNAME] ASC);
+
+
+GO
+
+CREATE NONCLUSTERED INDEX [IDX_P_LOG_1]
+    ON [dbo].[P_LOG]([ID_BATCH] ASC);
+
+
+GO
+

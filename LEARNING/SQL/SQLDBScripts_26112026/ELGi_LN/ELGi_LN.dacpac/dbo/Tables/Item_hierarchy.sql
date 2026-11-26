@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[Item_hierarchy] (
+    [COMPANY]       NVARCHAR (38) NULL,
+    [Level1]        NVARCHAR (94) NULL,
+    [Level2]        NVARCHAR (94) NULL,
+    [Level3]        NVARCHAR (94) NULL,
+    [Level4]        NVARCHAR (94) NULL,
+    [Level5]        NVARCHAR (94) NULL,
+    [Level6]        NVARCHAR (94) NULL,
+    [Level7]        NVARCHAR (94) NULL,
+    [Level8]        NVARCHAR (94) NULL,
+    [Level9]        NVARCHAR (94) NULL,
+    [Level10]       NVARCHAR (94) NULL,
+    [Level11]       NVARCHAR (94) NULL,
+    [Level12]       NVARCHAR (94) NULL,
+    [Level13]       NVARCHAR (94) NULL,
+    [Level14]       NVARCHAR (94) NULL,
+    [Level15]       NVARCHAR (94) NULL,
+    [BaseItem]      NVARCHAR (94) NULL,
+    [BAPR]          FLOAT (53)    NULL,
+    [QANA2]         FLOAT (53)    NULL,
+    [QANA3]         FLOAT (53)    NULL,
+    [QANA4]         FLOAT (53)    NULL,
+    [QANA5]         FLOAT (53)    NULL,
+    [QANA6]         FLOAT (53)    NULL,
+    [QANA7]         FLOAT (53)    NULL,
+    [QANA8]         FLOAT (53)    NULL,
+    [QANA9]         FLOAT (53)    NULL,
+    [QANA10]        FLOAT (53)    NULL,
+    [QANA11]        FLOAT (53)    NULL,
+    [QANA12]        FLOAT (53)    NULL,
+    [QANA13]        FLOAT (53)    NULL,
+    [QANA14]        FLOAT (53)    NULL,
+    [QANA15]        FLOAT (53)    NULL,
+    [BaseQty]       FLOAT (53)    NULL,
+    [UnitPrice_INR] FLOAT (53)    NULL
+);
+
+
+GO
+

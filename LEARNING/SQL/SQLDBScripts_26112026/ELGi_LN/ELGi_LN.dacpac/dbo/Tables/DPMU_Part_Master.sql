@@ -1,0 +1,9 @@
+CREATE TABLE [dbo].[DPMU_Part_Master] (
+    [PART_NAME]       NVARCHAR (255) NULL,
+    [PRODUCT_GROUP]   NVARCHAR (255) NULL,
+    [WARRANTY_PERIOD] FLOAT (53)     NULL
+);
+
+
+GO
+

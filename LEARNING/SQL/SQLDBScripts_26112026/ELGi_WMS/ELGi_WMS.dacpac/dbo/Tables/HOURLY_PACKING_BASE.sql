@@ -1,0 +1,8 @@
+CREATE TABLE [dbo].[HOURLY_PACKING_BASE] (
+    [TME]  VARCHAR (100) NULL,
+    [ORDR] INT           NULL
+);
+
+
+GO
+

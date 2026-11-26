@@ -1,0 +1,39 @@
+CREATE TABLE [dbo].[TTFCMG403ALL] (
+    [COMPANY] NVARCHAR (38)  NULL,
+    [BTNO]    NVARCHAR (38)  NULL,
+    [PBBP]    NVARCHAR (18)  NULL,
+    [CCUR]    NVARCHAR (6)   NULL,
+    [PAYM]    NVARCHAR (6)   NULL,
+    [BACU]    NVARCHAR (6)   NULL,
+    [PLAN]    DATETIME       NULL,
+    [SRNO]    NVARCHAR (38)  NULL,
+    [BANK]    NVARCHAR (6)   NULL,
+    [AMNT]    NVARCHAR (38)  NULL,
+    [AMTH$1]  NVARCHAR (38)  NULL,
+    [AMTH$2]  NVARCHAR (38)  NULL,
+    [AMTH$3]  NVARCHAR (38)  NULL,
+    [REFR]    NVARCHAR (400) NULL,
+    [COMP]    NVARCHAR (38)  NULL,
+    [PAID]    NVARCHAR (38)  NULL,
+    [TTYP]    NVARCHAR (6)   NULL,
+    [DOCN]    NVARCHAR (38)  NULL,
+    [DOCD]    DATETIME       NULL,
+    [RAGR]    NVARCHAR (32)  NULL,
+    [BLAC]    NVARCHAR (38)  NULL,
+    [RLET]    NVARCHAR (38)  NULL,
+    [POST]    NVARCHAR (38)  NULL,
+    [OPBP]    NVARCHAR (18)  NULL,
+    [ERRO]    NVARCHAR (38)  NULL,
+    [ITBP]    NVARCHAR (18)  NULL,
+    [ICMP]    NVARCHAR (38)  NULL,
+    [XLOC]    NVARCHAR (6)   NULL,
+    [VERS]    NVARCHAR (38)  NULL,
+    [MREF]    NVARCHAR (18)  NULL,
+    [MVER]    NVARCHAR (38)  NULL,
+    [REFCNTD] NVARCHAR (38)  NULL,
+    [REFCNTU] NVARCHAR (38)  NULL
+);
+
+
+GO
+

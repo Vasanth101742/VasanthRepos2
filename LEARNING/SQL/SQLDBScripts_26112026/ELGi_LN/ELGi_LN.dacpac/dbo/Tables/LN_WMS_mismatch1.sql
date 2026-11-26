@@ -1,0 +1,13 @@
+CREATE TABLE [dbo].[LN_WMS_mismatch1] (
+    [COMPANY] NVARCHAR (38) NULL,
+    [SHPM]    NVARCHAR (18) NULL,
+    [WORN]    NVARCHAR (18) NULL,
+    [WPON]    NVARCHAR (38) NULL,
+    [WSEQ]    NVARCHAR (38) NULL,
+    [ITEM]    NVARCHAR (94) NULL,
+    [col2]    NVARCHAR (74) NOT NULL
+);
+
+
+GO
+

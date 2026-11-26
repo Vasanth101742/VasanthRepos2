@@ -1,0 +1,25 @@
+
+
+
+CREATE proc [dbo].[SP_GR_OverdueTriggers_Trend]
+
+as 
+begin
+
+
+delete [Overduetriggers_Trend] where CurrentDate< convert(date,getdate()-90)
+delete [Overduetriggers_Trend] where CurrentDate= convert(date,getdate())
+
+
+
+Insert into [Overduetriggers_Trend]
+
+Select Count(LOT_NO)'cnt' ,TriggerType,company,Convert (date,Getdate())'date' from ELGi_OverDue_Triggers
+Where DueType = 'Over Due'
+Group BY TriggerType,company
+
+
+end
+
+GO
+

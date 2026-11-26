@@ -1,0 +1,21 @@
+CREATE TABLE [dbo].[TZZSLS403ALL] (
+    [COMPANY] INT            NULL,
+    [SHPM]    NVARCHAR (9)   NULL,
+    [WAVE]    NVARCHAR (100) NULL,
+    [LRNO]    NVARCHAR (100) NULL,
+    [TRNM]    NVARCHAR (100) NULL,
+    [TRAN]    NVARCHAR (3)   NULL,
+    [IDOC]    NVARCHAR (9)   NULL,
+    [IDAT]    DATETIME2 (7)  NULL,
+    [WMSN]    NVARCHAR (100) NULL,
+    [VEHN]    NVARCHAR (25)  NULL,
+    [TBON]    NVARCHAR (100) NULL,
+    [DEST]    NVARCHAR (100) NULL,
+    [GATE]    NVARCHAR (25)  NULL,
+    [REFCNTD] FLOAT (53)     NULL,
+    [REFCNTU] FLOAT (53)     NULL
+);
+
+
+GO
+

@@ -1,0 +1,12 @@
+CREATE TABLE [dbo].[TZZPUR622490] (
+    [COMPANY]   FLOAT (53)    NULL,
+    [T$ITEM]    NVARCHAR (47) NULL,
+    [T$SUTI]    FLOAT (53)    NULL,
+    [T$STAT]    FLOAT (53)    NULL,
+    [T$REFCNTD] FLOAT (53)    NULL,
+    [T$REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

@@ -1,0 +1,16 @@
+CREATE TABLE [dbo].[TZZINV305600] (
+    [PRDT]    DATETIME       NULL,
+    [ITEM]    NVARCHAR (94)  NULL,
+    [QHND]    NVARCHAR (38)  NULL,
+    [LIDT]    DATETIME       NULL,
+    [LRDT]    DATETIME       NULL,
+    [CATG]    NVARCHAR (180) NULL,
+    [STAT]    NVARCHAR (38)  NULL,
+    [LOGN]    NVARCHAR (32)  NULL,
+    [REFCNTD] NVARCHAR (38)  NULL,
+    [REFCNTU] NVARCHAR (38)  NULL
+);
+
+
+GO
+

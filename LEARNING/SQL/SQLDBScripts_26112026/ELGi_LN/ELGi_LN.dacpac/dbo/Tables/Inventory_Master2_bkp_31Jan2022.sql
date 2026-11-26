@@ -1,0 +1,15 @@
+CREATE TABLE [dbo].[Inventory_Master2_bkp_31Jan2022] (
+    [COMPANY]       NVARCHAR (38)  NULL,
+    [CWAR]          NVARCHAR (12)  NULL,
+    [ITEM]          NVARCHAR (94)  NULL,
+    [ItemDescr]     NVARCHAR (100) NULL,
+    [OrderType]     INT            NULL,
+    [OrderTypeDesc] NVARCHAR (50)  NULL,
+    [ReceiptType]   VARCHAR (100)  NULL,
+    [ItemType]      VARCHAR (100)  NULL,
+    [InvType]       VARCHAR (100)  NULL
+);
+
+
+GO
+

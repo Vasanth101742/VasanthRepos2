@@ -1,0 +1,38 @@
+CREATE TABLE [dbo].[TZZPUR912490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [DATE]    DATETIME2 (7)    NULL,
+    [TIME]    NVARCHAR (10)    NULL,
+    [VECH]    NVARCHAR (15)    NULL,
+    [BPID]    NVARCHAR (9)     NULL,
+    [VITM]    NVARCHAR (20)    NULL,
+    [VDAT]    DATETIME2 (7)    NULL,
+    [OTIM]    NVARCHAR (15)    NULL,
+    [ODAT]    DATETIME2 (7)    NULL,
+    [TNAM]    NVARCHAR (30)    NULL,
+    [DNAM]    NVARCHAR (30)    NULL,
+    [DCON]    DECIMAL (38, 18) NULL,
+    [REM1]    NVARCHAR (30)    NULL,
+    [REM2]    NVARCHAR (30)    NULL,
+    [LOGN]    NVARCHAR (15)    NULL,
+    [COMP]    DECIMAL (38, 18) NULL,
+    [OUTN]    DECIMAL (38, 18) NULL,
+    [REGION]  DECIMAL (38, 18) NULL,
+    [EMNO]    NVARCHAR (9)     NULL,
+    [ENAM]    NVARCHAR (35)    NULL,
+    [TPRE]    NVARCHAR (10)    NULL,
+    [TNUM]    DECIMAL (38, 18) NULL,
+    [TBDT]    DATETIME2 (7)    NULL,
+    [TUDT]    DATETIME2 (7)    NULL,
+    [TTIM]    NVARCHAR (15)    NULL,
+    [SSTTIM]  NVARCHAR (10)    NULL,
+    [SENTIM]  NVARCHAR (10)    NULL,
+    [SSTIM]   DECIMAL (38, 18) NULL,
+    [SETIM]   DECIMAL (38, 18) NULL,
+    [SSTAT]   NVARCHAR (100)   NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL
+);
+
+
+GO
+

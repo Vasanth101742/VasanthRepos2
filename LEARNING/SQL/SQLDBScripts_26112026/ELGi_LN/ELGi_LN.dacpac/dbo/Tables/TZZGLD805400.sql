@@ -1,0 +1,18 @@
+CREATE TABLE [dbo].[TZZGLD805400] (
+    [ENTY]    VARCHAR (100) NULL,
+    [FYER]    FLOAT (53)    NULL,
+    [FMNT]    FLOAT (53)    NULL,
+    [TYPE]    VARCHAR (30)  NULL,
+    [MR11]    VARCHAR (200) NULL,
+    [MR22]    VARCHAR (200) NULL,
+    [MR33]    VARCHAR (200) NULL,
+    [AMNT]    FLOAT (53)    NULL,
+    [UPBY]    VARCHAR (30)  NULL,
+    [UPDT]    DATETIME      NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[Inflow_OTIF] (
+    [indent]                  NVARCHAR (60) NULL,
+    [Company]                 INT           NULL,
+    [Year]                    INT           NULL,
+    [Month]                   NVARCHAR (30) NULL,
+    [AreaCode]                NVARCHAR (6)  NULL,
+    [AreaName]                VARCHAR (50)  NULL,
+    [Zone]                    VARCHAR (25)  NULL,
+    [CustCode]                NVARCHAR (18) NULL,
+    [custname1]               VARCHAR (100) NULL,
+    [Dpst]                    NVARCHAR (12) NULL,
+    [OrderDate]               DATE          NULL,
+    [OrderNum]                NVARCHAR (18) NULL,
+    [ordertype]               NVARCHAR (6)  NULL,
+    [ItemCode]                NVARCHAR (94) NULL,
+    [Item_desc]               VARCHAR (100) NULL,
+    [qty]                     FLOAT (53)    NULL,
+    [sales]                   FLOAT (53)    NULL,
+    [UTN]                     NVARCHAR (12) NULL,
+    [Clearence_Date_orijinal] DATE          NULL,
+    [PONO]                    NVARCHAR (38) NULL,
+    [POQty]                   INT           NULL,
+    [Production_ord_no]       NVARCHAR (18) NULL,
+    [cust_date]               DATE          NULL,
+    [Release_Date]            DATE          NULL,
+    [Completed_Date]          DATE          NULL,
+    [delivery_date]           DATE          NULL,
+    [PO Status]               VARCHAR (30)  NULL,
+    [Remarks]                 VARCHAR (21)  NULL,
+    [Fabno]                   VARCHAR (50)  NULL,
+    [Invoice]                 VARCHAR (12)  NULL,
+    [DeliveredQty]            FLOAT (53)    NULL,
+    [AssesValue]              FLOAT (53)    NULL,
+    [Invoice_date]            DATE          NULL,
+    [PO_Aging]                INT           NULL,
+    [TARGET_OTA]              DATE          NULL,
+    [OTA_GAPDAYS]             VARCHAR (10)  NULL
+);
+
+
+GO
+

@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[LN_TTAMS410] (
+    [Import_Status]              NVARCHAR (1)   NULL,
+    [Import_Code]                NVARCHAR (1)   NULL,
+    [Import_Message]             NVARCHAR (1)   NULL,
+    [Company]                    NVARCHAR (150) NULL,
+    [Context]                    NVARCHAR (150) NULL,
+    [Central_Comp]               NVARCHAR (150) NULL,
+    [fcdemname]                  NVARCHAR (150) NULL,
+    [Project_Model]              NVARCHAR (150) NULL,
+    [Version]                    NVARCHAR (150) NULL,
+    [Optimization_Phase]         NVARCHAR (150) NULL,
+    [Role]                       NVARCHAR (150) NULL,
+    [Description]                NVARCHAR (150) NULL,
+    [Changed]                    NVARCHAR (150) NULL,
+    [Pk]                         NVARCHAR (150) NULL,
+    [Mod]                        NVARCHAR (150) NULL,
+    [Session]                    NVARCHAR (150) NULL,
+    [fcmptdesc]                  NVARCHAR (150) NULL,
+    [All_Comp]                   NVARCHAR (150) NULL,
+    [Company2]                   NVARCHAR (150) NULL,
+    [fcompname]                  NVARCHAR (150) NULL,
+    [Gen]                        NVARCHAR (150) NULL,
+    [Generation_Time]            NVARCHAR (150) NULL,
+    [column23]                   NVARCHAR (150) NULL,
+    [Previous_DEM_Authorization] NVARCHAR (150) NULL,
+    [Current_DEM_Authorization]  NVARCHAR (150) NULL,
+    [Actual_Authorization]       NVARCHAR (150) NULL,
+    [Overruled]                  NVARCHAR (150) NULL,
+    [Changed2]                   NVARCHAR (150) NULL,
+    [Start_Time]                 NVARCHAR (150) NULL,
+    [End_Time]                   NVARCHAR (150) NULL,
+    [Change_Date]                NVARCHAR (150) NULL,
+    [column32]                   NVARCHAR (150) NULL,
+    [Change_User]                NVARCHAR (150) NULL,
+    [Name]                       NVARCHAR (150) NULL
+);
+
+
+GO
+

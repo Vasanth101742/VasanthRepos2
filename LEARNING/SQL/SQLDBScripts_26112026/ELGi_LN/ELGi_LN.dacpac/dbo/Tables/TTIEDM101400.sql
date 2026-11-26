@@ -1,0 +1,15 @@
+CREATE TABLE [dbo].[TTIEDM101400] (
+    [ITEM]    NVARCHAR (47) NULL,
+    [EITM]    NVARCHAR (47) NULL,
+    [REVI]    NVARCHAR (6)  NULL,
+    [EICP]    FLOAT (53)    NULL,
+    [DEIC]    DATETIME2 (7) NULL,
+    [EBCP]    FLOAT (53)    NULL,
+    [DEBC]    DATETIME2 (7) NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

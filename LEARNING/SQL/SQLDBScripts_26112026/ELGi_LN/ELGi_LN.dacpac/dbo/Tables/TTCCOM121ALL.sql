@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[TTCCOM121ALL] (
+    [COMPANY] FLOAT (53)    NULL,
+    [SFBP]    NVARCHAR (9)  NULL,
+    [BPST]    FLOAT (53)    NULL,
+    [STDT]    DATETIME2 (0) NULL,
+    [ENDT]    DATETIME2 (0) NULL,
+    [CLAN]    NVARCHAR (3)  NULL,
+    [CBPS]    NVARCHAR (3)  NULL,
+    [CBTP]    NVARCHAR (3)  NULL,
+    [VRYN]    FLOAT (53)    NULL,
+    [CADR]    NVARCHAR (9)  NULL,
+    [TELP]    NVARCHAR (32) NULL,
+    [TLCY]    NVARCHAR (6)  NULL,
+    [TLCI]    NVARCHAR (15) NULL,
+    [TLLN]    NVARCHAR (32) NULL,
+    [TLEX]    NVARCHAR (15) NULL,
+    [TEFX]    NVARCHAR (32) NULL,
+    [TFCY]    NVARCHAR (6)  NULL,
+    [TFCI]    NVARCHAR (15) NULL,
+    [TFLN]    NVARCHAR (32) NULL,
+    [TFEX]    NVARCHAR (15) NULL,
+    [CCAL]    NVARCHAR (9)  NULL,
+    [CCNT]    NVARCHAR (9)  NULL,
+    [SERV]    NVARCHAR (3)  NULL,
+    [OTBP]    NVARCHAR (9)  NULL,
+    [CFRW]    NVARCHAR (3)  NULL,
+    [CWAR]    NVARCHAR (6)  NULL,
+    [QUAL]    FLOAT (53)    NULL,
+    [SASN]    FLOAT (53)    NULL,
+    [SEAK]    NVARCHAR (16) NULL,
+    [USER]    NVARCHAR (16) NULL,
+    [CRDT]    DATETIME2 (0) NULL,
+    [LMUS]    NVARCHAR (16) NULL,
+    [LMDT]    DATETIME2 (0) NULL,
+    [TXTA]    FLOAT (53)    NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

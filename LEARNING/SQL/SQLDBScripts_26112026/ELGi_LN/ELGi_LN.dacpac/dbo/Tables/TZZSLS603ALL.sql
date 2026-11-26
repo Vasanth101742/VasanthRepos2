@@ -1,0 +1,23 @@
+CREATE TABLE [dbo].[TZZSLS603ALL] (
+    [COMPANY]   NVARCHAR (10) NULL,
+    [T$SHPM]    NVARCHAR (9)  NULL,
+    [T$PACK]    FLOAT (53)    NULL,
+    [T$BNAM]    NVARCHAR (30) NULL,
+    [T$ITEM]    NVARCHAR (47) NULL,
+    [T$QUAN]    FLOAT (53)    NULL,
+    [T$WGHT]    FLOAT (53)    NULL,
+    [T$PKDT]    DATETIME2 (7) NULL,
+    [T$PKLG]    NVARCHAR (15) NULL,
+    [T$PRIN]    FLOAT (53)    NULL,
+    [T$PCON]    FLOAT (53)    NULL,
+    [T$REMK]    NVARCHAR (50) NULL,
+    [T$REM1]    NVARCHAR (50) NULL,
+    [T$REFCNTD] FLOAT (53)    NULL,
+    [T$REFCNTU] FLOAT (53)    NULL,
+    [T$REM2]    NVARCHAR (50) NULL,
+    [T$PWGHT]   FLOAT (53)    NULL
+);
+
+
+GO
+

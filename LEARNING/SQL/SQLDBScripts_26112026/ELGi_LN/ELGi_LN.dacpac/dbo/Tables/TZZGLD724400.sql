@@ -1,0 +1,15 @@
+CREATE TABLE [dbo].[TZZGLD724400] (
+    [BPID]    NVARCHAR (9)   NULL,
+    [NAME]    NVARCHAR (100) NULL,
+    [TYPE]    FLOAT (53)     NULL,
+    [EFDT]    DATETIME2 (0)  NULL,
+    [LOGN]    NVARCHAR (16)  NULL,
+    [DATE]    DATETIME2 (0)  NULL,
+    [REFCNTD] FLOAT (53)     NULL,
+    [REFCNTU] FLOAT (53)     NULL,
+    [EXDT]    DATETIME2 (0)  NULL
+);
+
+
+GO
+

@@ -1,0 +1,29 @@
+CREATE TABLE [dbo].[TZZSLS602490] (
+    [COMPANY] NVARCHAR (38)  NULL,
+    [REFCNTD] NVARCHAR (38)  NULL,
+    [REFCNTU] NVARCHAR (38)  NULL,
+    [SHPM]    NVARCHAR (18)  NULL,
+    [ITEM]    NVARCHAR (94)  NULL,
+    [DESC]    NVARCHAR (60)  NULL,
+    [CUNI]    NVARCHAR (6)   NULL,
+    [SQTY]    NVARCHAR (38)  NULL,
+    [COTP]    NVARCHAR (6)   NULL,
+    [ODAT]    DATETIME       NULL,
+    [SVAL]    NVARCHAR (38)  NULL,
+    [PACK]    NVARCHAR (38)  NULL,
+    [REMK]    NVARCHAR (100) NULL,
+    [PVAL]    NVARCHAR (38)  NULL,
+    [TVAL]    NVARCHAR (38)  NULL,
+    [UPDT]    DATETIME       NULL,
+    [LOGN]    NVARCHAR (40)  NULL,
+    [PKST]    DATETIME       NULL,
+    [PKEN]    DATETIME       NULL,
+    [PQTY]    NVARCHAR (38)  NULL,
+    [BQTY]    NVARCHAR (38)  NULL,
+    [PSTR]    NVARCHAR (512) NULL,
+    [SLNO]    NVARCHAR (38)  NULL
+);
+
+
+GO
+

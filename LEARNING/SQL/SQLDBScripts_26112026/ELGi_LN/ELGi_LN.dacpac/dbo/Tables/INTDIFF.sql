@@ -1,0 +1,9 @@
+CREATE TABLE [dbo].[INTDIFF] (
+    [COMPANY] NVARCHAR (38) NULL,
+    [T$LINK]  NVARCHAR (44) NULL,
+    [AMOUNT]  FLOAT (53)    NULL
+);
+
+
+GO
+

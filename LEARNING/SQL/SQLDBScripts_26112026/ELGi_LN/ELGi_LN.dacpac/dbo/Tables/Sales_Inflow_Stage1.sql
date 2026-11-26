@@ -1,0 +1,41 @@
+CREATE TABLE [dbo].[Sales_Inflow_Stage1] (
+    [Dpst]                    NVARCHAR (12) NULL,
+    [AreaCode]                NVARCHAR (6)  NULL,
+    [ordertype]               NVARCHAR (6)  NULL,
+    [Indent]                  NVARCHAR (60) NULL,
+    [SlsPriceLst]             NVARCHAR (6)  NULL,
+    [DiscPerc1]               REAL          NULL,
+    [DiscPerc2]               REAL          NULL,
+    [DiscPerc3]               REAL          NULL,
+    [Company]                 INT           NULL,
+    [Trantype]                NVARCHAR (6)  NULL,
+    [invnum]                  INT           NULL,
+    [OrderNum]                NVARCHAR (18) NULL,
+    [OrderDate]               DATE          NULL,
+    [PositionNum]             INT           NULL,
+    [CustCode]                NVARCHAR (18) NULL,
+    [ItemCode]                NVARCHAR (94) NULL,
+    [DeliveryDate]            DATETIME      NULL,
+    [WareHouse]               NVARCHAR (12) NULL,
+    [Price]                   FLOAT (53)    NULL,
+    [qty]                     FLOAT (53)    NULL,
+    [discount]                FLOAT (53)    NULL,
+    [sales]                   FLOAT (53)    NULL,
+    [Segment]                 INT           NULL,
+    [SalesRepCode]            NVARCHAR (18) NULL,
+    [SalesRep]                NVARCHAR (70) NULL,
+    [LOBCode]                 NVARCHAR (12) NULL,
+    [LineOfBusiness]          NVARCHAR (30) NULL,
+    [DeliveryTerms]           NVARCHAR (6)  NULL,
+    [Sales_USD]               INT           NULL,
+    [Foreign_currency_amount] FLOAT (53)    NULL,
+    [Currency]                NVARCHAR (6)  NULL,
+    [ForwardAgent]            NVARCHAR (6)  NULL,
+    [PaymentTerm]             NVARCHAR (6)  NULL,
+    [CurrRate]                FLOAT (53)    NULL,
+    [Orderdisc]               FLOAT (53)    NULL
+);
+
+
+GO
+

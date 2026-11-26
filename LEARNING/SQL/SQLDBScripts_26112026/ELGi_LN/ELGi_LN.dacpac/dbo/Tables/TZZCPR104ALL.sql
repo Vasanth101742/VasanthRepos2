@@ -1,0 +1,29 @@
+CREATE TABLE [dbo].[TZZCPR104ALL] (
+    [T$REFCNTD] NVARCHAR (38) NULL,
+    [T$REFCNTU] NVARCHAR (38) NULL,
+    [COMPANY]   NVARCHAR (38) NULL,
+    [T$YEAR]    NVARCHAR (38) NULL,
+    [T$MNTH]    NVARCHAR (38) NULL,
+    [T$NCMP]    NVARCHAR (38) NULL,
+    [T$SELE]    NVARCHAR (94) NULL,
+    [T$MITM]    NVARCHAR (94) NULL,
+    [T$SITM]    NVARCHAR (94) NULL,
+    [T$QUAN]    NVARCHAR (38) NULL,
+    [T$KITM]    NVARCHAR (38) NULL,
+    [T$AVGP]    NVARCHAR (38) NULL,
+    [T$LPPP]    FLOAT (53)    NULL,
+    [T$COST]    FLOAT (53)    NULL,
+    [T$CURR]    NVARCHAR (6)  NULL,
+    [T$IMPO]    FLOAT (53)    NULL,
+    [T$SFBP]    NVARCHAR (18) NULL,
+    [T$SCUR]    NVARCHAR (6)  NULL,
+    [T$COMP]    NVARCHAR (38) NULL,
+    [T$PBSD]    DATETIME      NULL,
+    [T$EXCH]    NVARCHAR (38) NULL,
+    [T$RPER]    FLOAT (53)    NULL,
+    [T$PDAT]    DATETIME      NULL
+);
+
+
+GO
+

@@ -1,0 +1,43 @@
+CREATE TABLE [dbo].[usln_whwmd215] (
+    [compnr]         VARCHAR (50)    NULL,
+    [cwar]           VARCHAR (50)    NULL,
+    [item]           VARCHAR (50)    NULL,
+    [qhnd]           NUMERIC (18, 4) NULL,
+    [qchd]           NUMERIC (18, 4) NULL,
+    [qnhd]           VARCHAR (50)    NULL,
+    [qblk]           NUMERIC (18, 4) NULL,
+    [qbpl]           NUMERIC (18, 4) NULL,
+    [qord]           NUMERIC (18, 4) NULL,
+    [qoor]           VARCHAR (50)    NULL,
+    [qcor]           NUMERIC (18, 4) NULL,
+    [qnor]           VARCHAR (50)    NULL,
+    [qgit]           VARCHAR (50)    NULL,
+    [qint]           NUMERIC (18, 4) NULL,
+    [qcit]           VARCHAR (50)    NULL,
+    [qnit]           VARCHAR (50)    NULL,
+    [qall]           NUMERIC (18, 4) NULL,
+    [qoal]           VARCHAR (50)    NULL,
+    [qcal]           NUMERIC (18, 4) NULL,
+    [qnal]           VARCHAR (50)    NULL,
+    [qnbl]           VARCHAR (50)    NULL,
+    [qnbp]           VARCHAR (50)    NULL,
+    [qcom]           NUMERIC (18, 4) NULL,
+    [qlal]           NUMERIC (18, 4) NULL,
+    [qcpr]           NUMERIC (18, 4) NULL,
+    [qhrj]           VARCHAR (50)    NULL,
+    [qcrj]           VARCHAR (50)    NULL,
+    [qnrj]           VARCHAR (50)    NULL,
+    [ltdt]           DATETIME2 (0)   NULL,
+    [hstd]           DATETIME2 (0)   NULL,
+    [lsid]           DATETIME2 (0)   NULL,
+    [qcis]           NUMERIC (18, 4) NULL,
+    [qhib]           NUMERIC (18, 4) NULL,
+    [deleted]        VARCHAR (50)    NULL,
+    [username]       VARCHAR (50)    NULL,
+    [timestamp]      DATETIME2 (0)   NULL,
+    [sequencenumber] VARCHAR (50)    NULL
+);
+
+
+GO
+

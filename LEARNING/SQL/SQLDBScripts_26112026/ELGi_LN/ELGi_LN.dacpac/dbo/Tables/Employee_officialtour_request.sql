@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[Employee_officialtour_request] (
+    [emp_code]              INT            NULL,
+    [application_no]        INT            NULL,
+    [divn_code]             NVARCHAR (5)   NULL,
+    [func_code]             NVARCHAR (5)   NULL,
+    [dept_code]             NVARCHAR (5)   NULL,
+    [ucode]                 INT            NULL,
+    [tour_type]             NVARCHAR (20)  NULL,
+    [from_date]             DATETIME       NULL,
+    [from_session]          NVARCHAR (10)  NULL,
+    [from_time]             DATETIME       NULL,
+    [to_date]               DATETIME       NULL,
+    [to_session]            NVARCHAR (10)  NULL,
+    [to_time]               VARCHAR (20)   NULL,
+    [actto_date]            DATETIME       NULL,
+    [actto_session]         NVARCHAR (10)  NULL,
+    [actto_time]            DATETIME       NULL,
+    [total_days]            FLOAT (53)     NULL,
+    [sanctioned_days]       FLOAT (53)     NULL,
+    [place]                 NVARCHAR (MAX) NULL,
+    [reason]                NVARCHAR (MAX) NULL,
+    [contact_add]           NVARCHAR (MAX) NULL,
+    [contact_phno]          NVARCHAR (25)  NULL,
+    [sanctioning_authority] NVARCHAR (20)  NULL,
+    [approver_code]         INT            NULL,
+    [approver_name]         NVARCHAR (50)  NULL,
+    [approved]              NVARCHAR (10)  NULL,
+    [user_closed]           NVARCHAR (10)  NULL,
+    [comments]              NVARCHAR (MAX) NULL,
+    [sanctioned_date]       DATETIME       NULL,
+    [last_modified]         DATETIME       NULL,
+    [applied_date]          DATETIME       NULL,
+    [advance]               NVARCHAR (6)   NULL,
+    [currency]              NVARCHAR (4)   NULL,
+    [total_value]           FLOAT (53)     NULL,
+    [currency1]             NVARCHAR (3)   NULL,
+    [total_value1]          FLOAT (53)     NULL
+);
+
+
+GO
+

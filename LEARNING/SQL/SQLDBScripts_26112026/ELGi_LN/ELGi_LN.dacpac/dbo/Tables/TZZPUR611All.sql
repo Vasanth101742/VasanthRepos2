@@ -1,0 +1,31 @@
+CREATE TABLE [dbo].[TZZPUR611All] (
+    [COMPANY]   NVARCHAR (38)  NULL,
+    [T$REFCNTD] NVARCHAR (38)  NULL,
+    [T$REFCNTU] NVARCHAR (38)  NULL,
+    [T$ORNO]    NVARCHAR (18)  NULL,
+    [T$PONO]    NVARCHAR (38)  NULL,
+    [T$STAT]    NVARCHAR (38)  NULL,
+    [T$DATE]    DATETIME       NULL,
+    [T$BPID]    NVARCHAR (18)  NULL,
+    [T$ITEM]    NVARCHAR (94)  NULL,
+    [T$OPRIC]   FLOAT (53)     NULL,
+    [T$NPRIC]   FLOAT (53)     NULL,
+    [T$SEQN]    NVARCHAR (38)  NULL,
+    [T$BQTY]    FLOAT (53)     NULL,
+    [T$NORNO]   NVARCHAR (18)  NULL,
+    [T$NPONO]   NVARCHAR (38)  NULL,
+    [T$NQTY]    FLOAT (53)     NULL,
+    [T$REMK]    NVARCHAR (200) NULL,
+    [T$USER]    NVARCHAR (20)  NULL,
+    [T$UPDT]    DATETIME       NULL,
+    [T$OLTP]    NVARCHAR (38)  NULL,
+    [T$GSTIN]   NVARCHAR (70)  NULL,
+    [T$HSNC]    NVARCHAR (38)  NULL,
+    [T$STATE]   NVARCHAR (6)   NULL,
+    [T$CVAT]    NVARCHAR (18)  NULL,
+    [T$REM1]    NVARCHAR (200) NULL
+);
+
+
+GO
+

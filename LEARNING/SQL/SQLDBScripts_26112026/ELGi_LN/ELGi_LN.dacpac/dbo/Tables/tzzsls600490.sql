@@ -1,0 +1,20 @@
+CREATE TABLE [dbo].[tzzsls600490] (
+    [T$REFCNTD] NVARCHAR (38)  NULL,
+    [T$REFCNTU] NVARCHAR (38)  NULL,
+    [T$BNAM]    NVARCHAR (60)  NULL,
+    [T$BTYP]    NVARCHAR (38)  NULL,
+    [T$BDIM]    NVARCHAR (60)  NULL,
+    [T$LENG]    NVARCHAR (38)  NULL,
+    [T$BRED]    NVARCHAR (38)  NULL,
+    [T$HEIG]    NVARCHAR (38)  NULL,
+    [T$REMK]    NVARCHAR (100) NULL,
+    [T$LOGN]    NVARCHAR (30)  NULL,
+    [T$UPDT]    DATETIME       NULL,
+    [T$ITEM]    NVARCHAR (94)  NULL,
+    [T$BLCK]    NVARCHAR (38)  NULL,
+    [T$WGHT]    NVARCHAR (38)  NULL
+);
+
+
+GO
+

@@ -1,0 +1,6 @@
+CREATE LOGIN [ELGI\aron.benny]
+    FROM WINDOWS WITH DEFAULT_LANGUAGE = [us_english];
+
+
+GO
+

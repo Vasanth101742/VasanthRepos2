@@ -1,0 +1,35 @@
+CREATE TABLE [dbo].[TWHINH310490] (
+    [RCNO]    NVARCHAR (9)     NULL,
+    [SFBP]    NVARCHAR (9)     NULL,
+    [CARR]    NVARCHAR (3)     NULL,
+    [CWAR]    NVARCHAR (6)     NULL,
+    [SHDA]    NVARCHAR (9)     NULL,
+    [PDDT]    DATETIME2 (7)    NULL,
+    [SHDT]    DATETIME2 (7)    NULL,
+    [FVAL]    DECIMAL (38, 18) NULL,
+    [CURR]    NVARCHAR (3)     NULL,
+    [WGHT]    DECIMAL (38, 18) NULL,
+    [CWUN]    NVARCHAR (3)     NULL,
+    [CRDT]    DATETIME2 (7)    NULL,
+    [DINO]    NVARCHAR (30)    NULL,
+    [CONF]    DECIMAL (38, 18) NULL,
+    [LOAD]    NVARCHAR (9)     NULL,
+    [SHID]    NVARCHAR (9)     NULL,
+    [HUID]    NVARCHAR (25)    NULL,
+    [STAT]    DECIMAL (38, 18) NULL,
+    [EINV$L]  NVARCHAR (30)    NULL,
+    [INVD$L]  DATETIME2 (7)    NULL,
+    [LRNO$L]  NVARCHAR (30)    NULL,
+    [LRDT$L]  DATETIME2 (7)    NULL,
+    [LYNO$L]  NVARCHAR (30)    NULL,
+    [TEXT]    DECIMAL (38, 18) NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL,
+    [EIRN$L]  NVARCHAR (70)    NULL,
+    [QRCD$L]  DECIMAL (38, 18) NULL,
+    [SIQR$L]  DECIMAL (38, 18) NULL
+);
+
+
+GO
+

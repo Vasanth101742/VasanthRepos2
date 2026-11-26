@@ -1,0 +1,23 @@
+CREATE TABLE [dbo].[TZZSLS603490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [SHPM]    NVARCHAR (9)     NULL,
+    [PACK]    DECIMAL (38, 18) NULL,
+    [BNAM]    NVARCHAR (30)    NULL,
+    [ITEM]    NVARCHAR (47)    NULL,
+    [QUAN]    DECIMAL (38, 18) NULL,
+    [WGHT]    DECIMAL (38, 18) NULL,
+    [PKDT]    DATETIME2 (7)    NULL,
+    [PKLG]    NVARCHAR (15)    NULL,
+    [PRIN]    DECIMAL (38, 18) NULL,
+    [PCON]    DECIMAL (38, 18) NULL,
+    [REMK]    NVARCHAR (50)    NULL,
+    [REM1]    NVARCHAR (50)    NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL,
+    [REM2]    NVARCHAR (50)    NULL,
+    [PWGHT]   DECIMAL (38, 18) NULL
+);
+
+
+GO
+

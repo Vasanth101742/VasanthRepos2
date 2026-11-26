@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[Retention_details] (
+    [company]         INT            NULL,
+    [trantype]        NVARCHAR (3)   NULL,
+    [Invoice]         INT            NULL,
+    [Invoice_Date]    DATETIME       NULL,
+    [OrderDate]       DATETIME       NULL,
+    [OrderNo]         NVARCHAR (9)   NULL,
+    [custcode]        NVARCHAR (9)   NULL,
+    [custname]        NVARCHAR (100) NULL,
+    [areacode]        VARCHAR (5)    NULL,
+    [areaname]        VARCHAR (50)   NULL,
+    [Region]          VARCHAR (150)  NULL,
+    [dpst]            NVARCHAR (6)   NULL,
+    [dpstname]        VARCHAR (100)  NULL,
+    [PaymentTerms]    VARCHAR (10)   NULL,
+    [PaymentDesc]     VARCHAR (50)   NULL,
+    [DueDate]         DATE           NULL,
+    [AsOnDate]        DATE           NULL,
+    [DaysDiff]        INT            NULL,
+    [SalesOrderValue] FLOAT (53)     NULL,
+    [SalesInvValue]   FLOAT (53)     NULL,
+    [AccInvValue]     FLOAT (53)     NULL,
+    [Rnk]             INT            NULL,
+    [SaleOrderType]   VARCHAR (20)   NULL,
+    [PosNum]          VARCHAR (20)   NULL,
+    [AccInvRecValue]  FLOAT (53)     NULL,
+    [AccInvBalValue]  FLOAT (53)     NULL,
+    [Vertical1]       VARCHAR (50)   NULL,
+    [FinCustGrp]      VARCHAR (50)   NULL,
+    [t_itoa]          NVARCHAR (18)  NULL,
+    [t_stoa]          NVARCHAR (18)  NULL,
+    [Bill_To]         NVARCHAR (100) NULL,
+    [Ship_To]         NVARCHAR (100) NULL,
+    [TaxRate]         FLOAT (53)     NULL,
+    [TDS_Amth]        FLOAT (53)     NULL,
+    [TDS_Invoice]     FLOAT (53)     NULL,
+    [GST_Invoice]     FLOAT (53)     NULL
+);
+
+
+GO
+

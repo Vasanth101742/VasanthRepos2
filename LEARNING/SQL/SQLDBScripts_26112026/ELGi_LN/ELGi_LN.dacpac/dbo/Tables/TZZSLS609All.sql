@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[TZZSLS609All] (
+    [COMPANY]   NVARCHAR (38)  NULL,
+    [T$REFCNTD] NVARCHAR (38)  NULL,
+    [T$REFCNTU] NVARCHAR (38)  NULL,
+    [T$ITEM]    NVARCHAR (94)  NULL,
+    [T$SQTY]    NVARCHAR (38)  NULL,
+    [T$PDAT]    DATETIME       NULL,
+    [T$RNNO]    NVARCHAR (38)  NULL,
+    [T$SOTP]    NVARCHAR (6)   NULL,
+    [T$COFC]    NVARCHAR (12)  NULL,
+    [T$BPID]    NVARCHAR (18)  NULL,
+    [T$ORNO]    NVARCHAR (18)  NULL,
+    [T$PONO]    NVARCHAR (38)  NULL,
+    [T$SEQN]    NVARCHAR (38)  NULL,
+    [T$QUAN]    NVARCHAR (38)  NULL,
+    [T$STOC]    NVARCHAR (38)  NULL,
+    [T$ASTO]    NVARCHAR (38)  NULL,
+    [T$WLST]    NVARCHAR (38)  NULL,
+    [T$PRIO]    NVARCHAR (38)  NULL,
+    [T$REM1]    NVARCHAR (100) NULL,
+    [T$REM2]    NVARCHAR (100) NULL,
+    [T$STAD]    NVARCHAR (18)  NULL,
+    [T$DLDT]    DATETIME       NULL,
+    [T$ALLO]    NVARCHAR (38)  NULL,
+    [T$AQTY]    NVARCHAR (38)  NULL,
+    [T$BDIO]    NVARCHAR (38)  NULL,
+    [T$READ]    NVARCHAR (38)  NULL,
+    [T$RSEQ]    NVARCHAR (38)  NULL,
+    [T$ODATE]   DATETIME       NULL,
+    [T$CORN]    NVARCHAR (60)  NULL,
+    [T$CVAT]    NVARCHAR (18)  NULL,
+    [T$DAMT]    NVARCHAR (38)  NULL,
+    [T$DISC]    NVARCHAR (38)  NULL,
+    [T$HSN]     NVARCHAR (38)  NULL,
+    [T$PRIC]    NVARCHAR (38)  NULL
+);
+
+
+GO
+

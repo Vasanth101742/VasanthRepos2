@@ -1,0 +1,18 @@
+CREATE TABLE [dbo].[TZZGLD810400] (
+    [TCOD]    VARCHAR (30)  NULL,
+    [TCDE]    VARCHAR (100) NULL,
+    [DESC]    VARCHAR (200) NULL,
+    [FSCL]    VARCHAR (94)  NULL,
+    [BSPL]    VARCHAR (30)  NULL,
+    [ITYP]    VARCHAR (200) NULL,
+    [FSGP]    VARCHAR (200) NULL,
+    [NUMB]    VARCHAR (10)  NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL,
+    [UPBY]    VARCHAR (30)  NULL,
+    [UPDT]    DATETIME      NULL
+);
+
+
+GO
+

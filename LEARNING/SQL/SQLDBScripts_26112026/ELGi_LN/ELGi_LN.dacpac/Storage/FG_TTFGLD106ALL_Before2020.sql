@@ -1,0 +1,6 @@
+ALTER DATABASE [$(DatabaseName)]
+    ADD FILEGROUP [FG_TTFGLD106ALL_Before2020];
+
+
+GO
+

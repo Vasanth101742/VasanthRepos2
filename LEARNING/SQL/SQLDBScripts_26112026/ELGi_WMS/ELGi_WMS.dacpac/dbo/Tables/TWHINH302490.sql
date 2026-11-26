@@ -1,0 +1,15 @@
+CREATE TABLE [dbo].[TWHINH302490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [SFBP]    NVARCHAR (9)     NULL,
+    [SHID]    NVARCHAR (9)     NULL,
+    [ASNR]    NVARCHAR (30)    NULL,
+    [BOLA]    NVARCHAR (30)    NULL,
+    [PLST]    NVARCHAR (30)    NULL,
+    [PCSP]    NVARCHAR (30)    NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL
+);
+
+
+GO
+

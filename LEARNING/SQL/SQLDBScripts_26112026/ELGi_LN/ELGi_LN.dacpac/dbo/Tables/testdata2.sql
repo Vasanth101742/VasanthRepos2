@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[testdata2] (
+    [REFCNTD] NVARCHAR (38) NULL,
+    [REFCNTU] NVARCHAR (38) NULL,
+    [CWAR]    NVARCHAR (12) NULL,
+    [ITEM]    NVARCHAR (94) NULL,
+    [QHND]    INT           NULL,
+    [QCHD]    NVARCHAR (38) NULL,
+    [QNHD]    NVARCHAR (38) NULL,
+    [QBLK]    FLOAT (53)    NULL,
+    [QBPL]    NVARCHAR (38) NULL,
+    [QORD]    NVARCHAR (38) NULL,
+    [QOOR]    NVARCHAR (38) NULL,
+    [QCOR]    NVARCHAR (38) NULL,
+    [QNOR]    NVARCHAR (38) NULL,
+    [QINT]    NVARCHAR (38) NULL,
+    [QCIT]    NVARCHAR (38) NULL,
+    [QNIT]    NVARCHAR (38) NULL,
+    [QALL]    NVARCHAR (38) NULL,
+    [QOAL]    FLOAT (53)    NULL,
+    [QCAL]    NVARCHAR (38) NULL,
+    [QNAL]    NVARCHAR (38) NULL,
+    [QNBL]    NVARCHAR (38) NULL,
+    [QNBP]    NVARCHAR (38) NULL,
+    [QCOM]    NVARCHAR (38) NULL,
+    [QLAL]    INT           NULL,
+    [QCPR]    NVARCHAR (38) NULL,
+    [QHRJ]    NVARCHAR (38) NULL,
+    [QCRJ]    NVARCHAR (38) NULL,
+    [QNRJ]    NVARCHAR (38) NULL,
+    [LTDT]    DATETIME      NULL,
+    [HSTD]    DATETIME      NULL,
+    [LSID]    DATETIME      NULL,
+    [QCIS]    NVARCHAR (38) NULL,
+    [QHIB]    NVARCHAR (38) NULL,
+    [COMPANY] NVARCHAR (38) NULL
+);
+
+
+GO
+

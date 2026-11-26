@@ -1,0 +1,5 @@
+CREATE USER [User3.0] FOR LOGIN [User3.0];
+
+
+GO
+

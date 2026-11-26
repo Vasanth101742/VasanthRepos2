@@ -1,0 +1,8 @@
+CREATE TABLE [dbo].[OSTA_DESCRIPTION] (
+    [OSTANO]   INT          NULL,
+    [OSTADESC] VARCHAR (20) NULL
+);
+
+
+GO
+

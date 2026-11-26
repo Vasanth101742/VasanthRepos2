@@ -1,0 +1,31 @@
+CREATE TABLE [dbo].[TZZSFC918ALL] (
+    [COMPANY] NVARCHAR (38) NULL,
+    [FYER]    NVARCHAR (38) NULL,
+    [FPRD]    NVARCHAR (38) NULL,
+    [Date1]   DATETIME      NULL,
+    [PDNO]    NVARCHAR (18) NULL,
+    [PONO]    NVARCHAR (38) NULL,
+    [ORDT]    DATETIME      NULL,
+    [DLDT]    DATETIME      NULL,
+    [MITM]    NVARCHAR (94) NULL,
+    [MDSCA]   NVARCHAR (60) NULL,
+    [CWAR]    NVARCHAR (12) NULL,
+    [QRDR]    NVARCHAR (38) NULL,
+    [QDLV]    NVARCHAR (38) NULL,
+    [CITM]    NVARCHAR (94) NULL,
+    [CDSCA]   NVARCHAR (60) NULL,
+    [QUES]    NVARCHAR (38) NULL,
+    [QUCS]    NVARCHAR (38) NULL,
+    [WQTY]    FLOAT (53)    NULL,
+    [WAMT]    FLOAT (53)    NULL,
+    [OSTA]    NVARCHAR (38) NULL,
+    [UPDT]    DATETIME      NULL,
+    [FDAT]    DATETIME      NULL,
+    [TDAT]    DATETIME      NULL,
+    [REFCNTD] NVARCHAR (38) NULL,
+    [REFCNTU] NVARCHAR (38) NULL
+);
+
+
+GO
+

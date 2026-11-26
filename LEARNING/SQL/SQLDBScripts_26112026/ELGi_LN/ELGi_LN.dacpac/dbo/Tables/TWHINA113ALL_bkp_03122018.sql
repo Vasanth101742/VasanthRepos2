@@ -1,0 +1,27 @@
+CREATE TABLE [dbo].[TWHINA113ALL_bkp_03122018] (
+    [T$REFCNTD] NVARCHAR (38) NULL,
+    [T$REFCNTU] NVARCHAR (38) NULL,
+    [T$ITEM]    NVARCHAR (94) NULL,
+    [COMPANY]   NVARCHAR (38) NULL,
+    [T$CWAR]    NVARCHAR (12) NULL,
+    [T$TRDT]    DATETIME      NULL,
+    [T$SEQN]    FLOAT (53)    NULL,
+    [T$INWP]    NVARCHAR (38) NULL,
+    [T$CPCP]    NVARCHAR (16) NULL,
+    [T$HOUR]    NVARCHAR (38) NULL,
+    [T$MAUH]    NVARCHAR (38) NULL,
+    [T$MATH]    NVARCHAR (38) NULL,
+    [T$AMNT$1]  FLOAT (53)    NULL,
+    [T$AMNT$2]  FLOAT (53)    NULL,
+    [T$AMNT$3]  FLOAT (53)    NULL,
+    [T$MAUC$1]  FLOAT (53)    NULL,
+    [T$MAUC$2]  FLOAT (53)    NULL,
+    [T$MAUC$3]  FLOAT (53)    NULL,
+    [T$MATC$1]  FLOAT (53)    NULL,
+    [T$MATC$2]  FLOAT (53)    NULL,
+    [T$MATC$3]  FLOAT (53)    NULL
+);
+
+
+GO
+

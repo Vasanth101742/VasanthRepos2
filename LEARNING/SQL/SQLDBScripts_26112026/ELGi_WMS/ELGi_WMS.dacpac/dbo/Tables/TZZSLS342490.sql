@@ -1,0 +1,14 @@
+CREATE TABLE [dbo].[TZZSLS342490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [SHPM]    NVARCHAR (9)     NULL,
+    [REAS]    NVARCHAR (30)    NULL,
+    [RMRK]    NVARCHAR (30)    NULL,
+    [UPDT]    DATETIME2 (7)    NULL,
+    [LOGN]    NVARCHAR (16)    NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL
+);
+
+
+GO
+

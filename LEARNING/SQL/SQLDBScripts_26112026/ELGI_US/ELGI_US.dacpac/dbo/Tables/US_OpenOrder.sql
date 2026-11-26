@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[US_OpenOrder] (
+    [compnr]      BIGINT          NULL,
+    [odat]        DATETIME        NULL,
+    [ItemCode]    NVARCHAR (4000) NULL,
+    [dsca]        NVARCHAR (60)   NULL,
+    [orno]        NVARCHAR (9)    NULL,
+    [pono]        BIGINT          NULL,
+    [sqnb]        BIGINT          NULL,
+    [cwar]        NVARCHAR (6)    NULL,
+    [clyn]        BIGINT          NULL,
+    [refa]        NVARCHAR (30)   NULL,
+    [sotp]        NVARCHAR (3)    NULL,
+    [refb]        NVARCHAR (20)   NULL,
+    [Type]        VARCHAR (15)    NOT NULL,
+    [pric]        FLOAT (53)      NULL,
+    [pror_KW]     NVARCHAR (20)   NULL,
+    [chrq_kw]     NVARCHAR (20)   NULL,
+    [oamt]        FLOAT (53)      NULL,
+    [DelDate]     DATETIME        NULL,
+    [CalYear]     INT             NULL,
+    [CalMonth]    INT             NULL,
+    [hdst_kw]     NVARCHAR (25)   NULL,
+    [FinYear]     INT             NULL,
+    [FinMonth]    INT             NOT NULL,
+    [Month-Year]  NVARCHAR (4000) NULL,
+    [qoor]        FLOAT (53)      NULL,
+    [qidl]        FLOAT (53)      NULL,
+    [qbbo]        FLOAT (53)      NULL,
+    [openQty]     FLOAT (53)      NULL,
+    [OpenPrice]   FLOAT (53)      NULL,
+    [nama]        NVARCHAR (35)   NULL,
+    [cpln]        NVARCHAR (6)    NULL,
+    [amld]        FLOAT (53)      NULL,
+    [productType] NVARCHAR (50)   NULL,
+    [EngName]     NVARCHAR (50)   NULL
+);
+
+
+GO
+

@@ -1,0 +1,12 @@
+CREATE TABLE [dbo].[metadata] (
+    [COLUMN_NAME]    NVARCHAR (128)   NULL,
+    [DATA_TYPE]      NVARCHAR (128)   NULL,
+    [DATA_LENGTH]    DECIMAL (38, 38) NULL,
+    [DATA_PRECISION] DECIMAL (38, 38) NULL,
+    [DATA_SCALE]     DECIMAL (38, 38) NULL,
+    [NULLABLE]       NVARCHAR (1)     NULL
+);
+
+
+GO
+

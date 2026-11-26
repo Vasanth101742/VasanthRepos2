@@ -1,0 +1,71 @@
+CREATE TABLE [dbo].[LN_TDPCG031] (
+    [compnr]               BIGINT        NULL,
+    [prbk]                 NVARCHAR (9)  NULL,
+    [item]                 NVARCHAR (47) NULL,
+    [otbp]                 NVARCHAR (9)  NULL,
+    [sfbp]                 NVARCHAR (9)  NULL,
+    [curn]                 NVARCHAR (3)  NULL,
+    [qtun]                 NVARCHAR (3)  NULL,
+    [miqt]                 FLOAT (53)    NULL,
+    [prty]                 BIGINT        NULL,
+    [efdt]                 NVARCHAR (40) NULL,
+    [prbl]                 BIGINT        NULL,
+    [atse]                 NVARCHAR (35) NULL,
+    [prty_kw]              NVARCHAR (25) NULL,
+    [pbln]                 BIGINT        NULL,
+    [mpnr]                 NVARCHAR (35) NULL,
+    [cmnf]                 NVARCHAR (6)  NULL,
+    [brty]                 BIGINT        NULL,
+    [brty_kw]              NVARCHAR (20) NULL,
+    [exdt]                 NVARCHAR (40) NULL,
+    [endt]                 DATETIME      NULL,
+    [prpc]                 BIGINT        NULL,
+    [prpc_kw]              NVARCHAR (21) NULL,
+    [bapr]                 FLOAT (53)    NULL,
+    [prun]                 NVARCHAR (3)  NULL,
+    [prsg]                 NVARCHAR (3)  NULL,
+    [perc]                 FLOAT (53)    NULL,
+    [dssc]                 NVARCHAR (9)  NULL,
+    [quon]                 BIGINT        NULL,
+    [quon_kw]              NVARCHAR (20) NULL,
+    [hipr]                 BIGINT        NULL,
+    [hipr_kw]              NVARCHAR (20) NULL,
+    [refa]                 NVARCHAR (30) NULL,
+    [sour]                 NVARCHAR (30) NULL,
+    [dfpb]                 BIGINT        NULL,
+    [dfpb_kw]              NVARCHAR (20) NULL,
+    [uolp]                 BIGINT        NULL,
+    [uolp_kw]              NVARCHAR (20) NULL,
+    [dsor]                 BIGINT        NULL,
+    [dsor_kw]              NVARCHAR (20) NULL,
+    [pbor]                 BIGINT        NULL,
+    [pbor_kw]              NVARCHAR (20) NULL,
+    [prbk_ref_compnr]      BIGINT        NULL,
+    [item_atse_ref_compnr] BIGINT        NULL,
+    [item_ref_compnr]      BIGINT        NULL,
+    [atse_ref_compnr]      BIGINT        NULL,
+    [otbp_ref_compnr]      BIGINT        NULL,
+    [sfbp_ref_compnr]      BIGINT        NULL,
+    [curn_ref_compnr]      BIGINT        NULL,
+    [qtun_ref_compnr]      BIGINT        NULL,
+    [mpnr_cmnf_ref_compnr] BIGINT        NULL,
+    [cmnf_ref_compnr]      BIGINT        NULL,
+    [prun_ref_compnr]      BIGINT        NULL,
+    [prsg_ref_compnr]      BIGINT        NULL,
+    [dssc_ref_compnr]      BIGINT        NULL,
+    [deleted]              NCHAR (1)     NULL,
+    [username]             NVARCHAR (8)  NULL,
+    [timestamp]            DATETIME      NULL,
+    [sequencenumber]       BIGINT        NULL,
+    [dlDocumentDate]       NVARCHAR (40) NULL
+);
+
+
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [idx_LN_TDPCG031_lookup]
+    ON [dbo].[LN_TDPCG031]([compnr] ASC, [prbk] ASC, [item] ASC, [otbp] ASC, [sfbp] ASC, [curn] ASC, [qtun] ASC, [miqt] ASC, [prty] ASC, [efdt] ASC, [prbl] ASC);
+
+
+GO
+

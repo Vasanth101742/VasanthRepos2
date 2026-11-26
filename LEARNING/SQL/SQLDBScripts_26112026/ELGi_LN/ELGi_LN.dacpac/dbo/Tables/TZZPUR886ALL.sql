@@ -1,0 +1,23 @@
+CREATE TABLE [dbo].[TZZPUR886ALL] (
+    [COMPANY] NVARCHAR (38)   NULL,
+    [REFNO]   NVARCHAR (50)   NULL,
+    [PPNO]    NVARCHAR (38)   NULL,
+    [COMP]    NVARCHAR (38)   NULL,
+    [OTBP]    NVARCHAR (18)   NULL,
+    [ORNO]    NVARCHAR (18)   NULL,
+    [PONO]    NVARCHAR (38)   NULL,
+    [ODAT]    DATETIME        NULL,
+    [ITEM]    NVARCHAR (94)   NULL,
+    [QOOR]    NVARCHAR (38)   NULL,
+    [EMSG]    NVARCHAR (1024) NULL,
+    [STAT]    NVARCHAR (20)   NULL,
+    [UDAT]    DATETIME        NULL,
+    [USER]    NVARCHAR (24)   NULL,
+    [TYPE]    NVARCHAR (2)    NULL,
+    [REFCNTD] NVARCHAR (38)   NULL,
+    [REFCNTU] NVARCHAR (38)   NULL
+);
+
+
+GO
+

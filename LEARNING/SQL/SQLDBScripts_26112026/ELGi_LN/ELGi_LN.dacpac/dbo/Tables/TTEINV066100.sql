@@ -1,0 +1,13 @@
+CREATE TABLE [dbo].[TTEINV066100] (
+    [ITEM]    VARCHAR (16) NULL,
+    [COMPANY] FLOAT (53)   NULL,
+    [T$YEAR]  VARCHAR (4)  NULL,
+    [T$CATG]  VARCHAR (30) NULL,
+    [T$SUBC]  VARCHAR (30) NULL,
+    [T$WGHT]  FLOAT (53)   NULL,
+    [T$WTT1]  FLOAT (53)   NULL
+);
+
+
+GO
+

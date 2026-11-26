@@ -1,0 +1,17 @@
+CREATE TABLE [dbo].[TZZSFC203ALL] (
+    [COMPANY]   FLOAT (53)    NULL,
+    [T$DIVI]    FLOAT (53)    NULL,
+    [T$DEPT]    FLOAT (53)    NULL,
+    [T$CWAR]    NVARCHAR (6)  NULL,
+    [T$NRGR]    NVARCHAR (3)  NULL,
+    [T$GRNO]    NVARCHAR (8)  NULL,
+    [T$LOGN]    NVARCHAR (16) NULL,
+    [T$UPDT]    DATETIME2 (0) NULL,
+    [T$BLCK]    FLOAT (53)    NULL,
+    [T$REFCNTD] FLOAT (53)    NULL,
+    [T$REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

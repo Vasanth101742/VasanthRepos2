@@ -1,0 +1,125 @@
+CREATE view [dbo].[vw_GSC_OVERDUE_Summary_WhOrder_Railways]
+
+as
+
+
+select Division,case when Division='Railways' then 1 end 'OrderLine' 
+,isnull(round(sum([0-10Days]),2),0)'0-10Days'
+,isnull(round(sum([11-20Days]),2),0)'11-20'
+,isnull(Round(sum([21-30Days]),2),0)'21-30'
+,isnull(Round(sum([31-60Days]),2),0)'31-60'
+,isnull(Round(sum([61-90Days]),2),0)'61-90'
+,isnull(Round(sum([91-150Days]),2),0)'91-150'
+,isnull(Round(sum([150 GreatDays]),2),0)'150Great'
+,isnull(Round(sum([Up Week 1]),2),0)'Week 1'
+,isnull(Round(sum([Up Week 2]),2),0)'Week 2'
+,isnull(Round(sum([Up Week 3]),2),0)'Week 3'
+,isnull(Round(sum([Up Week 4]),2),0)'Week 4'
+,isnull(Round(sum([Up Week 5]),2),0)'Week 5'
+,isnull(Round(sum([Up Week 6]),2),0)'Week 6'
+,isnull(Round(sum([Up Week 7]),2),0)'Week 7'
+,isnull(Round(sum([Up Week 8]),2),0)'Week 8'
+,isnull(Round(sum([Great than 8]),2),0)'8Week Greater',Definition from 
+
+
+
+(select Division,[0-10Days],[11-20Days],[21-30Days],[31-60Days],[61-90Days],[91-150Days],[150 GreatDays],[Up Week 1]
+
+,[Up Week 2],[Up Week 3],[Up Week 4],[Up Week 5],[Up Week 6],[Up Week 7],[Up Week 8],[Great than 8],Definition from(
+
+
+
+select *,round((case when  sales_gstn_no='EXPORT' then value else t_oamt end),2)'FinalPrice'
+
+,round((case when  sales_gstn_no='EXPORT' then value/1000000 else t_oamt/1000000 end),2)'Amount'
+
+,case 
+when [Over Due Days] between 1 and 10 then '0-10Days' 
+when [Over Due Days] between 11 and 20 then '11-20Days'
+when [Over Due Days] between 21 and 30 then '21-30Days'
+when [Over Due Days] between 31 and 60 then '31-60Days'
+when [Over Due Days] between 61 and 90 then '61-90Days'
+when [Over Due Days] between 91 and 150 then '91-150Days'
+when [Over Due Days] >150 then '150 GreatDays'
+when [Over Due Days]<=0 and abs([Over Due Days]) between 0 and 7  then 'Up Week 1'
+when [Over Due Days]<0 and abs([Over Due Days]) between 8 and 14  then 'Up Week 2' 
+when [Over Due Days]<0 and abs([Over Due Days]) between 15 and 21  then 'Up Week 3' 
+when [Over Due Days]<0 and abs([Over Due Days]) between 22 and 28  then 'Up Week 4' 
+when [Over Due Days]<0 and abs([Over Due Days]) between 29 and 35  then 'Up Week 5' 
+when [Over Due Days]<0 and abs([Over Due Days]) between 36 and 42  then 'Up Week 6' 
+when [Over Due Days]<0 and abs([Over Due Days]) between 43 and 49  then 'Up Week 7' 
+when [Over Due Days]<0 and abs([Over Due Days]) between 49 and 56  then 'Up Week 8' 
+when [Over Due Days]<0 and abs([Over Due Days]) >=57  then 'Great than 8' 
+end 'OD Com',
+
+case 
+--when g.Dpst in (70016,70028,70045,70056,70065,70085,70096) and g.Custname like'elgi%' then 'Subsidiaries'  
+--when g.Dpst in (70016,70028,70045,70056,70065,70085,70096) and g.Custname like'Rotair%' then 'Subsidiaries'  
+--when g.Dpst in (70028,70085) and g.Custname not like'elgi%' then 'Subsidiaries - BTB'  
+--when g.Dpst in (90001, 90013,90028,90031,90063,90075,90008,90010,90016,90020,90021,90022,90030,90033,90035,90037,90038,90094) then 'Industrial'
+--when g.Dpst in (90082 , 90083 , 90084) then 'OFSAC'
+--when g.Dpst in (90076 , 90077) then 'Portable'
+when g.dpst in (90092) then 'Railways'
+--when g.Dpst in(90213,90231,90256,90257,90267) then 'Direct Export'
+else 'Others'
+end 'Division',
+case when ordertype='AMC' then 'AMC'
+ when ordertype in ('226','526','546') then 'BDI'
+ when ordertype in ('274') then 'BDI reverse order'
+ when ordertype in ('516','517') then 'Consignee'
+ when ordertype in ('219') then 'Rly export'
+ when ordertype='515' then 'Set and schedule inspection order'
+ end 'Definition' from 
+ 
+(
+
+select *,((DATEDIFF(dd, c.Plan_del_date2,c.CurrentDate) + 1)
+
+    -(DATEDIFF(wk,  c.Plan_del_date2,c.CurrentDate) * 2)
+
+    -(CASE WHEN DATEPART(dw, c.OrderDate) = 1 THEN 1 ELSE 0 END)
+
+    -(CASE WHEN DATEPART(dw, c.CurrentDate) = 7 THEN 1 ELSE 0 END))-1 as 'Over Due Days'
+
+ from 
+
+
+
+(
+
+select *,convert(date,getdate()) as 'CurrentDate',dateadd(day,60,plan_del_date) 'Plan_del_date2'	
+
+from gr_PendingOrders  a
+
+where dpst in (90092)
+
+and convert(date,OrderDate)>'20220331' and isnull(wh_orderdate,'1900-01-01')='1900-01-01'
+and ltrim(rtrim(a.OrderNum)) not in ('236066145','236066176','236066181','236059266','236060870',
+--as per mail on 20/8/2025
+'551000439','551000449','551000463','560002323','551000580','551000586','531004093','580000202','531004353','531004429','531004523','531004525','550003597','560002838','560002861','571000337','531005396','531005440','531005438')
+
+)c
+
+
+
+) g
+
+
+
+) a
+
+pivot
+
+(sum (Amount)
+
+for [OD Com] in ([0-10Days],[11-20Days],[21-30Days],[31-60Days],[61-90Days],[91-150Days],[150 GreatDays],[Up Week 1]
+
+,[Up Week 2],[Up Week 3],[Up Week 4],[Up Week 5],[Up Week 6],[Up Week 7],[Up Week 8],[Great than 8])) as PVT) a
+
+
+
+
+group by Division,Definition
+
+GO
+

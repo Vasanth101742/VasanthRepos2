@@ -1,0 +1,7 @@
+CREATE TABLE [dbo].[LEDGER_MASTER] (
+    [T$LEAC] NVARCHAR (24) NULL
+);
+
+
+GO
+

@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[ACP_CREDITORS_CONSOLIDATED] (
+    [COMPANY]         NVARCHAR (38)  NULL,
+    [TranType]        NVARCHAR (6)   NULL,
+    [InvNo]           NVARCHAR (38)  NULL,
+    [SuppCode]        NVARCHAR (18)  NULL,
+    [SuppName]        VARCHAR (50)   NULL,
+    [Currency]        NVARCHAR (50)  NULL,
+    [CurRate]         NVARCHAR (100) NULL,
+    [InvAmnt]         FLOAT (53)     NULL,
+    [PaidAmnt]        FLOAT (53)     NULL,
+    [BalanceAmt]      FLOAT (53)     NULL,
+    [InvAmnti]        NUMERIC (38)   NULL,
+    [PaidAmnti]       NUMERIC (38)   NULL,
+    [BalanceAmti]     FLOAT (53)     NULL,
+    [Ageing]          VARCHAR (14)   NULL,
+    [AgeingOrdr]      INT            NULL,
+    [FinYear]         INT            NULL,
+    [FinMonth]        INT            NULL,
+    [CalYear]         INT            NULL,
+    [CalMonth]        INT            NULL,
+    [SuppInvNo]       VARCHAR (100)  NULL,
+    [DocDt]           DATETIME       NULL,
+    [SupplierType]    VARCHAR (25)   NULL,
+    [SuppCategory]    VARCHAR (25)   NULL,
+    [MSME]            VARCHAR (20)   NULL,
+    [PaidStatus]      VARCHAR (20)   NULL,
+    [DueStatus]       VARCHAR (20)   NULL,
+    [Credit_Debit]    VARCHAR (20)   NULL,
+    [ORNO]            NVARCHAR (18)  NULL,
+    [REFR]            NVARCHAR (64)  NULL,
+    [InvAmnt_USD]     FLOAT (53)     NULL,
+    [PaidAmnt_USD]    FLOAT (53)     NULL,
+    [BalanceAmnt_USD] FLOAT (53)     NULL,
+    [ChequeReqNo]     VARCHAR (50)   NULL,
+    [CR_Pendingwith]  NVARCHAR (50)  NULL
+);
+
+
+GO
+

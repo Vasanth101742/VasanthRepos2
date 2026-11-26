@@ -1,0 +1,30 @@
+CREATE TABLE [dbo].[TZZSLS167401] (
+    [T$REFCNTD] NVARCHAR (38)  NULL,
+    [T$REFCNTU] NVARCHAR (38)  NULL,
+    [T$CMPN]    NVARCHAR (38)  NULL,
+    [T$BKNO]    NVARCHAR (32)  NULL,
+    [T$AWBN]    NVARCHAR (32)  NULL,
+    [T$PTNO]    NVARCHAR (80)  NULL,
+    [T$QTY]     NVARCHAR (38)  NULL,
+    [T$TYPE]    NVARCHAR (32)  NULL,
+    [T$DPLC]    NVARCHAR (64)  NULL,
+    [T$SCDE]    NVARCHAR (32)  NULL,
+    [T$SNAM]    NVARCHAR (200) NULL,
+    [T$ORGIN]   NVARCHAR (32)  NULL,
+    [T$CRED]    DATETIME       NULL,
+    [T$ETD]     DATETIME       NULL,
+    [T$ETA]     DATETIME       NULL,
+    [T$ETA2]    DATETIME       NULL,
+    [T$ETA3]    DATETIME       NULL,
+    [T$TEND]    DATETIME       NULL,
+    [T$TLEAD]   NVARCHAR (38)  NULL,
+    [T$PTLT]    NVARCHAR (38)  NULL,
+    [T$RMKS]    NVARCHAR (200) NULL,
+    [T$STUS]    NVARCHAR (32)  NULL,
+    [T$BOEN]    NVARCHAR (64)  NULL,
+    [T$PTDS]    NVARCHAR (200) NULL
+);
+
+
+GO
+

@@ -1,0 +1,14 @@
+CREATE TABLE [dbo].[TZZSLS912ALL] (
+    [COMPANY]   NVARCHAR (10) NULL,
+    [T$ITEM]    NVARCHAR (47) NULL,
+    [T$UOM]     NVARCHAR (3)  NULL,
+    [T$WGHT]    FLOAT (53)    NULL,
+    [T$UPBY]    NVARCHAR (16) NULL,
+    [T$UPDT]    DATETIME2 (7) NULL,
+    [T$REFCNTD] FLOAT (53)    NULL,
+    [T$REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

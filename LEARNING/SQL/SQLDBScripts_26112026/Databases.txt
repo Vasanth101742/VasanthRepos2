@@ -1,0 +1,9 @@
+ELGi_CDOC
+ELGi_CRM
+ELGi_Intranet
+ELGi_LN
+ELGI_US
+ELGi_WMS
+ReportServer
+ReportServerTempDB
+msdb

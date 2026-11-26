@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[ACP_As_of_Date_Details] (
+    [Company]       INT            NULL,
+    [SuppCode]      NVARCHAR (18)  NULL,
+    [SuppName]      NVARCHAR (100) NULL,
+    [InvDate]       DATE           NULL,
+    [TranType]      NVARCHAR (6)   NULL,
+    [InvNo]         INT            NULL,
+    [InvLine]       INT            NULL,
+    [InvSchedule]   INT            NULL,
+    [InitialDocTyp] NVARCHAR (6)   NULL,
+    [InitialDocNo]  INT            NULL,
+    [InvAmti]       FLOAT (53)     NULL,
+    [InvAmth]       FLOAT (53)     NULL,
+    [DueDate]       DATE           NULL,
+    [DueAmti]       FLOAT (53)     NULL,
+    [DueAmth]       FLOAT (53)     NULL,
+    [PaidDate]      DATE           NULL,
+    [PaidLine]      INT            NULL,
+    [PaidSchedule]  INT            NULL,
+    [PaidDocType]   NVARCHAR (6)   NULL,
+    [PaidDocNo]     INT            NULL,
+    [PaidAmti]      FLOAT (53)     NULL,
+    [PaidAmth]      FLOAT (53)     NULL,
+    [InvBali]       FLOAT (53)     NULL,
+    [InvBalh]       FLOAT (53)     NULL,
+    [Currency]      NVARCHAR (6)   NULL,
+    [CurRate]       FLOAT (53)     NULL,
+    [Period]        VARCHAR (10)   NULL,
+    [EntryDate]     DATE           NULL,
+    [PCOM]          NVARCHAR (38)  NULL,
+    [PAYT]          NVARCHAR (6)   NULL,
+    [PAYD]          NVARCHAR (38)  NULL,
+    [APPR]          NVARCHAR (38)  NULL,
+    [RCNO]          NVARCHAR (18)  NULL,
+    [TPAY]          NVARCHAR (38)  NULL
+);
+
+
+GO
+

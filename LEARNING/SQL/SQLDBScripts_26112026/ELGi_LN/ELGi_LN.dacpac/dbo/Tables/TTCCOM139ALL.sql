@@ -1,0 +1,15 @@
+CREATE TABLE [dbo].[TTCCOM139ALL] (
+    [COMPANY] FLOAT (53)    NULL,
+    [CCTY]    NVARCHAR (3)  NULL,
+    [CSTE]    NVARCHAR (3)  NULL,
+    [CITY]    NVARCHAR (8)  NULL,
+    [DSCA]    NVARCHAR (30) NULL,
+    [SEAK]    NVARCHAR (16) NULL,
+    [IDNR]    FLOAT (53)    NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

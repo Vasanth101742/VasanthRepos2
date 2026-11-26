@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[TWHWMD215490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [CWAR]    NVARCHAR (6)     NULL,
+    [ITEM]    NVARCHAR (47)    NULL,
+    [QHND]    DECIMAL (38, 18) NULL,
+    [QCHD]    DECIMAL (38, 18) NULL,
+    [QNHD]    DECIMAL (38, 18) NULL,
+    [QBLK]    DECIMAL (38, 18) NULL,
+    [QBPL]    DECIMAL (38, 18) NULL,
+    [QORD]    DECIMAL (38, 18) NULL,
+    [QOOR]    DECIMAL (38, 18) NULL,
+    [QCOR]    DECIMAL (38, 18) NULL,
+    [QNOR]    DECIMAL (38, 18) NULL,
+    [QINT]    DECIMAL (38, 18) NULL,
+    [QCIT]    DECIMAL (38, 18) NULL,
+    [QNIT]    DECIMAL (38, 18) NULL,
+    [QALL]    DECIMAL (38, 18) NULL,
+    [QOAL]    DECIMAL (38, 18) NULL,
+    [QCAL]    DECIMAL (38, 18) NULL,
+    [QNAL]    DECIMAL (38, 18) NULL,
+    [QNBL]    DECIMAL (38, 18) NULL,
+    [QNBP]    DECIMAL (38, 18) NULL,
+    [QCOM]    DECIMAL (38, 18) NULL,
+    [QLAL]    DECIMAL (38, 18) NULL,
+    [QCPR]    DECIMAL (38, 18) NULL,
+    [QHRJ]    DECIMAL (38, 18) NULL,
+    [QCRJ]    DECIMAL (38, 18) NULL,
+    [QNRJ]    DECIMAL (38, 18) NULL,
+    [LTDT]    DATETIME2 (7)    NULL,
+    [HSTD]    DATETIME2 (7)    NULL,
+    [LSID]    DATETIME2 (7)    NULL,
+    [QCIS]    DECIMAL (38, 18) NULL,
+    [QHIB]    DECIMAL (38, 18) NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL
+);
+
+
+GO
+

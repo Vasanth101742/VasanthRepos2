@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[ATS_Sales_Performance_Tmp] (
+    [SalesType]                   VARCHAR (19)   NULL,
+    [productgroup]                NVARCHAR (255) NULL,
+    [DPSTCode]                    NVARCHAR (6)   NULL,
+    [DPSTName]                    VARCHAR (50)   NULL,
+    [AreaCode]                    VARCHAR (10)   NULL,
+    [AreaName]                    VARCHAR (10)   NULL,
+    [Zone]                        VARCHAR (100)  NULL,
+    [Sales_Plan]                  FLOAT (53)     NULL,
+    [last_year_ytd_bud]           FLOAT (53)     NULL,
+    [this_year_ytd_bud]           FLOAT (53)     NULL,
+    [last_month_bud]              FLOAT (53)     NULL,
+    [this_month_bud]              FLOAT (53)     NULL,
+    [next_month_budget]           FLOAT (53)     NULL,
+    [nextof_next_month_budget]    FLOAT (53)     NULL,
+    [last_year_ytd_inflow]        FLOAT (53)     NULL,
+    [last_year_this_month_inflow] FLOAT (53)     NULL,
+    [this_year_ytd_inflow]        FLOAT (53)     NULL,
+    [last_month_inflow]           FLOAT (53)     NULL,
+    [this_month_inflow]           FLOAT (53)     NULL,
+    [last_day_inflow]             FLOAT (53)     NULL,
+    [last_year_day_inflow]        FLOAT (53)     NULL,
+    [last_year_ytd]               FLOAT (53)     NULL,
+    [last_year_this_month_sale]   FLOAT (53)     NULL,
+    [this_year_ytd]               FLOAT (53)     NULL,
+    [last_month_sale]             FLOAT (53)     NULL,
+    [this_month_sale]             FLOAT (53)     NULL,
+    [last_day_sale]               FLOAT (53)     NULL,
+    [last_year_day_sale]          FLOAT (53)     NULL,
+    [ZoneOrdering]                INT            NULL,
+    [SalesTypeOrdering]           INT            NULL,
+    [PrdgrpOrdering]              INT            NULL,
+    [CalMonth]                    INT            NULL,
+    [CalYear]                     INT            NULL,
+    [FinMonth]                    INT            NULL,
+    [FinYear]                     INT            NULL,
+    [Division]                    VARCHAR (50)   NULL
+);
+
+
+GO
+

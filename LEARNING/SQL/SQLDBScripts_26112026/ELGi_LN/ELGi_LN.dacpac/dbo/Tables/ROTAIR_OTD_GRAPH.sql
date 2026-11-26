@@ -1,0 +1,9 @@
+CREATE TABLE [dbo].[ROTAIR_OTD_GRAPH] (
+    [MONTH]  VARCHAR (20)  NULL,
+    [TARGET] VARCHAR (100) NULL,
+    [CNT]    FLOAT (53)    NULL
+);
+
+
+GO
+

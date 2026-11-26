@@ -1,0 +1,43 @@
+CREATE TABLE [dbo].[ServiceDueAcc] (
+    [Zone]                  NVARCHAR (30)    NULL,
+    [FabNo]                 NVARCHAR (100)   NULL,
+    [ProductGroup]          NVARCHAR (100)   NULL,
+    [ProductSubGroup]       NVARCHAR (150)   NULL,
+    [WarrantyType]          NVARCHAR (100)   NULL,
+    [Model]                 NVARCHAR (250)   NULL,
+    [CustomerName]          NVARCHAR (250)   NULL,
+    [Category]              NVARCHAR (MAX)   NULL,
+    [Segment]               NVARCHAR (250)   NULL,
+    [ServiceEng]            NVARCHAR (250)   NULL,
+    [SparesEng]             NVARCHAR (250)   NULL,
+    [CommDate]              DATETIME         NULL,
+    [InvDate]               DATETIME         NULL,
+    [LatestServiceCall]     NVARCHAR (250)   NULL,
+    [TypeOfCall]            NVARCHAR (250)   NULL,
+    [Replacement]           NVARCHAR (10)    NULL,
+    [ServiceEngComments]    VARCHAR (4000)   NULL,
+    [LatestServiceCallDate] DATETIME         NULL,
+    [OneYearKit]            DATETIME         NULL,
+    [TwoYearKit]            DATETIME         NULL,
+    [ThreeYearKit]          DATETIME         NULL,
+    [OthersTwoYearKit]      DATETIME         NULL,
+    [LockinDealerName]      NVARCHAR (250)   NULL,
+    [accountid]             UNIQUEIDENTIFIER NULL,
+    [MSDYN_CUSTOMERASSETid] UNIQUEIDENTIFIER NULL,
+    [elgi_lockindealer]     UNIQUEIDENTIFIER NULL,
+    [msdyn_product]         UNIQUEIDENTIFIER NULL,
+    [TPL]                   NVARCHAR (250)   NULL,
+    [KitsDescr]             NVARCHAR (250)   NULL,
+    [msdyn_account]         UNIQUEIDENTIFIER NULL,
+    [OneYearKit_Clr]        NVARCHAR (10)    NULL,
+    [TwoYearKit_Clr]        NVARCHAR (10)    NULL,
+    [ThreeYearKit_Clr]      NVARCHAR (10)    NULL,
+    [OthersTwoYearKit_Clr]  NVARCHAR (10)    NULL,
+    [DaysAfterComm]         FLOAT (53)       NULL,
+    [AccountNumber]         NVARCHAR (100)   NULL,
+    [DPST]                  NVARCHAR (50)    NULL
+);
+
+
+GO
+

@@ -2,7 +2,7 @@
 # 02 - Build SQL Database Projects
 # ============================================================
 
-$RootFolder = "C:\SQLDevOps"
+$RootFolder = "C:\SQLDBScripts_26112026"
 
 $BuildLogFile = "$RootFolder\BuildLog.csv"
 
@@ -22,7 +22,7 @@ Write-Host ""
 
 $Projects = Get-ChildItem `
     -Path $RootFolder `
-    -Filter "ELGi_US.sqlproj" `
+    -Filter "*.sqlproj" `
     -Recurse
 
 

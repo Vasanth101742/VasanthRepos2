@@ -1,0 +1,13 @@
+CREATE TABLE [dbo].[TZZSLS123401] (
+    [ITEM]    NVARCHAR (47) NULL,
+    [PDATE]   DATETIME2 (7) NULL,
+    [SUPP]    NVARCHAR (50) NULL,
+    [CURR]    NVARCHAR (3)  NULL,
+    [CNTY]    NVARCHAR (50) NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

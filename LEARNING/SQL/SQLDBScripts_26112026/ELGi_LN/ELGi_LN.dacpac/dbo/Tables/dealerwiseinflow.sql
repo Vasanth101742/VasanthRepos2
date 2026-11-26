@@ -1,0 +1,41 @@
+CREATE TABLE [dbo].[dealerwiseinflow] (
+    [Fin_year]  INT           NULL,
+    [dpst]      NVARCHAR (12) NULL,
+    [custcode]  NVARCHAR (18) NULL,
+    [CustName1] NVARCHAR (70) NULL,
+    [AreaCode]  VARCHAR (5)   NULL,
+    [AreaName]  VARCHAR (50)  NULL,
+    [Zone]      VARCHAR (50)  NULL,
+    [itemcode]  NVARCHAR (94) NULL,
+    [item_desc] NVARCHAR (60) NULL,
+    [mon_act1]  FLOAT (53)    NULL,
+    [mon_act2]  FLOAT (53)    NULL,
+    [mon_act3]  FLOAT (53)    NULL,
+    [mon_act4]  FLOAT (53)    NULL,
+    [mon_act5]  FLOAT (53)    NULL,
+    [mon_act6]  FLOAT (53)    NULL,
+    [mon_act7]  FLOAT (53)    NULL,
+    [mon_act8]  FLOAT (53)    NULL,
+    [mon_act9]  FLOAT (53)    NULL,
+    [mon_act10] FLOAT (53)    NULL,
+    [mon_act11] FLOAT (53)    NULL,
+    [mon_act12] FLOAT (53)    NULL,
+    [ytd_act]   FLOAT (53)    NULL,
+    [qty1]      FLOAT (53)    NULL,
+    [qty2]      FLOAT (53)    NULL,
+    [qty3]      FLOAT (53)    NULL,
+    [qty4]      FLOAT (53)    NULL,
+    [qty5]      FLOAT (53)    NULL,
+    [qty6]      FLOAT (53)    NULL,
+    [qty7]      FLOAT (53)    NULL,
+    [qty8]      FLOAT (53)    NULL,
+    [qty9]      FLOAT (53)    NULL,
+    [qty10]     FLOAT (53)    NULL,
+    [qty11]     FLOAT (53)    NULL,
+    [qty12]     FLOAT (53)    NULL,
+    [ytd_qty]   FLOAT (53)    NULL
+);
+
+
+GO
+

@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[Bud_sales_Inflow_ID] (
+    [Organ]                   VARCHAR (50)   NULL,
+    [DPSTCode]                VARCHAR (50)   NULL,
+    [DPSTName]                VARCHAR (100)  NULL,
+    [AreaCode]                VARCHAR (3)    NULL,
+    [AreaName]                VARCHAR (50)   NULL,
+    [CustCode]                NVARCHAR (18)  NULL,
+    [CustName]                NVARCHAR (70)  NULL,
+    [DealerCode]              NVARCHAR (18)  NULL,
+    [DealerName]              NVARCHAR (70)  NULL,
+    [SalesRepCode]            INT            NULL,
+    [SalesRep]                VARCHAR (50)   NULL,
+    [Category]                NVARCHAR (255) NULL,
+    [ProductLine]             NVARCHAR (255) NULL,
+    [company]                 INT            NULL,
+    [warehouse]               NVARCHAR (6)   NULL,
+    [ItemCode]                VARCHAR (16)   NULL,
+    [Cal_month]               INT            NULL,
+    [Cal_year]                INT            NULL,
+    [Fin_month]               INT            NULL,
+    [Fin_year]                INT            NULL,
+    [Budget]                  NUMERIC (18)   NULL,
+    [Sales_amount]            FLOAT (53)     NULL,
+    [Inflow_amount]           FLOAT (53)     NULL,
+    [Category_ordr]           INT            NULL,
+    [ProductLine_ordr]        INT            NULL,
+    [SalesRepOrdr]            INT            NULL,
+    [Budget_USD]              FLOAT (53)     NULL,
+    [Sales_USD]               FLOAT (53)     NULL,
+    [Inflow_USD]              FLOAT (53)     NULL,
+    [Budget_Foreign_Currency] FLOAT (53)     NULL,
+    [Sales_Foreign_currency]  FLOAT (53)     NULL,
+    [Inflow_Foreign_currency] FLOAT (53)     NULL,
+    [BudQty]                  FLOAT (53)     NULL,
+    [SalesQty]                FLOAT (53)     NULL,
+    [Item_desc]               VARCHAR (50)   NULL,
+    [SalesPlan_USD]           FLOAT (53)     NULL
+);
+
+
+GO
+

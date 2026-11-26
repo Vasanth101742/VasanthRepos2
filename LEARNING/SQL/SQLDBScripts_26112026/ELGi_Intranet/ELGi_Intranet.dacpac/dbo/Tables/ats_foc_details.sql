@@ -1,0 +1,43 @@
+CREATE TABLE [dbo].[ats_foc_details] (
+    [company]            INT             NULL,
+    [OrderNo]            NVARCHAR (4000) NULL,
+    [areacode]           VARCHAR (8000)  NULL,
+    [areaname]           VARCHAR (8000)  NULL,
+    [SaleOrderType]      NVARCHAR (4000) NULL,
+    [indent]             VARCHAR (8000)  NULL,
+    [custcode]           NVARCHAR (4000) NULL,
+    [custname]           NVARCHAR (4000) NULL,
+    [warehouse]          NVARCHAR (4000) NULL,
+    [trantype]           NVARCHAR (4000) NULL,
+    [item]               NVARCHAR (4000) NULL,
+    [item_desc]          NVARCHAR (4000) NULL,
+    [invoice]            INT             NULL,
+    [Invoice_Date]       DATETIME        NULL,
+    [Currency]           NVARCHAR (4000) NULL,
+    [dpst]               NVARCHAR (4000) NULL,
+    [dpstname]           VARCHAR (8000)  NULL,
+    [DeliveryQty]        FLOAT (53)      NULL,
+    [cal_year]           INT             NULL,
+    [cal_month]          INT             NULL,
+    [Sales_amount]       FLOAT (53)      NULL,
+    [foc_classification] NVARCHAR (4000) NULL,
+    [firno]              NVARCHAR (4000) NULL,
+    [ccstrackno]         NVARCHAR (4000) NULL,
+    [focno]              NVARCHAR (4000) NULL,
+    [fabno]              NVARCHAR (4000) NULL,
+    [oem_name]           NVARCHAR (4000) NULL,
+    [foc_desc]           NVARCHAR (4000) NULL,
+    [pr_model]           NVARCHAR (4000) NULL,
+    [pr_type]            NVARCHAR (4000) NULL,
+    [item_code]          NVARCHAR (4000) NULL,
+    [cate_desc]          NVARCHAR (4000) NULL,
+    [item_price]         FLOAT (53)      NULL,
+    [total_value]        FLOAT (53)      NULL,
+    [item_req]           INT             NULL,
+    [comm_date]          VARCHAR (8000)  NULL,
+    [sale_date]          VARCHAR (8000)  NULL
+);
+
+
+GO
+

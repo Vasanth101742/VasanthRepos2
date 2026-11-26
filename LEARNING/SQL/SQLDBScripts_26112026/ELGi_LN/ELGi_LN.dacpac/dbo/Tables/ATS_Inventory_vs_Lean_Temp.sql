@@ -1,0 +1,43 @@
+CREATE TABLE [dbo].[ATS_Inventory_vs_Lean_Temp] (
+    [COMPANY]             NVARCHAR (38) NULL,
+    [ITEM]                NVARCHAR (94) NULL,
+    [ItemDescr]           VARCHAR (100) NULL,
+    [InvTypeOrdr]         INT           NULL,
+    [INVType]             VARCHAR (50)  NULL,
+    [QSKT]                FLOAT (53)    NULL,
+    [Amnt4]               FLOAT (53)    NULL,
+    [DIVISION_CODE]       VARCHAR (10)  NULL,
+    [Dept_code]           VARCHAR (10)  NULL,
+    [DIVISION_NAME]       VARCHAR (50)  NULL,
+    [Dept_Name]           VARCHAR (50)  NULL,
+    [BinQty]              FLOAT (53)    NULL,
+    [BuyerCode]           VARCHAR (50)  NULL,
+    [SuppCode]            VARCHAR (50)  NULL,
+    [BuyerName]           VARCHAR (50)  NULL,
+    [SuppName]            VARCHAR (50)  NULL,
+    [TYPE]                NVARCHAR (38) NULL,
+    [TYPE_DESC]           NVARCHAR (38) NULL,
+    [Import]              VARCHAR (10)  NULL,
+    [Plan_Inv_Qty]        FLOAT (53)    NULL,
+    [Plan_Inv_Value]      FLOAT (53)    NULL,
+    [SlotQty]             FLOAT (53)    NULL,
+    [MonthPlanQty]        FLOAT (53)    NULL,
+    [MonthPlanValue]      FLOAT (53)    NULL,
+    [ProductGroup]        VARCHAR (50)  NULL,
+    [ProductSubGroup]     VARCHAR (50)  NULL,
+    [ProductGroupCode]    INT           NULL,
+    [ProdSubGroupCode]    INT           NULL,
+    [Cumul_Inward_Qty]    FLOAT (53)    NULL,
+    [Cumul_Inward_Value]  FLOAT (53)    NULL,
+    [Tobe_Inward_Qty]     FLOAT (53)    NULL,
+    [Tobe_Inward_Value]   FLOAT (53)    NULL,
+    [Excess_Inward_Qty]   FLOAT (53)    NULL,
+    [Excess_Inward_Value] FLOAT (53)    NULL,
+    [Cumul_Issue_Qty]     FLOAT (53)    NULL,
+    [Cumul_Issue_Value]   FLOAT (53)    NULL,
+    [ItemPrice]           FLOAT (53)    NULL
+);
+
+
+GO
+

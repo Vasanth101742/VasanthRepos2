@@ -1,0 +1,12 @@
+CREATE TABLE [dbo].[TZZSFC207ALL] (
+    [COMPANY]   FLOAT (53)    NULL,
+    [T$PDNO]    NVARCHAR (9)  NULL,
+    [T$STAT]    FLOAT (53)    NULL,
+    [T$MLOG]    NVARCHAR (16) NULL,
+    [T$REFCNTD] FLOAT (53)    NULL,
+    [T$REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

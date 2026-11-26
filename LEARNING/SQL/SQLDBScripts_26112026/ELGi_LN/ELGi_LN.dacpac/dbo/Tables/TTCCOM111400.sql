@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[TTCCOM111400] (
+    [t_ofbp]    NVARCHAR (18) NULL,
+    [t_bpst]    INT           NULL,
+    [t_endt]    DATETIME      NULL,
+    [t_stdt]    DATETIME      NULL,
+    [t_clan]    NVARCHAR (6)  NULL,
+    [t_cbps]    NVARCHAR (6)  NULL,
+    [t_cbtp]    NVARCHAR (6)  NULL,
+    [t_cadr]    NVARCHAR (18) NULL,
+    [t_telp]    NVARCHAR (64) NULL,
+    [t_tlcy]    NVARCHAR (12) NULL,
+    [t_tlci]    NVARCHAR (30) NULL,
+    [t_tlln]    NVARCHAR (64) NULL,
+    [t_tlex]    NVARCHAR (30) NULL,
+    [t_tefx]    NVARCHAR (64) NULL,
+    [t_tfcy]    NVARCHAR (12) NULL,
+    [t_tfci]    NVARCHAR (30) NULL,
+    [t_tfln]    NVARCHAR (64) NULL,
+    [t_tfex]    NVARCHAR (30) NULL,
+    [t_ccal]    NVARCHAR (18) NULL,
+    [t_ccnt]    NVARCHAR (18) NULL,
+    [t_stbp]    NVARCHAR (18) NULL,
+    [t_user]    NVARCHAR (32) NULL,
+    [t_crdt]    DATETIME      NULL,
+    [t_lmus]    NVARCHAR (32) NULL,
+    [t_lmdt]    DATETIME      NULL,
+    [t_seak]    NVARCHAR (32) NULL,
+    [t_txta]    INT           NULL,
+    [t_Refcntd] INT           NULL,
+    [t_Refcntu] INT           NULL,
+    [t_serv]    NVARCHAR (6)  NULL,
+    [t_capp]    INT           NULL,
+    [t_rrqt]    INT           NULL,
+    [t_cfrw]    NVARCHAR (6)  NULL,
+    [t_cwar]    NVARCHAR (12) NULL,
+    [t_mask]    NVARCHAR (18) NULL,
+    [t_sscc]    INT           NULL
+);
+
+
+GO
+

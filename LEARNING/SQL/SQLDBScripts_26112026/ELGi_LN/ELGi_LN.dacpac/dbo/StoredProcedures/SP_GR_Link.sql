@@ -1,0 +1,15 @@
+
+
+
+CREATE proc [SP_GR_Link]
+as
+begin
+
+--https://www.progress.com/tutorials/odbc/odbc-connectivity-to-the-infor-data-lake-using-the-compass-jdbc-driver-and-openaccess-sdk
+--https://docs.progress.com/bundle/datadirect-openaccess-installation/page/topics/oainstall/welcome.html?_ga=2.187294248.1225583951.1704332110-291254861.1693938321&_gl=1*rdvn1l*_ga*MjkxMjU0ODYxLjE2OTM5MzgzMjE.*_ga_9JSNBCSF54*MTcwNDMzMjExMi43LjEuMTcwNDMzMjc1NS4yMS4wLjA.*_gcl_au*MTQ5NTgyNDIxMy4xNzAzODMxNzU0
+
+select getdate()
+end
+
+GO
+

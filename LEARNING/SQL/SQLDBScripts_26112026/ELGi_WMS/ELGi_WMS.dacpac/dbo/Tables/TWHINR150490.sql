@@ -1,0 +1,25 @@
+CREATE TABLE [dbo].[TWHINR150490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [ITEM]    NVARCHAR (47)    NULL,
+    [CWAR]    NVARCHAR (6)     NULL,
+    [LOCA]    NVARCHAR (10)    NULL,
+    [CLOT]    NVARCHAR (20)    NULL,
+    [IDAT]    DATETIME2 (7)    NULL,
+    [PKDF]    NVARCHAR (6)     NULL,
+    [LEVL]    DECIMAL (38, 18) NULL,
+    [CUNI]    NVARCHAR (3)     NULL,
+    [QHDS]    DECIMAL (38, 18) NULL,
+    [QHND]    DECIMAL (38, 18) NULL,
+    [PRBL]    DECIMAL (38, 18) NULL,
+    [MABL]    DECIMAL (38, 18) NULL,
+    [MABP]    DECIMAL (38, 18) NULL,
+    [QALS]    DECIMAL (38, 18) NULL,
+    [QAVS]    DECIMAL (38, 18) NULL,
+    [QAVL]    DECIMAL (38, 18) NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL
+);
+
+
+GO
+

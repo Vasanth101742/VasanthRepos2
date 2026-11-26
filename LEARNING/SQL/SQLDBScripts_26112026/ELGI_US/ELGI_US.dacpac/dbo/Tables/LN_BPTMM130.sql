@@ -1,0 +1,72 @@
+CREATE TABLE [dbo].[LN_BPTMM130] (
+    [compnr]          BIGINT        NULL,
+    [emno]            NVARCHAR (9)  NULL,
+    [year]            BIGINT        NULL,
+    [peri]            BIGINT        NULL,
+    [seqn]            BIGINT        NULL,
+    [ecom]            BIGINT        NULL,
+    [lcom]            BIGINT        NULL,
+    [stdt]            NVARCHAR (40) NULL,
+    [endt]            NVARCHAR (40) NULL,
+    [trdt]            NVARCHAR (40) NULL,
+    [rgdt]            NVARCHAR (10) NULL,
+    [cgrp]            NVARCHAR (9)  NULL,
+    [wtsc]            NVARCHAR (3)  NULL,
+    [cuni]            NVARCHAR (3)  NULL,
+    [hrea]            FLOAT (53)    NULL,
+    [chlt]            NVARCHAR (3)  NULL,
+    [orno]            NVARCHAR (9)  NULL,
+    [stsk]            NVARCHAR (8)  NULL,
+    [acln]            BIGINT        NULL,
+    [cwoc]            NVARCHAR (6)  NULL,
+    [lbtv]            BIGINT        NULL,
+    [lbtv_kw]         NVARCHAR (20) NULL,
+    [lbln]            BIGINT        NULL,
+    [tvln]            BIGINT        NULL,
+    [cpcp]            NVARCHAR (8)  NULL,
+    [hrdv]            BIGINT        NULL,
+    [hrdv_kw]         NVARCHAR (20) NULL,
+    [cnfd]            BIGINT        NULL,
+    [cnfd_kw]         NVARCHAR (20) NULL,
+    [proc]            BIGINT        NULL,
+    [proc_kw]         NVARCHAR (20) NULL,
+    [orig]            BIGINT        NULL,
+    [orig_kw]         NVARCHAR (21) NULL,
+    [logn]            NVARCHAR (16) NULL,
+    [apby]            NVARCHAR (16) NULL,
+    [apdt]            NVARCHAR (40) NULL,
+    [agui]            NVARCHAR (22) NULL,
+    [txta]            BIGINT        NULL,
+    [cdf_asta]        BIGINT        NULL,
+    [cdf_asta_kw]     NVARCHAR (20) NULL,
+    [cdf_endf]        NVARCHAR (10) NULL,
+    [cdf_endt]        NVARCHAR (10) NULL,
+    [cdf_osta]        BIGINT        NULL,
+    [cdf_osta_kw]     NVARCHAR (20) NULL,
+    [cdf_site]        NVARCHAR (9)  NULL,
+    [cdf_stdf]        NVARCHAR (10) NULL,
+    [cdf_stdt]        NVARCHAR (10) NULL,
+    [emno_ref_compnr] BIGINT        NULL,
+    [cgrp_ref_compnr] BIGINT        NULL,
+    [wtsc_ref_compnr] BIGINT        NULL,
+    [cuni_ref_compnr] BIGINT        NULL,
+    [chlt_ref_compnr] BIGINT        NULL,
+    [cwoc_ref_compnr] BIGINT        NULL,
+    [cpcp_ref_compnr] BIGINT        NULL,
+    [txta_ref_compnr] BIGINT        NULL,
+    [deleted]         NCHAR (1)     NULL,
+    [username]        NVARCHAR (8)  NULL,
+    [timestamp]       DATETIME      NULL,
+    [sequencenumber]  BIGINT        NULL,
+    [dlDocumentDate]  NVARCHAR (40) NULL
+);
+
+
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [idx_LN_BPTMM130_lookup]
+    ON [dbo].[LN_BPTMM130]([compnr] ASC, [emno] ASC, [year] ASC, [peri] ASC, [seqn] ASC);
+
+
+GO
+

@@ -1,0 +1,38 @@
+CREATE TABLE [dbo].[TCISLI960ALL] (
+    [T$SFCP]    NVARCHAR (38)  NULL,
+    [T$TRAN]    NVARCHAR (6)   NULL,
+    [T$IDOC]    NVARCHAR (38)  NULL,
+    [T$REFCNTD] NVARCHAR (38)  NULL,
+    [T$REFCNTU] NVARCHAR (38)  NULL,
+    [COMPANY]   NVARCHAR (38)  NULL,
+    [T$TINV]    NVARCHAR (32)  NULL,
+    [T$ORGN]    NVARCHAR (38)  NULL,
+    [T$TDOC]    NVARCHAR (38)  NULL,
+    [T$DCDT]    DATETIME       NULL,
+    [T$SRCP]    NVARCHAR (38)  NULL,
+    [T$SHPM]    NVARCHAR (18)  NULL,
+    [T$RNSO]    NVARCHAR (38)  NULL,
+    [T$REGN]    NVARCHAR (70)  NULL,
+    [T$RNSB]    NVARCHAR (38)  NULL,
+    [T$FOVN]    NVARCHAR (70)  NULL,
+    [T$TYER]    NVARCHAR (38)  NULL,
+    [T$TPRD]    NVARCHAR (38)  NULL,
+    [T$ASEK]    NVARCHAR (140) NULL,
+    [T$IRST]    NVARCHAR (38)  NULL,
+    [T$EIRN]    NVARCHAR (140) NULL,
+    [T$IRDT]    DATETIME       NULL,
+    [T$EWNO]    NVARCHAR (32)  NULL,
+    [T$EWDT]    DATETIME       NULL,
+    [T$EWVT]    DATETIME       NULL,
+    [T$JREQ]    NVARCHAR (38)  NULL,
+    [T$JERS]    NVARCHAR (38)  NULL,
+    [T$JDRS]    NVARCHAR (38)  NULL,
+    [T$SIQR]    NVARCHAR (38)  NULL,
+    [T$SIIN]    NVARCHAR (38)  NULL,
+    [T$CREQ]    NVARCHAR (38)  NULL,
+    [T$QRCD]    NVARCHAR (38)  NULL
+);
+
+
+GO
+

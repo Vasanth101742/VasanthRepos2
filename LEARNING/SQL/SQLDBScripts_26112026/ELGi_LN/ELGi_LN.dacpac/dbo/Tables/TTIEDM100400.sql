@@ -1,0 +1,32 @@
+CREATE TABLE [dbo].[TTIEDM100400] (
+    [EITM]    NVARCHAR (47) NULL,
+    [REVI]    NVARCHAR (6)  NULL,
+    [DSCA]    NVARCHAR (30) NULL,
+    [MBCN]    NVARCHAR (9)  NULL,
+    [CRDT]    DATETIME2 (7) NULL,
+    [INDT]    DATETIME2 (7) NULL,
+    [EXDT]    DATETIME2 (7) NULL,
+    [ENGI]    NVARCHAR (9)  NULL,
+    [RELE]    FLOAT (53)    NULL,
+    [DSCB]    NVARCHAR (30) NULL,
+    [DSCC]    NVARCHAR (30) NULL,
+    [DSCD]    NVARCHAR (30) NULL,
+    [CWUN]    NVARCHAR (3)  NULL,
+    [WGHT]    FLOAT (53)    NULL,
+    [UNOM]    FLOAT (53)    NULL,
+    [USET]    NVARCHAR (6)  NULL,
+    [CUNI]    NVARCHAR (3)  NULL,
+    [AFED]    DATETIME2 (7) NULL,
+    [AFPD]    DATETIME2 (7) NULL,
+    [EFCO]    NVARCHAR (8)  NULL,
+    [EXCO]    NVARCHAR (8)  NULL,
+    [LDCD]    DATETIME2 (7) NULL,
+    [CSIG]    NVARCHAR (3)  NULL,
+    [TXTA]    FLOAT (53)    NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

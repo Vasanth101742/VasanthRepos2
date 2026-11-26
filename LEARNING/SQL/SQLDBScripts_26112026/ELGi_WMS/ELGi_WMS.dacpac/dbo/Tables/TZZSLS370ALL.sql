@@ -1,0 +1,11 @@
+CREATE TABLE [dbo].[TZZSLS370ALL] (
+    [COMPANY] FLOAT (53)    NULL,
+    [ITEM]    NVARCHAR (47) NULL,
+    [WCST]    FLOAT (53)    NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

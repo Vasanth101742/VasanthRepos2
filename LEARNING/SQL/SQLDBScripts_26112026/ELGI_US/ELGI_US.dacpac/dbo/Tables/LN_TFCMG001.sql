@@ -1,0 +1,71 @@
+CREATE TABLE [dbo].[LN_TFCMG001] (
+    [compnr]          BIGINT        NULL,
+    [bank]            NVARCHAR (3)  NULL,
+    [desc]            NVARCHAR (50) NULL,
+    [gacc]            BIGINT        NULL,
+    [gacc_kw]         NVARCHAR (20) NULL,
+    [bano]            NVARCHAR (34) NULL,
+    [iban]            NVARCHAR (34) NULL,
+    [ccur]            NVARCHAR (3)  NULL,
+    [mcur]            BIGINT        NULL,
+    [mcur_kw]         NVARCHAR (20) NULL,
+    [excf]            BIGINT        NULL,
+    [excf_kw]         NVARCHAR (20) NULL,
+    [ttyp]            NVARCHAR (3)  NULL,
+    [blpm]            BIGINT        NULL,
+    [blpm_kw]         NVARCHAR (20) NULL,
+    [bldd]            BIGINT        NULL,
+    [bldd_kw]         NVARCHAR (20) NULL,
+    [prip]            BIGINT        NULL,
+    [prid]            BIGINT        NULL,
+    [patb]            NVARCHAR (50) NULL,
+    [otyp]            NVARCHAR (3)  NULL,
+    [osrn]            BIGINT        NULL,
+    [pstb]            NVARCHAR (50) NULL,
+    [dstb]            NVARCHAR (14) NULL,
+    [paeb]            NVARCHAR (50) NULL,
+    [rtty]            NVARCHAR (3)  NULL,
+    [mtfr]            BIGINT        NULL,
+    [mtfr_kw]         NVARCHAR (20) NULL,
+    [cext]            NVARCHAR (5)  NULL,
+    [divn]            NVARCHAR (11) NULL,
+    [brch]            NVARCHAR (12) NULL,
+    [toac]            BIGINT        NULL,
+    [toac_kw]         NVARCHAR (20) NULL,
+    [bbal]            FLOAT (53)    NULL,
+    [antr]            FLOAT (53)    NULL,
+    [antp]            FLOAT (53)    NULL,
+    [clim]            BIGINT        NULL,
+    [clim_kw]         NVARCHAR (21) NULL,
+    [clcc]            BIGINT        NULL,
+    [clcc_kw]         NVARCHAR (21) NULL,
+    [camt]            FLOAT (53)    NULL,
+    [utf8]            BIGINT        NULL,
+    [utf8_kw]         NVARCHAR (20) NULL,
+    [dcty]            NVARCHAR (3)  NULL,
+    [aqrb]            BIGINT        NULL,
+    [aqrb_kw]         NVARCHAR (20) NULL,
+    [qrib]            NVARCHAR (34) NULL,
+    [vban]            NVARCHAR (3)  NULL,
+    [ccur_ref_compnr] BIGINT        NULL,
+    [ttyp_ref_compnr] BIGINT        NULL,
+    [otyp_ref_compnr] BIGINT        NULL,
+    [rtty_ref_compnr] BIGINT        NULL,
+    [brch_ref_compnr] BIGINT        NULL,
+    [dcty_ref_compnr] BIGINT        NULL,
+    [deleted]         NCHAR (1)     NULL,
+    [username]        NVARCHAR (8)  NULL,
+    [timestamp]       DATETIME      NULL,
+    [sequencenumber]  BIGINT        NULL,
+    [dlDocumentDate]  NVARCHAR (40) NULL
+);
+
+
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [idx_LN_TFCMG001_lookup]
+    ON [dbo].[LN_TFCMG001]([compnr] ASC, [bank] ASC);
+
+
+GO
+

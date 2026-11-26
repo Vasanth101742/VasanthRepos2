@@ -1,0 +1,16 @@
+CREATE TABLE [dbo].[TZZCMG728ALL] (
+    [BPID]    NVARCHAR (18) NULL,
+    [EFDT]    DATETIME      NULL,
+    [EXDT]    DATETIME      NULL,
+    [REMK]    NVARCHAR (60) NULL,
+    [TUID]    NVARCHAR (50) NULL,
+    [TRDT]    DATETIME      NULL,
+    [TRTM]    NVARCHAR (38) NULL,
+    [REFCNTD] NVARCHAR (38) NULL,
+    [REFCNTU] NVARCHAR (38) NULL,
+    [Company] INT           NULL
+);
+
+
+GO
+

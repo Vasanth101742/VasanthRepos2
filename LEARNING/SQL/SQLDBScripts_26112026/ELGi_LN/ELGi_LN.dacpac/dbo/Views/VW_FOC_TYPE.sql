@@ -1,0 +1,8 @@
+create view [dbo].[VW_FOC_TYPE]
+AS
+SELECT DISTINCT A.SOTP,A.DSCA fROM (select DISTINCT * From TTDSLS094ALL)A
+INNER JOIN (SELECT DISTINCT *  fROM SaleType_Master)B
+ON A.SOTP=B.SaleOrderType
+
+GO
+

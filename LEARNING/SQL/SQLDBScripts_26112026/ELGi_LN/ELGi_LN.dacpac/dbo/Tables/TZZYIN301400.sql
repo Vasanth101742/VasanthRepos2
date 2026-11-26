@@ -1,0 +1,16 @@
+CREATE TABLE [dbo].[TZZYIN301400] (
+    [COMPANY] NVARCHAR (38) NULL,
+    [ITEM]    NVARCHAR (94) NULL,
+    [PVAT]    FLOAT (53)    NULL,
+    [DUTY]    FLOAT (53)    NULL,
+    [FRTP]    FLOAT (53)    NULL,
+    [SEAF]    FLOAT (53)    NULL,
+    [LOGN]    NVARCHAR (32) NULL,
+    [UPDT]    DATETIME      NULL,
+    [REFCNTD] NVARCHAR (38) NULL,
+    [REFCNTU] NVARCHAR (38) NULL
+);
+
+
+GO
+

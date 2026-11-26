@@ -1,0 +1,15 @@
+CREATE TABLE [dbo].[TZZGLD801400] (
+    [CODE]    VARCHAR (70)  NULL,
+    [GRUP]    VARCHAR (50)  NULL,
+    [PRD1]    VARCHAR (200) NULL,
+    [PRD2]    VARCHAR (200) NULL,
+    [PROD3]   VARCHAR (200) NULL,
+    [UPBY]    VARCHAR (50)  NULL,
+    [UPDT]    DATETIME      NULL,
+    [REFCNTD] FLOAT (53)    NULL,
+    [REFCNTU] FLOAT (53)    NULL
+);
+
+
+GO
+

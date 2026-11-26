@@ -1,0 +1,34 @@
+CREATE TABLE [dbo].[Price_Master] (
+    [T$REFCNTD] NVARCHAR (38) NULL,
+    [T$REFCNTU] NVARCHAR (38) NULL,
+    [COMPANY]   NVARCHAR (38) NULL,
+    [T$PRBK]    NVARCHAR (18) NULL,
+    [T$ITEM]    NVARCHAR (94) NULL,
+    [T$OTBP]    NVARCHAR (18) NULL,
+    [T$SFBP]    NVARCHAR (18) NULL,
+    [T$CURN]    NVARCHAR (6)  NULL,
+    [T$QTUN]    NVARCHAR (6)  NULL,
+    [T$PRTY]    NVARCHAR (38) NULL,
+    [T$MIQT]    NVARCHAR (38) NULL,
+    [T$EFDT]    DATETIME      NULL,
+    [T$BRTY]    NVARCHAR (38) NULL,
+    [T$EXDT]    DATETIME      NULL,
+    [T$ENDT]    DATETIME      NULL,
+    [T$PRPC]    NVARCHAR (38) NULL,
+    [T$BAPR]    NVARCHAR (38) NULL,
+    [T$PRUN]    NVARCHAR (6)  NULL,
+    [T$PERC]    NVARCHAR (38) NULL,
+    [T$DSSC]    NVARCHAR (18) NULL,
+    [T$QUON]    NVARCHAR (38) NULL,
+    [T$HIPR]    NVARCHAR (38) NULL,
+    [T$REFA]    NVARCHAR (60) NULL,
+    [T$SOUR]    NVARCHAR (60) NULL,
+    [T$DFPB]    NVARCHAR (38) NULL,
+    [T$UOLP]    NVARCHAR (38) NULL,
+    [T$DSOR]    NVARCHAR (38) NULL,
+    [T$PBOR]    NVARCHAR (38) NULL
+);
+
+
+GO
+

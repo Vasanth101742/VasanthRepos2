@@ -1,0 +1,40 @@
+CREATE TABLE [dbo].[TZZPUR916490] (
+    [COMPANY] DECIMAL (38, 18) NULL,
+    [BPID]    NVARCHAR (9)     NULL,
+    [DCNO]    NVARCHAR (30)    NULL,
+    [DCDT]    DATETIME2 (7)    NULL,
+    [ORNO]    NVARCHAR (9)     NULL,
+    [PONO]    DECIMAL (38, 18) NULL,
+    [ITEM]    NVARCHAR (47)    NULL,
+    [DSCA]    NVARCHAR (30)    NULL,
+    [NOPK]    DECIMAL (38, 18) NULL,
+    [NRPK]    DECIMAL (38, 18) NULL,
+    [MODL]    DECIMAL (38, 18) NULL,
+    [VCHN]    NVARCHAR (30)    NULL,
+    [RMRK]    NVARCHAR (100)   NULL,
+    [SLNO]    DECIMAL (38, 18) NULL,
+    [USID]    NVARCHAR (10)    NULL,
+    [UPDT]    DATETIME2 (7)    NULL,
+    [UPTM]    NVARCHAR (10)    NULL,
+    [IFLG]    DECIMAL (38, 18) NULL,
+    [INVN]    NVARCHAR (9)     NULL,
+    [DATE]    DATETIME2 (7)    NULL,
+    [LOTN]    DECIMAL (38, 18) NULL,
+    [RTIM]    NVARCHAR (10)    NULL,
+    [RUSR]    NVARCHAR (10)    NULL,
+    [LOCA]    DECIMAL (38, 18) NULL,
+    [REFCNTD] DECIMAL (38, 18) NULL,
+    [REFCNTU] DECIMAL (38, 18) NULL,
+    [WMSA]    DECIMAL (38, 18) NULL,
+    [AMNT]    DECIMAL (38, 18) NULL,
+    [CGST]    DECIMAL (38, 18) NULL,
+    [GTYP]    NVARCHAR (30)    NULL,
+    [IGST]    DECIMAL (38, 18) NULL,
+    [SGST]    DECIMAL (38, 18) NULL,
+    [UAMT]    DECIMAL (38, 18) NULL,
+    [CONF]    DECIMAL (38, 18) NULL
+);
+
+
+GO
+

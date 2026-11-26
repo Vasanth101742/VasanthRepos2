@@ -1,0 +1,42 @@
+CREATE TABLE [dbo].[TTDSLS410ALL] (
+    [t_orno]    NVARCHAR (9)  NULL,
+    [t_srna]    INT           NULL,
+    [t_srnb]    INT           NULL,
+    [t_dsca]    NVARCHAR (30) NULL,
+    [t_amta]    FLOAT (53)    NULL,
+    [t_ccty]    NVARCHAR (3)  NULL,
+    [t_cvat]    NVARCHAR (9)  NULL,
+    [t_bptc]    NVARCHAR (3)  NULL,
+    [t_exmt]    INT           NULL,
+    [t_bpcl]    NVARCHAR (12) NULL,
+    [t_ceno]    NVARCHAR (20) NULL,
+    [t_rcod]    NVARCHAR (6)  NULL,
+    [t_pind]    DATETIME      NULL,
+    [t_lmbi]    INT           NULL,
+    [t_scmp]    INT           NULL,
+    [t_ttyp]    NVARCHAR (3)  NULL,
+    [t_invn]    INT           NULL,
+    [t_inln]    INT           NULL,
+    [t_invd]    DATETIME      NULL,
+    [t_sibi]    INT           NULL,
+    [t_inty]    INT           NULL,
+    [t_oinl]    INT           NULL,
+    [t_pono]    INT           NULL,
+    [t_srnc]    INT           NULL,
+    [t_ampd]    FLOAT (53)    NULL,
+    [t_hipr]    INT           NULL,
+    [t_cpay]    NVARCHAR (3)  NULL,
+    [t_paym]    NVARCHAR (3)  NULL,
+    [t_ccrs]    NVARCHAR (3)  NULL,
+    [t_cprj]    NVARCHAR (9)  NULL,
+    [t_rnso_l]  INT           NULL,
+    [t_rnsb_l]  INT           NULL,
+    [t_txta]    INT           NULL,
+    [t_Refcntd] INT           NULL,
+    [t_Refcntu] INT           NULL,
+    [Company]   INT           NULL
+);
+
+
+GO
+

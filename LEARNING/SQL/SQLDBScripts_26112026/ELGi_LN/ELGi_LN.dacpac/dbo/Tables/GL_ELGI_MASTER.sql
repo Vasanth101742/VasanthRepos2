@@ -1,0 +1,14 @@
+CREATE TABLE [dbo].[GL_ELGI_MASTER] (
+    [UNIT]       VARCHAR (100) NULL,
+    [CUSTCODE]   VARCHAR (20)  NULL,
+    [CUSTNAME]   VARCHAR (100) NULL,
+    [LEVEL]      VARCHAR (30)  NULL,
+    [ENTITYCODE] VARCHAR (30)  NULL,
+    [CURRENCY]   VARCHAR (20)  NULL,
+    [TYPE]       VARCHAR (20)  NULL,
+    [ORDR]       INT           NULL
+);
+
+
+GO
+
