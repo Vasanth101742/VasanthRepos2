@@ -5,9 +5,9 @@
 
 $Server = "10.50.0.4"
 
-$RootFolder = "C:\SQLDevOps"
+$RootFolder = "C:\SQLDBScripts_26112026"
 
-$DatabaseListFile = "$RootFolder\Databases.txt"
+$DatabaseListFile = "$RootFolder\Databases_list.txt"
 
 $LogFile = "$RootFolder\ExtractionLog.csv"
 

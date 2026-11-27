@@ -5,7 +5,7 @@
 
 $Server = "10.50.0.4"
 
-$RootFolder = "C:\SQLDBScripts_26112026"
+$RootFolder = "C:\SQLDBScripts_Test"
 
 $DatabaseListFile = "$RootFolder\Databases.txt"
 
